@@ -447,10 +447,29 @@ impl Engine {
             self.fire_step(inputs, tick_due_sample, samples_per_tick);
         }
 
+        // Ref: CE v5.30 p.59-60, "Feeders, Listeners and Listening Feeders": "A
+        // track may also be both a listener and a feeder... if that track itself
+        // is playing notes, then the attributes of those notes are modulated,
+        // while the resulting values will modulate the corresponding listeners
+        // below it" — a listening feeder forwards its *post-modulation* offset,
+        // not its raw step value. For a feeder-only track (not a listener),
+        // `feed_pit`/`feed_vel`/`feed_len` are always 0 here (nothing was
+        // received), so this is a no-op difference for the common case.
+        let (own_pit, own_vel, own_len) = (
+            step.pitch_offset as i32,
+            step.velocity_offset as i32,
+            step.length_ticks as i32 * step.length_multiplier as i32,
+        );
         let rt = &mut self.track_rt[ti as usize];
-        rt.feed_pitch = step.pitch_offset;
-        rt.feed_velocity = step.velocity_offset;
-        rt.feed_length_ticks = step.length_ticks as i32 * step.length_multiplier as i32;
+        if track.is_listener {
+            rt.feed_pitch = (own_pit + feed_pit).clamp(i8::MIN as i32, i8::MAX as i32) as i8;
+            rt.feed_velocity = (own_vel + feed_vel).clamp(i8::MIN as i32, i8::MAX as i32) as i8;
+            rt.feed_length_ticks = own_len + feed_len;
+        } else {
+            rt.feed_pitch = step.pitch_offset;
+            rt.feed_velocity = step.velocity_offset;
+            rt.feed_length_ticks = own_len;
+        }
 
         self.advance_position(ti, track.direction(), is_chain_head, page_len, page.tracks[ti as usize].chain_member_count);
     }

@@ -112,19 +112,17 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
 mod tests {
     use super::*;
 
-    /// Ref: CE v5.30 p.59, "a track may also be both a listener and a feeder,
-    /// which we call a listening feeder" — the `role` directive's `both` value
-    /// exercises exactly the state a single Feeder/Listener/None enum couldn't
-    /// express (see domain.rs's TrackRole -> is_feeder/is_listener split).
-    /// `run_fixture` only returns pass/fail, not the engine, so this drives the
-    /// same directive syntax through a fixture: track 9 and track 5 are both
-    /// independent feeders of track 0 (the effector sums *every* feeder above a
-    /// listener, not just the nearest one), so track 0 sees +3 (from 9) + +1
-    /// (from 5's own raw step) = +4 at this point in the series. Once the
-    /// post-modulation-publish fix lands (a later commit), track 5 — itself a
-    /// listener of track 9 too — will forward its *modulated* value instead of
-    /// its raw one, and this expectation will need updating; that's the whole
-    /// point of the fixture that commit adds.
+    /// Ref: CE v5.30 p.59-60. Track 9 (feeder, step PIT +3) and track 5 (a
+    /// *listening feeder* — both a listener of track 9 and a feeder of track 0,
+    /// step PIT +1) both independently reach track 0 (the effector sums *every*
+    /// feeder above a listener, not just the nearest one — p.59-60's own
+    /// multi-feeder dry-run example works the same way). Track 5 must forward
+    /// its *post-modulation* value ("the resulting values will modulate the
+    /// corresponding listeners below it", p.59) — own +1 plus the +3 it itself
+    /// received from track 9 — so track 0 sees track 9's direct +3, plus track
+    /// 5's forwarded +4, for a total of +7. Before the post-modulation-publish
+    /// fix, this fixture asserted +4 (track 5 forwarding its raw +1 instead);
+    /// the value changing here *is* the regression test for that fix.
     #[test]
     fn role_both_receives_and_publishes() {
         let fixture = "\
@@ -136,7 +134,7 @@ mod tests {
             track 9 step 0 pit +3\n\
             track 5 step 0 pit +1\n\
             play 1 step\n\
-            expect note track=0 pit=+4\n";
+            expect note track=0 pit=+7\n";
         run_fixture(fixture).unwrap();
     }
 }

@@ -116,22 +116,62 @@ pitch-only, but doesn't rule out the alternative explicitly.
 `::phrase_reverse_plays_8_to_1`, `::phrase_random_pitch_permutes_pitch_only`,
 `::phrase_random_all_permutes_whole_notes`.
 
-## step events: timing and "on-the-measure" toggles
+## step events: real addressing/timing implemented, several gaps still open
 
-**Manual reference:** none available.
-**Ambiguity:** §3 says a step event targeting a *higher-indexed* track
-executes on the following step "because of top-down processing order", and
-separately that track toggles (mute/solo/record) "are subordinate to
-on-the-measure mode" — implying toggles from a step event may not take effect
-immediately even then.
-**Chosen:** every step event (regardless of target index) is applied at the
-start of the tick following the one that fired it — no same-tick case for
-lower-indexed targets, and no "on-the-measure" gating for toggles. Simpler
-than trying to reproduce an asymmetric rule with no data on the toggle timing.
-Also: `Engine::queue_step_event` exists but nothing calls it yet — `Step::event`
-is never read during `fire_step`, so step events are a real data model with no
-live behaviour wired up.
-**Fixture:** none.
+**Manual reference:** CE v5.30 §2 Step Mode, "Step events", p.34-40.
+**Resolution:** `Step::event` is now actually read in `step_one_track`/
+`fire_step` — it was dead data before. Two real bugs fixed: (1) DIR/POS/MCH
+step events were modeled as an *overwrite*; the manual is explicit they're
+additive deltas ("if DIR is 6 a Step Event of '+2' will change it to 8", p.34),
+wrapped mod 16/32 for DIR/MCH (p.34: "Those MAXIMUM values are... 16 for DIR
+[and] 32 for MCH"). (2) Track Toggle events were modeled with an explicit
+`target_track` field; the manual's real addressing is AMT/Range-based (p.39):
+`|amt|` selects the target track (0 invalid, 10 means track 0), sign selects
+On/Off, and `range` (max 10) selects how many consecutive tracks are affected,
+wrapping — confirmed against the manual's own worked example ("AMT +1 & Range
+4... Tracks 1 & 0 and Tracks 9 & 8 will be Muted") in
+`engine::tests::track_toggle_range_wraps_manual_worked_example`. Also added
+the two missing toggle kinds structurally: `Pause` is a real, working toggle;
+`TrackRotate`/`TrackSkipRotate` exist as data (p.38-39 reveal these are a
+*different* operation — whole-track step-data rotation, not a per-track
+toggle at all) but are not wired into playback — seeded, not guessed at.
+DIR/MCH now revert to the persisted `Track` attribute when the sequencer
+stops via a live-override shadow on `TrackRuntime` (p.40: "DIR will default
+to the Track attribute amount when the sequencer stops" / same for MCH); POS
+deliberately has no shadow and mutates `Track::rotation` directly, since
+"POS does not restore to the start POS(ition) when stopping the sequencer."
+**Still a chosen simplification, not cited:** every step event applies at the
+start of the tick *following* the one that fired it, for every target,
+uniformly — the manual's real rule is asymmetric (p.40: "tracks are processed
+top-down... when [an event] is applied to tracks higher in the matrix it will
+be executed on the following step", implying same-tick application for
+lower-indexed targets). Implementing genuine same-tick application would
+require reworking the tick loop's per-tick `Page` snapshot (every track
+currently reads one snapshot taken once at tick start specifically so
+mid-tick mutations from other tracks aren't visible — see `engine.rs` module
+docs) — a bigger architectural change than fits alongside the addressing fix,
+so deferred rather than done halfway.
+**New, still open (not attempted this pass):**
+- The attribute-map-factor step-event sub-system (VEL/PIT/LEN/STA/AMT/GRV/MCC
+  step events, p.34-37): "what changes is really the attribute map factor of
+  any steps having offsets from the track value" — a real, non-trivial
+  scaling-factor progression system ("Available Step Event Range = 17 - Track
+  Attribute Scaling Factor", with a 9-row × 17-column reference chart on
+  p.35). Confirmed real, not implemented — see the `Step` attribute-offset
+  model, which still only supports VEL/PIT/LEN/STA/GRV/MCC as simple
+  offsets/absolutes, no map-factor scaling at all.
+- Track Rotate / Track Skip Rotate's actual step-data-shifting behaviour
+  (p.38-39) — data model present, playback not implemented.
+- On-the-measure deferral for Mute/Solo Track Toggles (p.40: "subordinate to
+  the On-The-Measure mode condition of the Page") — tracked separately, see
+  the next AMBIGUITIES entry once that lands.
+- POS's own wrap maximum isn't given anywhere in the manual (unlike DIR's 16
+  and MCH's 32) — left unwrapped; harmless since it only ever feeds a
+  `% page_len` downstream.
+**Fixture:** `engine::tests::step_event_set_dir_is_additive_and_wraps`,
+`::step_event_set_dir_reverts_on_stop`,
+`::track_toggle_range_wraps_manual_worked_example`,
+`::track_toggle_amt_10_targets_track_0`, `::track_toggle_negative_amt_is_off`.
 
 ## hyperstep carry: was a wrong model, now corrected
 

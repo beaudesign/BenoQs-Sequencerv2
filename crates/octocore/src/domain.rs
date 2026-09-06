@@ -162,22 +162,69 @@ impl Default for ChordPool {
     }
 }
 
-/// A step event targets another track and either sets an absolute attribute or
-/// toggles a transport-adjacent flag. docs/03-sequencer-core.md §3: "Events applied
-/// to higher-indexed tracks execute on the following step, because of the top-down
-/// processing order." — handled by the engine's deferred-event queue, not here.
+/// Ref: CE v5.30 p.38, "Step Event Track Toggles": "toggle options are Mute,
+/// Solo, Record, Pause". Rotate and Skip Rotate exist too but are structurally
+/// different (whole-track step-data operations, not a per-track toggle — see
+/// `StepEventKind::TrackRotate`/`TrackSkipRotate`), so they're not part of
+/// this enum.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ToggleKind {
+    Mute,
+    Solo,
+    Record,
+    Pause,
+}
+
+/// Ref: CE v5.30 p.34: "for the DIR, POS, and MCH events the track attribute
+/// value changes, while in the case of the other attributes... what changes
+/// is really the attribute map factor" — only the DIR/POS/MCH family
+/// (absolute-value events) and Track Toggle events are implemented here; the
+/// attribute-map-factor family (VEL/PIT/LEN/STA/AMT/GRV/MCC step events) is
+/// deliberately not — see AMBIGUITIES.md "step events: attribute map-factor
+/// sub-system".
 #[derive(Clone, Copy, Debug)]
 pub enum StepEventKind {
-    SetPos(u8),
-    SetDir(u8),
-    SetMch(u8),
-    ToggleMute,
-    ToggleSolo,
-    ToggleRecord,
+    /// Ref p.34: "Attributes DIR, POS & MCH are absolute, i.e. if DIR is 6 a
+    /// Step Event of '+2' will change it to 8" — an additive delta to the
+    /// *target*'s current value, not an overwrite. Wrapped mod 16 (DIR's
+    /// range is 1..=16, Ref p.34: "Those MAXIMUM values are... 16 for DIR").
+    SetDir(i8),
+    /// Additive delta to the target's Track POS (`Track::rotation`). Ref
+    /// p.40: "POS Step Event changes the Track POS, not the Step POS(GRV)"
+    /// and "POS does not restore to the start POS(ition) when stopping the
+    /// sequencer." No wrap maximum is given in the manual for POS itself —
+    /// left unwrapped (harmless: it only ever feeds a `% page_len` downstream)
+    /// — see AMBIGUITIES.md.
+    SetPos(i8),
+    /// Additive delta to the target's MCH, wrapped mod 32 (MCH's range is
+    /// 1..=32, Ref p.34: "32 for MCH").
+    SetMch(i8),
+    /// Ref p.39, "Track Toggle Event Values settings": "The amount (AMT)
+    /// value of the step determines which track the Track Toggle Event will
+    /// be applied to... a positive value is an 'On' toggle and a negative
+    /// value is an 'Off' toggle... An AMT value of zero is an 'off' value
+    /// therefore to apply a Track Toggle Event specifically to... Track 0,
+    /// use AMT value = '10'." And "Track Toggle Event Range settings": Range
+    /// (max 10) "wrap[s] to higher tracks" — descending from the AMT-selected
+    /// track, wrapping from 0 back to 9.
+    TrackToggle { kind: ToggleKind, amt: i8, range: u8 },
+    /// Ref p.38, "Track Rotate": "A Track Rotate Event will move all steps
+    /// (including Step Events & Track Toggle Events), with the exception of
+    /// Skipped Steps or Hypersteps" — a whole-track step-data rotation, not a
+    /// per-track toggle (no AMT-based targeting; applies to the event's own
+    /// track). Data model only — not wired into playback. See AMBIGUITIES.md.
+    TrackRotate { amt: i8 },
+    /// Ref p.39, "Track Skip Rotate": rotates only the skip condition, not
+    /// full step data. Data model only — not wired into playback.
+    TrackSkipRotate { amt: i8 },
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct StepEvent {
+    /// Meaningful only for `SetDir`/`SetPos`/`SetMch`, which target another
+    /// track explicitly. `TrackToggle` computes its own target(s) from its
+    /// `amt`/`range` fields instead (Ref p.39); `TrackRotate`/`TrackSkipRotate`
+    /// apply to the event's own track and ignore this field entirely.
     pub target_track: TrackIndex,
     pub kind: StepEventKind,
 }

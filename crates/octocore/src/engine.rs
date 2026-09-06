@@ -14,17 +14,31 @@
 //!
 //! Each tick reads from a single `Page` snapshot taken at tick start (`Page` is
 //! `Copy`), so every track sees the same page state regardless of processing
-//! order. Step events (§3: "changes another track's POS, DIR, or MCH, or toggles
-//! Mute/Solo/Record") are applied to live state at the *start of the following
-//! tick* for every target, not just higher-indexed ones — the doc only specifies
-//! the higher-indexed case; treating both cases the same way is a documented
-//! simplification, not a manual-derived rule. See AMBIGUITIES.md.
+//! order — this is also why step events (Ref: CE v5.30 p.34-40) apply to live
+//! state at the *start of the following tick* for every target, not just
+//! higher-indexed ones as the manual actually specifies (see
+//! `Engine::deferred_actions`'s doc comment for the full reasoning and
+//! AMBIGUITIES.md "step events: same-tick timing").
 
 use crate::domain::*;
 use crate::rng::Rng;
 use crate::scale;
 use crate::tables;
 use crate::types::{Event, MAX_EVENTS_PER_TICK};
+
+/// A step event already resolved to one target track and one primitive
+/// change — `StepEventKind::TrackToggle`'s AMT/Range addressing is resolved
+/// into zero or more of these (one per affected track) at the moment the
+/// event fires, so the deferred-application queue never needs to re-resolve
+/// addressing later.
+#[derive(Clone, Copy, Debug)]
+enum DeferredAction {
+    AddDir(i8),
+    AddPos(i8),
+    AddMch(i8),
+    ToggleOn(ToggleKind),
+    ToggleOff(ToggleKind),
+}
 
 #[derive(Clone, Copy, Debug, Default)]
 struct ChainRuntime {
@@ -45,6 +59,14 @@ struct TrackRuntime {
     feed_pitch: i8,
     feed_velocity: i8,
     feed_length_ticks: i32,
+    /// Ref: CE v5.30 p.40, "DIR will default to the Track attribute amount
+    /// when the sequencer stops" — `Some` while a Step Event has live-overridden
+    /// this track's DIR; `None` means "use the persisted `Track::direction_raw`".
+    /// Cleared on `Engine::set_running(false)`.
+    live_direction_raw: Option<u8>,
+    /// Ref p.40, "MCH will also default to the Track attribute amount when
+    /// the sequencer stops" — same shape as `live_direction_raw`.
+    live_midi_channel: Option<u8>,
 }
 
 impl Default for TrackRuntime {
@@ -57,6 +79,8 @@ impl Default for TrackRuntime {
             feed_pitch: 0,
             feed_velocity: 0,
             feed_length_ticks: 0,
+            live_direction_raw: None,
+            live_midi_channel: None,
         }
     }
 }
@@ -193,9 +217,24 @@ pub struct Engine {
     track_rt: [TrackRuntime; TRACK_COUNT],
     queue: [Option<Scheduled>; QUEUE_CAP],
     queue_len: usize,
-    /// Step events applied to live state at the start of the *next* tick — see
-    /// module docs for why this is uniform rather than index-dependent.
-    deferred_events: [Option<StepEvent>; TRACK_COUNT],
+    /// Step events, already resolved to a single target and a primitive
+    /// action, applied to live state at the start of the *next* tick.
+    ///
+    /// Ref: CE v5.30 p.40: "All tracks are processed... top-down... when a
+    /// [step event] is applied to tracks higher in the matrix it will be
+    /// executed on the following step" — for tracks *lower* in the matrix
+    /// (not yet processed this tick) the manual has same-tick application
+    /// take effect before that track's own step plays. This engine applies
+    /// every step event at the next tick uniformly instead, regardless of
+    /// target index: same-tick application would require a target track to
+    /// see a live mutation made *during* the same tick's processing, but
+    /// every track instead reads from one `Page` snapshot taken once at tick
+    /// start (see module docs) specifically so tracks don't see each other's
+    /// mid-tick mutations — that's what makes the effector's ordering
+    /// reasoning sound. Supporting genuine same-tick step events would need
+    /// reworking that snapshot architecture; deferred rather than done
+    /// halfway. See AMBIGUITIES.md "step events: same-tick timing".
+    deferred_actions: [Option<DeferredAction>; TRACK_COUNT],
     /// What fired *this tick*, cleared and refilled every `step_all_tracks` call.
     pub last_tick_fires: FireLog,
 }
@@ -212,7 +251,7 @@ impl Engine {
             track_rt: [TrackRuntime::default(); TRACK_COUNT],
             queue: [None; QUEUE_CAP],
             queue_len: 0,
-            deferred_events: [None; TRACK_COUNT],
+            deferred_actions: [None; TRACK_COUNT],
             last_tick_fires: FireLog::default(),
         }
     }
@@ -227,6 +266,15 @@ impl Engine {
     pub fn set_running(&mut self, running: bool) {
         if self.running && !running {
             self.all_notes_off_now();
+            // Ref: CE v5.30 p.40: "DIR will default to the Track attribute
+            // amount when the sequencer stops" / "MCH will also default to
+            // the Track attribute amount when the sequencer stops" — POS is
+            // deliberately not cleared here ("POS does not restore to the
+            // start POS(ition) when stopping the sequencer").
+            for rt in self.track_rt.iter_mut() {
+                rt.live_direction_raw = None;
+                rt.live_midi_channel = None;
+            }
         }
         self.running = running;
     }
@@ -266,7 +314,7 @@ impl Engine {
         self.track_rt = [TrackRuntime::default(); TRACK_COUNT];
         self.queue = [None; QUEUE_CAP];
         self.queue_len = 0;
-        self.deferred_events = [None; TRACK_COUNT];
+        self.deferred_actions = [None; TRACK_COUNT];
     }
 
     fn schedule(&mut self, due_sample: f64, event: RawEvent) {
@@ -343,8 +391,8 @@ impl Engine {
         self.last_tick_fires.clear();
 
         for ti in 0..TRACK_COUNT {
-            if let Some(ev) = self.deferred_events[ti].take() {
-                self.apply_step_event(ti as TrackIndex, ev);
+            if let Some(action) = self.deferred_actions[ti].take() {
+                self.apply_deferred_action(ti as TrackIndex, action);
             }
         }
 
@@ -381,13 +429,25 @@ impl Engine {
         }
 
         let is_chain_head = track.chain_member_count > 0;
-        let base_track = if is_chain_head && matches!(track.chain_base, ChainBase::Individual) {
+        let mut base_track = if is_chain_head && matches!(track.chain_base, ChainBase::Individual) {
             let order = chain_play_order(ti, &track);
             let member_idx = (self.track_rt[ti as usize].chain.member_idx as usize) % TRACK_COUNT.max(1);
             page.tracks[order[member_idx.min(order.len() - 1)] as usize]
         } else {
             track
         };
+        // Ref: CE v5.30 p.40, "DIR/MCH will default to the Track attribute
+        // amount when the sequencer stops" — a live Step Event override, if
+        // any, takes precedence over the persisted value while playing.
+        // Keyed by `ti` (the track owning this runtime), not whichever track
+        // `base_track` resolved to via chain-base-switching above — a chosen
+        // simplification for the rare case of both combined at once.
+        if let Some(live_dir) = self.track_rt[ti as usize].live_direction_raw {
+            base_track.direction_raw = live_dir;
+        }
+        if let Some(live_mch) = self.track_rt[ti as usize].live_midi_channel {
+            base_track.midi_channel = live_mch;
+        }
 
         let hyperstep_link = page.hyperstep_links[ti as usize];
         // Ref: CE v5.30 p.31: "the track is being triggered to play at a speed
@@ -424,6 +484,15 @@ impl Engine {
             let source = page.tracks[link.source_track as usize].steps[link.source_step as usize];
             step.pitch_offset = source.pitch_offset;
             step.velocity_offset = source.velocity_offset;
+        }
+
+        // Ref: CE v5.30 p.34: "an event is a programmed change of the
+        // attributes of a track and is attached to a step" — fires whenever
+        // this step is visited by the chase light, independent of whether it
+        // also produces a note (Considerations p.40 #1 treats "no note
+        // transmitted" and "event fires" as separate concerns).
+        if let Some(ev) = step.event {
+            self.queue_step_event(ti, ev);
         }
 
         let shuffle_delay = if step_index % 2 == 1 {
@@ -492,7 +561,10 @@ impl Engine {
             rt.feed_length_ticks = own_len;
         }
 
-        self.advance_position(ti, track.direction(), is_chain_head, page_len, page.tracks[ti as usize].chain_member_count);
+        // Live DIR shadow (if any) applies to direction-driven advancement
+        // too — same `ti`-keyed override as above, via `base_track` (which
+        // already has it patched in; equals `track` outside chain-base-switch).
+        self.advance_position(ti, base_track.direction(), is_chain_head, page_len, page.tracks[ti as usize].chain_member_count);
     }
 
     fn fire_step(&mut self, inp: FireInputs, tick_due_sample: f64, samples_per_tick: f64) {
@@ -705,29 +777,77 @@ impl Engine {
         }
     }
 
-    fn apply_step_event(&mut self, target: TrackIndex, ev: StepEvent) {
-        let track = &mut self.grid.active_page_mut().tracks[target as usize];
-        match ev.kind {
-            StepEventKind::SetPos(v) => track.rotation = v,
-            StepEventKind::SetDir(v) => track.direction_raw = v,
-            StepEventKind::SetMch(v) => track.midi_channel = v,
-            StepEventKind::ToggleMute => track.muted = !track.muted,
-            StepEventKind::ToggleSolo => track.soloed = !track.soloed,
-            StepEventKind::ToggleRecord => track.record_armed = !track.record_armed,
+    fn apply_deferred_action(&mut self, target: TrackIndex, action: DeferredAction) {
+        match action {
+            DeferredAction::AddDir(delta) => {
+                let persisted = self.grid.active_page().tracks[target as usize].direction_raw;
+                let base = self.track_rt[target as usize].live_direction_raw.unwrap_or(persisted);
+                self.track_rt[target as usize].live_direction_raw = Some(wrap_1_based(base, delta, 16));
+            }
+            DeferredAction::AddMch(delta) => {
+                let persisted = self.grid.active_page().tracks[target as usize].midi_channel;
+                let base = self.track_rt[target as usize].live_midi_channel.unwrap_or(persisted);
+                self.track_rt[target as usize].live_midi_channel = Some(wrap_1_based(base, delta, 32));
+            }
+            DeferredAction::AddPos(delta) => {
+                // Ref p.40: "POS does not restore to the start POS(ition) when
+                // stopping the sequencer" — a direct, persistent mutation, no
+                // live-shadow/revert needed (unlike DIR/MCH). No wrap maximum
+                // is given for POS in the manual; plain wrapping u8 arithmetic
+                // is harmless since this only ever feeds a `% page_len`
+                // downstream — see AMBIGUITIES.md.
+                let track = &mut self.grid.active_page_mut().tracks[target as usize];
+                track.rotation = track.rotation.wrapping_add_signed(delta);
+            }
+            DeferredAction::ToggleOn(kind) | DeferredAction::ToggleOff(kind) => {
+                let on = matches!(action, DeferredAction::ToggleOn(_));
+                let track = &mut self.grid.active_page_mut().tracks[target as usize];
+                match kind {
+                    ToggleKind::Mute => track.muted = on,
+                    ToggleKind::Solo => track.soloed = on,
+                    ToggleKind::Record => track.record_armed = on,
+                    ToggleKind::Pause => track.paused = on,
+                }
+                // Ref p.40, Track Toggle Consideration 5: "Track Toggle Events
+                // of Mute & Solo are subordinate to the On-The-Measure mode
+                // condition of the Page" — not yet implemented; toggles always
+                // apply at the next tick regardless of Page::on_the_measure.
+                // See AMBIGUITIES.md.
+            }
         }
-        // "Track toggles are subordinate to on-the-measure mode" (docs §3) is not
-        // implemented — toggles apply at the next tick, unconditionally. See
-        // AMBIGUITIES.md.
     }
 
-    /// Queue a step event fired this tick for application at the start of the
-    /// next one. Exposed so `fire_step`'s caller (or a future input layer) can
-    /// enqueue events read from `Step::event`; not wired into the note-firing path
-    /// itself yet because doing so needs the same per-tick snapshot discipline as
-    /// the rest of this module and there is no manual-derived test to check it
-    /// against (see AMBIGUITIES.md "step events").
-    pub fn queue_step_event(&mut self, ev: StepEvent) {
-        self.deferred_events[ev.target_track as usize] = Some(ev);
+    /// Resolves a step event fired this tick (by `source` track) into zero or
+    /// more `DeferredAction`s and queues each for application at the start of
+    /// the next tick. `Ref: CE v5.30 p.34-40` — see `deferred_actions`' doc
+    /// comment for why every target defers uniformly rather than the manual's
+    /// same-tick/next-tick split.
+    fn queue_step_event(&mut self, _source: TrackIndex, ev: StepEvent) {
+        match ev.kind {
+            StepEventKind::SetDir(delta) => self.deferred_actions[ev.target_track as usize] = Some(DeferredAction::AddDir(delta)),
+            StepEventKind::SetPos(delta) => self.deferred_actions[ev.target_track as usize] = Some(DeferredAction::AddPos(delta)),
+            StepEventKind::SetMch(delta) => self.deferred_actions[ev.target_track as usize] = Some(DeferredAction::AddMch(delta)),
+            StepEventKind::TrackToggle { kind, amt, range } => {
+                // Ref p.39: |amt| selects the target track (10 means track 0,
+                // the one value that can't otherwise be reached since 0 itself
+                // means "no target"); sign selects On(+)/Off(-); range (max
+                // 10) selects how many consecutive tracks are affected,
+                // descending from the target and wrapping from 0 back to 9.
+                if amt == 0 {
+                    return;
+                }
+                let target0 = if amt.unsigned_abs() == 10 { 0 } else { (amt.unsigned_abs() as usize) % 10 };
+                let on = amt > 0;
+                let range = range.clamp(1, TRACK_COUNT as u8);
+                for i in 0..range as i32 {
+                    let t = (target0 as i32 - i).rem_euclid(TRACK_COUNT as i32) as usize;
+                    self.deferred_actions[t] = Some(if on { DeferredAction::ToggleOn(kind) } else { DeferredAction::ToggleOff(kind) });
+                }
+            }
+            // Ref p.38-39: whole-track step-data rotation, not a per-target
+            // toggle — data model only, not implemented. See AMBIGUITIES.md.
+            StepEventKind::TrackRotate { .. } | StepEventKind::TrackSkipRotate { .. } => {}
+        }
     }
 
     /// Ref: CE v5.30 p.31: "hold a track selector down, and at the same time
@@ -819,6 +939,14 @@ fn to_i32(v: &[i8]) -> [i32; MAX_SCALE_INTERVALS] {
         out[i] = x as i32;
     }
     out
+}
+
+/// Adds `delta` to a 1-based value in `1..=max`, wrapping around. E.g. for
+/// `max=16`: 16 + 2 -> 2 (not 18 or 0), matching "if DIR is 6 a Step Event of
+/// '+2' will change it to 8" style arithmetic without ever landing on 0.
+fn wrap_1_based(value: u8, delta: i8, max: u8) -> u8 {
+    let zero_based = (value as i32 - 1 + delta as i32).rem_euclid(max as i32);
+    (zero_based + 1) as u8
 }
 
 fn resolve_port_channel(mch: u8, mode: RoutingMode, fixed: FixedRouting, track_index: TrackIndex) -> (u8, u8) {
@@ -1181,5 +1309,87 @@ mod tests {
         engine.hyperstep_unlink(5);
         assert_eq!(engine.grid.active_page().tracks[9].steps[0].length_ticks, DEFAULT_STEP_TICKS as u8);
         assert!(engine.grid.active_page().hyperstep_links[5].is_none());
+    }
+
+    fn fire_step_event(engine: &mut Engine, source_track: TrackIndex, kind: StepEventKind, target_track: TrackIndex) {
+        engine.grid.active_page_mut().tracks[source_track as usize].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[source_track as usize].steps[0].event = Some(StepEvent { target_track, kind });
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+    }
+
+    /// Ref: CE v5.30 p.34: "if DIR is 6 a Step Event of '+2' will change it to
+    /// 8" — additive, not an overwrite, applied via a live shadow (the
+    /// *persisted* `Track::direction_raw` never changes — see p.40, "DIR will
+    /// default to the Track attribute amount when the sequencer stops", which
+    /// only makes sense if there's a separate live value to fall away from).
+    /// Applied the tick *after* the event fires (this engine's uniform
+    /// next-tick simplification — see AMBIGUITIES.md).
+    #[test]
+    fn step_event_set_dir_is_additive_and_wraps() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[3].direction_raw = 6;
+        fire_step_event(&mut engine, 9, StepEventKind::SetDir(2), 3);
+        // Queued but not yet applied within the tick it fired.
+        assert_eq!(engine.track_rt[3].live_direction_raw, None);
+        engine.step_once_for_test();
+        assert_eq!(engine.track_rt[3].live_direction_raw, Some(8));
+        assert_eq!(engine.grid.active_page().tracks[3].direction_raw, 6, "persisted value is never touched by a step event");
+
+        // Wrap: 16 + 2 -> 2, never 18 or 0. Fresh engine to avoid the first
+        // half's queued/applied timing interacting with this one.
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[3].direction_raw = 16;
+        fire_step_event(&mut engine, 9, StepEventKind::SetDir(2), 3);
+        engine.step_once_for_test();
+        assert_eq!(engine.track_rt[3].live_direction_raw, Some(2));
+    }
+
+    /// Ref: CE v5.30 p.40: "DIR will default to the Track attribute amount
+    /// when the sequencer stops."
+    #[test]
+    fn step_event_set_dir_reverts_on_stop() {
+        let mut engine = Engine::new(1);
+        engine.set_running(true); // set_running(false) below is only a real transition if this was true first
+        engine.grid.active_page_mut().tracks[3].direction_raw = 6;
+        fire_step_event(&mut engine, 9, StepEventKind::SetDir(2), 3);
+        engine.step_once_for_test();
+        assert_eq!(engine.track_rt[3].live_direction_raw, Some(8));
+        engine.set_running(false);
+        assert!(engine.track_rt[3].live_direction_raw.is_none(), "stopping must clear the live override");
+        assert_eq!(engine.grid.active_page().tracks[3].direction_raw, 6, "persisted value was never touched, so there's nothing to restore");
+    }
+
+    /// Ref: CE v5.30 p.39: manual's own worked example: "a Track Toggle Mute
+    /// Event has an AMT Value of +1 & Range value of 4, then Tracks 1 & 0 and
+    /// Tracks 9 & 8 will be Muted."
+    #[test]
+    fn track_toggle_range_wraps_manual_worked_example() {
+        let mut engine = Engine::new(1);
+        fire_step_event(&mut engine, 5, StepEventKind::TrackToggle { kind: ToggleKind::Mute, amt: 1, range: 4 }, 0 /* unused for toggles */);
+        engine.step_once_for_test();
+        let muted: Vec<u8> = (0..TRACK_COUNT as u8).filter(|&t| engine.grid.active_page().tracks[t as usize].muted).collect();
+        assert_eq!(muted, vec![0, 1, 8, 9]);
+    }
+
+    /// Ref: CE v5.30 p.39: "An AMT value of zero is an 'off' value therefore
+    /// to apply a Track Toggle Event specifically to... Track 0, use AMT
+    /// value = '10'."
+    #[test]
+    fn track_toggle_amt_10_targets_track_0() {
+        let mut engine = Engine::new(1);
+        fire_step_event(&mut engine, 5, StepEventKind::TrackToggle { kind: ToggleKind::Mute, amt: 10, range: 1 }, 0);
+        engine.step_once_for_test();
+        assert!(engine.grid.active_page().tracks[0].muted);
+    }
+
+    #[test]
+    fn track_toggle_negative_amt_is_off() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[4].muted = true;
+        fire_step_event(&mut engine, 5, StepEventKind::TrackToggle { kind: ToggleKind::Mute, amt: -4, range: 1 }, 0);
+        engine.step_once_for_test();
+        assert!(!engine.grid.active_page().tracks[4].muted);
     }
 }

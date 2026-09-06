@@ -3,12 +3,14 @@
 //! phrases, step events and sample-accurate scheduling that v1 never implemented.
 //!
 //! Processing order is descending track index (9 downto 0), not ascending as in
-//! v1. docs/03-sequencer-core.md §2 says "higher indices may modulate lower ones"
-//! and §3 says step-events targeting higher-indexed tracks defer to the following
-//! step "because of top-down processing order" — both only hold if a feeder/source
-//! track is actually computed before the lower-indexed track that reads it, in the
-//! *same* tick. v1 looped ascending and had neither feature, so this is a
-//! deliberate correction, not a port.
+//! v1. Confirmed against the real manual: Ref: CE v5.30 §3 Track Mode, "The EFF
+//! mechanism", p.59-60 — "The modulation is always happening 'top-down', i.e.
+//! upper tracks may modulate lower tracks, but not vice-versa... track 9 may
+//! modulate all other tracks but track 0 cannot modulate any other track." This
+//! only holds in code if a feeder/source track is actually computed before the
+//! lower-indexed track that reads it, in the *same* tick — v1 looped ascending
+//! and had no effector at all, so this was a deliberate correction, not a port,
+//! made before the manual confirmed it was the right call.
 //!
 //! Each tick reads from a single `Page` snapshot taken at tick start (`Page` is
 //! `Copy`), so every track sees the same page state regardless of processing
@@ -410,8 +412,11 @@ impl Engine {
         };
 
         // Feeder contribution: sum offsets currently published by every
-        // higher-indexed feeder track (docs §3 "The effector"). Because we process
-        // 9 downto 0, every feeder above `ti` has already run this same tick.
+        // higher-indexed feeder track. Ref: CE v5.30 p.59-60, "the effect of the
+        // feeder tracks is additive down the track indexes" — confirmed by the
+        // manual's own worked dry-run example (track 9 PIT +3, track 6 PIT -1,
+        // tracks 3+2 PIT -2 each -> track 0 sees +3-1-2-2 = -2). Because we
+        // process 9 downto 0, every feeder above `ti` has already run this tick.
         let mut feed_pit = 0i32;
         let mut feed_vel = 0i32;
         let mut feed_len = 0i32;

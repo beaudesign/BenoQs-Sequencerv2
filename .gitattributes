@@ -1,0 +1,5 @@
+reference/plates/*.jpg filter=lfs diff=lfs merge=lfs -text
+reference/plates/*.jpeg filter=lfs diff=lfs merge=lfs -text
+reference/plates/*.png filter=lfs diff=lfs merge=lfs -text
+reference/plates/*.tif filter=lfs diff=lfs merge=lfs -text
+reference/plates/*.tiff filter=lfs diff=lfs merge=lfs -text

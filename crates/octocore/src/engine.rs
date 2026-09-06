@@ -755,9 +755,9 @@ mod tests {
             }
             all.extend_from_slice(out.as_slice());
         }
-        // Track::DEFAULT_PITCH[0] = 57 (C3) per docs/03-sequencer-core.md-cited
-        // v1 default table, not 60 — 60 is track index 5's default.
-        assert!(note_ons(&all).iter().any(|&(_, _, note, _)| note == 57), "expected track 0's default pitch (57) to fire; got {:?}", note_ons(&all));
+        // Track::DEFAULT_PITCH[0] = 69 (A5) per CE v5.30 p.43 — 60 (C5) is track
+        // index 4's default.
+        assert!(note_ons(&all).iter().any(|&(_, _, note, _)| note == 69), "expected track 0's default pitch (69) to fire; got {:?}", note_ons(&all));
     }
 
     #[test]
@@ -842,10 +842,10 @@ mod tests {
             engine.render(&ctx, &mut out);
             all.extend_from_slice(out.as_slice());
         }
-        // Track 0's default pitch is 57 (see DEFAULT_PITCH), so the triad is
-        // 57 / 57+4 / 57+7.
+        // Track 0's default pitch is 69 (see DEFAULT_PITCH, CE v5.30 p.43), so
+        // the triad is 69 / 69+4 / 69+7.
         let pitches: std::collections::BTreeSet<_> = note_ons(&all).into_iter().map(|(_, _, n, _)| n).collect();
-        assert!(pitches.contains(&57) && pitches.contains(&61) && pitches.contains(&64), "expected a full 57/61/64 triad, got {:?}", pitches);
+        assert!(pitches.contains(&69) && pitches.contains(&73) && pitches.contains(&76), "expected a full 69/73/76 triad, got {:?}", pitches);
     }
 
     #[test]

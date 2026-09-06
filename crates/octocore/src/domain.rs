@@ -263,10 +263,18 @@ impl Track {
         Direction::from_raw(self.direction_raw)
     }
 
-    /// Manual default PIT values for tracks 9..0: C3 D3 E3 G3 A3 C5 D5 E5 G5 A5.
-    /// Ported from `defaultTrack` in `archive/v1-max4live/octopus_data.js`.
-    /// PROVISIONAL — not yet cross-checked against a manual page number.
-    const DEFAULT_PITCH: [u8; TRACK_COUNT] = [57, 55, 52, 50, 48, 60, 62, 64, 67, 69];
+    /// Ref: CE v5.30 §3 Track Mode, "Track attributes", p.43: "Octopus uses the
+    /// convention that middle C (MIDI note #60 decimal) maps to C5. The default
+    /// Track PIT values for Tracks 9-0 are as follows: C3, D3, E3, G3, A3, C5,
+    /// D5, E5, G5, and A5." With C5=60 (one octave = 12 semitones): track 9=C3=36,
+    /// 8=D3=38, 7=E3=40, 6=G3=43, 5=A3=45, 4=C5=60, 3=D5=62, 2=E5=64, 1=G5=67,
+    /// 0=A5=69.
+    ///
+    /// `archive/v1-max4live/octopus_data.js`'s `defaultTrack` had this wrong on
+    /// two independent axes: the low half (indices 0-4 here) was a full octave
+    /// flat, and the "Tracks 9-0" ordering was applied to ascending code index
+    /// 0-9 without reversing it — ported and never cross-checked until now.
+    const DEFAULT_PITCH: [u8; TRACK_COUNT] = [69, 67, 64, 62, 60, 45, 43, 40, 38, 36];
 
     pub fn default_for_index(index: TrackIndex) -> Self {
         Track {

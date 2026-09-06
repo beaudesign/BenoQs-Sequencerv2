@@ -657,14 +657,14 @@ impl Engine {
 
         self.last_tick_fires.push(NoteFire { track: ti, pitch: final_pit, velocity: final_vel });
 
-        let sta_scale = (base_track.start_factor as f32 / 8.0).clamp(0.0, 2.0);
-        let sta_ticks = (step.start_offset as f32 * sta_scale).round() as i32;
+        // Ref: CE v5.30 p.44-45 — real non-linear lookup tables, not a linear
+        // 0..2x formula (see tables.rs).
+        let sta_ticks = tables::scale_sta_ticks(base_track.start_factor, step.start_offset as i32);
 
         let base_len = (step.length_ticks as i32).clamp(1, 192);
         let len_mult = (step.length_multiplier as i32).clamp(1, 8);
         let raw_len = (base_len * len_mult + feed_len).min(192);
-        let len_scale = (base_track.length_factor as f32 / 8.0).clamp(0.0, 2.0);
-        let final_len_ticks = ((raw_len as f32 * len_scale).round() as i32).clamp(1, 192);
+        let final_len_ticks = tables::scale_len_ticks(base_track.length_factor, raw_len);
 
         let (port, ch) = resolve_port_channel(base_track.midi_channel, routing_mode, fixed_routing, ti);
         let on_tick_offset = shuffle_delay as i32 + sta_ticks;

@@ -228,3 +228,43 @@ that doesn't exist yet (no `panel.truth.json`).
 **Fixture:** `engine::tests::hyperstep_linked_track_fires_every_192_ticks_not_12`,
 `::hyperstep_pit_vel_are_read_live_from_source`,
 `::hyperstep_unlink_restores_default_step_length`.
+
+## LEN/STA scaling tables: resolved; generic (VEL/PIT-style) table still open
+
+**Manual reference:** CE v5.30 p.44 (Track LEN Reference Chart), p.45 (Track
+STA Reference Chart), p.53-55 (generic Attribute Scaling Factors + Reference
+Chart).
+**Resolution (LEN/STA):** the earlier linear `factor/8.0` formula (0..2x) was
+confirmed wrong — replaced with the manual's actual non-linear lookup
+tables, transcribed exactly from `reference/manual/pages/p044.txt` and
+`p045.txt` (now that `pdftotext -layout` extraction was actually tried on
+these — an earlier pass judged them too large/risky to transcribe from image
+reads alone). LEN needs interpolation (real step lengths aren't limited to
+the chart's 12 sampled breakpoints); the interpolation rule itself is
+**chosen, not cited** — piecewise-linear between breakpoints, flat-clamped
+beyond the first/last. STA needs no interpolation: `Step::start_offset` is
+already bounded to -5..=5 by the hardware ("the maximum push is 5/192",
+p.16), which is exactly the chart's 11 sampled columns, so it's an exact
+table lookup. Both tables were validated against an internal pattern in the
+chart itself (row 16 = "floor(neutral × 2), clamped to 192", row 14 =
+"floor(neutral × 1.5)", matching the chart's own "x2"/"x1.5" mult labels
+exactly) before being hard-coded — though row 9 does *not* extrapolate
+cleanly from that pattern, which is why the chart's printed numbers are used
+verbatim rather than a formula.
+**Still open — the generic (VEL/PIT-style) table, p.53-55:** this table's own
+row-numbering doesn't resolve cleanly. The manual states the real internal
+range is "1...17, with 9 being neutral" (p.53), but the printed chart (p.55)
+shows two blocks of rows labeled "9,8,7,6,5,4,3,2" *twice* — once above the
+neutral "Value" row (expand/red) and again below it (compress/green) — which
+can't be the literal 1-17 scale (that would need 10-17 climbing away from
+neutral on one side, not a mirrored 2-9 on both). This is very likely a
+separate, secondary display numbering rather than the raw factor value, but
+which one code should actually key its lookup by isn't stated. Left
+unimplemented rather than guessed at; the exact chart values are transcribed
+into a follow-up note in `journal/STATE.md` for whoever resolves the
+numbering. No `Track`-level per-attribute (VEL/PIT/etc.) scaling factor field
+exists yet at all — this needs one added before the table itself matters.
+**Fixture:** `tables::tests::len_scaling_matches_manual_chart_at_breakpoints`,
+`::len_scaling_interpolates_between_breakpoints`,
+`::sta_scaling_matches_manual_note_row_14_doubles`,
+`::sta_scaling_row_0_is_always_zero`.

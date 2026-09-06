@@ -42,14 +42,11 @@ pub type TrackIndex = u8;
 
 /// Fixed directions 1..=5, plus 6+ meaning "user-programmed, index = value - 6".
 ///
-/// PROVISIONAL mapping for 4/5 — see AMBIGUITIES.md "direction 4/5 assignment". Both
-/// archived prior ports (v1 JS `_dir` handling and `archive/v1-cpp-juce`'s
-/// `Direction` enum) independently agree that 4 is a biased random walk ("brownian")
-/// and 5 is a uniform jump ("random"), which is the *opposite* pairing from the
-/// order the words appear in docs/03-sequencer-core.md §3's prose ("random,
-/// brownian"). Two independent prior implementations outrank one un-cited prose
-/// sentence, so that's what's implemented here — but neither prior implementation
-/// had the real manual either, so this is still open until someone checks it.
+/// Ref: CE v5.30 §3 Track Mode, "Track direction (DIR)", p.45: "1 - Forward
+/// play, 2 - Reverse play, 3 - Ping-Pong, 4 - Brownian, i.e. 2/3 probability
+/// forward, 1/3 probability reverse play, 5 - Random order. 6-16 - Same as 1,
+/// however: the track play directions 6-16 may also be individually edited."
+/// Confirmed exactly as both archived prior ports already had it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Direction {
     Forward,

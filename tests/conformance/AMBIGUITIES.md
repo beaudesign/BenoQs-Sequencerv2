@@ -16,24 +16,30 @@ Format per entry:
 **Fixture:** <path to the conformance fixture this governs>
 ```
 
-No manual is available in this repo (see `reference/NOTES.md`), so every entry
-below is provisional against the two archived prior implementations
-(`archive/v1-max4live`, `archive/v1-cpp-juce`) rather than a real page citation.
-All govern code in `crates/octocore`.
+The real manual is in this repo (`reference/manual/`, `just manual <topic>` —
+see `reference/NOTES.md`). Every entry below is one of three things: resolved
+with a real `Ref:` page citation (some confirming an earlier guess, several
+correcting one that turned out to be outright wrong, not just unconfirmed),
+still genuinely open pending a follow-up manual read (a handful of large
+non-linear lookup tables are confirmed to exist but not yet transcribed to
+full precision — see the scaling-tables entry), or a deliberately deferred
+whole sub-feature logged so it isn't lost (the attribute-map-factor
+step-event system, Track Rotate/Skip Rotate's real behaviour). All entries
+govern code in `crates/octocore`.
 
-## direction 4/5 assignment
+## direction 4/5 assignment: confirmed
 
-**Manual reference:** none available.
-**Ambiguity:** `docs/03-sequencer-core.md` §3 prose lists the five fixed
-directions as "forward, reverse, ping-pong, random, brownian" (implying 4 =
-random, 5 = brownian). Both archived prior ports independently implement the
-opposite pairing: 4 = a biased random walk (2/3 forward, 1/3 back), 5 =
-uniform random jump.
-**Readings considered:** doc prose order (4=random, 5=brownian) / both prior
-implementations' order (4=brownian-walk, 5=uniform-random).
-**Chosen:** the prior implementations' order, since two independent ports
-agreeing outweighs one un-cited sentence in a doc drafted without the manual.
-**Fixture:** none yet — needs a manual-sourced direction fixture.
+**Manual reference:** CE v5.30 §3 Track Mode, "Track direction (DIR)", p.45.
+**Resolution:** confirmed exactly as the two archived prior ports had it (not
+as `docs/03-sequencer-core.md`'s own un-cited prose order): "1 - Forward
+play, 2 - Reverse play, 3 - Ping-Pong, 4 - Brownian, i.e. 2/3 probability
+forward, 1/3 probability reverse play, 5 - Random order." `domain::Direction`
+already matched this; only the doc comment's citation needed updating, from
+PROVISIONAL to a real `Ref:` line.
+**Fixture:** `engine::tests::forward_direction_advances_one_step`,
+`::reverse_direction_wraps_backward`, `::ping_pong_bounces_at_upper_edge` —
+none specifically exercise 4/5's exact probability split yet (a statistical
+test over many seeds would be the natural next fixture here).
 
 ## user-programmed directions (dir 6+): resolved
 

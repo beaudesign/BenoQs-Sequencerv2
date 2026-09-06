@@ -96,16 +96,25 @@ notes are selected in the scale, and... C is the base tone." Fixed via
 **Fixture:** `engine::tests::scale_quantization_pulls_pitch_into_scale`
 (page-scale-only case only).
 
-## phrase types 2 and 3
+## phrase types: RandomPitch/RandomAll attribute coupling
 
-**Manual reference:** none available.
-**Ambiguity:** §3 only describes phrase type 4 ("randomises the programmed
-note attributes"). Types 2 and 3 are referenced by the existence of a "type"
-field but never described anywhere available to this port.
-**Chosen:** `domain::PhraseType::Reserved2`/`Reserved3` — named as placeholders
-that behave identically to `Fixed` in `Engine::resolve_phrase`, rather than
-guessed at.
-**Fixture:** none.
+**Manual reference:** CE v5.30 §2 Step Mode, "Step phrases — Overview", p.23.
+**Resolution:** all four types are now real, not just type 4. Quoted in full:
+"Type 1: Forward: notes are played in the order 1,2,3.. Type 2: Reverse: notes
+are played in the order 8,7,6.. Type 3: Random pitch[:] programmed notes
+pitches are played in random order, determined at playtime. Type 4: Random
+all: programmed note attributes played in random combinations, determined at
+playtime." Forward/Reverse are unambiguous and implemented exactly. Random
+all is implemented as a permutation of the 8 *programmed* (VEL,PIT,LEN,STA)
+tuples — "random combinations... of programmed note attributes", not freshly
+generated values, which is what the code guessed before this fixed it.
+**Still chosen, not cited:** for Random pitch, whether only the pitch value
+moves between slots (chosen) or the whole note follows its pitch. The manual
+says only "notes pitches are played in random order", which reads as
+pitch-only, but doesn't rule out the alternative explicitly.
+**Fixture:** `engine::tests::phrase_forward_plays_programmed_order`,
+`::phrase_reverse_plays_8_to_1`, `::phrase_random_pitch_permutes_pitch_only`,
+`::phrase_random_all_permutes_whole_notes`.
 
 ## step events: timing and "on-the-measure" toggles
 

@@ -11,7 +11,15 @@ pub const STEP_COUNT: usize = 16;
 pub const BANK_COUNT: usize = 10;
 pub const PAGE_COUNT: usize = 16;
 pub const PAGE_SET_COUNT: usize = 16;
-pub const PHRASE_COUNT: usize = 16;
+/// Ref: CE v5.30 p.16, "Step phrasing (GRV)": "There are three banks of 16
+/// phrases, for a total of 48." p.16-17: "As you turn the GRV encoder to the
+/// right you will see the phrase number increase from 1 to 16 (0 means no
+/// phrase is selected). Once 16 is reached in a bank, the colour of the
+/// pointer LED will switch to the next bank." Since turning GRV all the way
+/// through one bank rolls straight into the next, a flat 0-47 index is an
+/// equivalent, simpler representation than adding a separate bank field to
+/// `Step` — see AMBIGUITIES.md.
+pub const PHRASE_COUNT: usize = 48;
 pub const PHRASE_NOTE_COUNT: usize = 8;
 pub const CHORD_POOL_MAX: usize = 6; // + the base pitch = 7 simultaneous notes, matching v1's cap
 /// Ref: CE v5.30 p.22 — polyphony greater than chord size pads the draw pool
@@ -516,17 +524,25 @@ impl Default for PhraseNote {
     }
 }
 
+/// Ref: CE v5.30 §2 Step Mode, "Step phrases — Overview", p.23: "The available
+/// phrase types are as follows: Type 1: Forward: notes are played in the order
+/// 1,2,3.. Type 2: Reverse: notes are played in the order 8,7,6.. Type 3:
+/// Random pitch[:] programmed notes pitches are played in random order,
+/// determined at playtime. Type 4: Random all: programmed note attributes
+/// played in random combinations, determined at playtime."
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhraseType {
-    /// Play the enabled notes in order, as programmed.
-    Fixed,
-    /// PROVISIONAL — types 2/3 are not described anywhere available to this port;
-    /// kept as a named-but-unimplemented placeholder rather than guessed at. See
-    /// AMBIGUITIES.md "phrase types 2 and 3".
-    Reserved2,
-    Reserved3,
-    /// docs §3: "Type 4 randomises the programmed note attributes."
-    Randomized,
+    Forward,
+    Reverse,
+    /// Only the 8 notes' *pitches* are shuffled among slots at play time; each
+    /// slot's VEL/LEN/STA stay put. This is a reading of "random order",
+    /// flagged in AMBIGUITIES.md since the manual doesn't spell out whether
+    /// the other three attributes move with the pitch or stay with the slot.
+    RandomPitch,
+    /// All 4 of a note's programmed attributes move together, shuffled as a
+    /// unit among the 8 slots ("random combinations" of what's *programmed*,
+    /// not freshly-generated random values).
+    RandomAll,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -543,7 +559,7 @@ impl Default for Phrase {
     fn default() -> Self {
         Phrase {
             notes: [PhraseNote::default(); PHRASE_NOTE_COUNT],
-            phrase_type: PhraseType::Fixed,
+            phrase_type: PhraseType::Forward,
             polyphony: PHRASE_NOTE_COUNT as u8,
         }
     }

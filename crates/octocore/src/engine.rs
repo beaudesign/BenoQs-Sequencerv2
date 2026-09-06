@@ -725,20 +725,53 @@ impl Engine {
         dst.velocity_offset = src.velocity_offset;
     }
 
+    /// Ref: CE v5.30 p.23, "The available phrase types are as follows: Type 1:
+    /// Forward: notes are played in the order 1,2,3.. Type 2: Reverse: notes
+    /// are played in the order 8,7,6.. Type 3: Random pitch[:] programmed
+    /// notes pitches are played in random order, determined at playtime. Type
+    /// 4: Random all: programmed note attributes played in random
+    /// combinations, determined at playtime."
+    ///
+    /// `RandomPitch`/`RandomAll` shuffle the *programmed* note data — they
+    /// never invent new offset values, only recombine what's already there.
     pub fn resolve_phrase(&mut self, phrase_index: u8) -> ([PhraseNote; PHRASE_NOTE_COUNT], usize) {
         let mut phrase = self.grid.phrases[(phrase_index as usize).min(PHRASE_COUNT - 1)];
-        if phrase.phrase_type == PhraseType::Randomized {
-            for note in phrase.notes.iter_mut() {
-                if !note.enabled {
-                    continue;
+        match phrase.phrase_type {
+            PhraseType::Forward => {}
+            PhraseType::Reverse => phrase.notes.reverse(),
+            PhraseType::RandomPitch => {
+                let mut pitches: [i8; PHRASE_NOTE_COUNT] = phrase.notes.map(|n| n.pitch_offset);
+                self.shuffle_i8(&mut pitches);
+                for (note, &p) in phrase.notes.iter_mut().zip(pitches.iter()) {
+                    note.pitch_offset = p;
                 }
-                note.pitch_offset = (self.rng.next_below(25) as i32 - 12) as i8;
-                note.velocity_offset = (self.rng.next_below(41) as i32 - 20) as i8;
+            }
+            PhraseType::RandomAll => {
+                let originals = phrase.notes;
+                let mut order: [usize; PHRASE_NOTE_COUNT] = std::array::from_fn(|i| i);
+                self.shuffle_usize(&mut order);
+                for (slot, &src) in phrase.notes.iter_mut().zip(order.iter()) {
+                    *slot = originals[src];
+                }
             }
         }
         let enabled_count = phrase.notes.iter().filter(|n| n.enabled).count().max(1);
         let poly = (phrase.polyphony as usize).clamp(1, enabled_count);
         (phrase.notes, poly)
+    }
+
+    fn shuffle_i8(&mut self, arr: &mut [i8; PHRASE_NOTE_COUNT]) {
+        for i in (1..arr.len()).rev() {
+            let j = self.rng.next_below((i + 1) as u32) as usize;
+            arr.swap(i, j);
+        }
+    }
+
+    fn shuffle_usize(&mut self, arr: &mut [usize; PHRASE_NOTE_COUNT]) {
+        for i in (1..arr.len()).rev() {
+            let j = self.rng.next_below((i + 1) as u32) as usize;
+            arr.swap(i, j);
+        }
     }
 }
 
@@ -972,5 +1005,76 @@ mod tests {
         assert!(!pitches.is_empty());
         assert!(pitches.iter().all(|&p| p != 61), "61 is out of C major and should have been quantized away: {:?}", pitches);
         assert!(pitches.iter().all(|&p| p == 60), "expected quantization down to 60 (downward tie-break): {:?}", pitches);
+    }
+
+    fn test_phrase() -> Phrase {
+        let mut phrase = Phrase::default();
+        for (i, note) in phrase.notes.iter_mut().enumerate() {
+            note.pitch_offset = i as i8;
+            note.velocity_offset = (i * 2) as i8;
+            note.enabled = true;
+        }
+        phrase
+    }
+
+    #[test]
+    fn phrase_forward_plays_programmed_order() {
+        let mut engine = Engine::new(1);
+        engine.grid.phrases[0] = test_phrase();
+        engine.grid.phrases[0].phrase_type = PhraseType::Forward;
+        let (notes, _) = engine.resolve_phrase(0);
+        for (i, note) in notes.iter().enumerate() {
+            assert_eq!(note.pitch_offset, i as i8);
+        }
+    }
+
+    #[test]
+    fn phrase_reverse_plays_8_to_1() {
+        let mut engine = Engine::new(1);
+        engine.grid.phrases[0] = test_phrase();
+        engine.grid.phrases[0].phrase_type = PhraseType::Reverse;
+        let (notes, _) = engine.resolve_phrase(0);
+        for (i, note) in notes.iter().enumerate() {
+            assert_eq!(note.pitch_offset, (PHRASE_NOTE_COUNT - 1 - i) as i8);
+        }
+    }
+
+    #[test]
+    fn phrase_random_pitch_permutes_pitch_only() {
+        let mut engine = Engine::new(3);
+        engine.grid.phrases[0] = test_phrase();
+        engine.grid.phrases[0].phrase_type = PhraseType::RandomPitch;
+        let (notes, _) = engine.resolve_phrase(0);
+
+        let mut pitches: Vec<i8> = notes.iter().map(|n| n.pitch_offset).collect();
+        pitches.sort_unstable();
+        assert_eq!(pitches, (0..PHRASE_NOTE_COUNT as i8).collect::<Vec<_>>(), "pitch set must be a permutation of the originals, not new values");
+        // Velocity must stay with its original slot (only pitch moves).
+        for (i, note) in notes.iter().enumerate() {
+            assert_eq!(note.velocity_offset, (i * 2) as i8);
+        }
+    }
+
+    #[test]
+    fn phrase_random_all_permutes_whole_notes() {
+        let mut engine = Engine::new(5);
+        engine.grid.phrases[0] = test_phrase();
+        engine.grid.phrases[0].phrase_type = PhraseType::RandomAll;
+        let (notes, _) = engine.resolve_phrase(0);
+
+        // Each (pitch, vel) pair must still be one of the originals, and the
+        // pair must move together (vel = pitch*2 in the fixture data).
+        for note in notes.iter() {
+            assert_eq!(note.velocity_offset, note.pitch_offset * 2, "attributes must move together, not be freshly randomised");
+        }
+        let mut pitches: Vec<i8> = notes.iter().map(|n| n.pitch_offset).collect();
+        pitches.sort_unstable();
+        assert_eq!(pitches, (0..PHRASE_NOTE_COUNT as i8).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn phrase_count_covers_48_across_three_banks() {
+        let engine = Engine::new(1);
+        assert_eq!(engine.grid.phrases.len(), 48);
     }
 }

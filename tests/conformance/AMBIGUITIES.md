@@ -52,16 +52,22 @@ than an honest "not implemented", since it would look plausible in a demo and
 be wrong in a way nothing catches.
 **Fixture:** none yet.
 
-## FLT track-vs-page placement
+## FLT: destination self-inclusion and "last encountered" order
 
-**Manual reference:** none available.
-**Ambiguity:** `docs/03-sequencer-core.md` §2's attribute table marks FLT
-Track-column ✓, but the same row's prose says "page-level flattening", and the
-table has no Page column at all, so it cannot represent a page-level
-attribute even if that's what's meant.
-**Chosen:** placed `flatten: bool` on `Page`, trusting the unambiguous prose
-over a table that structurally can't express the alternative.
-**Fixture:** none yet — `flatten` is not wired into the tick loop at all yet.
+**Manual reference:** CE v5.30 §3 Track Mode, "Track FLAT (FLT)", p.42.
+**Resolution:** the original guess (a boolean `Page.flatten` attribute) was
+outright wrong, not just unconfirmed — the manual describes FLT as a one-shot
+multi-track selection-merge operation, like the sibling Track Mode operations
+(TGL/SOL/CLR/RND/ZOM/RMX), not a persistent attribute at any level. Replaced
+with `Page::apply_flatten(&mut self, selected: &[TrackIndex])`. The manual
+gives the destination (lowest selected index), the base-pitch-plus-up-to-7-stack
+chord rule, the VEL/LEN/STA "last encountered active step" carry-over, and the
+GRV reset-unless-track-groove-matches rule, all confirmed and implemented.
+**Still chosen, not cited:** whether the destination counts as its own source
+(chosen: yes) and the iteration order for "last encountered" (chosen:
+descending track index). Neither is stated explicitly in the manual text.
+**Fixture:** `domain::tests::flatten_merges_two_tracks_into_lowest_index`,
+`domain::tests::flatten_resets_phrase_unless_track_groove_matches`.
 
 ## scale grid/page combination
 

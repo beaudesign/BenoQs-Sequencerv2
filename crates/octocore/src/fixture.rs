@@ -59,6 +59,17 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                     other => return Err(format!("{}: unknown step attribute `{}`", ctx(), other)),
                 }
             }
+            ["flatten", list] => {
+                let mut selected = Vec::new();
+                for t in list.split(',') {
+                    selected.push(t.trim().parse::<u8>().map_err(|_| format!("{}: bad track index", ctx()))?);
+                }
+                engine
+                    .grid
+                    .active_page_mut()
+                    .apply_flatten(&selected)
+                    .map_err(|e| format!("{}: {}", ctx(), e))?;
+            }
             ["play", n, step_word] if step_word.starts_with("step") => {
                 // A "step" is DEFAULT_STEP_TICKS (12) PPQN ticks (a 1/16 note at
                 // the default 1x multiplier) — one call to `step_once_for_test`

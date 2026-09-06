@@ -347,11 +347,6 @@ pub struct Page {
     pub pitch_offset: i8,
     pub velocity_factor: u8,
     pub length: u8,
-    /// docs/03-sequencer-core.md §2 lists FLT as page-level flattening in prose but
-    /// marks it Track-column in the attribute table with no Page column at all in
-    /// that table — the table has no way to express a page-level attribute, so the
-    /// prose (unambiguous: "page-level flattening") wins here. See AMBIGUITIES.md.
-    pub flatten: bool,
     pub scale: ScaleForce,
     pub cluster_mode: bool,
     pub mute_pattern: [bool; TRACK_COUNT],
@@ -369,13 +364,107 @@ impl Page {
             pitch_offset: 0,
             velocity_factor: 8,
             length: STEP_COUNT as u8,
-            flatten: false,
             scale: ScaleForce::major(60),
             cluster_mode: false,
             mute_pattern: [false; TRACK_COUNT],
             user_directions: [UserDirection::default(); USER_DIRECTION_COUNT],
             tracks,
         }
+    }
+
+    /// Ref: CE v5.30 §3 Track Mode, "Track FLAT (FLT)", p.42. A one-shot
+    /// multi-track selection merge, not a persistent attribute — this is a data
+    /// transform, not tick-loop logic, so it lives here rather than in
+    /// `engine.rs`.
+    ///
+    /// "There is a notion of a destination track, which is always the one from
+    /// the selection with the lowest index... For every active step in any of
+    /// the source tracks, you will get the corresponding step activated in the
+    /// target track... If more than one step is active in the same column...
+    /// the lowest 7 pitches of active steps will get stacked to form a chord...
+    /// if source track steps contain chords already, only their base pitch
+    /// will be considered for FLT... FLT always carries over the VEL, LEN and
+    /// STA attributes of the last encountered active step... FLT is MIDI
+    /// channel agnostic... Step GRV is always reset to '0' when using FLT
+    /// unless source and destination tracks have the same GRV settings."
+    ///
+    /// Two sub-rules are chosen, not cited (flagged in AMBIGUITIES.md): whether
+    /// the destination counts as its own source (chosen: yes — discarding the
+    /// destination's own programmed content on merge would be a stranger
+    /// reading than including it), and the iteration order for "last
+    /// encountered" (chosen: descending track index, matching this engine's
+    /// own top-down convention elsewhere).
+    pub fn apply_flatten(&mut self, selected: &[TrackIndex]) -> Result<(), &'static str> {
+        if selected.len() < 2 {
+            return Err("FLT needs at least two selected tracks");
+        }
+        let dest = *selected.iter().min().ok_or("empty selection")?;
+        if selected.iter().any(|&t| t as usize >= TRACK_COUNT) {
+            return Err("track index out of range");
+        }
+
+        for step_idx in 0..STEP_COUNT {
+            let mut pitches = [0u8; 7];
+            let mut pitch_count = 0usize;
+            let (mut last_vel, mut last_len, mut last_len_mult, mut last_sta) = (0i8, DEFAULT_STEP_TICKS as u8, 1u8, 0i8);
+            let mut any_active = false;
+            let mut groove_ref: Option<u8> = None;
+            let mut grooves_match = true;
+
+            // Descending index = "last encountered" order (chosen, not cited).
+            for ti_desc in 0..TRACK_COUNT {
+                let ti = (TRACK_COUNT - 1 - ti_desc) as TrackIndex;
+                if !selected.contains(&ti) {
+                    continue;
+                }
+                let track = self.tracks[ti as usize];
+                match groove_ref {
+                    None => groove_ref = Some(track.groove),
+                    Some(g) if g != track.groove => grooves_match = false,
+                    _ => {}
+                }
+                let step = track.steps[step_idx];
+                if !step.active || step.skip {
+                    continue;
+                }
+                any_active = true;
+                if pitch_count < pitches.len() {
+                    pitches[pitch_count] = clamp_midi(track.pitch as i32 + step.pitch_offset as i32);
+                    pitch_count += 1;
+                }
+                last_vel = step.velocity_offset;
+                last_len = step.length_ticks;
+                last_len_mult = step.length_multiplier;
+                last_sta = step.start_offset;
+            }
+
+            if !any_active {
+                continue;
+            }
+
+            pitches[..pitch_count].sort_unstable();
+            let base = pitches[0];
+            let dest_pitch = self.tracks[dest as usize].pitch;
+
+            let dest_step = &mut self.tracks[dest as usize].steps[step_idx];
+            dest_step.active = true;
+            dest_step.skip = false;
+            dest_step.pitch_offset = (base as i32 - dest_pitch as i32) as i8;
+            dest_step.velocity_offset = last_vel;
+            dest_step.length_ticks = last_len;
+            dest_step.length_multiplier = last_len_mult;
+            dest_step.start_offset = last_sta;
+            dest_step.chord.count = (pitch_count.saturating_sub(1)).min(CHORD_POOL_MAX) as u8;
+            for i in 0..dest_step.chord.count as usize {
+                dest_step.chord.offsets[i] = (pitches[i + 1] as i32 - base as i32) as i8;
+            }
+            dest_step.chord.polyphony = pitch_count as u8;
+            if !grooves_match {
+                dest_step.phrase = None;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -529,4 +618,75 @@ impl Grid {
 
 pub fn clamp_midi(v: i32) -> u8 {
     v.clamp(0, 127) as u8
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ref: CE v5.30 p.42 worked description: two active-step tracks, each a
+    /// simple base note, merge into one chord at the lowest-indexed (here,
+    /// only) selected track below them... actually FLT needs >=2 sources, so
+    /// this uses tracks 5 and 3 as sources merging into track 3 (the lower
+    /// index), proving: destination = lowest index, base = lowest pitch,
+    /// chord stacks the other pitch as an offset, VEL/LEN/STA carry from the
+    /// last-encountered (descending-index) active source.
+    #[test]
+    fn flatten_merges_two_tracks_into_lowest_index() {
+        let mut page = Page::default_page();
+        page.tracks[5].pitch = 60;
+        page.tracks[5].steps[0].active = true;
+        page.tracks[5].steps[0].pitch_offset = 0; // absolute 60
+        page.tracks[5].steps[0].velocity_offset = 10;
+
+        page.tracks[3].pitch = 60;
+        page.tracks[3].steps[0].active = true;
+        page.tracks[3].steps[0].pitch_offset = 4; // absolute 64
+        page.tracks[3].steps[0].velocity_offset = -5;
+
+        page.apply_flatten(&[5, 3]).unwrap();
+
+        let dest = page.tracks[3].steps[0];
+        assert!(dest.active);
+        // base = lowest absolute pitch (60, from track 5) stored as an offset
+        // against the destination's OWN base pitch (also 60 here).
+        assert_eq!(dest.pitch_offset, 0);
+        assert_eq!(dest.chord.count, 1);
+        assert_eq!(dest.chord.offsets[0], 4); // 64 - 60
+        // "last encountered" = descending index = track 3 (the destination
+        // itself, processed after track 5) — chosen reading, see AMBIGUITIES.md.
+        assert_eq!(dest.velocity_offset, -5);
+    }
+
+    /// Ref: CE v5.30 p.42: "Step GRV is always reset to '0'... unless source
+    /// and destination tracks have the same GRV settings" — GRV here means the
+    /// *track-level* groove/shuffle attribute, not the step's own phrase index.
+    #[test]
+    fn flatten_resets_phrase_unless_track_groove_matches() {
+        let mut page = Page::default_page();
+        page.tracks[5].groove = 3;
+        page.tracks[5].steps[0].active = true;
+        page.tracks[3].groove = 7; // mismatched groove
+        page.tracks[3].steps[0].active = true;
+        page.tracks[3].steps[0].phrase = Some(9);
+
+        page.apply_flatten(&[5, 3]).unwrap();
+        assert_eq!(page.tracks[3].steps[0].phrase, None, "mismatched track GRV must reset phrase");
+
+        let mut page2 = Page::default_page();
+        page2.tracks[5].groove = 4;
+        page2.tracks[5].steps[0].active = true;
+        page2.tracks[3].groove = 4; // matching groove
+        page2.tracks[3].steps[0].active = true;
+        page2.tracks[3].steps[0].phrase = Some(9);
+
+        page2.apply_flatten(&[5, 3]).unwrap();
+        assert_eq!(page2.tracks[3].steps[0].phrase, Some(9), "matching track GRV must preserve phrase");
+    }
+
+    #[test]
+    fn flatten_requires_at_least_two_tracks() {
+        let mut page = Page::default_page();
+        assert!(page.apply_flatten(&[3]).is_err());
+    }
 }

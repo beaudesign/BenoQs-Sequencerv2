@@ -14,6 +14,11 @@ pub const PAGE_SET_COUNT: usize = 16;
 pub const PHRASE_COUNT: usize = 16;
 pub const PHRASE_NOTE_COUNT: usize = 8;
 pub const CHORD_POOL_MAX: usize = 6; // + the base pitch = 7 simultaneous notes, matching v1's cap
+/// Ref: CE v5.30 p.22 — polyphony greater than chord size pads the draw pool
+/// with rest placeholders (`polyphony - chordSize` of them); the manual gives no
+/// upper bound on polyphony itself, so this cap is a defensive engineering
+/// choice, not a cited constant — see tests/conformance/AMBIGUITIES.md.
+pub const CHORD_POLYPHONY_MAX: usize = 16;
 pub const CHAIN_MEMBERS_MAX: usize = TRACK_COUNT - 1;
 pub const MAX_SCALE_INTERVALS: usize = 12;
 /// PROVISIONAL — see tests/conformance/AMBIGUITIES.md "user-programmed directions".

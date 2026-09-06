@@ -498,22 +498,35 @@ impl Engine {
         let mut notes: [u8; CHORD_POOL_MAX + 1] = [0; CHORD_POOL_MAX + 1];
         let note_count: usize;
         if step.chord.count > 0 {
-            let pool_size = step.chord.count as usize + 1; // + implicit base pitch
-            let poly = (step.chord.polyphony as usize).clamp(1, pool_size);
+            // Ref: CE v5.30 §2 Step Mode, "Random note picks from chord pool", p.22:
+            // "the number of played chord notes is always the smaller of the two
+            // values (i.e. chord size or polyphony)... When chord size is greater
+            // than polyphony, the note pool is made up by all notes that make up
+            // the chord[, draw polyphony of them]. When polyphony is greater than
+            // the chord size, the note pool is made up by the chord notes plus a
+            // number of rests... the difference between the polyphony and the
+            // chord size[, draw chord-size of them]." Worked example: chord C-E-G
+            // (chord_size=3) — polyphony 3 plays C-E-G every time; polyphony 2
+            // draws 2 of {C,E,G} at random; polyphony 5 draws 3 elements at random
+            // from {C,E,G,rest,rest} — so even with generous polyphony, a draw can
+            // land on a rest and sound fewer than chord_size real notes. The
+            // `polyphony == chord_size` case ("consistently play the chord") falls
+            // out of this same algorithm for free: a zero-rest pool drawn down to
+            // its own size always yields every real note, just in a randomised
+            // draw order that `played.sort_unstable()` below erases anyway.
+            let chord_size = step.chord.count as usize + 1; // + implicit base pitch
+            let poly = (step.chord.polyphony as usize).clamp(1, CHORD_POLYPHONY_MAX);
+            let draw_count = poly.min(chord_size);
             let mut pool_offsets = [0i8; CHORD_POOL_MAX + 1];
             for k in 0..step.chord.count as usize {
                 pool_offsets[k + 1] = step.chord.offsets[k];
             }
-            if poly >= pool_size {
-                for (k, slot) in notes.iter_mut().enumerate().take(pool_size) {
-                    *slot = clamp_midi(final_pit as i32 + pool_offsets[k] as i32);
-                }
-                note_count = pool_size;
-            } else {
+
+            if poly < chord_size {
                 let mut used = [false; CHORD_POOL_MAX + 1];
                 let mut n = 0;
-                while n < poly {
-                    let pick = self.rng.next_below(pool_size as u32) as usize;
+                while n < draw_count {
+                    let pick = self.rng.next_below(chord_size as u32) as usize;
                     if used[pick] {
                         continue;
                     }
@@ -521,7 +534,28 @@ impl Engine {
                     notes[n] = clamp_midi(final_pit as i32 + pool_offsets[pick] as i32);
                     n += 1;
                 }
-                note_count = poly;
+                note_count = n;
+            } else {
+                // Padded pool: chord_size real notes + (poly - chord_size) rests,
+                // pool size = poly. Draw `draw_count` (== chord_size) without
+                // replacement; a draw index >= chord_size is a rest (no note).
+                let padded_pool_size = poly;
+                let mut used = [false; CHORD_POLYPHONY_MAX];
+                let mut drawn = 0;
+                let mut sounded = 0;
+                while drawn < draw_count {
+                    let pick = self.rng.next_below(padded_pool_size as u32) as usize;
+                    if used[pick] {
+                        continue;
+                    }
+                    used[pick] = true;
+                    drawn += 1;
+                    if pick < chord_size {
+                        notes[sounded] = clamp_midi(final_pit as i32 + pool_offsets[pick] as i32);
+                        sounded += 1;
+                    }
+                }
+                note_count = sounded;
             }
         } else {
             notes[0] = final_pit;
@@ -846,6 +880,39 @@ mod tests {
         // the triad is 69 / 69+4 / 69+7.
         let pitches: std::collections::BTreeSet<_> = note_ons(&all).into_iter().map(|(_, _, n, _)| n).collect();
         assert!(pitches.contains(&69) && pitches.contains(&73) && pitches.contains(&76), "expected a full 69/73/76 triad, got {:?}", pitches);
+    }
+
+    /// Ref: CE v5.30 p.22: "A polyphony of 5 will play 3 elements picked at
+    /// random from the pool {C, E, G, rest, rest}" (chord_size=3 there; here
+    /// chord_size=2, polyphony=5, so the pool is {base, offset, rest, rest, rest}
+    /// and 2 elements are drawn). Proves draws can land on rests (note_count < 2
+    /// on some seeds) while never exceeding chord_size (note_count never > 2) —
+    /// the bug this replaced always played both real notes deterministically.
+    #[test]
+    fn chord_polyphony_over_chord_size_can_draw_rests() {
+        let mut saw_full = false;
+        let mut saw_partial = false;
+        for seed in 0..200u64 {
+            let mut engine = Engine::new(seed);
+            let page = engine.grid.active_page_mut();
+            page.tracks[0].steps[0].active = true;
+            page.tracks[0].steps[0].chord.offsets[0] = 7;
+            page.tracks[0].steps[0].chord.count = 1; // chord_size = 2 (base + 1 offset)
+            page.tracks[0].steps[0].chord.polyphony = 5; // 3 rest placeholders
+
+            let ctx = RenderContext { sample_rate: 48_000.0, buffer_len: 1600, bpm: 120.0, playing: true };
+            let mut out = EventBuffer::new();
+            engine.render(&ctx, &mut out);
+            let count = note_ons(out.as_slice()).len();
+            assert!(count <= 2, "seed {seed}: drew more notes than chord_size allows: {count}");
+            if count == 2 {
+                saw_full = true;
+            } else {
+                saw_partial = true;
+            }
+        }
+        assert!(saw_full, "expected at least one seed to draw both real notes");
+        assert!(saw_partial, "expected at least one seed to draw a rest and sound fewer than chord_size notes");
     }
 
     #[test]

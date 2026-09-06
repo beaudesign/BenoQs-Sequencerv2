@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wenge.local/contracts/verification.report.schema.json",
+  "title": "Verification Report",
+  "description": "Output of `just verify`. Every gate emits a conformant fragment; the runner merges them. This document is the project's shared world model: if a fact is not here, it is not known.",
+  "type": "object",
+  "required": ["schema", "commit", "ran_at", "gates", "assertions"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "verification.report/1" },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+    "branch": { "type": "string" },
+    "role": { "type": "string", "description": "Which role's session produced this run." },
+    "ran_at": { "type": "string", "format": "date-time" },
+    "duration_s": { "type": "number", "minimum": 0, "description": "Hard budget: `just verify` must complete under 240 s. A suite that takes twenty minutes gets skipped, and a skipped gate is not a gate." },
+    "hardware": { "type": "string" },
+
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "metrics"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "enum": [
+              "determinism", "geometry", "color", "frames", "motion",
+              "slop", "tokens", "timing", "conformance", "acoustics",
+              "a11y", "arch", "persistence", "regressions"
+            ]
+          },
+          "status": { "enum": ["pass", "fail", "skipped", "not_implemented"] },
+          "duration_s": { "type": "number", "minimum": 0 },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["key", "value", "threshold", "comparator", "result"],
+              "additionalProperties": false,
+              "properties": {
+                "key": { "type": "string", "description": "e.g. 'geometry.centroid_error_p95_mm'." },
+                "value": { "type": ["number", "boolean"] },
+                "unit": { "type": "string" },
+                "threshold": { "type": ["number", "boolean"] },
+                "comparator": { "enum": ["lte", "gte", "lt", "gt", "eq", "neq"] },
+                "result": { "enum": ["pass", "fail"] },
+                "previous": { "type": ["number", "boolean", "null"], "description": "Same metric on the previous commit, for trend." },
+                "threshold_history": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["value", "changed_at", "direction"],
+                    "properties": {
+                      "value": { "type": "number" },
+                      "changed_at": { "type": "string", "format": "date-time" },
+                      "direction": { "enum": ["tightened", "loosened"] },
+                      "adr": { "type": "string", "description": "Required when direction is 'loosened'." },
+                      "expires_at": { "type": "string", "format": "date-time", "description": "Required when direction is 'loosened'. A loosened threshold with no expiry becomes permanent by neglect." }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Paths to heat maps, curve plots, histograms, captures."
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["subject", "detail"],
+              "properties": {
+                "subject": { "type": "string", "description": "Control id, fixture name, registry entry, or lint rule." },
+                "detail": { "type": "string" },
+                "expected": { "type": ["number", "string", "boolean"] },
+                "actual": { "type": ["number", "string", "boolean"] }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "assertions": {
+      "type": "object",
+      "description": "The ratchet, made literal. Count must be monotonic non-decreasing on main. Removing an assertion requires an ADR.",
+      "required": ["total", "by_gate"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "previous_total": { "type": ["integer", "null"] },
+        "by_gate": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "added_this_commit": { "type": "array", "items": { "type": "string" } },
+        "removed_this_commit": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "adr"],
+            "properties": {
+              "id": { "type": "string" },
+              "adr": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "findings": {
+      "type": "array",
+      "description": "Output of the perceptual pass and of blind comparisons. Scores never gate; findings are the product. Every finding is triaged within one cycle.",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "observation", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^F-[0-9]{4}$" },
+          "source": { "enum": ["perceptual_pass", "blind_comparison", "human_review", "agent_report"] },
+          "scene": { "type": "string" },
+          "region": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } },
+          "dimension": {
+            "enum": ["materiality", "light_coherence", "geometric_conviction", "typographic_authority", "motion_honesty", "restraint", "coherence_of_worlds"]
+          },
+          "severity": { "enum": ["low", "medium", "high"] },
+          "observation": { "type": "string" },
+          "status": { "enum": ["open", "converted", "rejected", "deferred", "closed"] },
+          "converted_to": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Assertion ids. This is the desired outcome: 'chrome looks plasticky' is worthless; 'specular lobe angular width at enc.edit.len under probe flat must be between 3.8 and 5.2 degrees' is a test that is still true in a year."
+          },
+          "rejection_reason": { "type": "string", "description": "Kept forever, so the same false positive is not relitigated every cycle." },
+          "deferred_to_phase": { "type": "integer", "minimum": 0, "description": "A finding may be deferred at most twice." },
+          "defer_count": { "type": "integer", "minimum": 0, "maximum": 2 },
+          "opened_at": { "type": "string", "format": "date-time" },
+          "recurrence_count": { "type": "integer", "minimum": 1, "description": "Three recurrences means the fix is structural. Escalate to the Conductor." }
+        }
+      }
+    },
+
+    "perceptual": {
+      "type": "object",
+      "description": "Advisory only. Never gates.",
+      "additionalProperties": false,
+      "properties": {
+        "rubric_version": { "type": "string" },
+        "anchor_set": { "type": "string" },
+        "scores": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 1, "maximum": 5 }
+        },
+        "conversion_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of this cycle's findings that became assertions. Below 0.40 means the pass is producing vibes rather than signal, and the Referee tightens the rubric."
+        }
+      }
+    },
+
+    "blind_comparison": {
+      "type": "object",
+      "description": "The outer loop, and the only ungameable measure. Run at every phase boundary with fresh participants.",
+      "additionalProperties": false,
+      "properties": {
+        "participants": { "type": "integer", "minimum": 1 },
+        "trials_per_participant": { "type": "integer", "minimum": 20 },
+        "accuracy": { "type": "number", "minimum": 0, "maximum": 1, "description": "Fraction correctly identifying the photograph. Target below 0.60 at release. 0.50 is chance." },
+        "tells": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Free-text 'what gave it away' for every correct trial. Each one enters the findings pipeline. This is the highest-value data the project will get: twenty trials with three people will find things a thousand model passes will not."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wenge.local/contracts/panel.truth.schema.json",
+  "title": "Panel Truth",
+  "description": "Metric vector model of the Octopus faceplate. Units are millimetres. Origin is the top-left corner of the visible faceplate aperture. +x right, +y down, +z out of the panel. Ratified once by a human, then immutable except by ADR.",
+  "type": "object",
+  "required": ["schema", "status", "provenance", "units", "aperture", "lattices", "controls", "engravings"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "panel.truth/1" },
+    "status": { "enum": ["candidate", "ratified"] },
+    "units": { "const": "mm" },
+
+    "provenance": {
+      "type": "object",
+      "required": ["plates", "scale_source", "scale_uncertainty_mm"],
+      "additionalProperties": false,
+      "properties": {
+        "plates": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "description": "Content hashes of the plates this model derives from."
+        },
+        "scale_source": { "type": "string" },
+        "scale_uncertainty_mm": { "type": "number", "minimum": 0 },
+        "extractor_version": { "type": "string" },
+        "ratified_by": { "type": "string" },
+        "ratified_at": { "type": "string", "format": "date-time" }
+      }
+    },
+
+    "aperture": {
+      "type": "object",
+      "required": ["w", "h"],
+      "additionalProperties": false,
+      "properties": {
+        "w": { "type": "number", "exclusiveMinimum": 0 },
+        "h": { "type": "number", "exclusiveMinimum": 0 },
+        "corner_radius": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "lattices": {
+      "type": "object",
+      "description": "Regularised control lattices. Individual detections are replaced by lattice predictions, which average many measurements into few parameters and are therefore more accurate than any single detection.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["origin", "pitch", "rows", "cols"],
+        "additionalProperties": false,
+        "properties": {
+          "origin": { "$ref": "#/$defs/point" },
+          "pitch": { "$ref": "#/$defs/point" },
+          "shear": { "type": "number", "default": 0 },
+          "rows": { "type": "integer", "minimum": 1 },
+          "cols": { "type": "integer", "minimum": 1 },
+          "row_labels": { "type": "array", "items": { "type": "string" } },
+          "col_labels": { "type": "array", "items": { "type": "string" } },
+          "col_group": { "type": "integer", "minimum": 1, "description": "Visual grouping interval, e.g. 4 for beat grouping." },
+          "fit_rmse_mm": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+
+    "spiral": {
+      "type": "object",
+      "description": "Logarithmic spiral r(theta) = a * exp(b * theta) fitted to the right-hand control cluster. Controls are NOT snapped to this curve; per-control residuals are real and are part of the object's character.",
+      "required": ["a", "b", "center", "theta0"],
+      "additionalProperties": false,
+      "properties": {
+        "a": { "type": "number" },
+        "b": { "type": "number" },
+        "center": { "$ref": "#/$defs/point" },
+        "theta0": { "type": "number" },
+        "fit_rmse_mm": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "class", "center", "radius"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/controlId" },
+          "class": {
+            "enum": ["matrix_button", "mix_target_button", "spiral_button", "encoder_crown", "main_rotary"]
+          },
+          "label": { "type": "string", "description": "Engraved label, if any, e.g. 'VEL', 'Play'." },
+          "center": { "$ref": "#/$defs/point" },
+          "radius": { "type": "number", "exclusiveMinimum": 0 },
+          "z": { "type": "number", "default": 0 },
+          "theta": { "type": "number", "description": "Spiral angle, spiral controls only." },
+          "r": { "type": "number", "description": "Spiral radius, spiral controls only." },
+          "spiral_residual": { "$ref": "#/$defs/point" },
+          "dome": {
+            "type": "object",
+            "required": ["profile", "height"],
+            "additionalProperties": false,
+            "properties": {
+              "profile": { "enum": ["spherical_cap", "hemisphere", "flat", "turned_crown"] },
+              "height": { "type": "number", "minimum": 0 },
+              "travel_mm": { "type": "number", "minimum": 0, "description": "Actuation travel for buttons." },
+              "tangent_axis": { "$ref": "#/$defs/point", "description": "Lathe axis for anisotropic turning marks on crowns." }
+            }
+          },
+          "detents": { "type": "integer", "minimum": 0, "description": "Detents per revolution, encoders only." },
+          "led": {
+            "type": "object",
+            "required": ["center", "radius", "colors"],
+            "additionalProperties": false,
+            "properties": {
+              "center": { "$ref": "#/$defs/point" },
+              "radius": { "type": "number", "exclusiveMinimum": 0 },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "enum": ["red", "green", "amber"] },
+                "description": "Amber is produced by mixing the red and green emitters. It is not a third emitter."
+              },
+              "lens_height": { "type": "number", "minimum": 0 }
+            }
+          },
+          "residual_mm": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Inter-plate standard deviation. Travels with the data so downstream code can weight or flag low-confidence controls."
+          },
+          "confidence": { "enum": ["measured", "lattice", "adjudicated", "modelled"] }
+        }
+      }
+    },
+
+    "engravings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "paths", "depth_mm"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "text": { "type": "string", "description": "Human-readable content, for search and accessibility. Not used for rendering." },
+          "paths": {
+            "type": "array",
+            "items": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/point" } },
+            "description": "Closed contours in mm. Extracted from the plate, not typeset from a font, so the engraving is faithful even before type identification completes."
+          },
+          "depth_mm": { "type": "number", "exclusiveMinimum": 0 },
+          "typeface": { "type": "string", "default": "unidentified" },
+          "outline_source": { "enum": ["plate", "typeset"] },
+          "iou_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Glyph-outline correlation against the identified typeface. Gate is 0.94 aggregate, 0.90 per glyph."
+          }
+        }
+      }
+    },
+
+    "case": {
+      "type": "object",
+      "description": "Wooden case geometry, for the rendered surround.",
+      "additionalProperties": false,
+      "properties": {
+        "outer": { "$ref": "#/$defs/point" },
+        "cheek_radius": { "type": "number", "minimum": 0 },
+        "depth": { "type": "number", "minimum": 0 },
+        "grain_axis": { "$ref": "#/$defs/point" }
+      }
+    }
+  },
+
+  "$defs": {
+    "point": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "number" },
+      "description": "[x, y] in millimetres. Never normalised. Normalisation is how drift enters."
+    },
+    "controlId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9_]+)+$",
+      "description": "Stable identifier, e.g. 'matrix.r9.c0', 'enc.edit.len', 'spiral.play'. This is the join key between the truth file, the motion registry, the state model, and the verification report. Renaming is an ADR-level change."
+    }
+  }
+}

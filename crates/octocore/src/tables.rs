@@ -1,30 +1,44 @@
 //! Manual-derived timing tables.
 //!
 //! `docs/03-sequencer-core.md` §1 requires every non-obvious constant to carry a
-//! `Ref:` citation to a page of the CE v5.30 reference manual, and §4 names exactly
-//! these two tables as "known to need re-derivation": the JS randomises even GRV
-//! settings over a window whose exact bounds were eyeballed, and the strum table's
-//! 54 entries were transcribed once and never cross-checked.
+//! `Ref:` citation to a page of the CE v5.30 reference manual, and §4 flagged these
+//! two tables as "known to need re-derivation" back when they were only ported from
+//! `archive/v1-max4live/octopus_engine.js` sight-unseen against the real manual.
 //!
-//! This repo does not yet contain the manual (see `reference/NOTES.md`), so these
-//! tables are ported verbatim from `archive/v1-max4live/octopus_engine.js`
-//! (`_grvDelayTicks`, `_strumOffsetTicks`) rather than cited against a page number.
-//! **They are provisional.** Treat every value here as an open item in
-//! `tests/conformance/AMBIGUITIES.md` until someone with the manual (or the
-//! hardware) confirms it. Do not add a new constant to this file without either a
-//! real `Ref:` citation or the same provisional flag.
+//! The manual has since landed (`reference/manual/`, `just manual <topic>`) and
+//! both tables check out **cell-for-cell identical** to what v1 already had — see
+//! `Ref:` citations on each function below. Do not add a new constant to this file
+//! without either a real `Ref:` citation or an explicit PROVISIONAL flag plus a
+//! matching entry in `tests/conformance/AMBIGUITIES.md`.
 
 use crate::rng::Rng;
 
 /// Track shuffle delay in ticks, applied to even-numbered step positions (2, 4, ...,
 /// 16; zero-based indices 1, 3, ..., 15). `grv` is the track's GRV attribute, 0..=16.
 ///
-/// PROVISIONAL — ported from `_grvDelayTicks` in
-/// `archive/v1-max4live/octopus_engine.js`, not yet verified against the manual.
-/// Odd settings are a fixed delay; even settings are randomised within a
-/// three-tick window centered progressively later. `rng` is drawn from only when
-/// `grv` is one of the randomised (even) settings, so odd settings stay exactly
-/// reproducible even without a seed being threaded through.
+/// Ref: CE v5.30 §3 Track Mode, "Track groove (GRV)", p.46:
+/// "Shuffle means that the steps with an even index in the track (i.e. 2, 4, 6
+/// .... 16) will be played with a delay... the odd GRV values will produce steady
+/// shuffle delays, while the even GRV values will produce delays that are variable
+/// within one 1/192 and which are determined at runtime":
+/// ```text
+/// Setting  Delay(1/192)   Setting  Delay(1/192)
+///    1          1            9          5
+///    2         0-2           10        4-6
+///    3          2            11         6
+///    4         1-3           12        5-7
+///    5          3            13         7
+///    6         2-4           14        6-8
+///    7          4            15         8
+///    8         3-5           16        7-9
+/// ```
+/// Cell-for-cell identical to what `archive/v1-max4live/octopus_engine.js`'s
+/// `_grvDelayTicks` already had (setting 0, absent from the printed table, is
+/// treated as no shuffle, which is the only reading consistent with "GRV
+/// determines *how much* shuffle is applied" starting from a range of 0-16).
+/// `rng` is drawn from only when `grv` is one of the randomised (even) settings,
+/// so odd settings stay exactly reproducible even without a seed being threaded
+/// through.
 pub fn grv_delay_ticks(grv: u8, rng: &mut Rng) -> u32 {
     let g = grv.min(16) as u32;
     match g {
@@ -54,9 +68,14 @@ pub fn grv_delay_ticks(grv: u8, rng: &mut Rng) -> u32 {
 /// level `level` (0..=9, magnitude only — direction is handled by the caller
 /// reversing the note order before calling this).
 ///
-/// PROVISIONAL — ported from `_strumOffsetTicks` in
-/// `archive/v1-max4live/octopus_engine.js` ("Chord Strum Timings in Ticks" table,
-/// strum 1..=9 x notes 2..=7 = 54 entries), not yet verified against the manual.
+/// Ref: CE v5.30 §2 Step Mode, "Strumming chords", p.22, table "Chord Strum
+/// Timings in Ticks" (strum 1..=9 x notes 2..=7, 54 entries) — cell-for-cell
+/// identical to what `archive/v1-max4live/octopus_engine.js`'s
+/// `_strumOffsetTicks` already had. Also confirms strum level is really -9..=9
+/// (sign = up/down direction, magnitude indexes this table — already how the
+/// engine treats it) and that strumming a single-note step plays that note plus
+/// 6 duplicates at the strum timing (already how `engine.rs::fire_step` treats
+/// `note_count == 1`).
 pub fn strum_offset_ticks(level: u8, note_number: u8) -> u32 {
     if note_number <= 1 {
         return 0;

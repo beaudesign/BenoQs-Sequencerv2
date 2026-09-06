@@ -1,0 +1,15 @@
+# tests/conformance/effector/feeder_pit.fixture
+# Ref: docs/03-sequencer-core.md §8 (the doc's own worked example, transcribed
+# verbatim). Not yet cross-checked against the real CE v5.30 manual page — see
+# tests/conformance/AMBIGUITIES.md "effector timing".
+seed 42
+page.tracks 9,8,4,0 enabled
+track 9 role feeder
+track 8 role feeder
+track 4 role listener
+track 0 role listener
+track 9 step 0 pit +3
+track 4 step 0 pit 0
+play 1 step
+expect note track=4 pit=+3
+expect note track=0 pit=+3

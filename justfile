@@ -57,8 +57,18 @@ verify-motion:
 	@just _stub motion forge
 verify-timing:
 	@just _stub timing metronome
+# octocore's `tests/conformance.rs` runs every tests/conformance/**/*.fixture
+# (excluding pending/); wired here once octocore exists so this gate stops
+# being a stub even though jitter/host-loopback timing (verify-timing) isn't.
 verify-conformance:
-	@just _stub conformance metronome
+	#!/usr/bin/env bash
+	set -euo pipefail
+	if [ -f crates/octocore/Cargo.toml ]; then
+		cd crates/octocore && cargo test --test conformance
+	else
+		echo "conformance: not yet implemented — owned by metronome, see docs/07-verification.md"
+		exit 42
+	fi
 verify-acoustics:
 	@just _stub acoustics sceneshaper
 verify-a11y:

@@ -1,0 +1,13 @@
+[package]
+name = "octocore"
+version = "0.1.0"
+edition = "2021"
+description = "WENGE / Octopus v2 sequencer core (D1). Owner: Metronome."
+
+[lib]
+name = "octocore"
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+
+[dev-dependencies]

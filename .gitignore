@@ -7,3 +7,11 @@ Octopus.amxd.bak-template
 # Common temp
 *.tmp
 *.log
+
+# CMake / native build output
+build/
+cmake-build-*/
+compile_commands.json
+
+# Rust build output
+target/

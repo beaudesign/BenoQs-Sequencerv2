@@ -426,6 +426,13 @@ pub struct Page {
     pub length: u8,
     pub scale: ScaleForce,
     pub cluster_mode: bool,
+    /// Ref: CE v5.30 p.67, "On-the-Measure Mode": "allows certain actions that
+    /// previously could only be effected instantaneously to now be programmed
+    /// to occur 'on-the-measure'... A measure is 16 steps at x1 speed, or if a
+    /// page has a Page Length of less than 16 then the Length of Measure will
+    /// be equal to the Page Length." Gates Track Toggle Mute/Solo timing (p.40,
+    /// Track Toggle Consideration 5) — see `Engine::queue_step_event`.
+    pub on_the_measure: bool,
     pub mute_pattern: [bool; TRACK_COUNT],
     pub user_directions: [UserDirection; USER_DIRECTION_COUNT],
     /// Ref: CE v5.30 p.31: "There can be multiple hypersteps in one track
@@ -458,6 +465,7 @@ impl Page {
             length: STEP_COUNT as u8,
             scale: ScaleForce::chromatic(60),
             cluster_mode: false,
+            on_the_measure: false,
             mute_pattern: [false; TRACK_COUNT],
             user_directions: [UserDirection::default(); USER_DIRECTION_COUNT],
             hyperstep_links: [None; TRACK_COUNT],

@@ -162,9 +162,6 @@ so deferred rather than done halfway.
   offsets/absolutes, no map-factor scaling at all.
 - Track Rotate / Track Skip Rotate's actual step-data-shifting behaviour
   (p.38-39) — data model present, playback not implemented.
-- On-the-measure deferral for Mute/Solo Track Toggles (p.40: "subordinate to
-  the On-The-Measure mode condition of the Page") — tracked separately, see
-  the next AMBIGUITIES entry once that lands.
 - POS's own wrap maximum isn't given anywhere in the manual (unlike DIR's 16
   and MCH's 32) — left unwrapped; harmless since it only ever feeds a
   `% page_len` downstream.
@@ -172,6 +169,21 @@ so deferred rather than done halfway.
 `::step_event_set_dir_reverts_on_stop`,
 `::track_toggle_range_wraps_manual_worked_example`,
 `::track_toggle_amt_10_targets_track_0`, `::track_toggle_negative_amt_is_off`.
+
+## on-the-measure deferral for Mute/Solo Track Toggles: resolved
+
+**Manual reference:** CE v5.30 p.40 (Track Toggle Consideration 5), p.67
+("On-the-Measure Mode").
+**Resolution:** implemented. New `Page::on_the_measure: bool`. When a Mute or
+Solo Track Toggle fires with the page's `on_the_measure` set, it's queued into
+a separate `Engine::measure_deferred` slot instead of the normal per-tick
+`deferred_actions`, and only applied when `global_tick` reaches a measure
+boundary — Ref p.67: "A measure is 16 steps at x1 speed, or if a page has a
+Page Length of less than 16 then the Length of Measure will be equal to the
+Page Length." Record and Pause toggles are not mentioned by p.40's
+consideration and always use the normal next-tick queue.
+**Fixture:** `engine::tests::track_toggle_mute_defers_to_measure_boundary_when_otm_set`,
+`::track_toggle_mute_applies_next_tick_when_otm_off`.
 
 ## hyperstep carry: was a wrong model, now corrected
 

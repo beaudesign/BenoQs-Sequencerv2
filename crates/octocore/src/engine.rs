@@ -235,6 +235,13 @@ pub struct Engine {
     /// reworking that snapshot architecture; deferred rather than done
     /// halfway. See AMBIGUITIES.md "step events: same-tick timing".
     deferred_actions: [Option<DeferredAction>; TRACK_COUNT],
+    /// Ref: CE v5.30 p.40, Track Toggle Consideration 5: "Track Toggle Events
+    /// of Mute & Solo are subordinate to the On-The-Measure mode condition of
+    /// the Page." Held here instead of `deferred_actions` when
+    /// `Page::on_the_measure` is set at the moment a Mute/Solo toggle fires;
+    /// applied at the next measure boundary rather than the next tick — see
+    /// `queue_step_event` and `step_all_tracks`.
+    measure_deferred: [Option<DeferredAction>; TRACK_COUNT],
     /// What fired *this tick*, cleared and refilled every `step_all_tracks` call.
     pub last_tick_fires: FireLog,
 }
@@ -252,6 +259,7 @@ impl Engine {
             queue: [None; QUEUE_CAP],
             queue_len: 0,
             deferred_actions: [None; TRACK_COUNT],
+            measure_deferred: [None; TRACK_COUNT],
             last_tick_fires: FireLog::default(),
         }
     }
@@ -315,6 +323,7 @@ impl Engine {
         self.queue = [None; QUEUE_CAP];
         self.queue_len = 0;
         self.deferred_actions = [None; TRACK_COUNT];
+        self.measure_deferred = [None; TRACK_COUNT];
     }
 
     fn schedule(&mut self, due_sample: f64, event: RawEvent) {
@@ -393,6 +402,20 @@ impl Engine {
         for ti in 0..TRACK_COUNT {
             if let Some(action) = self.deferred_actions[ti].take() {
                 self.apply_deferred_action(ti as TrackIndex, action);
+            }
+        }
+
+        // Ref: CE v5.30 p.67: "A measure is 16 steps at x1 speed, or if a page
+        // has a Page Length of less than 16 then the Length of Measure will be
+        // equal to the Page Length." Applied here, once per measure, rather
+        // than every tick like `deferred_actions` above.
+        let measure_len = self.grid.active_page().length.clamp(1, STEP_COUNT as u8) as u64;
+        let measure_ticks = measure_len * DEFAULT_STEP_TICKS as u64;
+        if self.global_tick % measure_ticks.max(1) == 0 {
+            for ti in 0..TRACK_COUNT {
+                if let Some(action) = self.measure_deferred[ti].take() {
+                    self.apply_deferred_action(ti as TrackIndex, action);
+                }
             }
         }
 
@@ -808,11 +831,10 @@ impl Engine {
                     ToggleKind::Record => track.record_armed = on,
                     ToggleKind::Pause => track.paused = on,
                 }
-                // Ref p.40, Track Toggle Consideration 5: "Track Toggle Events
-                // of Mute & Solo are subordinate to the On-The-Measure mode
-                // condition of the Page" — not yet implemented; toggles always
-                // apply at the next tick regardless of Page::on_the_measure.
-                // See AMBIGUITIES.md.
+                // On-The-Measure gating for Mute/Solo happens earlier, in
+                // queue_step_event, by routing into measure_deferred instead
+                // of deferred_actions — by the time this runs, that decision
+                // has already been made.
             }
         }
     }
@@ -839,9 +861,19 @@ impl Engine {
                 let target0 = if amt.unsigned_abs() == 10 { 0 } else { (amt.unsigned_abs() as usize) % 10 };
                 let on = amt > 0;
                 let range = range.clamp(1, TRACK_COUNT as u8);
+                // Ref p.40, Track Toggle Consideration 5: "Track Toggle Events
+                // of Mute & Solo are subordinate to the On-The-Measure mode
+                // condition of the Page." Record/Pause aren't mentioned and
+                // stay on the normal next-tick queue.
+                let on_the_measure = matches!(kind, ToggleKind::Mute | ToggleKind::Solo) && self.grid.active_page().on_the_measure;
+                let action = if on { DeferredAction::ToggleOn(kind) } else { DeferredAction::ToggleOff(kind) };
                 for i in 0..range as i32 {
                     let t = (target0 as i32 - i).rem_euclid(TRACK_COUNT as i32) as usize;
-                    self.deferred_actions[t] = Some(if on { DeferredAction::ToggleOn(kind) } else { DeferredAction::ToggleOff(kind) });
+                    if on_the_measure {
+                        self.measure_deferred[t] = Some(action);
+                    } else {
+                        self.deferred_actions[t] = Some(action);
+                    }
                 }
             }
             // Ref p.38-39: whole-track step-data rotation, not a per-target
@@ -1391,5 +1423,36 @@ mod tests {
         fire_step_event(&mut engine, 5, StepEventKind::TrackToggle { kind: ToggleKind::Mute, amt: -4, range: 1 }, 0);
         engine.step_once_for_test();
         assert!(!engine.grid.active_page().tracks[4].muted);
+    }
+
+    /// Ref: CE v5.30 p.40 (Track Toggle Consideration 5) + p.67 (On-the-Measure
+    /// Mode, "a measure is 16 steps at x1, or... equal to the Page Length").
+    #[test]
+    fn track_toggle_mute_defers_to_measure_boundary_when_otm_set() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().length = 2; // measure = 2*12 = 24 ticks
+        engine.grid.active_page_mut().on_the_measure = true;
+
+        // Fires at tick 12 (track 5's normal step boundary).
+        fire_step_event(&mut engine, 5, StepEventKind::TrackToggle { kind: ToggleKind::Mute, amt: 4, range: 1 }, 0);
+        assert!(!engine.grid.active_page().tracks[4].muted, "must not apply at the next tick under OTM");
+
+        for _ in 0..11 {
+            engine.step_once_for_test(); // ticks 13..23
+        }
+        assert!(!engine.grid.active_page().tracks[4].muted, "still not due — measure boundary is tick 24");
+
+        engine.step_once_for_test(); // tick 24: measure boundary
+        assert!(engine.grid.active_page().tracks[4].muted, "must apply exactly at the measure boundary");
+    }
+
+    #[test]
+    fn track_toggle_mute_applies_next_tick_when_otm_off() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().length = 2;
+        assert!(!engine.grid.active_page().on_the_measure);
+        fire_step_event(&mut engine, 5, StepEventKind::TrackToggle { kind: ToggleKind::Mute, amt: 4, range: 1 }, 0);
+        engine.step_once_for_test();
+        assert!(engine.grid.active_page().tracks[4].muted, "without OTM, the normal next-tick rule applies");
     }
 }

@@ -12,3 +12,7 @@ version = "0.1.0"
 dependencies = [
  "octocore",
 ]
+
+[[package]]
+name = "octoroom"
+version = "0.1.0"

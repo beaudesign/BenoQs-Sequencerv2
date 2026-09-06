@@ -1,0 +1,12 @@
+[package]
+name = "octoroom"
+version = "0.1.0"
+edition = "2021"
+description = "WENGE room system (D3, docs/06-shell-and-rooms.md). Owner: Sceneshaper."
+
+[lib]
+name = "octoroom"
+
+[dependencies]
+
+[dev-dependencies]

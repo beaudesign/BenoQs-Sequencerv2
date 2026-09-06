@@ -67,6 +67,13 @@ struct TrackRuntime {
     /// Ref p.40, "MCH will also default to the Track attribute amount when
     /// the sequencer stops" — same shape as `live_direction_raw`.
     live_midi_channel: Option<u8>,
+    /// Ref: CE v5.30 p.56: "a slice is not restricted to holding only one
+    /// trigger, but may hold up to nine triggers. These nine triggers will be
+    /// played in sequence every time the respective slice is being played."
+    /// Which trigger within the *current* slice (`pos`/`chain.seg_pos`) fires
+    /// next, for a `Direction::UserProgrammed` track. Reset to 0 whenever the
+    /// slice itself advances.
+    custom_dir_cursor: u8,
 }
 
 impl Default for TrackRuntime {
@@ -81,6 +88,7 @@ impl Default for TrackRuntime {
             feed_length_ticks: 0,
             live_direction_raw: None,
             live_midi_channel: None,
+            custom_dir_cursor: 0,
         }
     }
 }
@@ -496,7 +504,25 @@ impl Engine {
         }
 
         let raw_index = if is_chain_head { self.track_rt[ti as usize].chain.seg_pos } else { self.track_rt[ti as usize].pos };
-        let step_index = ((raw_index as u16 + track.rotation as u16) % page_len as u16) as u8;
+
+        // Ref: CE v5.30 p.56, "Triggers and slices": for a custom direction,
+        // `raw_index` is which of the 16 *slices* we're in, not the step
+        // itself — the slice's trigger(s) say which physical step(s) actually
+        // fire. Slices are always the fixed 16 (Ref p.58's chart), independent
+        // of the page's own length.
+        let step_index = if let Direction::UserProgrammed(dir_idx) = track.direction() {
+            let slice = &page.user_directions[dir_idx as usize].slices[raw_index as usize % STEP_COUNT];
+            if slice.trigger_count == 0 {
+                // Ref p.56: "every time Octopus gets an empty slice, it will
+                // pick a trigger for you at random, and play it normally."
+                self.rng.next_below(STEP_COUNT as u32) as u8
+            } else {
+                let cursor = (self.track_rt[ti as usize].custom_dir_cursor as usize).min(slice.trigger_count as usize - 1);
+                slice.triggers[cursor].saturating_sub(1).min(STEP_COUNT as u8 - 1)
+            }
+        } else {
+            ((raw_index as u16 + track.rotation as u16) % page_len as u16) as u8
+        };
         let mut step = base_track.steps[(step_index % STEP_COUNT as u8) as usize];
 
         // Ref: CE v5.30 p.31, "Hyperstep PIT and VEL": "the hypedtrack will
@@ -587,7 +613,7 @@ impl Engine {
         // Live DIR shadow (if any) applies to direction-driven advancement
         // too — same `ti`-keyed override as above, via `base_track` (which
         // already has it patched in; equals `track` outside chain-base-switch).
-        self.advance_position(ti, base_track.direction(), is_chain_head, page_len, page.tracks[ti as usize].chain_member_count);
+        self.advance_position(ti, base_track.direction(), is_chain_head, page, page_len, page.tracks[ti as usize].chain_member_count);
     }
 
     fn fire_step(&mut self, inp: FireInputs, tick_due_sample: f64, samples_per_tick: f64) {
@@ -746,7 +772,12 @@ impl Engine {
         }
     }
 
-    fn advance_position(&mut self, ti: TrackIndex, dir: Direction, is_chain_head: bool, page_len: u8, chain_member_count: u8) {
+    fn advance_position(&mut self, ti: TrackIndex, dir: Direction, is_chain_head: bool, page: &Page, page_len: u8, chain_member_count: u8) {
+        if let Direction::UserProgrammed(dir_idx) = dir {
+            self.advance_custom_direction(ti, dir_idx, is_chain_head, page, chain_member_count);
+            return;
+        }
+
         let rt = &mut self.track_rt[ti as usize];
         let (pos, ping) = if is_chain_head {
             (&mut rt.chain.seg_pos, &mut rt.chain.ping_dir)
@@ -770,12 +801,56 @@ impl Engine {
                 let forward = self.rng.next_f32() < 0.6667;
                 *pos = if forward { (*pos + 1) % len } else { (*pos + len - 1) % len };
             }
-            Direction::Random | Direction::UserProgrammed(_) => {
-                // UserProgrammed falls back to uniform random until the real
-                // column-order traversal is specified — see AMBIGUITIES.md.
-                *pos = self.rng.next_below(len as u32) as u8;
-            }
+            Direction::Random => *pos = self.rng.next_below(len as u32) as u8,
+            Direction::UserProgrammed(_) => unreachable!("handled above"),
         }
+
+        if is_chain_head && rt.chain.seg_pos == 0 {
+            let chain_len = 1 + chain_member_count as usize;
+            rt.chain.member_idx = ((rt.chain.member_idx as usize + 1) % chain_len.max(1)) as u8;
+        }
+    }
+
+    /// Ref: CE v5.30 p.56, "Certainty_next": "A setting of 100% means that the
+    /// next slice will be the one following naturally... A setting of 0% will
+    /// specify that the next slice will be the naturally previous one...
+    /// [values in between produce] a 50/50 chance." And "Full and empty
+    /// slices": a slice's triggers "will be played in sequence every time the
+    /// respective slice is being played" — confirmed by
+    /// `reference/manual/pages/tutorial-03.txt`'s "Step double-play" worked
+    /// example (two triggers in one slice = that step plays twice, and the
+    /// track ends up "4 steps behind" after 4 doubled steps — only consistent
+    /// with every extra trigger consuming its own tick-boundary visit, not
+    /// firing simultaneously). So: fire the current trigger, advance the
+    /// cursor; only once every trigger in the slice has fired does the slice
+    /// itself move on, via the certainty_next coin flip.
+    fn advance_custom_direction(&mut self, ti: TrackIndex, dir_idx: u8, is_chain_head: bool, page: &Page, chain_member_count: u8) {
+        let slice_len = STEP_COUNT as u8;
+        let slice = page.user_directions[dir_idx as usize].slices[if is_chain_head {
+            self.track_rt[ti as usize].chain.seg_pos
+        } else {
+            self.track_rt[ti as usize].pos
+        } as usize
+            % STEP_COUNT];
+        // An empty slice behaves as a single (random) trigger for this visit
+        // — see the step-lookup side in `step_one_track` — so it also
+        // completes in one visit here.
+        let effective_trigger_count = slice.trigger_count.max(1);
+
+        let more_triggers_remain = {
+            let rt = &mut self.track_rt[ti as usize];
+            rt.custom_dir_cursor += 1;
+            rt.custom_dir_cursor < effective_trigger_count
+        };
+        if more_triggers_remain {
+            return; // same slice, next trigger, no slice-advance this visit
+        }
+
+        let rt = &mut self.track_rt[ti as usize];
+        rt.custom_dir_cursor = 0;
+        let forward = self.rng.next_below(100) < slice.certainty_next as u32;
+        let pos = if is_chain_head { &mut rt.chain.seg_pos } else { &mut rt.pos };
+        *pos = if forward { (*pos + 1) % slice_len } else { (*pos + slice_len - 1) % slice_len };
 
         if is_chain_head && rt.chain.seg_pos == 0 {
             let chain_len = 1 + chain_member_count as usize;
@@ -1454,5 +1529,95 @@ mod tests {
         fire_step_event(&mut engine, 5, StepEventKind::TrackToggle { kind: ToggleKind::Mute, amt: 4, range: 1 }, 0);
         engine.step_once_for_test();
         assert!(engine.grid.active_page().tracks[4].muted, "without OTM, the normal next-tick rule applies");
+    }
+
+    /// Ref: CE v5.30 p.57: "you may use CLR to restore the forward direction
+    /// in slots 6-16" only makes sense as a *restore* if a fresh custom
+    /// direction already behaves like Forward.
+    #[test]
+    fn custom_direction_default_behaves_like_forward() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].direction_raw = 6; // UserProgrammed(0), untouched default
+        for expected_pos in [1u8, 2, 3] {
+            for _ in 0..DEFAULT_STEP_TICKS {
+                engine.step_once_for_test();
+            }
+            assert_eq!(engine.track_rt[0].pos, expected_pos);
+        }
+    }
+
+    /// Ref: CE v5.30 p.56 + `reference/manual/pages/tutorial-03.txt`'s "Step
+    /// double-play" worked example: two triggers in slice 1, both targeting
+    /// step 1, means step 1 fires twice (two full tick-boundary visits)
+    /// before the slice advances.
+    #[test]
+    fn custom_direction_multi_trigger_slice_fires_step_twice() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].direction_raw = 6;
+        engine.grid.active_page_mut().tracks[0].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[0].steps[1].active = true;
+        {
+            let slice0 = &mut engine.grid.active_page_mut().user_directions[0].slices[0];
+            slice0.triggers = [1, 1, 0, 0, 0, 0, 0, 0, 0];
+            slice0.trigger_count = 2;
+        }
+
+        // Visit 1: fires step 0 (trigger 1 -> 0-based step 0), stays on slice 0.
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        assert_eq!(engine.track_rt[0].pos, 0, "still on slice 0 after only one of its two triggers");
+        assert!(engine.last_tick_fires.as_slice().iter().any(|f| f.track == 0));
+
+        // Visit 2: fires the second trigger (also step 0), *then* advances to slice 1.
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        assert_eq!(engine.track_rt[0].pos, 1, "slice advances only once both triggers have played");
+    }
+
+    /// Ref p.56: "every time Octopus gets an empty slice, it will pick a
+    /// trigger for you at random, and play it normally" — one trigger per
+    /// visit (like a 1-trigger slice), not a special multi-visit case.
+    #[test]
+    fn custom_direction_empty_slice_fires_once_then_advances() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].direction_raw = 6;
+        for step in engine.grid.active_page_mut().tracks[0].steps.iter_mut() {
+            step.active = true;
+        }
+        // Slice 0 already defaults to a single trigger (step 1); explicitly
+        // clear it to empty for this test.
+        engine.grid.active_page_mut().user_directions[0].slices[0] = DirectionSlice::default();
+
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        assert_eq!(engine.track_rt[0].pos, 1, "one visit to an empty slice is enough to advance");
+        assert!(engine.last_tick_fires.as_slice().iter().any(|f| f.track == 0), "an empty slice must still fire something");
+    }
+
+    /// Ref p.56: "A setting of 100% means that the next slice will be the one
+    /// following naturally... A setting of 0% will specify that the next
+    /// slice will be the naturally previous one."
+    #[test]
+    fn custom_direction_certainty_next_boundaries_are_deterministic() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].direction_raw = 6;
+        engine.grid.active_page_mut().user_directions[0].slices[3].certainty_next = 100;
+        engine.track_rt[0].pos = 3;
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        assert_eq!(engine.track_rt[0].pos, 4, "100% certainty must always advance forward");
+
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].direction_raw = 6;
+        engine.grid.active_page_mut().user_directions[0].slices[3].certainty_next = 0;
+        engine.track_rt[0].pos = 3;
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        assert_eq!(engine.track_rt[0].pos, 2, "0% certainty must always go backward");
     }
 }

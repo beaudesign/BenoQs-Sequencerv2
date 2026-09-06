@@ -35,22 +35,37 @@ implementations' order (4=brownian-walk, 5=uniform-random).
 agreeing outweighs one un-cited sentence in a doc drafted without the manual.
 **Fixture:** none yet — needs a manual-sourced direction fixture.
 
-## user-programmed directions (dir 6+)
+## user-programmed directions (dir 6+): resolved
 
-**Manual reference:** none available.
-**Ambiguity:** §3 describes lighting cells in rows above row 0 to define a
-custom trigger order, with "if all rows are empty, the direction is random."
-Neither archived implementation has this feature at all, so there is no prior
-art for the data shape or the column-traversal rule for a *non-empty* custom
-direction.
-**Readings considered:** implement full column-order traversal from a guess /
-represent the data shape (`domain::UserDirection`) but fall back to uniform
-random for every `UserProgrammed` direction, empty or not, until traversal is
-specified for real.
-**Chosen:** the fallback. A wrong guess at the traversal rule would be worse
-than an honest "not implemented", since it would look plausible in a demo and
-be wrong in a way nothing catches.
-**Fixture:** none yet.
+**Manual reference:** CE v5.30 §3 Track Mode, "Track direction editing",
+p.56-58, plus the bundled 2007 tutorial series ("Editing track directions",
+"Certainty_next", "Brownian motion" — `reference/manual/pages/tutorial-03.txt`
+through `tutorial-06.txt`).
+**Resolution:** the earlier fallback (uniform random for every custom
+direction) was replaced with the real mechanism. `UserDirection` is now 16
+`DirectionSlice`s (was a row-bitmask shape that didn't match the manual at
+all). Each slice holds up to 9 ordered 1-based triggers (target step) and a
+`certainty_next` percentage. Per tick, a custom-direction track: (1) reads its
+*current slice*'s trigger at the current cursor position to decide which step
+actually plays (an empty slice draws one random step instead, "and play[s] it
+normally" — p.56); (2) advances the cursor, and only once every trigger in
+the slice has fired does the slice itself move — forward with probability
+`certainty_next`%, backward otherwise (p.56: "100%... the next slice will be
+the one following naturally... 0%... the naturally previous one").
+The multi-trigger-per-visit reading (each trigger consumes its own tick
+visit, not fired simultaneously) is directly confirmed, not guessed: the
+bundled tutorial's "Step double-play" example programs two triggers on one
+slice and reports "since you added 4 step triggers (doubling steps 1, 5, 9,
+13), at the end of 1 pass, that track will be 4 steps behind the rest of the
+sequence" — only consistent with each extra trigger consuming real playback
+time, not firing at once. Default (un-customized) directions 6-16 are
+initialized as Forward, since "you may use CLR to restore the forward
+direction in slots 6-16" (p.57) only makes sense as a *restore* if that's
+already the starting state.
+**Fixture:** `engine::tests::custom_direction_default_behaves_like_forward`,
+`::custom_direction_multi_trigger_slice_fires_step_twice`,
+`::custom_direction_empty_slice_fires_once_then_advances`,
+`::custom_direction_certainty_next_boundaries_are_deterministic`.
 
 ## FLT: destination self-inclusion and "last encountered" order
 

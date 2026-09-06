@@ -89,29 +89,54 @@ impl Direction {
     }
 }
 
-/// A user-programmed direction (dir 6+): for each of the 16 step columns, which
-/// rows (above row 0) light that column.
-///
-/// PROVISIONAL data shape and traversal rule — see AMBIGUITIES.md
-/// "user-programmed directions". The runtime currently falls back to
-/// `Direction::Random` for *any* `UserProgrammed` direction, empty or not, until the
-/// real column-order traversal is specified from the manual; the data shape is kept
-/// here so that traversal can be implemented later without a state-model change.
+/// One of a custom direction's 16 slices. Ref: CE v5.30 p.56, "Triggers and
+/// slices": "Each of the 16 slices needed to play a track from end to end...
+/// specifies its own chaser light position trigger... a slice is not
+/// restricted to holding only one trigger, but may hold up to nine triggers.
+/// These nine triggers will be played in sequence every time the respective
+/// slice is being played." p.58's "Custom Direction Maps" chart is exactly
+/// this shape: 16 slice-columns, a "Next %" row (`certainty_next`), and up to
+/// 9 "Play Step" rows (`triggers`).
+#[derive(Clone, Copy, Debug)]
+pub struct DirectionSlice {
+    /// Ref p.56, "Certainty_next": "A setting of 100% means that the next
+    /// slice will be the one following naturally... A setting of 0% will
+    /// specify that the next slice will be the naturally previous one...
+    /// [values in between produce] a 50/50 chance" (linearly, by extension).
+    /// Default 100 (matches the default solid-forward slice order).
+    pub certainty_next: u8,
+    /// 1-based target step (1..=16); `0` means "this slot is unset". Ref
+    /// p.56: "a row will only hold one trigger" — so up to 9 slots, one
+    /// trigger each, fired in slot order (0 first).
+    pub triggers: [u8; 9],
+    pub trigger_count: u8,
+}
+
+impl Default for DirectionSlice {
+    fn default() -> Self {
+        DirectionSlice { certainty_next: 100, triggers: [0; 9], trigger_count: 0 }
+    }
+}
+
+/// A user-programmed direction (dir 6+): 16 slices, per Ref p.58's "Custom
+/// Direction Maps" chart. Ref p.57: "directions 6-16... may also be
+/// individually edited" but start out editable copies of Forward — "you may
+/// use CLR to restore the forward direction in slots 6-16" only makes sense
+/// as a *restore*, i.e. the un-customized starting state, if Forward is what
+/// a fresh custom direction already looks like.
 #[derive(Clone, Copy, Debug)]
 pub struct UserDirection {
-    /// One bitmask per row (bit `c` set = column `c` is lit in that row).
-    pub rows: [u16; TRACK_COUNT - 1],
+    pub slices: [DirectionSlice; STEP_COUNT],
 }
 
 impl Default for UserDirection {
     fn default() -> Self {
-        UserDirection { rows: [0; TRACK_COUNT - 1] }
-    }
-}
-
-impl UserDirection {
-    pub fn is_empty(&self) -> bool {
-        self.rows.iter().all(|&r| r == 0)
+        let mut slices = [DirectionSlice::default(); STEP_COUNT];
+        for (i, slice) in slices.iter_mut().enumerate() {
+            slice.triggers[0] = (i + 1) as u8; // Forward: slice i triggers step i+1
+            slice.trigger_count = 1;
+        }
+        UserDirection { slices }
     }
 }
 

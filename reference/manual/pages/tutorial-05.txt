@@ -1,0 +1,61 @@
+Octopus - tutorial series
+
+
+                            	
+     	
+   Button 12, position 4 in row 1, 13 in row 2;
+                            	
+     	
+   Button 13, position 5 in row 1, 12 in row 2;
+                            	
+     	
+   Button 14, position 6 in row 1, 11 in row 2;
+                            	
+     	
+   Button 15, position 7 in row 1, 10 in row 2;
+                            	
+     	
+   Button 16, position 8 in row 1, 9 in row 2.
+                                  • Exit out to Page mode.
+                                  • Select the default track chain of 10 separate tracks (XXIX).
+                                   Press Play and adjust the tempo to see the eﬀect.
+                            If you keyed it in correctly, you should see the chase-light for track 9
+                            start in the middle, bounce to the end and then go back to the middle
+                            again.
+                            For an even more striking eﬀect, edit the direction for all 10 tracks to
+                            use direction 6 and crank the tempo to the maximum.
+                            While you’re here, try other track chains. XXX and XXXI in par-
+                            ticular play out nicely with this pattern.
+
+
+                            Random step selection
+                            One other thing to mention about steps – if no position is toggled in
+                            any row, the trigger for that time slice will be selected randomly by
+                            Octopus.
+                            In a sequence, if you have a random step, Octopus will play normally
+                            until it hits that step. At that point, it will jump to some other posi-
+                            tion for the duration of that step.
+
+
+                            Certainty_next
+                            Now let’s play with certainty_next.
+                                  • Go to track mode
+                                  • Select direction map 7.
+                                  • Click on button 1 of row 0 if that’s not selected. Notice in the
+                                    outer circle, where tempo normally is located, the 100 position
+                                    is lit. This indicates a certainty that the next step will be step 2
+                                    of 100%.
+                                  • Set each slice’s certainty_next to 0 by selecting it in row 0 and
+                                    then double clicking on 100.
+                                  • Press play - notice that the sequence is now playing backwards.
+                                    (16, 15, 14...1).
+                            To prepare for the next example, either reset the certainty_next value
+                            back to 100 (single click on 100) or use a diﬀerent direction pattern
+                            (for example, 8).
+
+
+
+
+                                                   3 of 4
+                                          © genoQs Machines, 2007
+

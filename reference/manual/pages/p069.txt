@@ -1,0 +1,52 @@
+EDIT PERFORM state (Flashing Green - Berlin)
+
+Use this mode for tweaking Steps.
+
+An alternative and quite rewarding mode of working with a step sequence (depending on your style
+and preference) is that of tweaking a set sequence of steps in realtime, while the sequence keeps
+playing.
+You can also do this to some degree without a special mode, but EDIT PERFORM takes this to
+perfection.
+
+EDIT PERFORM is actually similar to the EDIT state, with the exception that no MIDI data is
+transmitted when you operate on the matrix. This is particularly interesting for the Berlin School
+type of performances.
+
+By default, in PAGE mode the EDIT LED button lights Green. Click on it once to toggle it to
+flashing Orange, and once more to make it flash Green.
+
+Again, when the EDIT LED lights steady Green, everything behaves as you know it: the step
+buttons toggle the step states. When EDIT flashes Orange you are in EDIT mode, and when EDIT
+flashes Green you are in EDIT PERFORM mode.
+
+In this mode the step length may also be adjusted in the matrix, by holding the step to be adjusted
+and pressing another button at a distance to denote the length in 1/16th intervals or alternatively by
+holding the step to be adjusted and clicking a button in the same column(above or below) to set the
+held step to a LEN of 192/192.
+
+
+
+
+Step Shift in EDIT PERFORM state
+
+Holding a step in the matrix and turning the DIR rotary will either advance all steps to the right of
+the held step one complete step, or will move all steps to the right on the held step one complete
+step closer to the held step (provided the first step to the right of the held step is toggled off and not
+a Skip Step or Step Event).
+Any steps that are advanced beyond Step 16 will be lost unless and 'over-run track' is configured.
+Note: Step Shift is also applied to Step Events. The position of a hyper-step does not change
+(adjacent steps when shifted will 'hop over' a hyperstep).
+
+'Over-run Track' considerations:
+An Over-run Track is always lower in the matrix.
+If a Track has an AMT attribute value of '100' then any steps that are advanced beyond Step 16 will
+'over-run' to the next track lower in the matrix.
+Hence, if all tracks are set to value '100' then the 'overrun' will flow through all tracks in the matrix.
+To avoid any conflicts the above features are only available if there is no Step or Track Selection
+active.
+
+
+
+
+       69                       Octopus Reference Manual CE v5.30                               69
+

@@ -1,0 +1,56 @@
+Step Event Track Toggles
+
+By using Step Event Track Toggles certain Track conditions can be controlled on a per step basis,
+toggle options are Mute, Solo, Record, Pause and Rotate. It should be noted that unlike Step Events
+which effectively 'scale' an attribute, Track Toggles are a 'one time' toggle of the relevant track
+condition.
+
+Creating Track Toggle Events
+To create an event, double click on a step to zoom into it, then click one of the Map select buttons
+below the matrix (lit orange) as follows:-
+
+       Mix Target MAP 1 button will activate a Track Mute Toggle
+       Mix Target MAP 2 button will activate a Track Solo Toggle
+       Mix Target MAP 3 button will activate a Track Record Toggle
+       Mix Target MAP 4 button will activate a Track Pause Toggle
+
+When activated the relevant led will be flash orange and subsequently the chosen Event values will
+be used to the set the Event to either an 'On' toggle (e.g. Mute On) or an 'Off' toggle (Mute Off).
+
+Alternatively, the Track Toggle Event may be configured to 'flip-flop' mode, whereby each time the
+Toggle Event is triggered the Track will Toggle to the opposite condition.
+To activate 'flip-flop' mode double-click the relevant Mix Target Map button - once activated in
+'flip-flop' mode, the relevant led will be shine_green.
+
+The step led of an event will be orange.
+
+
+Track Rotate
+Track Toggle Rotate is not mentioned above as it works in a slightly different manner, it is simply a
+Rotate Event which is applied to the Track ('On', 'Off' & 'flip-flop' concepts are not applicable).
+
+To create a Track Rotate event, double click on a step to zoom into it, then double-click the POS
+attribute button once selected it will shine_green. To clarify, a single click of the POS attribute
+button will setup a Step Event POS (led will show orange), or a double-click will activate a Track
+Rotate Event (led will shine_green).
+Note: Switching between Step Event POS & Track Rotate will reset the AMT attribute to default.
+
+A Track Rotate Event will move all steps (including Step Events & Track Toggle Events), with the
+exception of Skipped Steps or Hypersteps.
+
+Additionally, steps can be 'masked' (excluded) from the Track Rotation !
+
+Steps included in the Track Rotation will 'hop-over' Steps that are excluded thus the sequence will
+change to a greater or lesser amount depending on the number of 'excluded steps'.
+
+To 'mask' a step from the Rotate Event, set its Amount (AMT) attribute to -127 (as in the Effector
+Step Mask option). Step Events can also be 'Masked' by setting their VEL attribute to -127.
+
+
+Note: If the 'Snapshot' button is set to red (Snapshot Mode) then the events will not be retained
+when the sequencer is 'stopped'.
+
+
+
+       38                      Octopus Reference Manual CE v5.30                            38
+

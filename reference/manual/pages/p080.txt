@@ -1,0 +1,56 @@
+For Example: Pressing a page button that is Red (page is not playing), will turn that page on.
+Pressing the button of a playing page (Green) will turn that page off.
+There are two page switch modes, "on the beat" and "immediate". To toggle between them simply
+press the Tempo button. "On the beat" is denoted by a Red master clock indicator, "immediate" by a
+Green one.
+
+
+Grid-Track mode
+
+The GRID-TRACK mode may be imagined as a sub-mode of the GRID Mode. The GRID-TRACK
+mode provides most of the GRID functionality described above, al lowing a different vie w on your
+MIDI data.
+Here, matrix buttons represent tracks (as opposed to pages) and have the functionality of track
+selectors, as described for the PAGE Mode.
+We may refer to them as virtual track selectors.
+
+Entering the Grid-Track mode
+To enter the GRID-TRACK mode, enter the GRID mode first (by pressing GRID) and then press
+the Green-lit TRACK button.
+The TRACK button will flash Orange, and the GRID button will stay lit in Orange. This indicates
+that you are in the GRID-TRACK mode.
+
+Virtual track selectors
+The Matrix will slightly change its contents and some explanation is
+necessary to what it now conveys.
+For each page playing in the GRID, you will see a lit bar of 10 LEDs, from position 4 to position
+13, leaving three blank columns of buttons on each side.
+Each lit button acts as virtual track selectors and the LEDs indicate the toggle state of the
+corresponding track.
+
+Hands-on
+As an example, let's assume there is only one page playing in the GRID in bank 1 of the grid and no
+tracks are muted in that page. You should see a bar of 10 Green LEDs in row 1, positioned in the
+centre of the row (3 unlit LED's to each side of the 10-LED bar).
+
+Working with tracks
+Moving from here is easy: press and hold any of the virtual track selectors and you will see that two
+mutator functions become available: TGL and SOL.
+Also, the EDIT block indicator flashes Orange, as you may use the encoders to modify the track
+selected via the virtual selectors.
+When exactly one track is selected in GRID-TRACK mode, the pitch of that track becomes visible
+and editable in the inner circle, just as we have seen it in PAGE mode.
+
+Quick track toggle
+Sometimes all you want to do in GRID-TRACK mode is to toggle tracks on the fly. There is a quick
+way to do that by holding any button that belongs to columns 1-3 or 14-16 while pressing a virtual
+track selector. The virtual track selector now directly toggles the mute status of the respective track.
+
+Zooming into tracks
+You may do much lower-level editing of tracks, simply by double- clicking a virtual selector to
+enter TRACK mode for that track, i.e. zooming into that track.
+
+
+
+       80                      Octopus Reference Manual CE v5.30                             80
+

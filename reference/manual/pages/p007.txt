@@ -1,0 +1,61 @@
+0.       Alphabetical Index
+
+               Step Mode:                                   Step Mode:
+     Attributes                            15     Length attribute (LEN)              15
+     Amount attribute (AMT)                17     Length attribute multiplier         16
+     Chords                                20     MIDI Controller attribute (MCC)     17
+     Chords - Building in Chord View       20     Quick Attribute Edit                17
+     Chords - Building in Octave View      20     Paste                               13
+     Chords - Ground rules                 20     Phrase attribute (GRV)              16
+     Chords - Modes                        20     Phrase Editor - Custom Phrases      27
+     Chords - Octave View Chart            21     Phrase - POS Chart                  30
+     Chords - Strumming                    22     Phrase - Reference Chart(Default)   24
+     Clear                                 14     Phrase - Reference Chart(Custom)    29
+     Copy                                  13     Phrase - Time attribute (POS)       17
+     Events - Clear / Create               34     Phrases                             23
+     Events - Example of AMT scaling       37     Pitch attribute (PIT)               15
+     Events - Offset Chart                 35     Polyphony                           22
+     Events - Values / Range               34     Random Note Picks                   22
+     Events - Understanding                36     Random Step Rest                    23
+     Events - Using AMT                    37     Selection stores                    17
+     Event Track Toggles                   38     Skip                                14
+     Event Track Toggles - Value / Range   39     Start attribute (STA)               17
+     Ghost toggle                          17     Step Shift                          15
+     Hypersteps                            31     Step Swap                           19
+     Hypersteps - Chart                    32     Toggle (TGL)                        14
+     Hypersteps - PIT and VEL              31     Velocity attribute(VEL)             15
+     Inverse selection editing             18     Zoom                                13
+
+
+
+              Track Mode:                                  Track Mode:
+     Amount attribute (AMT)                46     LEN attribute Reference Chart       44
+     Attribute Maps                        51     MCC Map resolution                  53
+     Attribute Scaling Factors             54     MIDI Bank change                    51
+     Attribute Scaling Reference Chart     55     MIDI channel attribute (MCH)        46
+     CC Map Resolution                     53     MIDI controller attribute (MCC)     46
+     Chain - Base switch                   48     Quick Attribute Edit                43
+     Chain - Chase Light Follow            48     Paste                               43
+     Chain - Explained / Displaying        47     Pause/retrigger                     50
+     Clear                                 41     Pitch attribute (PIT)               43
+     Copy                                  43     Position attribute (POS)            43
+     Direction attribute (DIR)             45     Program change (PgmCh)              51
+     DIR Custom Directions Chart           58     Random (RND)                        42
+     DIR Editing Directions                56     Reading Attribute Maps              52
+     DIR Certainty_Next                    57     Reading the PIT display             52
+     Effector                              59     Remix (RMX)                         43
+     Effector - At work                    61     Shifting Attribute Maps             53
+     Effector - Considerations             62     Solo                                41
+     Effector - Feeders/Listener           60     Start attribute (STA)               44
+     Effector - Muting                     61     STA attribute Reference Chart       45
+     Effector - Playing                    61     Tempo Multipliers                   49
+     Effector - Step Mask                  63     Toggle (TGL)                        41
+     Flat attribute (FLT)                  42     Velocity attribute (VEL)            43
+     Groove attribute (GRV)                46     Zoom                                42
+     Length attribute (LEN)                44
+
+
+
+
+          7                         Octopus Reference Manual CE v5.30                      7
+

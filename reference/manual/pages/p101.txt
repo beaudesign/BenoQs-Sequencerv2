@@ -1,0 +1,51 @@
+Variable Step Sequences
+By using hypersteps we can vary the number of steps played in the hyped-track each time the
+hyperstep is triggered.
+Here's how:- Set up a hyperstep (on step 1) and its associated hyper-track,
+on the hyped-track mute steps 9 -16 (so it will only play 8 steps).
+On the hyperstep track mute steps 5 - 16 (so it will only play 4 steps) and set the hyperstep track
+LEN to 8 (default), then zoom into the hyperstep and change the step length from 192/192(default)
+to 48/192 (4 steps). Now zoom into step 4 (last step) of the hyperstep track and set up a step event
+for LEN with an AMT of -1.
+Each time the hyperstep track plays it will 'scale' the LEN on the hyped-track, so in the above
+configuration the number of steps played will vary between 5 steps and 8 steps - the length time
+taken to play will be the same.
+
+By populating some of the hyped-track steps with MCC we effectively have something very similar
+to a Sample & Hold LFO
+
+Using Step phrases with Chord stacks
+When using a Step phrase on a step that holds a chord - the phrase attributes will influence the notes
+of the chord, for example, if the phrase has STA timings specified, the notes of the chord will be
+played with those STA timings - hence a phrase can be used to create an arpeggio of the chord. The
+other phrase attributes can also be used to influence the notes of the chord.
+With Step phrases types 1, 2 & 3 - provided the number of notes in the phrase is the same, or
+greater, than the number of notes in the chord a simple up, down or random order arpeggio will be
+played. If the number of notes in the phrase is less than the number of notes in the chord then the
+additional notes will be played on the first step and single notes will be played on the rest of the
+arpeggio.
+For Step phrases type 4 more variation can be added, for example, when using a 3 note chord with a
+4 note phrase - the 3 notes of the chord will be played along with an added note rest. Let's set that
+up:
+Zoom in to phrase edit and chose a phrase you want to edit, set the type to 4, then set note 2 to STA
++12, note 3 to STA +24, note 4 to STA +36 and set the polyphony to 4.
+
+Now set up a track as follows:
+Turn on steps 1, 5, and Mute steps 9 to 16. Now zoom into step 1 and create a 4 note chord then
+zoom into step 5 and create a 3 note chord - set both steps to the phrase number we have just
+created.
+With the above set up then chord on step 1 will 'arpeggio' and play on steps 1, 2, 3 and 4 and the
+chord on step 5 will play its 3 notes plus 1 rest in random order across steps 5 to 8.
+A similar effect can be created across steps 1 to 4 by using the chord buttons to change the step 1
+polyphony from 4 to 3.
+
+Setting the Loop Length of an Indeterminate Length Track Direction
+A Track with a DIR containing brownian slices will effectively have an indeterminate length. It
+may be musically desirable to fix the loop point of such a track, and this can be done putting the
+indeterminate length Track on a separate Page and using the Page Cluster Page LEN function.
+
+
+
+
+     101                       Octopus Reference Manual CE v5.30                            101
+

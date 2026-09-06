@@ -1,0 +1,14 @@
+Bug Fixes
+Chord stacking using a keyboard can loose notes when inverting the root.
+Effector Note Pool computations incorrect when using multiple Feeders.
+Hypertrack Step VEL values inverting when offsets take their values below zero.
+Using x1.5 Track Speed within a Track Chain causes timing errors.
+Restarting a Paused Track with a Speed multiple > x1 will Play the Track at x1 speed
+Skipped Steps & Hypersteps not displaying properly in Step Zoom.
+When sequencer is stopped, not possible to set track multiplier to 1/1.5.
+
+
+
+
+       10                       Octopus Reference Manual CE v5.30                      10
+

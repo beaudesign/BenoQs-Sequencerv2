@@ -1,0 +1,49 @@
+Understanding Step Events
+Step offsets changed by Step Events are influenced by 3 things, Track Attribute Scaling, Step Event
+Range and the Step Event AMT.
+Step Events will only influence steps whose attributes have been offset from their respective track
+values.
+
+The default value of Step Event Range is 17 (0 - 16), however this is slightly misleading as the
+actual Event Range is dependant on the amount a Track Attribute Scaling, which can be represented
+as follows:
+
+       Available Step Event Range = 17 - Track Attribute Scaling Factor
+
+The default value of the Track Attribute Scaling Factor is 8, therefore the available Step Event
+Range is 9 (17 - 8), highlighted in yellow the Default Track Attribute Range in the chart below.
+
+Reducing the Track Attribute Scaling Factor to '(4)' will compress the Step Attribute Offset value
+but will extend the potential Step Event Range, highlighted in green below.
+
+Conversely, increasing the Track Attribute Scaling Factor to '(12)' will expand the Step Attribute
+Offset value but will reduce the potential Step Event Range, highlighted in red below.
+
+Maximum         Track Attribute Map factor Scaling shown in Green for compress
+Event Range                           and Red for expand
+   16 (1)       0 0 0 0 0 0 0 0 0 0 0 0 0 0 0                              0
+   15 (2)       0 0 0 0 0 0 0 0 1 1 1 1 1 1 2                              2
+   14 (3)       1 1 1 1 2 2 2 2 3 3 4 4 5 5 6                              6
+   13 (4)       2 3 3 4 5 5 6 6 7 8 9 10 11 12 13 14
+   12 (5)       4 5 6 7 8 9 10 11 13 15 17 19 21 23 24 26
+   11 (6)       7 8 10 11 12 14 15 17 20 23 25 28 31 34 37 40
+   10 (7)      10 12 14 16 18 20 22 24 29 33 37 41 45 49 54 58
+    9 (8)      16 20 23 26 30 33 36 40 47 53 60 67 73 80 87 94
+8 - Neutral 20 24 28 32 36 40 44 48 56 64 72 80 88 96 104 112
+                 Numbers in Blue are the actual Step Attribute Offset
+  7 (2) A      24 29 34 39 43 48 53 58 68 78 87 97 107 117 126 127
+  6 (3) B      28 34 40 46 51 57 63 69 80 92 103 115 126 127 127 127
+  5 (4) C      34 40 47 54 61 68 74 81 95 108 122 127 127 127 127 127
+  4 (5) D      39 47 54 62 70 78 86 94 109 125 127 127 127 127 127 127
+  3 (6) E      44 53 62 71 80 89 98 107 125 127 127 127 127 127 127 127
+  2 (7).....   51 61 71 81 92 102 112 122 127 127 127 127 127 127 127 127
+  1 (8) F      64 77 90 103 116 127 127 127 127 127 127 127 127 127 127 127
+  0 (9).....   80 96 112 127 127 127 127 127 127 127 127 127 127 127 127 127
+                            The maximum Event Range is 17,
+             however it is shown 0…16 as represented by the numeric circle
+
+
+
+
+       36                     Octopus Reference Manual CE v5.30                            36
+

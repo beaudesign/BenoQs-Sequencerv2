@@ -1,0 +1,48 @@
+You will notice that once you have stored a set, into a slot, its corresponding LED turns Green -
+indicating that the set of that slot is now
+playing in the grid.
+Now press the button of an empty slot - you will see that all pages stop playing, the slot LED lights
+Orange (it is empty), and the previously saved slot is lit Red - because it is not playing.
+Pressing the Red slot button will recall the page combination you had defined before for this
+particular slot.
+
+Deleting a Page Set
+With that Page Set selected toggle all pages to Red(off) and the selected Page Set LED will then
+flash Orange. Now hold SEL and click the selected PAGE Set button and the selected Page Set
+LED will flash Green (empty).
+
+
+Page Set as Midi Controller
+When in Grid View the row zero grid selection Page Sets are now able to send MIDI notes on-the-
+measure, to control a drum machine or another device that is responsive to MIDI notes.
+In Grid View, to select Midi Control double click the Row 0 'MCH' button and the led will flash
+Red.
+Press and hold the MCH button and use the MCH encoder to set the Midi channel for the note-out,
+which should be set to match the drum machine MIDI event-IN channel (the MCH is global for all
+Scenes).
+Select a step in row 0, it will flash orange - now whilst holding the MCH button, use the PIT
+encoder to set the note out value which will be shown in the note circle.
+When in Drum Control View the MCH led will flash orange if the selected step (Midi Control) has
+a note-out stored, or will flash red if the step (Midi Control) is empty.
+
+
+
+
+Grid Musical Scale
+
+The grid scale
+The GRID may be assigned a scale, in the same manner that a scale is assigned to a page, except the
+GRID scale will act globally.
+To operate the GRID scale, switch first to GRID mode. Use the SCALE SEL button and proceed as
+already described in the section describing the PAGE Scale operation.
+
+Exempting pages from the grid scale
+Note that by definition, the GRID scale is overruled by any other scales active in particular pages.
+Therefore, an easy way to exempt a page from the grid scale is to force that page to a chromatic
+scale. This may be particularly useful in the case of percussive material for example.
+
+
+
+
+       85                      Octopus Reference Manual CE v5.30                            85
+

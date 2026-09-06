@@ -1,0 +1,54 @@
+Force to Scale - Quick Guide
+
+Scale SEL Lit Green - No Force to Scale.
+Scale SEL Lit Red (or flashing Orange) - Force to Scale Active.
+
+Press Scale SEL to activate Force to Scale, LED turns Red then either select scale with Outer Circle
+button (Maj, Min etc) or press Select (XIV) button and choose notes.
+
+The Scale base note is shown in Orange, to change the base note press Scale MOD button then
+choose a new base note - press Select (XIV) button again to go back to choosing scale notes.
+
+Pressing Scale CAD will change Track default notes to the defined scale (take care, as this will
+change to default note octave also).
+
+Pressing ESC will leave Force to Scale active and Scale SEL LED will flash Orange (notes of scale
+will no longer show).
+
+
+Utility functions
+
+Chase-light align
+There are many reasons why your chase-light in a page may become misaligned in a visual sense.
+Sometimes that's what you want, but sometimes not.
+In order to line up all tracks in a page, simply press the ALN button. This will re-synchronize all
+tracks to the Octopus global master-clock, as explained in the section on the GRID mode.
+As a side comment, the chase-light will also be realigned whenever you Stop and then play a
+sequence. Pause and Resume (pressing pause again) will not realign the chase-light
+
+Interface locking
+Sometimes you may want to hide the Octopus from preying eyes or even un-authorized button
+pressers.
+At any time, regardless of the playing status of the machine, you can engage the interface lock by
+holding GRID and pressing ESC at the same time.
+The result will be that only the tempo LED will remain lit and flash at the rate of the internal clock.
+All other LEDs will be turned of, and seemingly all keys will be disabled. The only operating knob
+will be the tempo knob.
+In order to unlock the machine you may double click on the GRID mode button to return to normal
+operation in GRID mode.
+
+Bypassing memory reload
+If you hold the CLR button down while powering up the machine, Octopus will not load the
+FLASH memory contents, but will simply start with the factory defaults.
+The default Track PIT values for Tracks 9 - 0 are as follows:
+C3, D3, E3, G3, A3, C5, D5, E5, G5, and A5
+
+ Where are you from?
+If you press the PAGE key you will notice a Orange LED flash in the Matrix. This indicates the
+position of the current page in the grid.
+
+
+
+
+       86                      Octopus Reference Manual CE v5.30                             86
+

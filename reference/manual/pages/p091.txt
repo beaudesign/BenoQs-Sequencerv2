@@ -1,0 +1,57 @@
+This includes pitch bend and channel pressure, which are handled by Octopus in a similar fashion to
+a controller.
+Note that pitch bend data is recorded using two value bytes (as specified in the MIDI protocol),
+essentially with an available resolution of 14 bits.
+However, when editing the MCC data you will currently only operate on the most significant 7 bits
+of the value. This allows working with bender data to fit the model of working with MIDI CC data.
+When clearing the Track CC map (CLR) note that also the least significant 7 bits will be cleared.
+
+
+
+MIDI Control Map learning
+
+While somewhat unrelated to what we have discussed so far, another aspect of MIDI recording is
+the ability to have a MIDI Control Map learn from the MIDI input.
+
+Entering MIDI Control Map mode
+Enter the MIDI Control Map mode by first disabling any recording mode (if necessary), and double
+clicking on one of the MIDI Control Map selectors (0-5) at the bottom of the matrix field.
+
+Arm MIDI Control Map learning
+While in MIDI Control Map edit mode, press the REC key to arm the learn mode. As soon as you
+press the REC key you will see that a Red flashing light will appear in the selector column of the
+page.
+
+Select target
+Pressing across the selector buttons will move the position of the Red light, and effectively select
+the encoder for which we want to make the assignment.
+Per default you will see the amounts of the map displayed, and this is the most spectacular place to
+be: if you are turning knobs on an external controller you will see the amounts of the learning
+encoder go up and down immediately.
+However, note that the MIDI channel and the controller number are recorded as well.
+
+Disable MIDI Control Map learning
+Simply press the REC key again to exit MIDI Control Map learning mode, and you may switch the
+view of the MIDI Control Map accordingly, to verify your results.
+
+
+
+External force-to-scale
+
+Forcing MIDI notes to an Octopus scale
+While in page mode, with the page armed for recording (press and hold PAGE while clicking REC),
+your external MIDI input will be forced to the scale of the current page. Of course, this is assuming
+you have a scale enabled for the respective page.
+This is especially interesting in performance situations, obviously.
+
+MIDI merge
+By selecting a chromatic scale for your page you can effectively implement a MIDI merger
+functionality of the data your Octopus is producing and the data that you provide on the MIDI in
+port.
+Note that this is only applying to note data, and not to other MIDI data, such as controllers.
+
+
+
+
+       91                     Octopus Reference Manual CE v5.30                            91
+

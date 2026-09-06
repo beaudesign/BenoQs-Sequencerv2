@@ -1,0 +1,55 @@
+Finding your way around the maps
+The selector column allows you to jump directly between the available track maps. The mutator
+column allows you to use some functions on the map.
+CLR will restore default values, RND will choose random values for each column, and RMX
+allows you to call and actually observe what the RMX operation is doing to your track parameters.
+ZOM, which is now lit Red, will take you back to the track mode without un-selecting VEL, and
+pressing ZOM again from there will bring you again into the map mode.
+
+Shifting maps
+The POS knob in the Editor block is also assigned a function - turn it and you will see your attribute
+map just shift around the track, without affecting the step toggle states or the other attribute maps,
+but having certainly surprising effects on your sequence.
+
+Switching tracks
+You may fetch any track into the map view by simply ticking (to the left or right - it doesn't matter)
+the mix encoder corresponding to the map you want to fetch into the display.
+
+
+Track CC map resolution
+
+Track CC maps have a specific property associated with them, and that is resolution.
+Per default, Track CC messages are sent on each step, according to the respective track and step
+MCC values. In addition, intermediate CC messages may be sent between CC steps. This
+effectively increases resolution of the CC stream, resulting in smoother controller flows.
+In MAP mode, with MCC as the selected attribute, the resolution for the current track may be
+selected by using the chord button block.
+The minimum (and default) value is 1, meaning that one Track CC message is sent per step.
+A value of 5 for example, denotes that 5 messages will be sent for this step. The first one right on
+the step, the other 4 distributed evenly across the interval of time until the next step is triggered. The
+intermediate values automatically create a linear slope to the next value.
+
+Map factors
+Maps are useful in the sense that we can see and edit a particular step attribute for all steps at once.
+
+Step attribute scaling
+There is another advantage we get from maps - and that is the easy factoring or scaling of step
+attribute effect on the play result.
+Using a scaling factor for each map of a track, we can now determine to what degree a map is
+applied to the play data.
+In fact, the track attributes LEN and STA themselves are really scaling factors for the corresponding
+attribute maps.
+
+Map factor setting
+In all cases, the middle setting of the scaling factor will play the steps unaffected, while tighter
+settings (lower values) will reduce the effect of the played map values. Looser settings will amplify
+the effect of a map on the played result.
+The value range for the map factors is numerically between 1...17, with 9 being the neutral setting.
+Note that due to the way the display is set up, the values for LEN and STA shown in the TRACK
+mode are depicted as 0.....16, with 8 being the neutral value.
+
+
+
+
+       53                       Octopus Reference Manual CE v5.30                              53
+

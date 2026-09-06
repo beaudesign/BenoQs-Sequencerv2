@@ -1,0 +1,49 @@
+Effector Considerations
+A feeder step which has its STA attribute retarded ('pushed' - Red) will influence the listener but a
+feeder step which has its STA attribute advanced ('pulled' - Green) will not influence the listener.
+Likewise, if a Listener step has its STA attribute retarded ('pushed' - Red) will be influenced by the
+feeder step, however a Listener step that has its STA attribute advance ('pulled' - Green) will not be
+influenced by the feeder step.
+
+For Feeder & Listener Tracks that have differing Speed multiples, it should be remembered that a
+Feeder step has a default 'maximum influence' time of 12 ticks (i.e. One Step length at x1 Track
+Speed)*.
+Furthermore, this '12 tick influence' is effectively 'reset' every 12 ticks - the relevance of this, and its
+creative value is described below**.
+
+
+Feeder and Listener Tracks both at x1 Track Speed
+       Track Speed      Ticks 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+Feeder x1 Feeder offset 12
+Listener x1 Influence    12
+
+
+
+Feeder at 1/2 and Listener at x1 Track Speed
+        Track Speed          Ticks 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+Feeder 1/2 Feeder offset 24
+Listener x1 Influence         12
+At 1/2 Track Speed the number of ticks before the next Feeder step is 24 ticks, however, the Listener
+is only influenced for 12 ticks.
+
+
+*Feeder at x1 and Listener at x2 Track Speed
+       Track Speed         Ticks 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+Feeder x1 Feeder offset 12
+Listener x2 Influence        6
+At x2 Track Speed the Listener Step has a length of 6 ticks, therefore, 2 Listener Steps are
+influenced by each Feeder step.
+
+
+*Feeder at x1 and Listener at x4 Track Speed
+       Track Speed         Ticks 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+Feeder x1 Feeder offset 12
+Listener x4 Influence        3
+At x4 Track Speed the Listener Step has a length of 3 ticks, therefore, 4 Listener Steps are
+influenced by each Feeder step.
+
+
+
+
+       62                       Octopus Reference Manual CE v5.30                                62
+

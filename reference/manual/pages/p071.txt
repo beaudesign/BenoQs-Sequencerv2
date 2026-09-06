@@ -1,0 +1,55 @@
+Musical scales
+
+Each page can be associated with a particular musical scale. Once that association is done and a
+scale is active, all page notes are forced to play in the chosen scale.
+
+Force to scale
+Force to scale for a page is enabled by going to PAGE mode and simply pressing the Green lit
+SCALE SEL button. Coming from the default state, you will see its LED turn Red and all scale
+notes light up, with the exception of upper C.
+Conversely, force to scale is disabled by pressing the Red SCALE SEL button, which indicates that
+force to scale is engaged.
+So, in general, the Red LED of SCALE SEL is indicating that the page pitches are forced into the
+scale, a Green LED indicates that the page is playing the pitches as they are.
+The lower C LED is also lit Orange. What you see here is that all notes are selected in the scale, and
+that C is the base tone of this scale. Let's now modify the scale to get more interesting effects:
+
+Composing scales
+While having force to scale active as described above, press the Select button (in the outer circle,
+button XIV) and it should flash Orange, while the Chr. scale LED (XX) is lit Orange.
+This picture is telling us that the chromatic C scale is currently active, but that we may select any
+notes in our current scale.
+The Select button you have just pressed is used to let you select the notes that you would like to add
+to your scale. Now press any of the note keys in the scale circle to toggle the corresponding notes
+into and out of the scale, putting together any scale you like.
+Once you are done selecting the scale notes, you may press SCALE MOD again, and now you can
+modify (again) the base pitch of the scale you have just selected.
+Another way to select a scale is to press any of the scale buttons in the outer circle, to get the scale
+structure associated with their label, always on the base tone indicated by the Orange LED.
+
+Changing the scale base
+In order to change the base tone, press the SCALE MOD button to enter the scale modulation mode.
+Here you may select any of the current scales tones as the new scale base.
+As you change the scale base you will see the scale signature carry over to the new base as well.
+
+Scale cadence mode
+Another way of operating the Scale data is to combine it with the CAD functionality. What this
+means is that any changes done to the scale will translate into immediate mappings onto the track
+pitches in the page at hand.
+To activate the SCALE CAD, please activate force-to-scale if not already active, and then press
+CAD (so it flashes Red indicating operation).
+In order to make the effect clearly visible (on top of audible) you may also want to select the MIX
+mode for the track pitches (double click on the ATR key in the MIX TARGET field, then select
+PIT).
+Now modify the scale as described and you should see the changes to the track pitches as they
+materialize in the matrix.
+
+Locking the page scale
+You may want to have your page notes forced to the selected scale, but not see the details behind
+that and also prevent any unintended changes to the scale, essentially locking it.
+
+
+
+
+       71                      Octopus Reference Manual CE v5.30                             71
+

@@ -1,0 +1,31 @@
+Bank view
+
+When in PAGE mode, by default you see a Green lit Select LED in the top right quadrant of the
+circle, along with the Orange Tempo LED.
+
+They indicate the two available modes for the main knob and the numeric field: one of them
+(default one) is to show master tempo in the numeric filed of the circle, the other one is what we
+call the bank view.
+
+A bank is the set of 16 pages that live on the same Grid row, and which are mutually exclusive at
+playtime, meaning that only one page may play per bank, at any time.
+
+Entering bank view
+Pressing Select will allow you to see in the numeric field the banks that are currently playing (i.e.
+contain a playing page) as Green lit buttons.
+The Orange flashing one is the bank currently in your matrix editor.
+Note that this says nothing about which column in the bank is currently playing, as a bank only says
+something about the Grid row that a page resides on.
+Pressing any of the Green lit buttons will take you directly to the currently playing page in that
+bank.
+Turning the main knob will incrementally take you through the playing pages.
+This is just a way of jumping between the (up to 9) concurrent pages playing.
+
+Exiting bank view
+Press the Tempo button to return to the standard Tempo display.
+
+
+
+
+       77                      Octopus Reference Manual CE v5.30                           77
+

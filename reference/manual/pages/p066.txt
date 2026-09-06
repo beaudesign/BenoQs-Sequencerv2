@@ -1,0 +1,52 @@
+CPY
+Page can be copied to the copy buffer. The copy operation will include the chain configuration local
+to the page at the time of copy.
+
+PST
+Copy buffer will be pasted into the present page position.
+
+Page POSITION in GRID
+Another function available is jumping to another page of the grid. As you press the PAGE key you
+will notice a Orange LED flash in the Matrix. This indicates the position of the current page in the
+grid.
+
+Switching pages
+Holding PAGE pressed and pressing a matrix key other than the one flashing and in any row other
+than row 0 will take you directly to the page associated with that key in the grid.
+This is especially useful when you are working on musical structures
+spanning several pages.
+Holding PAGE pressed, the current matrix Page will flash Orange, when pressing a new matrix
+Page the newly selected page will flash Orange and the previous Page will be Green (as it is still the
+'current' page playing) - now, whilst still holding the Page button press TGL and (at the end of the
+Track the newly selected Page will turn Green and the previously selected Page will turn Red.
+
+
+
+Play mode
+
+The PLAY mode provides the capability to try new things in a page, in a non-destructive manner.
+Activating the PLAY mode is equivalent to taking a snapshot of the currently playing page in a
+bank for later recall, in case the results of your editing do not live up to your expectations. Notably,
+the play mode snapshots include track mute patterns of the respective pages.
+Also note that engaging the PLAY mode may be done from both page mode and from grid mode.
+
+Engaging play mode
+To activate the PLAY mode press the Green PLAY button in the MODE block and you should see
+it flash Orange. Also you will notice that the Program button will be lit Red.
+Now make all the changes and editing that you need to make to your page until you reach a point of
+satisfaction, or possibly slight regret.
+Use EDIT state PREFORM (flashing Green)
+
+Make changes permanent
+To keep the page, simply press Program to make the changes permanent.
+
+Discard changes
+To discard the changes, press PLAY again, exiting the PLAY mode and recalling the state of the
+page from just before you started.
+Note that upon stopping the sequencer you will also lose any changes made during PLAY mode.
+
+
+
+
+       66                       Octopus Reference Manual CE v5.30                             66
+

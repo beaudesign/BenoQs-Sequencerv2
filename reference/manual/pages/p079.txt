@@ -1,0 +1,55 @@
+5.       Grid Mode
+
+
+Grid Mode Index:
+               Grid Mode:                                 Grid Mode:
+     Bank mute toggles                    82     Grid-Track mode - Mute / Solo     81
+     Bypassing memory reload              86     Interface locking                 86
+     Chase-light align                    86     Musical Scale                     85
+     Chase-light Page Cluster Follow      84     Page Length (LEN)                 83
+     Cluster Activation                   81     Page Repeat (STA)                 83
+     Cluster Operations                   82     Page Sets                         84
+     Exempting Pages from Grid FTS        85     Page Set as Midi Controller       85
+     Force to scale - Quick Guide         86     Page Transposition (PIT)          84
+     Grid Clear                           86     Page Velocity factor (VEL)        84
+     Grid Edit mode                       79     Start-up defaults                 86
+     Grid Live mode                       79     Track-Across-Cluster Mode         82
+     Grid-Track mode                      80     Where are you from?               86
+
+
+
+Operations
+
+Grid Clear - Resetting to start-up defaults
+Please note that doing this will erase any changes you have made and possibly want to keep, so use
+this with extreme caution!
+Press and hold the GRID mode button, while pressing the Clear button. Again, this only clears the
+RAM (volatile) memory contents and leaves the content of the FLASH (non-volatile) memory
+untouched.
+
+Other Operations
+In Grid Edit modes to following operations are available, Page Clear, Page Solo, Page Copy, Page
+Paste & Page Remix. Simply hold the relevant Page in the Matrix and click the required mutator.
+
+
+Grid Modes
+
+Grid EDIT mode
+Furthermore, you should take quick notice of the EDIT LED. It should light flashing Orange to
+indicate that we are currently operating in Grid EDIT mode.
+
+Grid LIVE mode
+The Grid live mode is more suited in the cases where you are playing your material live, hence the
+name. In Grid live mode the matrix buttons will act as toggles for the respective pages. This
+provides more immediate and intuitive handling of material in live situations.
+Switching to Grid live mode is quite easy if the EDIT LED is flashing Orange (default state) press it
+once to turn it Green.
+
+Operating in Grid live mode is easily explained. In principle, the page buttons now act as page
+toggles, much similar to the way things work in page mode, where buttons act as step toggles.
+
+
+
+
+        79                         Octopus Reference Manual CE v5.30                       79
+

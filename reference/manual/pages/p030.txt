@@ -1,0 +1,46 @@
+Step GRV Phrase timing with reference to POS number
+
+POS = 1                    POS = 2                   POS = 3                    POS = 4
+                            Dotted                    Triplet                    Dotted
+Bar Step Tick              Bar Step Tick Change      Bar Step Tick              Bar Step Tick Change
+ 1 1        0               1   1      0              1    1     0               1   1      0
+ 1 1        3               1   1      6 -3/32        1    1     8               1   1      9 -5/64
+ 1 1        6               1   1     12 -6/32        1    1    16               1   1     18 -5/32
+ 1 1        9               1   1     18 -9/32        1    1    24               1   1     27 -15/64
+   8x Speed                 Quad Speed
+
+POS = 5                    POS = 6                   POS = 7                    POS = 8
+1/2 Step                    Triplet                   Dotted                     Neutral
+Bar Step Tick Change       Bar Step Tick             Bar Step Tick Change       Bar Step Tick
+
+ 1   1       0              1    1       0            1    1       0            1    1        0
+ 1   1     12 -1/16         1    1      16            1    1      18 -1/32      1    1      24
+ 1   1     24 -2/16         1    1      32            1    1      36 -2/32      1    2        0
+ 1   1     36 -3/16         1    2       0            1    2       6 -3/32      1    2      24
+Double Speed                                         Doubling Echo 1/16 notes   1/8 note/step
+Note: 1/16 note/step GRV Phrase will have this as                               GRV Phrase
+Neutral (ie POS 8), effectively all ticks halved.
+
+POS = 9                       POS = 10                  POS = 11                   POS = 12
+ Triplet                    Dotted                   On-Beat                     Triplet
+Bar Step Tick              Bar Step Tick Change      Bar Step Tick Change       Bar Step Tick
+ 1    1     0               1   1       0             1     1     0              1    1      0
+ 1    1    32               1   1      36 +1/16       1     2     0 +1/8         1    2     16
+ 1    2    16               1   2      24 +2/16       1     3     0 +2/8         1    3     32
+ 1    3     0               1   3      12 +3/16       1     4     0 +3/8         -    -    -
+                           Doubling Echo 1/8 notes      1/2 Speed
+
+   POS = 13                   POS = 14                  POS = 15                  POS = 16
+ Dotted                    On-Beat                    Triplet
+Bar Step Tick Change       Bar Step Tick Change      Bar Step Tick              Bar Step Tick
+ 1   1       0              1     1      0            1    1      0              1   1       0
+ 1   2      24 +4/16        1     3      0 +6/16      1    3     32               Same as 15
+ 1   4       0 +8/16        -     -    -              -    -    -                -   -     -
+ -    -    -                -     -    -              -    -    -                -   -     -
+                              1/4 Speed
+
+
+
+
+       30                       Octopus Reference Manual CE v5.30                         30
+

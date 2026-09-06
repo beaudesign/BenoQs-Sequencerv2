@@ -1,0 +1,55 @@
+As you turn the GRV encoder to the right you will see the phrase number increase from 1 to 16 (0
+means no phrase is selected). Once 16 is reached in a bank, the colour of the pointer LED will
+switch to the next bank, as you can tell from the colour.
+
+Step phrase time compression (POS)
+The POS value will become visible as soon as a phrase is selected from the pool for the respective
+step and represents the time compression value for the particular step phrase. A value of 8 is
+neutral.
+Values lower than 8 will speedup the playback of the phrase, while values greater than 8 will slow
+down the playback.
+
+Step MIDI continuous controller (MCC)
+The MCC value represents the amount of MIDI CC sent at this particular step position. This of
+course only applies when the track is told to do so. *More on this in the TRACK view.
+The display uses a decimal representation similar to that used for VEL, with the exception that is
+has a "void" value, indicated by 4 Green LEDs in the last positions of the track. This means that no
+value is sent out on that track - since 0 would be a valid value for a MIDI continuous controller.
+If set to any value other than "none" then the chase light will be Orange rather than Red.
+*Attribute at Track level sets the MCC control for that Track,
+i.e. '10' = Pan.
+Attribute at Step level sets the amount of 'Pan' (in above case),
+i.e. '64' = 'centre'.
+
+
+Quick Step Attribute edit via matrix keys
+When in Step zoom it is possible to edit Step attribute value with either their respective edit knob or
+via entering values with the matrix keys.
+
+For attributes that have integer values (VEL, LEN, AMT, MCC) a double-click will set a 10's value
+& a single-click will set a 1's value. Additionally, the following 'quick keys' are available:-
+
+                      Step 13         Step 14          Step 15            Step 16
+Attribute              Click                            Double-click
+Velocity            Invert value       Clear            Clear              Clear
+Pitch               Invert value      Default       Octave - (8vb)    Octave + (8va)
+Amount              Invert value       Clear            Clear        Value -127 (mask)
+MCC                      -             Clear            Clear              Clear
+
+Double-click of a Step Phrase (GRV) button will advance to the next Step Phrase Group.
+
+
+Ghost toggle
+Press and hold pressed two or more step buttons placed in separate rows but in the same column.
+Let's use for instance the rows 3 and 4.
+Press a step in row 3 and at the same time a step in row 4 - and make sure you do not release the
+buttons yet.
+Now toggle steps in row 3 - and you will see that the steps in the same column of row 4 will be
+toggled as well. Or you may press steps in row 4 and see the steps in row 3 toggle as well. We call
+this behaviour "ghost toggle".
+
+
+
+
+       17                      Octopus Reference Manual CE v5.30                             17
+

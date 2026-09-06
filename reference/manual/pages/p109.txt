@@ -1,0 +1,31 @@
+VI. Song Grid Reference Chart
+
+Song Name:
+
+Tempo:                 Date:
+
+
+List of Concurrent Pages:
+       Bar #:/ Bar #:/ Bar #:/ Bar #:/ Bar #:/ Bar #:/ Bar #:/ Bar #:/
+Bank Page      Page    Page    Page    Page    Page    Page    Page
+  9       /       /       /       /       /       /       /       /
+  8         /     /       /        /        /        /       /       /
+  7         /     /       /        /        /        /       /       /
+  6         /     /       /        /        /        /       /       /
+  5         /     /       /        /        /        /       /       /
+  4         /     /       /        /        /        /       /       /
+  3         /     /       /        /        /        /       /       /
+  2         /     /       /        /        /        /       /       /
+  1         /     /       /        /        /        /       /       /
+
+
+
+
+List of Page Clusters:
+Bank Page Cluster, Bank - First Page:    Page Cluster, Bank - Last Page:
+
+
+
+
+      109               Octopus Reference Manual CE v5.30                  109
+

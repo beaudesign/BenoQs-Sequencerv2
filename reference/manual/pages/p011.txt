@@ -1,0 +1,56 @@
+Legacy changes
+
+To accommodate On-The-Measure Mode there have been the following changes to legacy
+behaviour (v5.00 & earlier):-
+
+View/Mode      Legacy                        Version 5.30                   Relevant to Feature(s)
+
+Page View      Track Mode led Off            Track Mode led Green           On-The-Measure Mode
+
+
+Track Zoom     When Track Solo'd -           When Track Solo'd -            On-The-Measure Solo,
+               Main MUT flash Green          Main MUT led Green             Track-Across- Cluster
+                                                                            Solo
+                                             Main MUT flash Green
+                                             when armed for Solo (OTM)
+
+
+Page View      All Track's Chain             Now only possible              On-The-Measure Solo,
+               Solo'd when any track         using main SEL button          Track-Across-Cluster
+               in chain Solo'd                                              Solo
+
+
+Page View      Invertion of Track            No Longer Available*
+               Chain Solo's when
+               partial chain solo used
+
+               *Can be achieved using new Step Event Track Toggles
+
+
+Changes to '200' button operation
+Legacy Operation (v0.99 to v1.63 & CE v5.00):        CE v5.30 operation:
+200 - Orange - Master Midi Clock Send                200 - Orange - Master Midi Clock Send
+Single-click                                         Single-click
+200 - Off - Master No Clock Sent                     200 - Red - Slave Clock Send (echo'd)
+Double-click                                         Double-click
+200 - Green - Slave No Clock Sent                    200 - Off - Master No Clock Sent
+Single-click                                         Single-click
+200 - Red - Slave Clock Send (echo'd)                200 - Green - Slave No Clock Sent
+
+
+Custom Direction Maps
+Track Direction Map edit is no longer accessible from Step Mode. As per legacy operation it
+remains available from Track Mode via double-click of the track DIR selector.
+
+Step 'Mask' value
+Certain features reference a new Step 'mask' value, this value is used to prevent an action being
+applied to a specified step. The Step AMT attribute value of -127 is the 'mask' value.
+Step Mask is available in the following functions:-
+Effector Step Mask - Page 63
+Step Event Track Toggle Rotate - Page 38
+
+
+
+
+       11                      Octopus Reference Manual CE v5.30                           11
+

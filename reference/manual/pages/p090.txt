@@ -1,0 +1,55 @@
+Chained track recording
+At any time, only one track will be recorded into, and that will be the recording armed track of the
+current page.
+In order to record takes that are longer than 16 steps, simply build a track chain and enable one of
+the chain tracks for recording.
+
+Chained page recording
+In complement to the above, you may record takes longer than 128 steps too, by using the page
+clustering function.
+Simply cluster the necessary number of pages, set their track chain configurations, and enable in
+each of the pages the recording tracks.
+Generally, when a recording track is part of a chain, the recording "lock" (flashing Red selector
+LED) will carry along with the chase-light in that track and move from one track of the chain to the
+next.
+Note that the Track DIR setting will be followed even during MIDI recording.
+
+Recording re-take/overdub
+If you absolutely do not like what you have recorded you can always use the Clear functionality, as
+we have seen it before.
+Alternatively, you may overdub to a track, and there are two other options as follows:- Whilst the
+sequencer running, clicking the Play button will delete the track under the chase light - and, if
+recording to a track chain a double-click of the Play button will delete all notes in the track chain.
+
+Data intervals
+There is a limitation on the range of data that may be recorded.
+While the MIDI protocol allows for pitch and velocity values to be in the range 0...127, this range is
+constrained by the internal architecture of Octopus.
+
+
+MIDI Controller stream recording
+
+Generally, MIDI controller data is recorded as it is coming in, similar to a note stream. Arming and
+disabling tracks for recording works in exactly the same way.
+Once you have set a track for recording, your controller movements will be recorded onto the
+recording track. Also, the description below applies equally to recording pitch bend and channel
+pressure data.
+
+Auto-sensing
+The track's MIDI CC parameters are auto-sensing the controller and the associated data and will
+perform the recording of the controller accordingly.
+A fun exercise may be to enter MAP mode and observe the MCC values while turning a knob on
+your controller and watch the MIDI CC input being recorded as it comes in.
+Please note that tracks whose MCC value is other than "none" (i.e. 4 Green LEDs in the positions
+13-16) will have an Orange chase light in PAGE mode.
+
+Considerations
+Remember that a track may only play one controller at once.
+Therefore, if you have created a controller map for some controller and then operate some other
+controller, the map will play the controller data for the last auto-sensed controller.
+
+
+
+
+       90                      Octopus Reference Manual CE v5.30                            90
+

@@ -1,0 +1,54 @@
+The minimum step length is 1/192. A decrement beyond that point will light the last 4 LEDs Green.
+This means that the step is set to legato mode - i.e. no note off MIDI signal will be played for this
+step.
+The natural maximum length of a step is one full note - 192/192.
+However, Steps have a LEN multiplier, allowing them to play up to 8 times their actual length.
+The step LEN multiplier value is in the range 1-8. The step multiplier value is shown (and editable)
+in STEP mode in the transport area, using the pattern used for track clock multipliers.
+The maximum step length is therefore 8 full notes at master clock speed. The multiplier can be
+adjusted manually, and is computed automatically when recording notes in a track (as shown
+below). This allows for recording long-holding notes to a remarkably large degree.
+
+  Multiplier       Hold            Click          >     >>    >>>>
+     1                              >
+    1.5             >>              >
+     2                              >>
+     3               >              >>
+     4                             >>>>
+     5              >              >>>>
+     6              >>             >>>>
+     7             > >>            >>>>
+     8             >>>>             >>
+
+
+Alternatively, hold the circle TEMPO (XII) key and the Step LEN multiplier value is shown red in
+the LEN row of the matrix, available multiplier values are shown in orange - use the matrix keys to
+edit the value.
+Additionally, with the circle TEMPO key held the Transport Stop & Play buttons are available.
+
+
+Step start (STA)
+This row denotes the start of a step. By default you will see that the STA line is empty.
+Turn the STA knob clockwise and you will see a Red bar go from left to right - you are just
+delaying ("pushing") the step - every time by 1/192 of a note. The maximum push is 5/192.
+Turn the knob back until you reach the default position, i.e. all LEDs are of. Now turn the knob
+further back and you see now a Green bar growing from right to left starting on position 16 of the
+row - you are pulling the step to the front of the beat.
+The current maximum pull is 5/192. Note that the real effect of this setting is directly dependent on
+the value of the track STA attribute.
+
+Step amount (AMT)
+The next parameter in line would be AMT (amount). We will get into the details later, for now it is
+enough to mention that this indicates the amount to which an event programmed on this step will
+affect the current track.
+
+Step phrasing (GRV)
+A Step may be enriched at playtime by a certain amount of notes determined by phrases that are
+pre-programmed into something we call phrases. There are three banks of 16 phrases, for a total of
+48. They are roughly covering delays, rhythmic delays and note intervals respectively.
+
+
+
+
+       16                      Octopus Reference Manual CE v5.30                           16
+

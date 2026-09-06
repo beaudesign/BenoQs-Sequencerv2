@@ -1,0 +1,56 @@
+2.       Step Mode
+
+Step Mode Index:
+
+               Step Mode:                                  Step Mode:
+     Attributes                            15    Length attribute (LEN)              15
+     Amount attribute (AMT)                17    Length attribute multiplier         16
+     Chords                                20    MIDI Controller attribute (MCC)     17
+     Chords - Building in Chord View       20    Quick Attribute Edit                17
+     Chords - Building in Octave View      20    Paste                               13
+     Chords - Ground rules                 20    Phrase attribute (GRV)              16
+     Chords - Modes                        20    Phrase Editor - Custom Phrases      27
+     Chords - Octave View Chart            21    Phrase - POS Chart                  30
+     Chords - Strumming                    22    Phrase - Reference Chart(Default)   24
+     Clear                                 14    Phrase - Reference Chart(Custom)    29
+     Copy                                  13    Phrase - Time attribute (POS)       17
+     Events - Clear / Create               34    Phrases                             23
+     Events - Example of AMT scaling       37    Pitch attribute (PIT)               15
+     Events - Offset Chart                 35    Polyphony                           22
+     Events - Values / Range               34    Random Note Picks                   22
+     Events - Understanding                36    Random Step Rest                    23
+     Events - Using AMT                    37    Selection stores                    17
+     Event Track Toggles                   38    Skip                                14
+     Event Track Toggles - Value / Range   39    Start attribute (STA)               17
+     Ghost toggle                          17    Step Shift                          15
+     Hypersteps                            31    Step Swap                           19
+     Hypersteps - Chart                    32    Toggle (TGL)                        14
+     Hypersteps - PIT and VEL              31    Velocity attribute(VEL)             15
+     Inverse selection editing             18    Zoom                                13
+
+
+
+
+Step Zoom
+From Page View mode, holding the Step Mode button and pressing any key in the matrix selects the
+corresponding step into the zoom focus of the STEP mode. Alternatively, if you want to edit a step
+in the same track, you may press its corresponding button in the bottom row to switch view to that
+particular step.
+
+
+Operations in Step Zoom
+When in Step Zoom, click the required Step on track row 0 to make it the "selected Step", it will
+flash to show it has been selected.
+
+Step Copy
+When zoomed into a Step simply click the Copy button to copy all of the step attributes.
+
+Step Paste
+Clicking the Paste button will paste the previously copied step at the currently selected step
+location. The paste operation is confirmed by the step led which ceases to flash once the paste
+operation is complete.
+
+
+
+        13                         Octopus Reference Manual CE v5.30                       13
+

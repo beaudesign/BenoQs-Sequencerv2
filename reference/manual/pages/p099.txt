@@ -1,0 +1,48 @@
+12. Appendix
+
+       I.              Octopus Techniques             100
+       II.             System Load Handling           102
+       III.            Grid Usage Chart               103
+       IV.             Grid Usage List                104
+       V.              Page Set List                  107
+       VI.             Page Note Chart                108
+       VII.            Song Grid Reference Chart      109
+
+
+
+
+Device Mode Options
+
+Device View
+Enter Device View as before, reboot Sequencer holding the Esc button. The matrix will show the
+OS version number and from default the Grid Mode led will be Red and the Scale led will be Green.
+
+Start-up Mode*
+To change the Sequencer boot-up mode the Grid Mode click the Grid Mode button and the led will
+change to Green, now click the flashing Red Record button to confirm the change. The Sequencer
+will now start in Grid Mode.
+
+Midi Port Priority*
+If the Scale led is Green Midi Port 1 will have priority, clicking the Scale button will give Midi Port
+2 priority and the Scale led will change to Red, confirm the change by clicking the Record button.
+Changing the Midi Port priority can be useful if the machine is running as a MIDI slave controlled
+by a DAW. The DAW can send the MIDI clock to Midi Port 2. Additionally, the MIDI clock and
+transport events can be sent from Midi Port 2 to 'timing sensitive' machines such as a drum
+machine.
+
+It should be noted that having either Midi Port 1 or 2 as the priority does not imply that the machine
+introduces clock or event jitter, or is in any way unstable. This is simply a way to manage event-
+queue growth and delay as new steps and MCC events are added to a song. You may want your
+clock and percussion to play consistently at the same predictable time, regardless of what you
+record and play on the machine.
+
+Note: Changing the Midi Port priority does not change the sysex send port - which remains Out 1.
+
+*Changes made in Device View will reset the Grid to default, any custom settings will need to be
+re-loaded via sysex.
+
+
+
+
+       99                      Octopus Reference Manual CE v5.30                             99
+

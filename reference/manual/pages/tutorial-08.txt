@@ -1,0 +1,52 @@
+Octopus - tutorial series
+
+
+                            Advanced tweaking
+                               • Go back to Grid mode (press the GRID button).
+                               • Turn on Page Clustering (press the SEL button for that row
+                                 turning the LED green).
+                               • Activate a second page next to the current one by double-
+                                 clicking on the next button in the same row.
+                               • Program some steps in that page as well.
+                               • Go back to Grid mode.
+                            When the sequencer starts, you should see the two adjacent Page
+                            LEDs changing as ﬁrst one page is played then the next. For now,
+                            turn Follow oﬀ (green LED) and go back into the ﬁrst page you set up
+                            (with the MIX MIDI cc knobs).
+                            Start the sequencer and watch as the chase light plays this page and
+                            then disappears while it plays the second page in the cluster. Now try
+                            turning the MIX MIDI cc knobs.
+                            You will ﬁnd that the MIDI cc changes will have an eﬀect even if the
+                            Octopus is playing another page in the cluster. This allows you to
+                            make real-time changes to a track or tracks even if you have many
+                            pages clustered together.
+
+
+                            Interesting side eﬀect
+                            There is an interesting and useful side eﬀect to this behavior. If you
+                            set up diﬀerent MIX mode cc maps on diﬀerent pages, they will only
+                            be active when that page data is displayed in the matrix.
+                            So, by turning Follow on and oﬀ, or by leaving Follow oﬀ and directly
+                            selecting pages with a double-click, you can freeze diﬀerent pages
+                            (and hence diﬀerent MIDI CC maps) in the display. This gives you
+                            quick access to a lot of MIDI CC potential while the song is playing.
+                            Note that each page allows up to 5 CC maps to be deﬁned and the
+                            currently selected map is saved with each page so you can have Page 1
+                            with map 1 selected, Page 2 with map 2, and Page 3 with map 5 se-
+                            lected and the display will update accordingly with each page change.
+
+
+                            Banks
+                            Octopus has a setup for banks (a row of pages) to let you make some
+                            global changes to a group of pages when you’re in Grid mode.
+                            That frees you up from being on a speciﬁc page, but it constrains you
+                            to a speciﬁc set of MIDI controllers at that point (although you can
+                            still have 5 diﬀerent MIDI maps and switch between them using the
+                            row of buttons under the matrix).
+                            You set up the MIX knob functionality for the Grid CCs the same
+                            way you did for Pages.
+
+
+                                               2 of 2
+                                       © genoQs Machines, 2007
+

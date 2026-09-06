@@ -1,0 +1,17 @@
+The Effector
+
+One mutator button was not mentioned yet, and that is the EFF mutator. What is EFF?
+To be precise, EFF is not as much a function as it is a state switch,
+enabling the track to participate in cross modulation across the PAGE. Some additional explanation
+is needed here, so let's start with the theory.
+In each Octopus page there is the notion of an Effector. In simple terms, the effector is a mechanism
+allowing tracks inside a page to modulate other tracks inside the same page.
+Modulation here refers to projecting Step attribute offsets from one track to another at a time at
+which the modulator track is being played.
+The affected Step attributes are Step VEL, PIT, LEN and MCC.
+
+
+
+
+       59                     Octopus Reference Manual CE v5.30                           59
+

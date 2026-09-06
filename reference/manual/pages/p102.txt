@@ -1,0 +1,41 @@
+II. System load handling
+
+Natural bottlenecks
+The flexibility for composition offered by Octopus translates into
+possibly huge amounts of data being generated at a given time.
+This makes two natural bottlenecks visible: the bandwidth of the MIDI pipe and the capacity of the
+Octopus central processing unit (CPU).
+
+Load monitoring and dropping
+Octopus is built with timing stability in mind. However, too high loads of data would result in
+potentially massive glitches. To prevent that Octopus constantly monitors its load.
+Should any of the two bottlenecks be full, load will start to get ignored. This is indicated to the user,
+which may choose to reduce load in general - or not, being aware of what is going on.
+
+Overload signalling and overload protection
+The CHORD block of the panel is used to indicate overload or potential overload as follows:
+      Overload on the MIDI1 port is indicated by a Red lit CHORD1 LED.
+      Overload of the MIDI2 port is indicated by a Red lit CHORD2 LED.
+
+What the lights really tell you is that the respective MIDI port pipe is too full to carry additional
+load, and some MIDI data was potentially dropped. One way to work around this is to make sure
+you use both MIDI ports and distribute the load accordingly between the two.
+
+CPU load is a bit trickier, since the CPU has many tasks to complete.
+For all practical purposes, CPU overload means that not all data may have been processed by the
+CPU in a timeframe that would allow timing to stay relatively stable (our subjective impression).
+CPU (over-) load is indicated in the CHORD3 to CHORD7 LEDs in two stages:
+
+       Stage One indicates that CPU is at about 80% load.
+       This is shown by the CHORD3-CHORD5 LEDs being Orange.
+
+       Stage two indicates that the CPU is overloaded,
+       indicated by CHORD6 and CHORD7 LEDs lit up Red.
+
+       All data that was not processed was obviously ignored.
+
+
+
+
+     102                        Octopus Reference Manual CE v5.30                             102
+

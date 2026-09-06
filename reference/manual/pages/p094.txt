@@ -1,0 +1,55 @@
+ALL NOTES OFF message
+When the sequencer is not running but is defined as MIDI master or slave (the 200 LED is lit either
+Orange or Green), pressing the Stop button will send out an ALL NOTES OFF message (controller
+123) on each of the 32 MIDI channels.
+
+External force-to-scale
+
+Forcing MIDI notes to an Octopus scale
+While in page mode, with the page armed for recording (press and hold PAGE while clicking REC),
+your external MIDI input will be forced to the scale of the current page. Of course, this is assuming
+you have a scale enabled for the respective page.
+If recording to a track, and even though the incoming notes will be forced-to-scale, the incoming
+note pitch will be recorded. Therefore, if force-to-scale is turned off then the actual recorded note
+pitches will play.
+
+MIDI merge
+By selecting a chromatic scale for your page you can effectively implement a MIDI merger
+functionality of the data your Octopus is producing and the data that you provide on the MIDI in
+port.
+Note that this is only applying to note data, and not to other MIDI data, such as controllers.
+
+
+External program change
+
+Octopus allows external control of page toggle states via program change messages. The program
+change messages received will be interpreted according to the channel they arrive on. The MIDI
+port however does not matter.
+Note: External Program Change is only available if the Octopus is in Slave Clock mode.
+
+Arming program change listening
+To activate program change listening, you need to go to grid mode, hold the GRID key pressed and
+then click the REC key. You will see the REC LED flash Orange. Pressing REC once again will
+switch the listening of again.
+
+Grid set selection
+Program change messages received on channel 10 will trigger grid set selections in the GRID. It is
+equivalent to pressing a grid set selection key in the matrix. The grid set index will be computed as
+a modulo function of the incoming program change message.
+For example, MIDI program changes 0-15 will select grid sets 1-16 respectively. A MIDI program
+change message of 33 will select grid set 2, which is computed as follows: (33 % 16) +1 = 1+1 = 2.
+
+Page toggles
+Program change messages received on MIDI channels 1-9 will act as toggle signals for pages in the
+respective banks.
+Let's take an example: a program change of 33 on MIDI channel 7 will toggle page 2 of bank 7.
+If some page other than page 2 was playing in bank 7, page 2 will be activated for play and the
+previously playing page will be muted.
+Similarly, if page 2 was indeed playing, it will get turned off and no other page in bank 7 will be
+playing.
+
+
+
+
+       94                     Octopus Reference Manual CE v5.30                            94
+

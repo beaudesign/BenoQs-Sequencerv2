@@ -1,0 +1,55 @@
+Page transposition (PIT)
+When a page is selected in the grid, you may notice that the pitch circle lights up. It indicates the
+page's pitch offset and lets you modify it, in order to transpose the entire page content in one place.
+Alternatively you may use the PIT encoder to adjust it as well.
+To transpose the page by one full octave respectively, you may use the High C and Low C keys in
+the circle.
+
+Page velocity factor (VEL)
+Similar to the factors we see in conjunction with the track attribute maps, there is a page velocity
+factor that may be adjusted from the grid mode. The page velocity factor is a master determinant of
+the velocity produced by note content in a particular page. Assuming the patch on your sound
+source is velocity sensitive, you should be able to easily create fade-ins and fade-outs using this
+functionality.
+Select a page in the grid, and while selected, turn the VEL encoder. The row 1 will display the
+factor value.
+
+
+Page follow
+
+At any time during play in GRID mode you may zoom into any page you would like by the
+methods described already.
+If the page is part of a cluster and some page in the cluster other than the zoomed one is playing,
+you may want to see the position of the chase-light in the cluster.
+Press the Green Follow key to enable the follow page function, turning it Red. You will notice that
+the matrix display will always switch to the page that is currently playing, essentially
+following the chase-light as it moves forward through the pages of the current bank.
+This is particularly useful when you are working on structures longer than one page. Pressing the
+Follow button again will freeze the view on the page currently showing.
+
+An easy way to remember the colour coding could be:
+Red: stick to the Red chase-light, Green: stick to the Green steps.
+
+
+Page sets
+
+When you have a certain number of pages in the GRID, which you are tweaking and playing in
+various combinations, you will eventually find combinations that you would like to recall quickly.
+
+Concurrent page activation
+Octopus can store the pointers of all active pages at a given time in what we term a Page Set.
+Activating or switching between Page Sets can then be done by the press of a button at playtime.
+The operation is equivalent to and a shortcut to toggling a set of pages on - with all the rules that
+apply: only one page per bank will play, banks determine cluster behaviour, page length is
+determined in the pages.
+
+Working with Page Sets
+Simply activate in the matrix the set of pages that you would like to store for recall.
+Once they are all playing, press and hold the Green SEL button, while you press any of the 16
+buttons in row 0. The buttons in row zero represent memory slots for storing your page sets.
+
+
+
+
+       84                      Octopus Reference Manual CE v5.30                              84
+

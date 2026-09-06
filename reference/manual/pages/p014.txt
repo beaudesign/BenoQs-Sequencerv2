@@ -1,0 +1,52 @@
+Step toggle (TGL)
+Press the TGL mutator to turn the selected step on and off.
+
+Step clear (CLR)
+Pressing this will recall the pre-set values for the attributes of the selected step and will also turn the
+step of, if it was turned on before.
+The default Step attributes values are:
+VEL offset = 0
+PIT offset = 0
+LEN              = 1/16
+STA offset = 0
+AMT              =0
+MCC              = none
+
+Step randomize (RND)
+This will assign most step attributes random values. The randomization takes place based on the
+actual Step value and using 50 as randomization amount. The GRV and POS attributes that are not
+affected by this function.
+
+Step skip
+A skipped step means that the chase-light will simply ignore the step and just move to the next un-
+skipped one.
+In step zoom, the selected step may have its Skip condition turned On or Off by clicking the Main
+Mute button. The LED of a skipped step is shown red. If a selected step is set to "skipped" then the
+Main Mute button led will show the condition of the underlying step, as follows:-
+
+          Step Status      Selected Step LED        Main Mute LED
+
+                 Off         Flash Red          Off
+         Off & Skip          Flash Red          Red
+                 On         Flash Green         Off
+          On & Skip          Flash Red          Flash Green
+       Chord/Event         Flash Orange         Off
+ Chord/Event & Skip          Flash Red          Flash Orange (*Orange)
+          Hyperstep          Shine_Red          Off
+   Hyperstep & Skip          Flash Red          Shine_Red
+      *If Event & Skip but the underlying step is toggled off
+
+In Page View, to skip a step, press and hold the step button in question and click on the MUT
+button. You will see the step LED turn red. Repeat the procedure for as many steps as you would
+like. To un-skip a step and let it play again, just press it once and the red light will go off.
+
+
+Step zoom (ZOM)
+In STEP mode the LED is lit up in Red. Pressing the ZOM key will exit the STEP mode and return
+you back into the PAGE mode.
+
+
+
+
+       14                       Octopus Reference Manual CE v5.30                               14
+

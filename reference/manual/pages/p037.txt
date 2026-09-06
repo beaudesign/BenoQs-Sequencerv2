@@ -1,0 +1,54 @@
+Step Event AMT value simply changes the Track Attribute Scaling Factor (within the Step Event
+Range) each time the Step Event is executed.
+
+If Step Event AMT is greater than the Step Event Range then the AMT will be divided by the Step
+Event Range and the remainder will be applied to the Track Attribute Scaling amount.
+
+Example for attributes (VEL, PIT, LEN, STA, GRV, AMT & MCC):
+Assume Track Attribute Scaling Factor is at default (Neutral), and the Step Event Range is set to 3.
+With the Step Event AMT set to 0 the neutral values (shown blue on the chart below) will be
+applied to the attribute, if the Step Event AMT is set to +1 then the following occurs:
+
+The track attribute will be scaled by +1 each time the step event is executed, therefore the offset in
+row 7 (9) of the chart will now be applied, then row 6 (10) then row 5 (11) - as the Step Event
+Range is set to 3 the next Step event will cause the offset in row 8 (neutral) to be applied. So in this
+example, if the initial step offset was '12' then the sequence of the step offsets would be 12, 14, 17,
+20, 12, 14, 17, 20, 12 and so on.
+
+An AMT of -1 will result in the same offsets except the sequence will be in reverse order,
+thus, 12, 20, 17, 14, 12, 20, 17, 14, 12.
+
+Using AMT to scale AMT
+Firstly, for step event with an AMT of 1 the changes that would occur by adding an additional step
+event for the AMT attribute will be reflected in the column of offset [1] A to F. If the step event
+has an AMT of 4 then the changes that would occur by adding an additional step event for the AMT
+attribute will be reflected in the column of offset [4] A to F.
+
+It should be noted that changes to the Track Attribute Scaling Factor of the AMT attribute are only
+available with event range of 6, shown on the chart above and marked A to F. The designation of
+A to F are fixed, therefore if the Track Attribute Scaling Factor for AMT is scaled to, say, (11) then
+changes will be limited to C to F.
+Note: If the Track Attribute Scaling Factor for AMT is compressed then Step Events using AMT to
+scale AMT will not work as expected (as AMT will compress itself) - therefore, scaling the Track
+attribute map factor for AMT is best avoided.
+
+Example of using AMT to scale AMT
+Take a step offset of VEL +8 and change the Track Attribute Scaling Factor of VEL, compress to
+(4), now add a Step Event for VEL with an AMT of +4, this will render the sequence change in
+VEL values (from the chart above [8]), 1, 8, 15, 32, 6, 13, 25, 4, 11, 20, 2, 9, 17, 1 and so on.
+
+Now, by adding a Step Event AMT of AMT +1 to the track the VEL AMT of +4 will be scaled
+from A to F (as in the chart above [4]), in other words, rather than the Track attribute map factor
+changing by +4 it will change by 4, then 5, then 6, then 7, then 8. then 12, before repeating.
+
+We can count these scaling changes against the VEL offsets (from the chart above [8]), and see that
+it will render the sequence change in VEL values as follows:
+1, Amt+4(neutral)=8, Amt+4(A)=15, Amt+5(B)=1, Amt+6(C)=11, Amt+7(D)=1, Amt+8(E)=15,
+Amt+12(F)=13, Amt+4(A)=25, Amt+5(B)=6, Amt+6(C)=17), Amt+7(D)=6, Amt+8(E)=25,
+Amt+12(F)=20, 2, 11, 32, 11, 2, 1, 8 etc.
+
+
+
+
+       37                      Octopus Reference Manual CE v5.30                              37
+

@@ -1,0 +1,52 @@
+Working with attribute maps
+
+The matrix display is built up starting at row 0 with the pattern of the track under consideration.
+Here you may toggle, select and skip steps as you would in PAGE mode, as already described in the
+introductory section - also holding them and tweaking their parameters will work - but leave that for
+a moment to avoid confusion.
+If the sequencer is playing, you also see a Red chase-light in the row of the track currently being
+worked on.
+
+Reading attribute maps
+You may think of the area made up by rows 1-9 as divided into 16 columns, one for each step
+represented in row 0.
+For each step, the column will display a bar corresponding to the value of the attribute whose map
+we are seeing. Remember that this is the attribute value of the steps, before the steps are affected by
+any sort of track offset.
+
+Representation
+For values that can be negative or positive (VEL, PIT, STA), a zero value is represented by a line of
+LEDs on row 5. Positive values are above the line and negative values are below.
+Now press any button in row 6 - as an example. You will see that the bar for the step in the column
+of your press will jump to the position of the button you have pressed.
+
+Reading the real values
+The real value of the step attribute offsets can be read out easily by holding the respective step
+pressed in row 0.
+For this purpose, you may also want to (temporarily?) use the preview mode (toggle the EDIT LED
+to flashing Green or flashing Orange), such as to not affect the toggle state of the steps you are
+viewing.
+The value is displayed in the numeric quadrant of the circle, and is always shown as a sum of the
+track and step value for that particular attribute.
+Also note that while the meaning of the large circle value is changing, the pitch circle is always
+dedicated to showing the pitch. This is just a quick but very powerful way of entering data for the
+steps of a particular track.
+Values may also be entered using the keys of the circle fields, i.e. entering a velocity value for a
+step is similar to entering a tempo value.
+You will see the new value reflected in the matrix display.
+
+Reading the pitch display
+The way to read the display is the following: the Red dots will indicate the octave and the Green dot
+will indicate the note in that octave. For example three Red dots starting at C and a Green dot at G
+mean the pitch is G in octave 3. Exception: two Red dots starting at C and a Orange dot at D mean
+that the pitch is D in octave 3.
+
+Entering pitches
+Entering pitches is done by pressing the appropriate note. In order to transpose octaves use the left
+and right keys labelled "C".
+
+
+
+
+       52                      Octopus Reference Manual CE v5.30                             52
+

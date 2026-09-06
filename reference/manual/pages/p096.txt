@@ -1,0 +1,56 @@
+Save Progress
+The progress of the save operation is depicted in the note inner circle, and operation completion is
+signalled by a complete circle.
+NOTE: If a save operation does not complete, the saved memory contents will be irreversibly lost
+and the previously saved instrument state will likely become corrupted as well.
+
+Things to remember
+Some of this is repeating information, but it may be a good time to remember it.
+
+You can always revert back to the last saved state by simply pressing the reset button found on the
+bottom pane of Octopus (just underneath the Tempo knob).
+This will clear all changes made since the last save operation. If you power up Octopus while
+holding the CLR button, you will start without loading the saved state from memory, starting of
+with a virtually fresh machine.
+
+To completely clear the Octopus RAM memory back to the factory default, go into GRID mode,
+press and hold GRID, and then press the CLR Mutator button. This does not affect the machine
+state saved in FLASH memory in any way.
+
+
+Exporting memory content to MIDI
+
+Octopus may export content of its memory by the means of MIDI system exclusive (SYSEX)
+dumps.
+This is particularly useful when you would like to archive data on a computer, or even share
+memory content across Octopus machines.
+Before you continue, please make sure that the sequencer is stopped.
+Connect the MIDI Out 1 port of your Octopus with your receiving device, considering that SYSEX
+data will be export out of the Octopus port 1 only.
+
+Export content mode
+Three types of SYSEX export streams are available: PAGE, BANK and GRID.
+In order to trigger the export operation (SYSEX dump operation), you need to be in the EXC mode
+on the Octopus.
+To enter the EXC mode, press and hold GRID while pressing the Green flashing EXC / ALN
+button. You should see the EXC LED turn Orange and flash steadily.
+To exit the EXC mode you may press ESC and return to GRID mode.
+
+Page export
+A PAGE export will output the full contents of a page as MIDI SYSEX stream.
+ To trigger a page save, while in EXC mode simply press the button of the page that you would like
+to export. Only lit matrix buttons will have an effect, basically preventing you from accidentally
+dumping empty pages.
+Notice that he circle is used as a progression indicator, and pages sent have their LED turned from
+Green to Orange (this is true for all dump types) for the duration of the data transfer. A single
+exported page should take on the order of 10 KB.
+
+Page import
+When played back to the Octopus, a previously exported page will be
+reloaded into its original and natural location in the grid, i.e. the position it was in at the time of its
+export. This means also that it will overwrite any content in that location.
+
+
+
+       96                        Octopus Reference Manual CE v5.30                                96
+

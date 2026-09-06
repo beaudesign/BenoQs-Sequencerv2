@@ -1,0 +1,52 @@
+Strumming chords
+To strum a chord, zoom into the step containing the chord, hold any of the chord buttons pressed
+and turn the main rotary clock-wise. You will be able to set a strum level between 0 and 9 shown as
+Green values. This also means that the chord will be strummed up.
+Turning the main rotary counter-clockwise will show the Red values -9 to 0, which are indicating
+that you are now strumming the chord down.
+Octopus comes with a pre-set strum configuration which affects the note start values. The strum
+effect increases exponentially with the strum level chosen as shown below:
+
+                   Chord Strum Timings in Ticks
+  Strum      1      2     3      4      5      6     7      8      9
+ Note 2      0     +1     +1    +2     +2     +3    +3     +4     +5
+ Note 3     +1     +2     +3    +4     +5     +6    +7     +8    +10
+ Note 4     +1     +2     +4    +6     +8     +9    +10    +13 +17
+ Note 5     +2     +3     +5    +9    +11    +13    +15    +19 +23
+ Note 6     +2     +3     +6    +12   +15    +18    +21    +27 +30
+ Note 7     +3     +6     +9    +16   +19    +24    +29    +36 +45
+
+Note: A strum can also be set on a single note step (i.e. no chord), setting a strum on a single note
+step will result in the note being played followed by 6 duplicate notes played at the set strum timing.
+
+Step polyphony
+Step polyphony offers an exciting playground for experimentation and variation, especially with
+regard to dynamic pitch variation, as in random note picks from the chord pool.
+Assuming you have built the C-E-G chord as described earlier, let's think about polyphony. The
+natural polyphony of the step is of course 3, since it is playing 3 notes at the same time.
+However, polyphony may be adjusted independently of step chord contents, i.e. without changing
+the number of notes in the chord. The step chord size, i.e. the number of notes in a step, is indicated
+by a Red LED in the chord block. The step polyphony is indicated by a Green LED in the chord
+block, When chord size and polyphony are the same you see an Orange LED in the chord block at
+the respective position.
+
+Random note picks from chord pool
+A step whose polyphony and chord size are the same, will play a chord in the traditional sense, as
+you would expect it.
+When step polyphony and chord size are different, the number of played chord notes is always the
+smaller of the two values (i.e. chord size or polyphony). Here the actual notes are chosen at random
+from a pool composed as follows:
+- When chord size is greater than polyphony, the note pool is made up by all notes that make up the
+chord.
+- When polyphony is greater than the chord size, the note pool is made up by the chord notes plus a
+number of rests ("empty" notes).
+The number of rests is given by the difference between the polyphony and the chord size.
+For example: Chord is C-E-G, therefore chord size is 3 therefore:
+- A polyphony of 3 will consistently play the chord C-E-G.
+- A polyphony of 2 will play two elements picked at random from the pool C, E & G.
+- A polyphony of 5 will play 3 elements picked at random from the pool {C, E, G, rest, rest}.
+
+
+
+       22                      Octopus Reference Manual CE v5.30                             22
+

@@ -1,0 +1,56 @@
+Track chaining
+
+Track chains explained
+A track chain is simply a defined sequence of playing tracks from a page, in a given consecutive
+order. Track chains are always configured in PAGE mode and are useful in creating structures
+longer than 16 steps per page.
+
+Playing considerations
+Chain configurations may or may not influence the set track parameters. Each track can be played
+as it is, or each track's steps may be played using the same set of track parameters as its base.
+While the pre-set chain modes were covered in the start-up section, we shall now look closer at
+flexible track chain configurations.
+
+Selecting chain members
+While in PAGE mode, define first the group of tracks that you would like to chain by creating an
+appropriate selection.
+
+Creating a track chain
+While the selection is active (flashing Orange), press the 'X' (XXVIII) button to build the chain
+made up by these tracks.
+You will now see that they start playing in sequence. The play sequence is per default top to bottom
+(i.e. row 9 to row 0).
+There are cases when you will see this order changed as a result of some more interaction with the
+chain structures inside a page. This has to do with the way a chain is defined internally.
+
+Under the hood
+Every chain has a head and a tail. The head is a track, while the tail may be made of none, one or
+more other tracks.
+When you create a selection, the top track of a selection will be defined as the head of the new
+chain, and the other selected tracks will make up the tail.
+Should any of the newly chained tracks have been part of a chain before (regardless if head or tail);
+they will be removed from their original chain(s) and added to the new one. The original chains will
+simply get reduced by the tracks re-allocated to the new chain.
+
+Showing track chains
+Once a track chain has been created, you can also easily see how it is spread across the page.
+Simply select a track that is part of a chain, and you should see the following information in the
+selector LED column.
+The track selected (one you have your finger on) is flashing Orange.
+Other track members may be lit Green and Red. In Red you can recognize the head track of the
+chain, in Green the other chain members that are not the head.
+If the head and the selected track are the same, you will only see a flashing Orange LED.
+
+Removing Track Chains
+Press the Track button of the Track you wish to remove from the chain and click the 'X' (XXVIII)
+button
+
+What about pre-set chains?
+By now you may wonder, what about the pre-set chain configurations on offer? Well, they are
+nothing more that pre-set chain configurations with shortcut buttons.
+
+
+
+
+       47                      Octopus Reference Manual CE v5.30                            47
+

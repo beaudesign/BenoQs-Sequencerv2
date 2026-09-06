@@ -1,0 +1,64 @@
+0.       Alphabetical Index
+               Grid Mode:                                   Grid Mode:
+     Bank mute toggles                     82     Grid-Track mode - Mute / Solo   81
+     Bypassing memory reload               86     Interface locking               86
+     Chase-light align                     86     Musical Scale                   85
+     Chase-light Page Cluster Follow       84     Page Length (LEN)               83
+     Cluster Activation                    81     Page Repeat (STA)               83
+     Cluster Operations                    82     Page Sets                       84
+     Exempting Pages from Grid FTS         85     Page Set as Midi Controller     85
+     Force to scale - Quick Guide          86     Page Transposition (PIT)        84
+     Grid Clear                            86     Page Velocity factor (VEL)      84
+     Grid Edit mode                        79     Start-up defaults               86
+     Grid Live mode                        79     Track-Across-Cluster Mode       82
+     Grid-Track mode                       80     Where are you from?             86
+
+               Load/Save:                                   Load/Save:
+     All pages & machine state export      97     Loading individual pages        95
+     Bank exports                          97     Page export                     96
+     Data transmission rate                97     Page import                     96
+     Export content mode                   96     Saving individual pages         95
+     Grid exports                          97     Saving the machine state        95
+
+                  MIDI:                                        MIDI:
+     ALL NOTES OFF message                 94     MIDI Merge                      94
+     Forcing MIDI notes Octopus scale      94     Slave Clock                     93
+     Master Clock                          93     Toggle Page/Set - Extn Pgm Ch   94
+     MIDI Clock echo (in slave mode)       93
+
+               Page Mode:                                   Page Mode:
+     Attribute MIX maps                    72     Musical Scales                  71
+     Bank View                             77     On-The-Measure Mode             67
+     Clear                                 65     Page POSITION in GRID           66
+     Copy                                  66     Paste                           66
+     EDIT Perform state                    69     Play (Snapshot)                 66
+     EDIT Steps state                      68     Playing Controller Maps         74
+     Editor ATR state                      70     Random (RND)                    65
+     Editor MCC state                      70     Remix (RMX)                     65
+     Exempting Page from FTS               72     Rotate Step Skip Position       73
+     Force to Scale - Quick Guide          72     Scale Cadence                   71
+     Keyboard Transpose                    78     Solo (SOL)                      65
+     Locking the Page Scale                71     Step Shift in Edit Perform      69
+     Midi Control Map Values               74     Switching Pages                 66
+     Mix Map Attr - Quick Assign           73     Toggle (TGL)                    65
+     Mix Map Setups                        75     Viewing the Mix Map             72
+     Mix Map Targets                       73
+
+               Recording:                                   Recording:
+     Anti-Echo of MIDI when Recording      87     Multitrack recording            88
+     Arm Step Note recording               88     Note Stream recording           87
+     Chained page recording                90     Quantized recording             89
+     Chained track recording               90     Record rehearsing               88
+     Chord recording                       89     Recording Chords                88
+     Disable Recording                     88     Recording re-take/overdub       90
+     External Force to Scale               91     Stacked note recording          89
+     External Scale Edit                   92     Step note recording             88
+     MIDI Control Map learning             91     Step tapping                    89
+     MIDI Merge                            91     Track live transposition        89
+     MIDI Controller Stream Recording      90
+
+
+
+
+          6                         Octopus Reference Manual CE v5.30                  6
+

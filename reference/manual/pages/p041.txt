@@ -1,0 +1,58 @@
+3.       Track Mode
+
+
+Track Mode Index
+
+              Track Mode:                                 Track Mode:
+     Amount attribute (AMT)                46     LEN attribute Reference Chart      44
+     Attribute Maps                        51     MCC Map resolution                 53
+     Attribute Scaling Factors             54     MIDI Bank change                   51
+     Attribute Scaling Reference Chart     55     MIDI channel attribute (MCH)       46
+     CC Map Resolution                     53     MIDI controller attribute (MCC)    46
+     Chain - Base switch                   48     Quick Attribute Edit               43
+     Chain - Chase Light Follow            48     Paste                              43
+     Chain - Explained / Displaying        47     Pause/retrigger                    50
+     Clear                                 41     Pitch attribute (PIT)              43
+     Copy                                  43     Position attribute (POS)           43
+     Direction attribute (DIR)             45     Program change (PgmCh)             51
+     DIR Custom Directions Chart           58     Random (RND)                       42
+     DIR Editing Directions                56     Reading Attribute Maps             52
+     DIR Certainty_Next                    57     Reading the PIT display            52
+     Effector                              59     Remix (RMX)                        43
+     Effector - At work                    61     Shifting Attribute Maps            53
+     Effector - Considerations             62     Solo                               41
+     Effector - Feeders/Listener           60     Start attribute (STA)              44
+     Effector - Muting                     61     STA attribute Reference Chart      45
+     Effector - Playing                    61     Tempo Multipliers                  49
+     Effector - Step Mask                  63     Toggle (TGL)                       41
+     Flat attribute (FLT)                  42     Velocity attribute (VEL)           43
+     Groove attribute (GRV)                46     Zoom                               42
+     Length attribute (LEN)                44
+
+
+
+
+Operations
+
+Signaling
+A lit up mutator indicates that it is available. Please note that all mutator functions described here
+are also available from the PAGE mode, as soon as a track is selected.
+
+Track toggle (TGL)
+This simply toggles the track on or of. It is equivalent to muting or un-muting the track when in
+PAGE mode.
+
+Track solo (SOL)
+Pressing the SOL button solo's the track within its page.
+Note that no other pages playing concurrently will be affected. Pressing it again will un-solo the
+track in the page.
+
+Track clear (CLR)
+CLR will recall the preset values for the selected track.
+Only the MIDI Channel assignment (MCH) will remain unchanged.
+
+
+
+
+         41                         Octopus Reference Manual CE v5.30                         41
+

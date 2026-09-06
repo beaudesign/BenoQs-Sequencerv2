@@ -1,0 +1,54 @@
+Using Track-Across-Cluster with On-The-Measure
+Both Track-Across-Cluster and On-The-Measure may be used at the same time....
+When Track-Across-Cluster is engaged in Page View the Track Mode led will flash Orange if
+On-the-Measure mode is also engaged. Additionally, the Track Mute leds will Shine Red (armed for
+mute/unmute) or Shine Green (armed for Solo) when both modes are active.
+
+
+Page play parameters
+
+Page repeats (STA)
+Page clustering can become even more fun, as you can set the number of repetitions individually for
+each page. For example, page A can play 4 times, page B 2 times and page C 1 time. The number of
+repetitions can be any value between 0 and 16, where 1 is the default value.
+In order to set the repetition value for a page, simply keep it pressed and select the number of
+repetitions in row 0 - for any number between 1 and 16. You may press on a page's key and you
+will see the repetitions value along with the currently left number of repetitions for play (double-
+click to set value 0). Another way of modifying a page's number of repeats is to hold the page in the
+grid, while turning the STA knob in the edit block.
+Note: Page STA value of 0 is a special value that signifies a Cluster Hold Page, i.e. Cluster Page
+Play will not advance to the next Page until the 'held' page STA is changed to a value other than 0.
+
+Page length (LEN)
+When pages play, they are set per default to play 16 step positions, after which they play another 16
+steps and so on. These rather natural sixteen 16th positions make up what we call the length of the
+page, i.e. how many positions until the track "wraps around".
+However this value may be changed to a number higher or lower than the natural 16. For example,
+assuming length 12 for a modified page playing along with a reference page with length 16, the
+modified page will play its first 12 positions, after which it will play once more its first 4 positions.
+After that it will start over from position 1 and so on.
+Let's see briefly how this may be used: As we have seen, clustering pages is a way to create
+structures spanning more than one page. If you have worked with pages that contain tracks of
+different lengths and had these be part of clusters, you may have wondered what determines the
+moment of switching from one page to the next.
+To set the page length of a page, make sure you are in GRID mode, and from there press and hold
+the button of the page whose length you want to read or modify. When pressing the page button,
+notice that the SEL LED in row 0 will be lit and can be pressed to change colours between Red and
+Green. Make sure to set it to Green. The default is a Red LED in the first position of row zero. This
+indicates that the page is playing a full 16-step cycle. In order to change that, use the row zero
+buttons and click / double-click them to achieve the desired result. Note that the maximum length of
+a page can be set up to be 8 cycles, or 128 step lengths(at x1 speed).
+
+Page trigger behaviour
+Page lengths below 16 steps will cause the page to re-trigger every time a start is invoked. This is
+useful when you create chopped-up beats and the like. If the page length is 16 or greater, the page
+will continue playing on new starts and will not re-trigger. Hence, for Page STA with Page LEN
+values below 16 then the Page STA acts as a page repeat but when used with a Page LEN of 16 or
+more then effectively Page STA acts as a Page LEN multiplier.
+A Page LEN of less than 16 will influence a Page whether or not it is activated for cluster play.
+
+
+
+
+       83                      Octopus Reference Manual CE v5.30                              83
+

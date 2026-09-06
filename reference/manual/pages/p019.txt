@@ -1,0 +1,35 @@
+Remove Step Selection Store
+If the current Step Selection already contains all Steps that are toggled On, then double-clicking the
+current Selection Slot button will remove all steps from the Selection (and thus remove the Step
+Selection stored).
+
+
+
+Step Swap
+With a Step Selection active, and provided that all Step(s) in the Selection are on just one Track,
+turning the DIR encoder will swap the Step(s) in the Selection with the step(s) either in the Track
+above or the Track below.
+It should be noted that if the Step Selection or the swap destination contains a Hyperstep, then that
+Step will be automatically removed from the current Step Selection (if the Main Rotary encoder is
+turned).
+
+
+Step Swap in Operation
+It is possible to move the Selected Step(s) vertically through all Tracks in the matrix, however, as
+the 'swap' passes through multiple Tracks it does not restore them to their previous state.
+
+For example: If a Step Selection on track 3 is swapped with track 4, and then again with track 5, the
+steps from track 3 are now on track 5 - however, the steps previously on track 4 remain on track 3.
+
+For non-adjacent Tracks, or where the above behaviour is not desirable, the user can specify which
+Tracks are to be available for Step Swap. If two or more Tracks have an AMT attribute value of '0'
+they will only 'swap' with each other.
+
+Note: A Step Selection on a Track with an AMT attribute value other than '0' can still be
+independently 'swapped'. It will not 'swap' with a Track whose AMT attribute is '0'.
+
+
+
+
+       19                      Octopus Reference Manual CE v5.30                            19
+

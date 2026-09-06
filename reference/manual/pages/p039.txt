@@ -1,0 +1,56 @@
+Track Skip Rotate
+Track Skip Rotate works in a similar way to Track Rotate, except only the skip condition will
+Rotate, not the steps themselves.
+
+To create a Track Skip Rotate event, double click on a step to zoom into it, then double-click the
+DIR attribute button once selected it will shine_green. To clarify, a single click of the DIR attribute
+button will setup a Step Event DIR (led will show orange), or a double-click will activate a Track
+Skip Rotate Event (led will shine_green).
+Note: Switching between Step Event DIR & Track Skip Rotate will reset the AMT attribute to
+default.
+
+When rotating the Step(s) Skip condition it is possible to apply Step Mask in two ways, firstly, a
+Step whose AMT attribute is -127 will not have the Skip condition applied, and secondly, if a
+Skipped Step has its AMT attribute set to -127 will not rotate.
+Additionally, Step Events can also be 'Masked' by setting their VEL attribute to -127.
+
+
+Track Toggle Event Values settings
+The amount (AMT) value of the step determines which track the Track Toggle Event will be
+applied to - thus the Event Track Toggle can be applied to tracks' other than itself.
+In the case of Mute/Solo/Record & Pause track toggle, a positive value is an 'On' toggle and a
+negative value is an 'Off' toggle.
+For example, a Track Toggle Mute Event with a value of +3 will Mute Track 3, likewise a Track
+Toggle Mute Event with a value of -4 will Un-Mute Track 4.
+
+Note: An AMT value of zero is an 'off' value therefore to apply a Track Toggle Event specifically to
+the lowest track in the matrix (Track 0), use AMT value = '10'
+
+In the case of a Rotate track toggle, a positive value will rotate the track in a forward direction and a
+negative value will rotate the track in a backward direction.
+
+Track Toggle Event Range settings
+The Range attribute is used to configure the number of tracks that will be toggled by the chosen
+Event. For example, a Track Toggle Mute Event with a value of +3 & Range value of 2, will Mute
+Track 3 & Track 2.
+Range has a maximum value of 10 (all tracks).
+Please note that Range value will 'wrap' to higher tracks in the matrix, therefore if a Track Toggle
+Mute Event has an AMT Value of +1 & Range value of 4, then Tracks 1 & 0 and Tracks 9 & 8 will
+be Muted.
+Range is a track attribute, and as such, it is only possible to set one Range value per track per
+Track Toggle type.
+
+Note: In a change to legacy behaviour Step Event POS can be applied to additional tracks using the
+Range Value.
+
+Controlled Muting of Track Toggle Event(s)
+Track Toggle Events occur whether or not the track is muted. There is however, one exception that
+enables extended control of Track Toggle Events, as follows:-
+If the Toggle Events on a Track only influence other tracks in the matrix (i.e. the Track containing
+the Toggle Event(s) is not within the Range value of the Event) then muting the Track will
+effectively prevent the Track Toggles from being applied to the target tracks.
+
+
+
+       39                       Octopus Reference Manual CE v5.30                             39
+

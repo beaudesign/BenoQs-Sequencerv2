@@ -1,0 +1,54 @@
+Step chords
+
+Steps may play more than one pitch at a time, effectively forming chords. Chords can be directly
+programmed in, or directly recorded from, a MIDI keyboard (see the section on MIDI IN
+Recording) into a step.
+The next section will assume we are working in STEP mode. To follow along, please make sure to
+enter STEP mode before we move on.
+To set the stage, while in STEP mode, notice the CHORD button block at the bottom right of the
+front panel. By default the single note chord button should be lit Orange.
+
+Chord Modes
+There are two Chord modes, Chord View mode - which is the original mode unchanged, and Octave
+View mode, they both display chord note data but in two different ways.
+As before, when zoomed into a step, holding any of the Chord buttons will display the Chord notes
+in the inner circle - but now, the Select led is Orange and clicking the Select button (whilst
+continuing to hold a Chord button), will switch to the new chord mode and the Select led will
+change to flashing Orange - indicating you are now in chord “Octave View”
+- when in Chord View mode everything looks and works, as it did before
+- when in Octave View mode you can navigate between the chord octave layers by clicking one of
+the 3 highlighted ‘octave’ buttons at the bottom of the inner circle, labelled MOD, SEL & CAD
+(default octave 1 selected) moving between 1-3 octaves respectively, the current octave will be
+flashing Orange.
+Entering a Step Chord containing a note which is the same 2 or more several octaves may only be
+done in Octave View mode.
+By default the original Chord View mode is shown when clicking a Chord button, however, it is
+possible to double-click any chord button to enter Octave View directly (make sure you continue to
+hold the Chord button after the double-click). With a Chord button held its the Select button that
+switches between chord modes.
+
+Chord ground rules for Chord View mode
+Step chords are formed of up to 7 notes which may range over up to three octaves. The chord is
+made up of the step pitch as the base and additional notes that are stacked “on top” and which are
+always higher than the base pitch. This means of course that changing the PIT offset of the step will
+also transpose the chord.
+The chord display should be read as follows: the base pitch of the step flashes Orange. Notes within
+one octave (12 semitones) of the base pitch will light Orange. Notes in the second octave up light
+Green, and notes in the third octave up light Red.
+To toggle the notes manually in and out of the chord following toggle sequence applies: off >
+Orange > Green > Red > off.
+
+Building chords in Octave View Mode
+It should be noted that the note colour scheme is radically different in Octave View mode as much
+more information is being conveyed when viewing the chords 'octave view'.
+Enter Octave View mode by double clicking (and continuing to hold) any Chord button, the Select
+led will flash Orange. Assuming the step is turned on and contains a single note, the root note will
+be flashing Orange - also the MOD led will be flashing Orange, the SEL & CAD leds will be lit
+Green, this is telling you that you are view octave 1 of the chord. Other notes (in this octave) may
+be turned on or off by clicking their respective buttons - if turned on their led(s) will be Orange.
+
+
+
+
+       20                     Octopus Reference Manual CE v5.30                            20
+

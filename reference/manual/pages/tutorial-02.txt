@@ -1,0 +1,28 @@
+Octopus - tutorial series
+
+
+
+
+                            Changes to the modulation period
+                            The period of the modulation can be adjusted by various means:
+                               • By adjusting the length of the host track (skipping some steps
+                                 towards the end, or anywhere for that matter)
+                               • By modifying the tempo multiplier of the track.
+                               • By chaining tracks to create modulations longer than 16 steps.
+
+                            Advanced use
+                            On the Octopus you can have up to 9 pages playing concurrently. Try
+                            to split note information and modulation sources on separate pages.
+                            This allows you to modify and interact with the modulators as you
+                            would with any other track or object.
+                            This also implies the ability to have modulators evolve and change
+                            over time, using step events for example.
+                            Finally, you can modify the modulators on the ﬂy, during perform-
+                            ance, giving you capabilities at hand which are yet to be matched!
+
+
+
+
+                                               2 of 2
+                                       © genoQs Machines, 2007
+

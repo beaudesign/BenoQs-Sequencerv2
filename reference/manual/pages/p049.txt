@@ -1,0 +1,54 @@
+Track tempo multipliers
+
+To change a track's tempo multiplier, go to Track mode, and use the play buttons with one, two or
+four triangles in the transport bar.
+For example, by double clicking on the >> and >>>> buttons, the tempo will be set to ½ and ¼
+respectively of the master tempo.
+The table below shows the available multipliers and the key press combinations needed to get to
+them:
+
+        Multiplier        Hold            Click        Double Click       >     >>     >>>>
+          16             >> >>>>           >
+           8              >>>>             >>
+           7              > >>            >>>>
+           6                >>            >>>>
+           5                >             >>>>
+           4                              >>>>
+           3                 >             >>
+           2                               >>
+          1.5               >>             >
+           1                               >
+         1/1.5              >>                              >
+           1/2                                              >>
+           1/3               >                              >>
+           1/4                                             >>>>
+           1/5              >                              >>>>
+           1/6              >>                             >>>>
+           1/7            > >>                             >>>>
+           1/8            >>>>                              >>
+          1/16           >> >>>>                            >
+
+The values selected for a track are indicated as follows: In general, Red led's denote multipliers and
+Green led's denote divisors of the cardinality.
+For example, having the led's off and lit Green at the same time denotes a divisor of 5, meaning a
+track multiplier of 1/5.
+
+Exceptions to the rule include the 1.5, 1/1.5, 8, 1/8, 16 and 1/16 multipliers, covered below.
+The 1.5 multiplier is, as it may be obvious already, essential for easy triplet creation - a triplet being
+three notes played instead of two. It is shown as a Orange 2 and a Red 1. Its inverse, the 1/1.5
+multiplier, is shown as a Orange 2 and a Green 1.
+The 8 multiplier is shown as a Orange 4 and a Red 2 LED. 1/8 is shown as a Orange 4 and Green 2.
+The 16 multiplier is shown as Orange 4 and 2 plus a Red 1, and 1/16 is indicated as a Orange 4 and
+2 and a Green one.
+
+Alternatively, hold the circle TEMPO (XII) button and the Track multiplier value is shown in the
+MCH row of the matrix, available multiplier values are shown in orange - use the matrix keys to
+edit the value, a single-click sets a multiplier value (shown Red) and a double-click sets a divisor
+value (shown Green). The Transport Pause button will set the track condition to paused, or from
+paused to Play.
+Additionally, with the circle TEMPO button held the Transport Stop & Play buttons are available.
+
+
+
+       49                        Octopus Reference Manual CE v5.30                             49
+

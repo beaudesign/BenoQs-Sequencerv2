@@ -1,0 +1,53 @@
+Record rehearsing
+Sometimes you may just want the re-channel capability described above but without the actual
+recording being done. This is useful when you want to play along an instrument of a given track but
+do not want to record straight away.
+
+To enter record rehearsing, make sure all record activity is of (no track SEL flashing Red, the REC
+key is not flashing Red). Now hold a track SEL button pressed and click on the REC button.
+The Track SEL LED will flash Red, indicating rehearse mode. Pressing the REC key again will
+finally enable recording for the armed track.
+
+Multitrack recording
+In order to record on more than one channel at a time, you may make a multi-track selection and
+press the REC, just as above.
+However, note that in multitrack recording the MIDI source to be recorded needs to send on the
+same MIDI channel as that of the destination tracks - i.e. the one you have just armed for recording.
+Also, make sure to send the MIDI data into the correct MIDI IN port on the Octopus, i.e. the one
+that the track is set to send on (IN 1 or 2).
+To cancel multitrack recording press a track selector in combination with the Stop key to disable
+track record selection for all tracks in all pages. This basically allows for record re-channelling the
+next time a track is armed for recording.
+
+Recording chords
+A track will stack the note data input such that you can make up chords by simply playing one note
+on top of another. Of course, you will need to be good on timing with this one. Playing chords
+directly on your keyboard will also generate a chord on the Octopus step under the chase-light,
+making it very easy.
+When stacking notes up to make up a chord, you will notice that the length, velocity and start value
+of the step will use the values of the last played note for all notes in the chord.
+
+Disable recording
+To disable recording for the track in question, simply press the flashing REC button, to return to
+rehearse mode. From there press REC again to return to normal operation.
+
+
+Step note recording
+
+Octopus offers an alternative to note stream recording, and that what we term step-note recording.
+Note that this is not the same as step recording in other sequencers, therefore the slightly different
+name.
+The idea is simple. Once a page is armed for recording, you hold down a step button, play a note on
+your keyboard (or whatever MIDI controller you're using), and voila! The step is entered. This only
+requires the page to be armed for recording. Simple!
+
+Arming a page for recording
+With no track selected, hold down the PAGE button and then press the REC key, and you should
+see the REC LED flash Orange. You have now armed the page for recording, allowing you to
+perform step-note recording and more.
+
+
+
+
+       88                      Octopus Reference Manual CE v5.30                             88
+

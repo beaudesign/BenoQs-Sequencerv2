@@ -1,0 +1,46 @@
+Random note picks for random step rest
+The principle of Random note picks from chord pool can also be used without a chord, i.e. on single
+notes, thus effectively giving the chance of a note or a rest on a specific step as follows:
+Zoom into a step with just one note and set the polyphony on the chord buttons to 2, then effectively
+the step is {note, rest} and when playing the step there is a 50% chance of a note being played &
+50% chance of a rest, likewise if the polyphony is set to 4 the step is {note, rest, rest, rest} hence a
+25% chance of the note being played.
+Note: Step GRV will not function as expected on a step set to random step rest.
+
+
+Step phrases
+
+Overview
+There are the four main attributes (VEL, PIT, LEN, STA) of all 8 phrase notes. In addition, there is
+phrase polyphony and phrase type.
+
+The available phrase types are as follows:
+       Type 1:        Forward: notes are played in the order 1,2,3..
+       Type 2:        Reverse: notes are played in the order 8,7,6..
+       Type 3:        Random pitch programmed notes pitches are played in
+       random order, determined at playtime.
+       Type 4:        Random all: programmed note attributes played in
+       random combinations, determined at playtime.
+
+
+
+The Octopus default Step Phrases fall into the following categories:
+
+Phrase's Green1 to 16:        Delays and rhythmic delays
+Phrase's Red          1 to 16:       Pitched delays and arpeggio's
+Phrase's Orange       1 to 4:        STA wobbles
+                      5 to 8:        VEL wobbles
+                      9 to 12:       Combined STA & VEL wobbles
+                      13 to 16:      Combined STA, VEL & PIT wobbles
+
+
+
+
+The charts below show the attributes values of each default Step Phrase. If the Polyphony attribute
+is shown as 'x' then the phrase polyphony is not defined, but still may be set at step level if desired.
+
+
+
+
+       23                       Octopus Reference Manual CE v5.30                             23
+

@@ -1,0 +1,56 @@
+A couple of side notes are necessary here. First, consider that not all synthesizer manufacturers use
+the same numbering scheme for their programs, i.e. some start counting at 1, some at 0.
+However, the underlying values are always in the range 0-127.
+The Octopus convention is to display values in the range 0-128, where
+a value of 0 means that no program change message is sent.
+Therefore, the program changes are numbered in the range 1-128.
+Secondly, a program change message will be sent every time the Program key is pressed in TRACK
+mode, regardless of all other circumstances.
+However, if you keep the Program key pressed while turning the knob, the program change
+messages will get sent as you increase or decrease the PC number via the main knob.
+Furthermore, all program changes contained in the tracks of a page will be sent (once) as soon as
+that page is enabled for play - either as part of a cluster, or by manual intervention.
+
+MIDI bank changes
+You can also issue bank change messages. This is done simply by pressing the Select button and
+turning it Orange.
+In that case the number displayed will correspond to the bank number, and the bank change
+message will get sent as soon as you press the Select button again.
+
+Bank change messages will be sent also when a page is activated for play, but not when you send
+program change messages from Track mode.
+
+
+Track attribute maps
+
+Now that we have looked in some detail at the mutators while in TRACK mode, you may wonder
+what is going on to the left of the matrix - in the selector column.
+
+The selector column
+You see that some of the LEDs are lit up, and some aren't. Each lit button represents something we
+call an attribute map for the track.
+There are attribute maps for the following attributes: VEL, PIT, LEN, STA, AMT, GRV, and MCC.
+
+What is an attribute map?
+Simply put, an attribute map is a view of a particular step attribute for the entire track.
+Let's look at an example: the VEL map would be the view that shows you the velocity offset of all
+steps of a track at once.
+This is true with one exception - that is the DIR line. In the case of DIR we do not have a map per
+se, but rather the capability to edit the direction configuration for the sequencer. The details are
+explained in the chapter dealing with directions and we will disregard it
+in this section.
+For example: Press VEL and you will notice that keeping it pressed will make it flash Orange and
+the mutator column will make CLR, RND and
+ZOM available. Briefly - CLR and RND will affect the track VEL map and either clear it to default
+value or pick a random value. Now the interesting one:
+
+Showing attribute maps
+With the VEL selector still pressed, press the ZOM mutator to get to the MAP mode. What you now
+see is the VEL map of the track you are working on.
+You can also enter MAP mode by double-clicking the attribute button (VEL in this example).
+
+
+
+
+       51                     Octopus Reference Manual CE v5.30                           51
+

@@ -1,0 +1,56 @@
+The pitch is set to the default value of 60. Note that the factory pitch assignment can be recalled by
+calling the CLR mutator upon a PAGE. If you are at the PAGE level and grab a Track and clear it,
+everything is reset.
+
+Track randomize (RND)
+This will create a random step pattern in the track, not affecting the other parameters in the track.
+
+Track FLAT (FLT)
+The FLT function is used mainly to combine the pitch content of several tracks into just one track in
+the same page.
+This function was conceived as a creative tool and not as a track space-saving feature, as it may
+appear at first sight. In some instances it may be useful as such, but just in some. Please keep this in
+mind!
+FLT will only become available when you have selected two or more tracks in a page. There is a
+notion of a destination track, which is always the one from the selection with the lowest index.
+Applying FLT to the track selection will fill the destination track with content from the source
+tracks.
+For every active step in any of the source tracks, you will get the corresponding step activated in the
+target track. Skipped steps will simply be ignored.
+If more than one step is active in the same column across the selected tracks, the lowest 7 pitches of
+active steps will get stacked to form a chord on the respective step in the destination track.
+Note that if source track steps contain chords already, only their base pitch will be considered for
+FLT. The additional chord data in the source tracks will be ignored.
+The base pitch of the resulting chord will be the lowest pitch encountered in the respective column,
+with the other found pitches being stacked on top.
+Another detail worth mentioning is the influence of FLT on the VEL, LEN and STA values of the
+steps in the destination track. FLT always carries over the VEL, LEN and STA attributes of the last
+encountered active step for a particular column/position inside the destination track.
+Also something to realize is that FLT is MIDI channel agnostic - you may FLT different tracks
+playing on different channels, but the result will always play on the MIDI channel of the destination
+track.
+With that in mind, let us suggest two best practice usage methods for FLT. Firstly, before you are
+applying FLT to your track selection, make sure the target track is muted.
+This way you do not get any double notes playing if the target track is set to the same MIDI channel
+as any source tracks. You then can do a smooth blend-in of the new material, which may be useful
+when playing live for example.
+Secondly, you may want to make sure the target track MIDI channel is different from any of the
+source tracks before you apply FLT. This will effect the obvious - the new material is going to
+sound fresh right away. And of course you can use both of these techniques combined to achieve
+the result that is best for you!
+
+Step GRV is always reset to '0' when using FLT unless source and destination tracks have the same
+GRV settings.
+
+Track zoom (ZOM)
+The ZOM key is used to zoom into and out of certain views - in this case it would zoom out of the
+Track mode and back into the Page mode. The fact that you are zooming out is indicated by a Red
+LED light, as opposed to a Orange one.
+When in page mode, hold one track selector down and press ZOM to zoom into the track - this has
+the same effect as a double click on the track selector. We will talk a bit more about the ZOM
+mutator when we describe the MAP mode.
+
+
+
+       42                      Octopus Reference Manual CE v5.30                             42
+

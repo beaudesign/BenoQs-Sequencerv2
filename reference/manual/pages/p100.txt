@@ -1,0 +1,55 @@
+I.      Octopus Techniques
+This section provides some ideas for using the Octopus in ways that may not, at first, be obvious.
+
+
+
+
+Sequence Variation
+Octopus has a variety of ways of adding subtle, or not so subtle, variations to a sequence.
+
+Random step rest
+The principle of Random note picks from chord pool can also be used without a chord, i.e. on single
+notes.
+Here's how:- Zoom into a step with just one note and set the polyphony on the chord buttons to 2
+this will effectively give a 50/50 chance of the note being played on the step, or a rest.
+
+Example 1
+Set up a Track as follows:
+Turn on steps 1, 3, 5, 7, 8 (all as single notes) and Mute steps 9 to 16
+Now zoom into step 3 and set the polyphony on the chord buttons to 2, do the same for step 7.
+Zoom into step 8 and set the polyphony on the chord buttons to 4.
+
+Step phrase note variations
+Setting the Step phrase to type 4 will randomize all programmed note attributes so we can have a
+random note selection.
+Here's how:- Zoom in to phrase edit and chose a phrase you want to edit,
+set the type to 4, then set note 2 to PIT +7 and set the polyphony to 1.
+
+With a track set up as in example 1 above zoom into step 5 and set the step to the phrase number
+you have just created.
+You will hear that step 5 will sometimes play the step note and sometimes the step note +7
+semitones.
+More variation can be added by increasing the number of PIT offsets in the phrase.
+
+Step phrase timing variations
+Again by setting the Step phrase to type 4, we can introduce a timing variation.
+Here's how:- Zoom in to phrase edit and chose a phrase you want to edit,
+set the type to 4, then set note 2 to STA +12 and set the polyphony to 1.
+
+With a track set up as in example 1 above zoom into step 1 and set the step to the phrase number
+you have just created.
+You will notice that sometimes the step 1 note plays on step 1 and sometimes it plays on step 2.
+
+Taking this a little further, set up a phrase as follows:
+set the type to 4,
+set note 2 to STA +12 and PIT +7
+set note 3 to STA +24 and set the polyphony to 2.
+Now, we change step 1 in example 1 to this new phrase and the following variations can occur:-
+Step 1 & step 2 play, or step 1 & step 3 play, or step 2 & step 3 play, AND one of the steps may, or
+may not, be offset by +7 semitones.
+
+
+
+
+     100                       Octopus Reference Manual CE v5.30                              100
+

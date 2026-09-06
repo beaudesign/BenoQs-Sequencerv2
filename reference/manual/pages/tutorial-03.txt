@@ -1,0 +1,51 @@
+Octopus - tutorial series
+
+
+
+Editing track directions
+Besides offering a state-of-the art set of track run directions, Octopus allows
+direction editing by the user. Here we introduce this unique feature hands-on.
+
+
+                            Diving right in, let’s start with an empty page. Select an empty page
+                            and zoom into a track (use track 9 for this example).
+
+
+                            Getting prepared
+                               • Use the DIR edit knob to select direction 6.
+                               • Double click on the DIR Selector button.
+                               • While the below may be carried out with the sequencer running
+                                 or stopped, we recommend you stop the sequencer to minimize
+                                 distractions while editing.
+                            You should see a ﬂashing DIR SEL light, a ﬂashing LED in row 0 (in-
+                            dicating the time slice or position to be edited), and a solid orange
+                            LED in step 0 (the direction map you are editing – 6 in this example).
+
+
+                            Step double-play
+                            Let’s start with a simple variation - have steps 1, 5, 9, and 13 play twice.
+                               • Select slice 1 in row 0. The red LED in position 1 of row 1 indi-
+                                 cates that when the ﬁrst position is played, step 1 triggers.
+                               • We want step 1 to trigger twice, so toggle position 1 of row 2 on.
+                               • Make sure the LEDs in all other rows are oﬀ.
+                               • Now click on button 5 of row 0. You should see a similar situa-
+                                 tion - position 5 of row 1 is on - toggle position 5 of row 2.
+                            Repeat for steps 9 and 13. Slow the tempo way down and start the
+                            sequencer - you should see it ‘pause’ on steps 1, 5, 9, and 13. It is actu-
+                            ally playing these steps twice.
+                            You can exit out to Page mode, activate some steps on Track 9 (in-
+                            cluding steps 1, 5, 9, and 13), and listen as it plays.
+                            Since you added 4 step triggers (doubling steps 1, 5, 9, 13), at the end
+                            of 1 pass, that track will be 4 steps behind the rest of the sequence
+                            (i.e. - when it cycles back to position 1, the rest of the tracks will be
+                            on position 5). This is either good or bad, depending on what you
+                            wanted to do.
+                            One way around this is to mute steps 14, 15, 16 and set step 13 to only
+                            a single trigger to get back to 16 steps per cycle.
+
+
+
+
+                                                 1 of 4
+                                        © genoQs Machines, 2007
+

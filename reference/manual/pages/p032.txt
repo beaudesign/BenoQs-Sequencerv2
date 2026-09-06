@@ -1,0 +1,47 @@
+Scaling the Track LEN of the Track containing the Hyperstep will speed up the playing of the
+Hyped-track (effectively, reducing the number of ticks in each hyped-track step), and
+Skipping steps in the hyped-track will slow down the hyped-track, thus increasing the number of
+ticks in each hyped-track step.
+
+The chart below shows the effect of scaling the Track LEN of the track containing the hyperstep
+(i.e. speeding up the hyped-track), however, the chart below shows the effect of skipping steps in
+the hyped-track (Track LEN at neutral 8).
+
+We can see that with a Hyperstep LEN of 192, by reducing (skipping) the number of hyper-track
+steps from 16 to 12 then each step will be 16 ticks - hence the hyped-track speed is x0.75(3/4).
+Likewise, by further reducing the number of steps to 6 then each step will be 32 ticks - hence the
+hyped-track speed is x0.375 (3/8).
+
+We can say that if the Hyperstep LEN / 12 is greater than the number of steps in the hyped-track
+then the hyped-track will play slower than x1 speed, and if the Hyperstep LEN / 12 is less than the
+number of steps in the hyped-track then the hyped-track will play faster than x1 speed.
+
+
+Hyperstep Hyperstep
+Step LEN Track LEN         --------------- Number of Steps in Hyped-Track ---------------
+ (Ticks)      (Scaling)    16 15 14 13 12 11 10             9   8    7    6   5    4   3    2        1
+
+  192           8          12                16                 24   32      48 64 96 192
+  180           8             12             15    18 20             30 36 45 60 90 180
+  192           7          11                  16          22                44      88 176
+  168           8                  12     14               21 24 28          42 56 84 168
+  192           6          10                      16      20            32 40       80 160
+  156           8                     12 13                          26      39 52 78 156
+  192           5           9             12          16 18          24      36 48 72 144
+  132           8                         11 12                      22      33 44 66 132
+  120           8             8                    12      15        20 24 30 40 60 120
+  192           4           7      8                       14 16             28      56 112
+  108           8                          9          12             18      27 36 54 108
+  192           3           6              8               12        16      24 32 48 96
+  192           2           3              4                6        8       12 16 24 48
+  192           1           1                               2                 4       8 16
+  Track of 16 steps            -- Hyped-Track Step LEN in Ticks (integers only shown) --
+
+By 'Scaling' the Hyperstep Track LEN the Hyped-Track can be speeded up (8, neutral - 1, fastest).
+Scaling 9 - 12 will get the same result as 8 and 13 - 16 will get the same result as 1 - 4 respectively.
+
+
+
+
+       32                       Octopus Reference Manual CE v5.30                               32
+

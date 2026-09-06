@@ -1,0 +1,54 @@
+Please note that during play, switching the clock multiplier is effective immediately with no
+quantization with regard to the master tempo.
+Realignment of the tracks may always be done by using the ALN functionality available.
+Note that when the sequencer is playing, the changes of the track clock multiplier are effective on
+the next 1/16th beat of the master clock and not immediately. This provides better track alignment
+and improves the general feel of the sequence without the need to explicitly align after a track clock
+switch.
+Note: When using track multipliers of less than 1 (reduced speed) the maximum Step STA advance
+(Green) will be 12 ticks with reference to the x1 speed.
+
+Track Pause/re-trigger
+A track may be paused by grabbing the track (holding the appropriate track selector pressed) and
+pressing the Pause transport button. The procedure applies also to a selection of more than one
+track.
+To move a paused track back to the Play condition, hold the appropriate track selector and click the
+transport Play button.
+Note: If more than one track is paused any step advance, or restart, will be applied to all paused
+tracks.
+
+Track Pause/Play Alignment
+In a change to legacy behaviour - when moving a track from Pause to the Play condition, the track
+will commence to play on the next 1/16 beat of the global clock. This ensures that the track remains
+syncronized with the other tracks without the need to explicitly align the track after the change.
+Advancing a paused track by re-trigger (via the pause button) remains immediate.
+
+Reset any Paused Track(s) to Play
+With the sequencer stopped, double-click the Pause button to un-pause any paused track(s) ready
+for the next sequencer Play operation
+
+Set Track Pause condition
+With the sequencer stopped, zoom into a track - click the Pause button to set the track condition to
+paused, or from paused to Play.
+
+
+
+
+Track program changes
+
+MIDI program change
+In Track mode, you may have noticed that the Program LED is lit in Orange and the Select LED
+next to it is lit in Green. Also, the numeric field is not showing the global tempo value anymore, as
+it does in the PAGE mode.
+We are using that area to edit and send MIDI program changes to the channel of the selected track.
+First, select the MIDI channel you would like to send the program
+change on as the track MIDI channel.
+Next, dial in a program number, using the rotary encoder on the top right. Alternatively, you may
+want to key in the number of the program you want to select. Once selected, press Program and you
+should hear / see the program change occur.
+
+
+
+
+       50                      Octopus Reference Manual CE v5.30                            50
+

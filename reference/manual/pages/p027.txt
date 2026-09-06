@@ -1,0 +1,56 @@
+Editing step phrases
+
+Enter The Phrase Editor
+To enter the phrase editor, double click a step, and then double click the GRV button in the SEL
+column. The phrase editor mode is easily recognized, since all of the 7 chord note LEDs on the right
+are lit.
+Equally, you may access the phrase editor by entering track mode (double click one of the track
+selectors), and then double click the GRV button on the SEL column.
+
+The bottom row (Row 0)
+The bottom row of the matrix (row 0) shows the index number of the phrase currently being edited,
+by a flashing LED of the corresponding colour. If you see nothing shown there, you're looking at
+phrase #0, the default setting for a step, and which has no effect, i.e. plays the step as is. Turn the
+main- or GRV rotary to change phrases and switch the view accordingly.
+The 7 Green note LEDs are mostly there to tell you that they may be pressed: to set the optional
+phrase polyphony, press one of the note buttons to make it flash Orange. To restore the phrase to
+normal, full polyphony, press the flashing note button again, and the flash will disappear.
+
+The Matrix
+The matrix shows one of the four main attributes (VEL, PIT, LEN, STA) of all 8 phrase notes
+together, one note per row. Row #1 shows the data for phrase note #1, row #2 shows note #2, etc.
+A Green LED lit at the end of the row means that the phrase has a note defined for that line. If you
+don't see any Green LEDs lit on those lines, you know the phrase has a zero note count. A Red LED
+is shown there only for phrase #0, which is read-only.
+Top row always shows the phrase type coded as a number of Orange LEDs. The available phrase
+types are as follows:
+        Type 1:        Forward: notes are played in the order 1,2,3..
+        Type 2:        Reverse: notes are played in the order 8,7,6..
+        Type 3:        Random pitch programmed notes pitches are played in random order,
+                       determined at playtime.
+        Type 4:        Random all: programmed note attributes played in random combinations,
+                       determined at playtime.
+For example, 4 Orange LEDs means the phrase has type Random all, as described above.
+
+MIXER Block
+The top four Orange LEDs in the MIXER block indicate the attributes available for editing, which
+are VEL, PIT, LEN and STA in top-down order. The currently active attribute is flashing Orange.
+To select another attribute, simply press the associated button. This will change the content shown
+in the matrix.
+The rotaries in the MIXER block are used to change the currently selected attribute for the note on
+the matching row. The rotary of row #9 at the top is used to change the phrase type.
+
+Mutator block
+The following buttons in the MUTATOR block are supported:
+
+CLR
+The CLR button will clear the whole phrase to empty, if the phrase was non empty. When pressed
+again (in an empty phrase), it will restore to the factory pre-set phrase.
+When pressed while grabbing one of the four Orange attribute buttons in the MIXER block, CLR
+will only clear the data of the selected attribute.
+
+
+
+
+       27                      Octopus Reference Manual CE v5.30                             27
+

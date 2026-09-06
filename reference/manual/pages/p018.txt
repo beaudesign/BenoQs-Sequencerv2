@@ -1,0 +1,55 @@
+Working with step selections
+
+Inverse step selection editing
+In PAGE mode, active step selections are edited using the EDIT encoders for the respective
+attribute.
+Additionally, when a step selection is active, the steps that are not selected, in the tracks that contain
+selected steps, may be edited as well,
+using the MIX encoders of the respective attribute.
+For example, assuming a step selection is active with steps selected in tracks 2 and 4, the EDIT
+encoder PIT modifies all steps in the step selection, while the MIX encoder will modify the pitch of
+all steps that are not currently selected in the tracks 2 and 4.
+
+Step selection stores
+In PAGE mode, active step selections are stored for later recall in one of 5 stores available per page.
+This allows to group steps and modify them at once beyond track boundaries.
+The stores 1-5 are accessible while a step selection is active via the buttons labelled 1,2,3,4,5 in the
+MIX TARGET row below the matrix.
+For example: To make a step selection hold the SEL button pressed and click on at least one active
+step (Green) in the page. You should see the selected step flash Green and the current selection
+indicated by the flashing light in the MIX TARGET row. By default it should be 1.
+Now press the 2 key in the MIX TARGET area and the selection will disappear. This is because
+step selection 2 is empty. Let's fill it. Press and hold the SEL button and select another step or more
+and watch them flash.
+Press the 1 in the MIX target area and you should see your previous selection flash active. You can
+toggle between your selections at will using the MIX TARGET buttons, and use the encoders to
+really bend your material.
+
+A track selection occupies the same ‘virtual space’ as a step selection, however a track selection is
+‘stored’ on the Sel button (Sel led Red), and if all tracks are de-selected the Sel led is off (no track
+selection stored). On the other hand, whilst holding the Sel button, Step Selections may be stored on
+locations 1 to 5 – however, although these step selections may be de-selected they still remain in the
+allocated store location AND with that store location selected it is not possible to make a track
+selection!
+Therefore, it is important to not store step selections to all 1 - 5 locations, leave one empty, if the
+multiple track selection function is wanted on that page.
+
+Remove Step Selection Store
+With a step selection active, simply click the ESC button and the SEL button will effectively be
+disengaged and the current step selection will be deleted from the current store location.
+
+Rebooting the sequencer will delete all step selection stores, whereas a track selection is stored
+with the page.
+
+
+Add all active Steps to the current Step Selection
+With a Step Selection active, double-click on the current Selection Slot
+button (flashing Orange) to add all Steps that are toggled On to the current Selection.
+This can be used as an alternative way to correct any Slave Clock Recorded latency (using the STA
+rotary).
+
+
+
+
+       18                       Octopus Reference Manual CE v5.30                              18
+

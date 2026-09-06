@@ -1,0 +1,33 @@
+Track base switch
+You can switch the track base of a chain from using individual track base values to using the track
+base values of the head track.
+Simply toggle the chain selection indicator between Orange and Red.
+Orange means that tracks are being played in their natural state but in
+chained order.
+Red means that the tracks will be played taking over the values held in the head track as a base
+reference.
+Note that this switch will work equally for pre-set and custom chain configurations.
+When changing the Track Base status any muted tracks on the page will be un-muted.
+
+Muting chained tracks
+One more thing to mention about the track base for a chain - in the context of muting or un-muting
+tracks that are actually part of a chain. If the chain head is the base of the chain, then the mute
+operation of any chain members will apply to all tracks in that chain. Note that it will be a toggle
+operation, so it will invert the mute pattern of the set of chained tracks.
+
+Track follow
+There is also an automated way of switching the track in the view - that is the FOLLOW mode.
+When Follow is active and you are zoomed into a track that is part of a chain, the view will always
+follow the chase light in
+the respective track chain, in the sense that it will always show the track that is currently played by
+the chase-light.
+
+Activate Follow by pressing the Green follow button (XXVII) to turn it Red.
+
+Deactivate Follow by toggling it back to Green.
+
+
+
+
+       48                      Octopus Reference Manual CE v5.30                              48
+

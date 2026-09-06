@@ -1,0 +1,43 @@
+RND
+The RND button will randomize the whole phrase. When pressed while grabbing one of the four
+Orange attribute buttons in the MIX block, RND will randomize the data of the selected attribute.
+
+CPY and PST
+The CPY and PST buttons will allow phrases to be copied and pasted between slots in the phrase
+pool. Note that phrase #0 can only be copied from.
+
+
+EDIT Block
+Some of the rotaries in the EDIT block are supported:
+
+POS
+The POS knob changes the groove of the current phrase in a very nice way. When turning to the
+right, it stretches the timing to the next available straight-, triad- or dotted version of the original,
+and when turned to the left it does a similar thing by compressing the phrase tempo. This allows one
+to try a triad or dotted version of the phrase just by experimenting with the GRV knob.
+Note that if POS doesn't understand the timing of the current phrase, it uses a simple factor two
+multiply or division for the new groove. POS uses the STA offset of the first non-zero phrase note to
+analyze the timing.
+
+GRV
+The GRV knob (like the main knob) selects another phrase from the pool for editing.
+
+Save Your Work
+The phrase pool is saved as part of the global Grid object, along with other global data. The grid
+object is saved when the full machine state is saved. To save the full machine state do this:
+        1.      Go to GRID mode.
+        2.      Stop the machine.
+        3.      Press GRID + Program.
+        4.      Wait for the progress lights to complete the circle.
+
+Note: Best practice is to use GRV steps in a different Track to the
+un-GRVed steps. This will allow the GRV steps to be muted when changing the settings.
+
+Using Phrase Type 4 with a polyphony of 1 (or VEL of -127) will facilitate Random Note picks
+when used with the PIT attribute and Random Step pick when used with the STA attribute.
+
+
+
+
+       28                      Octopus Reference Manual CE v5.30                              28
+

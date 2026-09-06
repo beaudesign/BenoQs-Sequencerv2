@@ -1,0 +1,53 @@
+Playing the Effector
+
+Feeders
+On to the operation of the Effector. Just as a reminder, the Effector is a track specific attribute and
+as such it must be toggled either in TRACK mode, or from PAGE mode by grabbing the track and
+pressing the TGL button in the MUT column.
+Setting a track to be a feeder is done by pressing its EFF mutator and toggling its EFF state to
+Green.
+It is important to note that a Feeder track need not contain any active Steps, i.e. need not play any
+notes in order to act as a modulator for other tracks.
+
+Listeners
+In order to set a track to be a listener, click its EFF mutator to toggle it Red. Pressing a Red EFF
+button will toggle it Orange, making the track a listening feeder.
+
+Listening feeders
+A listening feeder gets modulated first and then amplifies the incoming modulation with its own
+effector feed.
+Pressing the EFF button will toggle it off, with the track not participating in Effector modulation.
+
+Playing
+For the Effector to work, it is merely the offsets of its Steps that count, and it is completely
+irrelevant whether those steps are generating MIDI notes or not.
+However, if an effector feeder does contain active steps, these will be played regularly, as they
+would independent of the effector.
+
+Muting
+If a feeder track is muted, it will not have any effect on listener tracks. Toggling feeder tracks is a
+quick way to introduce changes to a track and then to go back to the original sound.
+
+The Effector at work
+Designate a feeder track. Set step 1 in the feeder track and pitch it up or down.
+Now select a track with an index smaller than the effector feeder (this is essential) and build a
+pattern into it involving lots (if not all) steps.
+Make sure that step 1 is set as part of the pattern and play the pattern.
+Now make this track listen to the effector by toggling its EFF mutator to Red by double clicking on
+the EFF button.
+You should now hear that the step in column 1 of the listening track is now played differently, with
+the PIT offset from the Feeder track applied to it.
+The popular thing to do now is to start changing the track lengths for feeder and listener to get long-
+running modulation results.
+Note: The Feeder steps will only pass a MCC value if the Feeder Track is set to an MCC (the step
+MCC is passed - not the track MCC), therefore, to avoid unexpected effects, set the Feeder track to
+a different MCH from the listener(s). The process is only additive as the MCC attribute cannot be
+set to a negative offset.
+If a Feeder step LEN attribute is set to legato then the listener track(s) will output their step LEN
+attribute at the minimum step length (not legato).
+
+
+
+
+       61                       Octopus Reference Manual CE v5.30                              61
+

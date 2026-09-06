@@ -1,0 +1,54 @@
+Track direction editing
+
+As we have seen in earlier sections, each Octopus track may be assigned its own running direction.
+This is exciting, but neither new, nor spectacular.
+What may catch your attention though, is that on the Octopus you can not only specify what
+direction a track should play, but in most cases also edit that direction to your particular gusto.
+Directions 1-5 are read-only, while directions 6-16 are user editable.
+To see how all this works, let's take a quick step back and realize a couple of things. Then you will
+see how the pieces fall into place.
+
+A general view on directions
+To begin, have a track run at the default forward direction (Direction 1). Let it run for a few cycles
+in the forward direction, then stop.
+Think about what you just saw: the forward direction is really "the sequence of chaser light
+positions in each of 16 slices of time it takes to play all steps in a track". Makes sense? Realizing
+this is the key to understanding how editing directions works.
+
+Triggers and slices
+Each of the 16 slices needed to play a track from end to end (no skips for now) specifies its own
+chaser light position trigger. For the forward direction, in slice 1 we have a trigger for chaser light
+position 1, in slice 2 a trigger for position 2, etc.
+In simple terms, when a track is played, the chaser light will be moved according to the triggers
+specified by the slices that make up that particular direction. For example, the reverse direction has
+the trigger sequence [16, 15, 14... 1] assigned to its slices.
+
+Full and empty slices
+To take it one level further, a slice is not restricted to holding only one trigger, but may hold up to
+nine triggers. These nine triggers will be played in sequence every time the respective slice is being
+played. This implies that a slice may take as long as nine times to play completely, because it fires
+up to nine triggers.
+So what do we get from empty slices, i.e. where no trigger is specified? Well, every time Octopus
+gets an empty slice, it will pick a trigger for you at random*, and play it normally.
+
+Certainty_next
+The sequence of slices is per default set to be a solid 1, 2, 3 ...16. But you can change that. Each
+slice has an associated „certainty_next" parameter, which is expressed as a percentage.
+A setting of 100% means that the next slice will be the one following naturally (i.e. slice 3 will be
+followed by slice 4, etc.).
+A setting of 0% will specify that the next slice will be the naturally previous one (i.e. slice 3 will be
+followed by slice 2).
+Any value in-between will produce the obvious: for example, a setting of 50% will mean that there
+is a 50/50 chance by which the next or the previous slice will be called - and then its triggers
+played.
+Note that the certainty_next parameter applies to the switch between slices, but does not apply to
+the trigger set and sequence inside a particular slice.
+For example: Let's assume slice 4 has a certainty_next of 50% and a trigger set of 2, 5, and 8. Once
+started, the slice will first fire up its triggers (2, 5, 8) and then decide which slice to call next - slice
+3 (previous one) or slice 5 (next one).
+
+
+
+
+       56                        Octopus Reference Manual CE v5.30                                56
+

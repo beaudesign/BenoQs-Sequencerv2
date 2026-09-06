@@ -1,0 +1,54 @@
+Sysex transfers between Octopus & Nemo, or between Nemo & Octopus
+
+The Octopus and the Nemo have the same motherboard which means that although the user
+interface(UI) is different, and will thus generate creative distinctions, communication should not be
+a problem if the UI differences are respected.
+
+Page and Track numbering
+Looking at the Octopus we see the rows are numbered top to bottom (9 to 0) and the Nemo rows are
+numbered top to bottom (1 to 4). Assuming we are using Nemo x2 (CE OS v5 onward) - the second
+matrix view will show 4 more tracks which we can number 5 to 8.
+In a sysex transfer of a page from the Octopus to the Nemo, or from the Nemo to the Octopus rows
+will be represented on each machine as follows:
+
+        Panel Numbering      Octopus        Nemo        Panel Numbering
+            Top Row             9             1             Top Row
+                                8             2
+                                7             3
+                                6             4           Bottom Row
+                                5             5            Top Row
+                                4             6
+                                3             7
+                                2             8           Bottom Row
+                                1
+           Bottom Row           0
+
+
+Danger Note: Octopus pages contain 10 tracks therefore any notes (or other data) on Octopus
+tracks 1 & 0 will be received by the Nemo will play that data! even though it will not be possible to
+access that data (to delete or mute).
+See below: Imported Page Conversion Mode option to clear tracks 1 & 0
+
+It is important NOT to send pages from the Octopus to the Nemo that contain data outside the
+Nemo UI constraints.
+
+The same is true for Grid Banks!
+
+
+Custom Nemo Step Phrases
+By sending the Octopus 'Grid Only' data (via MIX button) to the Nemo via sysex we can effectively
+replace the default Nemo Step Phrases with custom phrases previously created and stored in the
+Octopus.
+
+
+Grid Only data Considerations
+When sending 'Grid Only' data from the Octopus to the Nemo it is prudent to not send any data that
+is not relevant to the Nemo, for example, clear all Page Sets and clear CC Maps (Sound Control)
+beyond what can be accessed by the Nemo. Although the data itself should not cause any OS
+problems, its best to be cautious.
+
+
+
+
+     111                       Octopus Reference Manual CE v5.30                            111
+

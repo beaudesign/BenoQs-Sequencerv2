@@ -1,0 +1,49 @@
+Octopus - tutorial series
+
+
+
+Using LFO-type modulations
+LFOs are so deeply rooted into traditional synthesis systems that users feel
+they should have the same type of functionality in a sequencer!
+
+
+
+                            Goal
+                            Octopus does provides on-board tools to create modulations that are
+                            typically created using LFOs - low frequency oscillators.
+                            Our example shows how to modulate MIDI CC data using LFO type
+                            modulations, but the described technique applies equally to using tar-
+                            gets such as velocity, pitch, and other attributes.
+
+
+                            Basic setup
+                            1. Switch to page mode.
+                            2. In the page, choose a track and set it up to send out MIDI CC
+                               data on a chosen CC# and a chosen MIDI channel.
+                            3. Zoom into the CC map of your chosen track, where you will be
+                               able to draw or program the desired “shape” of the modulation.
+                            4. Set the appropriate speed relation to other tracks (to get a higher
+                               resolution of sending out the data) on the same MIDI channel.
+                            5. Use the remaining tracks of the page to create the musical se-
+                               quence you would like the modulation applied to.
+                            6. Make sure that you set the note-holding tracks to the same MIDI
+                               channel as the modulator track in order to hear the eﬀect.
+
+
+                            Once you have succeeded with the above, you may take your modula-
+                            tions to the next level. This means, you can start to modify the ampli-
+                            tude, the period, or both.
+                            Here is a quick reference on the tools you have:
+
+
+                            Changes to the modulation amplitude
+                            The amplitude of the modulation can be adjusted by various means:
+                               • By modifying the shape of the modulation map itself
+                               • By adjusting the map factor, manually or by using step events
+                               • By adjusting the map position, using track position events
+                               • By using the Eﬀector to apply dynamic changes to the map
+                               • All of the above combined
+
+                                                1 of 2
+                                       © genoQs Machines, 2007
+

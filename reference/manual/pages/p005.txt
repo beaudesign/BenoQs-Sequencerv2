@@ -1,0 +1,47 @@
+                      Table of contents
+
+    0. Alphabetical Index                                  6
+
+    1. Community Edition version 5.30                      9
+
+    2. Step                                            11
+              Attributes                               12
+              Operations                               15
+              Chords                                   19
+              Step Phrases                             24
+              Hypersteps                               33
+              Step Events                              35
+
+    3. Track                                           41
+            Attributes                                 41
+            Operations                                 48
+            Map Factors                                57
+            The Effector                               67
+
+    4. Page                                            71
+              Operations                               84
+              Mix Mode                                 79
+              Edit State                               72
+              Page Scales                              76
+
+    5. Grid                                           89
+              Grid-Track Mode                         91
+              Grid Page Sets                          96
+
+    6. Recording                                       99
+            Note Stream                                99
+            Step Note                                 101
+            Controller Map Learn                      106
+
+    7. Midi                                           109
+
+    8. Load / Save                                    113
+            Midi Export/Import                        115
+
+    9. Appendix                                       119
+
+
+
+
+5                 Octopus Reference Manual CE v5.30            5
+

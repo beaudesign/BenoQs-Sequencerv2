@@ -1,0 +1,46 @@
+On-the-Measure Mode
+
+On the Measure mode allows certain actions that previously could only be effected instantaneously
+to now be programmed to occur 'on-the-measure'.
+A measure is 16 steps at x1 speed, or if a page has a Page Length of less than 16 then the Length of
+Measure will be equal to the Page Length.
+
+In Page View with the Track Mode led Green, click the Track Mode button and the led will change
+to Orange indicating that On-the-Measure mode is engaged.
+
+
+On-The-Measure Track Mute Toggle
+To mute/unmute a track press its 'Mute' button in the usual way - the action will take effect at the
+beginning of the next measure.
+The Track Mute led will flash red indicating that the track will toggle 'on-the-measure'. The
+operation can be cancelled at any time before the measure occurs.
+The above operation applies to individual track mutes and to mute patterns using the Main MUT
+button.
+
+On-The-Measure Track Solo Toggle
+To solo a track double-click its Mute button - the action will take effect at the beginning of the next
+measure.
+The Track Mute led will flash green indicating that the track will Solo toggle 'on-the-measure'. The
+operation can be cancelled at any time before the measure occurs.
+To turn off track solo click the Mute button of the track or the main Mut button.
+
+The track can also be Solo'd in the 'legacy' manner by clicking the Solo button when in either Track
+Zoom, or when the track is selected using the Sel button
+
+
+On-The-Measure Note-Stream Record
+Arm a Track for Record then with the sequencer playing, click the transport Record button - the led
+will shine red indicating that the sequencer will commence recording at the start of the next
+measure. Once recording commences the record led will (as usual) flash red.
+If the sequencer is currently recording then click the transport Record button to stop recording at the
+end of the current measure (the record led will again shine red until the record operation ends).
+
+
+Note: On-the-Measure mode is relevant to Page Banks - this allows the Page On-the-Measure
+condition to be saved to memory.
+
+
+
+
+       67                      Octopus Reference Manual CE v5.30                             67
+

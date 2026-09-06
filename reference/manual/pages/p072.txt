@@ -1,0 +1,55 @@
+In that case, while in SCALE mode, press ESC to leave the page forced to the scale, but to exit the
+SCALE mode. You will notice that the SCALE SEL LED will flash Orange, indicating that the
+page is forced to scale. To go back into the scale edit mode, simply press the Orange flashing
+SCALE SEL LED.
+
+The grid scale
+The GRID may be assigned a scale, in the same manner that a scale is assigned to a page, except the
+GRID scale will act globally.
+To operate the GRID scale, switch first to GRID mode. Use the SCALE SEL button and proceed as
+already described in the section describing the PAGE Scale operation.
+
+Exempting pages from the grid scale
+Note that by definition, the GRID scale is overruled by any other scales active in particular pages.
+Therefore, an easy way to exempt a page from the grid scale is to force that page to a chromatic
+scale. This may be particularly useful in the case of percussive material for example.
+
+
+Force to Scale - Quick Guide
+
+Scale SEL Lit Green - No Force to Scale.
+Scale SEL Lit Red (or flashing Orange) - Force to Scale Active.
+
+Press Scale SEL to activate Force to Scale, LED turns Red then either select scale with Outer Circle
+button (Maj, Min etc) or press Select (XIV) button and choose notes.
+
+The Scale base note is shown in Orange, to change the base note press Scale MOD button then
+choose a new base note - press Select (XIV) button again to go back to choosing scale notes.
+
+Pressing Scale CAD will change Track default notes to the defined scale (not a good idea as this
+will change to default note octave also).
+
+Pressing ESC will leave Force to Scale active and Scale SEL LED will flash Orange (notes of scale
+will no longer show).
+
+
+
+
+The Mixer block
+
+Viewing the MIX map
+Double click the ATR button. This brings you to the MIX TARGET
+assignment, where a parameter can be assigned to the MIX encoder group.
+The Mix Target LEDs light all up, indicating the selected target in flashing Orange. Also, the matrix
+is showing in every row the value respective to the corresponding track for the chosen attribute.
+This type of display is called a MIX map, showing the behaviour of the tracks with respect to a
+particular attribute, which can be adjusted using the MIX encoder block.
+As a matter of fact, clicking on any of the MIX target buttons will open a MIX map view, with the
+respective values showing, and ready to edit. We will describe this in the next sections in more
+detail.
+
+
+
+
+       72                      Octopus Reference Manual CE v5.30                            72
+

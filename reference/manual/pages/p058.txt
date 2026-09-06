@@ -1,0 +1,38 @@
+Custom Direction Maps
+
+   DIR #       Description:
+    Step 1   2 3 4 5 6        7   8   9 10 11 12 13 14 15 16 Slice
+  Next %
+Play Step                                                      1
+  Notes:
+
+
+   DIR #       Description:
+    Step 1   2 3 4 5 6        7   8   9 10 11 12 13 14 15 16 Slice
+  Next %
+Play Step                                                      1
+                                                               2
+                                                               3
+                                                               4
+  Notes:
+
+
+   DIR #       Description:
+    Step 1   2 3 4 5 6        7   8   9 10 11 12 13 14 15 16 Slice
+  Next %
+Play Step                                                      1
+                                                               2
+                                                               3
+                                                               4
+                                                               5
+                                                               6
+                                                               7
+                                                               8
+                                                               9
+  Notes:
+
+
+
+
+     58               Octopus Reference Manual CE v5.30              58
+

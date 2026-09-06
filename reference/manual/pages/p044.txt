@@ -1,0 +1,53 @@
+Track LEN and STA factors
+The Length and Start rows show visually the values for the length and start factors of a track. The
+STA and LEN factors are simply multipliers that are applied to the STA and LEN offsets of the
+steps in a track.
+This means, that a high factor value will result in the effect of the STA or LEN offsets being
+amplified, while a low factor value will result in the effect of the step offsets being diminished or
+voided altogether.
+In the middle setting of 8, the effect of the map is unchanged and therefore played "through".
+In the zero setting, the STA and LEN step offsets will be ignored altogether, while in the 16
+position the step offsets will be amplified by a
+total factor of roughly 2.
+As an example, have a track play some default length notes, and simply turn the LEN knob to the
+left. You will hear that the note lengths are decreasing as you go, and quite the opposite will happen
+as you turn the knob to the right.
+For the STA factor, use a track with notes playing of the beat (so you hear the effect). Reducing the
+factor will play the notes closer to the "on the beat" time, effectively quantizing the play, while
+increasing the factor will move the steps further away from the on the beat position (see below).
+On a side note, in order to modify the actual length and start point of
+a track, use the step skip option.
+Note: If a Step STA is advanced (Pull), then the Step will not play if the preceding step is skipped
+and a Track STA of less than 8 will have no effect on this behaviour.
+
+
+
+Track LEN Reference Chart
+
+ Track LEN Step LEN (lengthen)                                             Ticks Mult
+     16     6 12 18 24 48                 96   144   192   192   192   192 192 x2
+     15     5 10 15 21 42                 84   126   168   192   192   192 192
+     14     4 9 13 18 36                  72   108   144   180   192   192 192 x1.5
+     13     3 8 12 16 33                  66   100   132   166   192   192 192
+     12     3 7 11 15 30                  60    90   120   150   180   192 192
+     11     3 7 10 14 28                  57    85   114   142   171   192 192
+     10     3 6 10 13 27                  54    82   108   136   162   188 192
+      9     3 6 9 12 25                   52    76   102   126   152   178 192
+ Step LEN   3 6 9 12 24                   48    72    96   120   144   168 192
+      7     2 5 8 11 22                   46    68    90   112   134   156 180
+      6     2 5 7 10 21                   42    63    84   105   126   148 168
+      5     2 4 6        9    18          36    54    72    90   108   126 144 3/4
+      4     1 3 5        7    15          30    45    60    76    90   104 120
+      3     1 3 4        6    12          24    36    48    60    72    84 96    1/2
+      2     1 1 2        3     6          12    18    24    30    36    42 48    1/4
+      1     1   1  1     1     1          4     4     6     7     9     10 12
+      0     1 1 1        1     1          1     1     1     1     1     1    1
+ Track LEN Step LEN (shorten)                                              Ticks
+
+Track LEN 8 Neutral (shown in blue)
+
+
+
+
+       44                      Octopus Reference Manual CE v5.30                            44
+

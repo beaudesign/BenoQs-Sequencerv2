@@ -1,0 +1,53 @@
+6.       Recording
+
+
+Recording Index:
+              Recording:                                Recording:
+     Anti-Echo of MIDI when Recording   87     Multitrack recording               88
+     Arm Step Note recording            88     Note Stream recording              87
+     Chained page recording             90     Quantized recording                89
+     Chained track recording            90     Record rehearsing                  88
+     Chord recording                    89     Recording Chords                   88
+     Disable Recording                  88     Recording re-take/overdub          90
+     External Force to Scale            91     Stacked note recording             89
+     External Scale Edit                92     Step note recording                88
+     MIDI Control Map learning          91     Step tapping                       89
+     MIDI Merge                         91     Track live transposition           89
+     MIDI Controller Stream Recording   90
+
+
+
+Note stream recording
+
+Octopus is capable of recording incoming MIDI note, MIDI controller, pitch bend and channel
+pressure data onto its tracks, at (sequencer) runtime.
+Note recording is polyphonic, meaning that chords may be recorded in from an external keyboard
+onto a track. Not only that, but you may also record on more than one track at a time.
+Moreover, Octopus is capable of forcing MIDI input into its scale without actually recording the
+output, and a few tricks more.
+
+Arm recording
+To record a track, got to PAGE mode, press the REC key to activate the Recording mode, and then
+simply hold a Track SEL button while pressing the REC key again, to arm that track for recording.
+Press Play to start the sequencer if it was not playing, and you are ready to start MIDI recording.
+Use any external MIDI controller to record MIDI data on the selected track. Note that with one
+track armed for recording the MIDI input is automatically re-channelled to the channel of the armed
+track.
+While in stop mode this provides for a comfortable way to pre-listen to what the tracks will output,
+or to trigger their connected MIDI destination. This is especially convenient as all data, including
+notes, pressure, pitch bend and CCs are being routed through.
+You can browse through the tracks in a page by selecting them one by one and have the record
+selection state move along. Together with the noted re-channelling behaviour you can use a single
+MIDI keyboard to play and hear all tracks, in both Stop and Record mode.
+
+
+Anti-Echo - Disable MIDI Note and MCC Playback During Recording
+In Page (or Grid) mode, to disable MIDI Note & MCC playback whilst Recording press the MAP
+button. If MIDI Note & MCC playback whilst Recording is disabled the MAP led will flash red.
+This condition is global to all pages and is saved with the machine state.
+
+
+
+
+        87                       Octopus Reference Manual CE v5.30                        87
+

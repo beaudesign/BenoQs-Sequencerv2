@@ -1,0 +1,54 @@
+8.       Load/Save
+
+
+Load/Save Index:
+               Load/Save:                                  Load/Save:
+     All pages & machine state export     97     Loading individual pages            95
+     Bank exports                         97     Page export                         96
+     Data transmission rate               97     Page import                         96
+     Export content mode                  96     Saving individual pages             95
+     Grid exports                         97     Saving the machine state            95
+
+
+
+
+Saving the instrument state
+
+Octopus can save the full instrument state for later recall - all settings are stored to FLASH memory
+and automatically recalled upon power-on.
+Note that only one state may be saved to FLASH, replacing any previously saved machine state.
+Also note that in order to perform this operation the sequencer has to be stopped.
+
+WARNING:
+Please make sure that Octopus is not turned of or reset during the save operation!
+
+
+Saving the machine state
+To perform a save of the machine state go to GRID Mode and press and hold the GRID button.
+While you hold down the GRID key, the Program LED will start to flash.
+Pressing the Program key will start the save operation. Expect the save operation to take about 5-10
+seconds.
+
+Saving individual pages
+Occasionally it may be useful to save individual pages only, as opposed to
+the full instrument state. For this to work the machine has to be stopped, and you have to be in
+GRID mode.
+While in GRID mode, make sure that the EDIT LED is lit up flashing Orange, otherwise press it
+once to make it light flashing Orange.
+Now press and hold the matrix button corresponding to the page you are about to save. This will
+reveal a Red flashing Program button (among others).
+While holding the matrix button pressed, click on the Red flashing Program button to save the
+respective page to memory.
+
+Loading individual pages from flash
+To recall an individual page from flash memory, go to PAGE mode of the page you want to recall
+from flash first.
+Now press and hold the PAGE button, and press the Green flashing ESC button. Note that this
+operation may be performed at playtime, i.e. the
+sequencer does not have to be stopped for this operation.
+
+
+
+
+         95                        Octopus Reference Manual CE v5.30                       95
+

@@ -1,0 +1,54 @@
+Attributes
+If the ATR type is selected by a double click, the SEL buttons will light up Green, indicating that
+any of them may be selected. The already selected attribute will flash Orange.
+The matrix will show the value relevant for the respective rows.
+All rotary knobs act upon the same attribute on their respective track. For example if PIT (pitch) is
+selected, every rotary will change the pitch of its assigned row.
+
+Preset MIDI CC's
+The MIDI CC's behave the same as the ATR targets. The CC's used are: VOL (7), PAN (10), MOD
+(1), EXP (11).
+
+MIDI Control Maps
+Using a MIDI Controller Map, any MIX knob can be assigned an individual CC on a chosen MIDI
+channel.
+As an example, double click on MAP 0 to select MIDI Controller Map 0. You will notice that the
+AMT button will flash Orange indicated that AMT is selected. The matrix shows the per-track
+AMT values, which is really the CC amount set on each of the tracks.
+Press the MCC button. Here the Matrix shows the actual Midi Continuous Controller assigned to
+each of the tracks.
+You can modify the CC for every individual track using the MIX knobs. Remember that four Green
+LEDs in positions 13, 14, 15, and 16 indicate that no CC has been assigned.
+Now press the MCH button. This view allows you to assign the MIDI channel on which the CC
+signal is sent.
+Note that this is not the MIDI channel of the Track - the track's MIDI channel is an entirely
+independent parameter.
+Finally, the settings that you have just made are stored as a MIDI Controller Map. There is a total of
+6 MIDI Controller Maps, and they are global. This is useful because you can have MIDI map
+operate beyond the context of a page, as they fulfil a global function.
+
+Playing MIDI Controller Maps
+MIDI Controller Maps may be edited and operated directly from both the GRID and the PAGE
+level.
+Select one of the MIDI Controller Maps, 0-5. You will see that the LED for the corresponding map
+is lit Orange to show that it is currently active.
+
+Timeout
+The MIXER block may be used at any time during PAGE mode operation. In order to make the
+effects visible, once you operate any of the MIX encoders in PAGE mode you will see its value
+displayed briefly in the corresponding matrix row.
+The value will disappear shortly after you have performed the last click, to clear the view for the
+regular contents of the track.
+
+Midi Control Map Values
+The AMT values are effectively the 'start point', turning the encoder will send out the value + or -
+the Map AMT 'start-point' value.
+
+Note: Once a Midi Control Map has been changed during a performance the only way to reset to
+the stored map values is via a 'hard reset'.
+
+
+
+
+       74                      Octopus Reference Manual CE v5.30                            74
+

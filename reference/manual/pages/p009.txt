@@ -1,0 +1,53 @@
+1.     Community Edition version 5.30
+This operating system for the Octopus sequencer is essentially a follow-on from Community
+Edition v5.00. It contains all the features of that operating system, fixes several bugs and also adds
+many new features as noted below.
+
+New Features in v5.30
+
+Toggle Step Skip in Step Zoom                                - Page 14
+
+Step Shift Performance feature                               - Page 15 & 69
+
+Alternate Edit Option for Step LEN Multiplier                - Page 16
+
+Step Selection enhancements                                  - Page 17
+
+Step Swap Performance feature                                - Page 19
+
+Identify the Hyperstep associated with a Hyped-Track         - Page 32
+
+Step Event Track Toggles                                     - Page 38
+
+Alternate Edit Option for Track Multiplier                   - Page 49
+
+Paused Track Reset                                           - Page 50
+
+Set Track Pause                                              - Page 50
+
+Track Pause/Play Alignment                                   - Page 50
+
+Effector Listener Step Mask                                  - Page 63
+
+On-The-Measure operations for Mute, Solo & Record            - Page 67
+
+Rotate Position of Step Skips                                - Page 73
+
+Keyboard Transpose                                           - Page 78
+
+Enhanced Grid-Track Mode                                     - Page 81
+
+Track-Across-Cluster operations for Mute and Solo            - Page 82
+
+New Cluster operations (Move, Copy, Paste & Clear)           - Page 82
+
+Page Set as Midi Controller                                  - Page 85
+
+Midi Anti-Echo when Note Stream Recording                    - Page 87
+
+Device Mode refinements                                      - Page 99
+
+
+
+        9                       Octopus Reference Manual CE v5.30                           9
+

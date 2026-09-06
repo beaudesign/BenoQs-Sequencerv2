@@ -1,0 +1,68 @@
+Octopus - tutorial series
+
+
+                            If you know you’re going to truncate the sequence, you don’t have to
+                            program stuﬀ in the steps you’ll be muting.
+                            If this is part of a larger chain of tracks, you can always mute steps in
+                            the other parts of the chain to get back to a multiple of 16.
+                            Since you are modifying the directions steps play in, you cannot cre-
+                            ate a sequence of less than 16 triggers using the direction editor. You
+                            will need to use mute/skip steps to reduce the number played on each
+                            slice.
+
+
+                            Double-play variation
+                                  • Go back into direction editing for direction 6 on track 9.
+                                  • Edit slices 5 and 9 and toggle oﬀ the red LEDs in rows 1 and 2.
+                                  • Watch as the chase-light jumps around whenever it hits steps 5
+                                   and 9. Since no LEDs are on in any rows for steps 5 and 9, Oc-
+                                   topus picks a random step to go to next.
+
+
+                            Playing tracks inside out
+                            The next example is more involved. The goal is to play the track
+                            from inside out.
+                                  • Stop the sequencer
+                                  • Clear the extra toggles from positions 1, 5, 9, and 13.
+                                  • Press button 1 of row 0. The plan is to have the sequence start
+                                    from the middle (position 8) and alternate sides moving towards
+                                    the end positions (1 and 16). After reaching the ends, it will re-
+                                    verse and go back to the middle. Remember - row 0 is the index
+                                    for which positions(s) to trigger at each slice of time.
+                                  • So, for slice 1, toggle position 8 in row 1 and position 9 in row 2.
+                                    This means when the sequence starts, it will play step 8 then
+                                    step 9.
+                                  • Press button 2 in row 0. Toggle position 7 in row 1 and position
+                                    10 in row 2. Continuing:
+                            	
+     	
+   Button 3, position 6 in row 1, 11 in row 2;
+                            	
+     	
+   Button 4, position 5 in row 1, 12 in row 2;
+                            	
+     	
+   Button 5, position 4 in row 1, 13 in row 2;
+                            	
+     	
+   Button 6, position 3 in row 1, 14 in row 2;
+                            	
+     	
+   Button 7, position 2 in row 1, 15 in row 2;
+                            	
+     	
+   Button 8, position 1 in row 1, 16 in row 2;
+                            	
+     	
+   Button 9, position 1 in row 1, 16 in row 2;
+                            	
+     	
+   Button 10, position 2 in row 1, 15 in row 2;
+                            	
+     	
+   Button 11, position 3 in row 1, 14 in row 2;
+
+
+                                                  2 of 4
+                                          © genoQs Machines, 2007
+

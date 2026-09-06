@@ -1,0 +1,54 @@
+Step Shift
+When zoomed into a Step, turning the DIR encoder will either advance all steps to the right of the
+step flashing in row 0 one complete step, or will move all steps to the right of the flashing step one
+complete step closer to the flashing step (provided the first step to the right of the flashing step is
+toggled off and not a Skip Step or Step Event).
+Any steps that are advanced beyond Step 16 will be lost unless an 'over-run track' is configured, see
+Page Edit Preview mode for further information.
+Note: The position of a hyper-step does not change, shifted steps 'hop-over' a hyperstep.
+
+
+Exiting STEP mode
+If you want to exit the STEP mode, you may press ESC anytime to find yourself back in the PAGE
+mode. Another option is to go back to the PAGE mode by pressing the PAGE mode button in the
+MODE selector section of the front panel.
+
+
+Step attributes
+Going over the front panel from left to right, you see all LEDs lit up in the SEL column.
+
+Step velocity (VEL)
+The contents of the VEL row may look familiar - a number is represented here, with the Red LEDs
+counting the tens and the Green LED pointing to the ones value. This value may be changed in a
+more conventional fashion by simply turning the VEL knob.
+The step velocity offset may be a positive or negative number. Negative offsets are shown in the
+same manner as positive offsets, but additionally the 3 LEDs in columns 14-16 are lit Green.
+Please note that the total velocity of a step is determined by adding the individual step velocity
+offset to the base Track velocity. This allows a wide range of velocities in a track while still giving
+you one place (the track velocity) to adjust them all up or down and still maintain the relationships
+set for each step.
+
+Step pitch (PIT)
+As you may expect, the PIT row shows the pitch value for the step.
+The number displayed is really an offset that the step applies to the track pitch. The combined pitch
+of the track and the step is shown in a musical fashion in the inner circle.
+Turning the PIT knob will now cause the obvious - it will change the pitch for the step, which you
+will hear once the step is played.
+Just as for velocity, step pitch may be a positive or negative offset relative to the base track pitch.
+Negative offsets are shown in the same manner as positive offsets, but additionally the 3 LEDs in
+columns 14-16 are lit Green.
+
+Step length (LEN)
+The same principles apply to all the other step attribute values in the page, except for the display of
+their values.
+Change the length on the step by turning its LEN knob. As you increment the value (turning the
+knob clock-wise) you will see a Green dot advancing up to 11 after which the Red value will be
+incremented.
+Each Green increment corresponds to 1/192 of a note and each Red value corresponds to 12/192 =
+1/16 of a note.
+
+
+
+
+       15                      Octopus Reference Manual CE v5.30                             15
+

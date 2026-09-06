@@ -1,0 +1,52 @@
+Now click the SEL button and its led will change to flashing Orange - this means we are now
+looking at the octave above the root note (octave 2) and any notes that were entered in octave 1 will
+now be shown with Red leds (the chord root note will be flashing Red).
+The Red led(s) simply means that the note exists in a different octave to the one you are currently
+viewing.
+Again steps can be toggled on and off, and again when turned on they will be Orange unless the
+note already exists in octave 1 in which case the note led will turn Green - signifying that the note is
+on in this octave and also another octave.
+Now click the CAD button and its led will change to flashing Orange - this means we are now
+looking at the next octave up (octave 3), which works in similar matter to the previous octaves.
+The led of a note that exists in all three octave will Shine_Green and if the root note exists in all
+three octave will Shine_Red.
+
+See chart below for Octave View mode note signalling:-
+
+Chord Octave View Note Input
+When viewing the Chord Octave UI the inner circle displays the 12 note status within chord that is
+relative to the selected octave.
+
+UI Location                    State Description
+Note LED ORANGE                Note IS set ONLY in currently viewed octave
+Note LED GREEN                 Note IS set in currently viewed octave AND also in
+                               another octave
+Note LED RED                   Note NOT set in current octave, but IS set in one or
+                               more of the another octave(s)
+Note LED ORANGE                Chord root note
+FLASH
+Note LED                      Note IS set in ALL 3 Octaves (full stack)
+SHINE_GREEN
+Note LED SHINE_RED            Note IS set in ALL 3 Octaves (root note full stack)
+Note: Although chord notes may be turned on or off in either chord mode if the root note is 'stacked'
+then they can only be turned off in Stack View mode.
+
+Adding Octave spaced notes
+If there are no notes at a pitch in any of the available octaves then double-clicking the note will
+turn-on that pitch in all three octaves.
+
+Removing Octave spaced notes
+From any 'octave view', if there are notes at a pitch in other octaves (i.e. led, Red, Green or
+shine_Green) then, double-clicking the note will turn that note on in the current octave, and any
+note(s) at that pitch off in the other octaves. Removing notes at the octaves above the root note is
+accomplished by turning them off in their respective octaves.
+
+
+Note: Although chord notes may be turned on or off in either chord mode if the root note is 'stacked'
+then notes at the other octaves can only be turned off in Octave View mode.
+
+
+
+
+       21                      Octopus Reference Manual CE v5.30                             21
+

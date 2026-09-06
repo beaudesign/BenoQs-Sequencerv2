@@ -1,0 +1,41 @@
+Octopus - tutorial series
+
+
+                            Brownian motion
+                            If certainty_next is not 100 or 0, Octopus will decide whether to play
+                            the next step or the previous step based on the percentage set for
+                            that step.
+                            If certainty_next is 90, then approximately 90% of the time Octopus
+                            will play the next step and 10% of the time it will play the previous
+                            step. This is how the Brownian motion preset direction is created.
+
+
+                            Track single trigger
+                            The next few hints and tricks also involve certainty_next.
+                            If you put a step with a certainty_next set to 0 in the middle of other
+                            steps with certainty_next set to values above 0, the track will get
+                            stuck at that point. This may be what you want sometimes.
+                            For example, using direction 7 with all slices set to 100% certainty_n-
+                            ext, change slice 9 to have certainty_next set to 0.
+                            Exit to Play mode and start the sequence running. As soon as step 8
+                            is completed, it will play step 9. Step 9 says to always go back to the
+                            previous step (step 8). So after step 9, it plays step 8, then 9, then 8,
+                            and repeats this forever. This leads to a couple of interesting ideas.
+
+
+                            Inﬁnite loop and back
+                            You can create a random sequence with just 2 slices.
+                            Set slice 1 to be random (no rows toggled on). On slice 2 toggle posi-
+                            tion 1 in row 1 on and set certainty_next to 0%. Now when the se-
+                            quence plays, it will keep selecting random positions.
+                            You can use either the inﬁnite loop from above or the randomization
+                            in a live setting by muting the ‘special’ steps and then un-muting
+                            them when you need the special eﬀect.
+                            If you get tired of the inﬁnite loop, you can just mute the steps again.
+
+
+
+
+                                                4 of 4
+                                        © genoQs Machines, 2007
+

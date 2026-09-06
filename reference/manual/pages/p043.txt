@@ -1,0 +1,54 @@
+Track remixes (RMX)
+The track remix is used to generate variations of a track without altering it too much. It does have
+some random elements which are influenced by the value indicated in AMT.
+Below is an overview of what the RMX function does:
+
+    Influenced Map*           Random Shift Map         Random Step Offset
+          VEL                         +                          +
+           PIT                        +
+          LEN                         +                          +
+          STA                         +                          +
+           POS                        +
+*see section on track attribute maps for details on what this means.
+
+Track Copy and Paste
+Copying and pasting tracks has already been described earlier.
+A track is selected and copied into an internal clipboard and from there pasted into the chosen
+destination.
+
+Note: You have not copied the full track data, but only a reference to it. This means that at the time
+of the paste operation you will get the most recent data of the just copied track and not the data at
+the time of the copy operation. Therefore, any changes between the copy and the paste operation
+are permanent and not recoverable.
+
+
+Track attributes
+
+Track pitch (PIT) and velocity (VEL)
+Pitch and Velocity values are displayed in the same manner we have seen in STEP mode.
+The meaning of the values is interesting - they represent the base value and are to be seen in the
+context of the values pertaining to the steps in the particular track.
+
+Under the hood
+When playing, the values of the steps in that track are added to the base track pitch or velocity. As a
+consequence, the baseline for a track is set by the track pitch and velocity. Step values are just
+offsets to this base. Octopus uses the convention that middle C (MIDI note #60 decimal) maps to
+C5. The default Track PIT values for Tracks 9 - 0 are as follows:
+C3, D3, E3, G3, A3, C5, D5, E5, G5, and A5
+
+
+Quick Track Attribute edit via matrix keys
+When in Track zoom it is possible to edit Track attribute value with either their respective edit knob
+or via entering values with the matrix keys as follows:-
+
+               Step 13         Step 14             Step 15                Step 16
+ Attribute             ----------------- Double-click -----------------------
+ Velocity      Default           Zero
+ Pitch         Default     Middle C (C5)       Octave - (8vb)         Octave + (8va)
+ Amount        Default           Zero               Clear
+
+
+
+
+       43                      Octopus Reference Manual CE v5.30                             43
+

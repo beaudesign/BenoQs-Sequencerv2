@@ -1,0 +1,35 @@
+To return from TRACK mode to GRID-TRACK mode simply press the GRID and TRACK mode
+buttons at the same time - this proved to work well.
+
+Grid-Track live mode
+The GRID-TRACK live mode is much similar to the live mode in Grid mode. It is activated by
+pressing the EDIT button LED such that it is lit Green.
+When in live mode, the matrix buttons will act as toggles for the respective tracks. This provides
+more immediate and intuitive handling of material in live situations.
+
+Toggle Page Mute Pattern in GridTrack Live & Edit Modes
+If a Page has a stored Mute Pattern then step 16 of the GridTrack row will be lit either Red or Green
+depending on whether the Track Mutes are active or not. Clicking the step 16 button will toggle the
+Mute Pattern in the same way as clicking the Main Mut button when in Page View.
+
+Global Toggle of Mute Pattern(s) in GridTrack Live & Edit Modes
+Clicking the Main Mut button in GridTrack Mode will Toggle the Mute Pattern of all concurrent
+Pages. The action will occur either instantaneously, or On-The-Measure, depending the respective
+Pages' OTM status.
+
+Solo / Un-Solo Tracks in GridTrack Live Mode
+In addition to Track Mute toggles, a Track may be Solo'd by double-clicking the relevant Track
+button. Single click to Un-Solo. The Track led will be shown Orange when a Track is Solo'd, or if
+the Page is in OTM Mode the Track led will flash Orange when armed for Solo. As in the legacy
+OS, double-clicking a Track button in GridTrack Edit mode will enter Track Zoom.
+
+
+Leaving Grid-Track mode
+In order to exit the GRID-TRACK mode, press either the GRID or the TRACK button. Both of
+them will simply take you back to GRID mode.
+
+
+
+
+       81                     Octopus Reference Manual CE v5.30                            81
+

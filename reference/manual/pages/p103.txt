@@ -1,0 +1,47 @@
+III.           Octopus Grid Usage Chart
+
+
+
+                           Start Date:
+                      Sysex Filename:
+             Previous Sysex Filename:
+
+
+ Bank         ---------------------------------------- Page -----------------------------------
+             1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+ 9 (I)
+
+
+ 8 (H)
+
+
+ 7 (G)
+
+
+ 6 (F)
+
+
+ 5 (E)
+
+
+ 4 (D)
+
+
+ 3 (C)
+
+
+ 2 (B)
+
+
+ 1 (A)
+
+
+   0
+
+Notes:
+
+
+
+
+       103                    Octopus Reference Manual CE v5.30                         103
+

@@ -1,0 +1,37 @@
+Editor ATR state
+
+In Page mode, an ATR may be temporarily assigned to the EDIT knob group.
+
+Engage
+This is done by holding the selector of the respective attribute to select the attribute, and at the same
+time pressing the EDIT master button to make the actual assignment. The indicator for the Knob
+group will light Orange, indicating activity.
+In this mode the EDIT knobs will behave just like another group of MIX knobs for the just selected
+attribute.
+
+Disengage
+Pressing the EDIT master button once will cancel the assignment and return to the legacy mode of
+operation.
+
+
+Editor MCC state
+
+The EDIT button has one more state - that is the MCC send state.
+This is used to make the editor knobs send MCC data.
+
+Sending MCC data
+The MCC amounts sent will be on the MIDI channel and controller chosen in their corresponding
+tracks. See section on Track Attributes if you don't remember the details for setting up Track MIDI
+CCs.
+
+Engage
+To activate the MCC state, double-click on the EDIT button turning it Red.
+
+Disengage
+To deactivate the MCC state, just press the EDIT button once.
+
+
+
+
+       70                       Octopus Reference Manual CE v5.30                             70
+

@@ -1,0 +1,55 @@
+Hypersteps
+
+Let's start with a short background, to help explain the idea of hypersteps. Normally steps trigger
+notes in the following sense: they provide the start, the velocity, and the length (playtime) of the
+played note.
+
+Now imagine that the played note is not "only" a note but rather a
+note sequence. And imagine the step is now providing the start, velocity and playtime of the note
+sequence, such that the note sequence always plays to its end, always time-adjusted to the given
+playtime.
+The final bit of the picture here is that our presumed note sequence may be a track which is
+controlled by a step in the manner described.
+We call such a step a hyper step. In short, hypersteps are steps that do not trigger notes, but trigger
+tracks in their respective page.
+Therefore, if a track is linked to a hyperstep, once the hyperstep is played, the track is being
+triggered to play at a speed corresponding to the step absolute length (in 1/192), and taking over the
+hyperstep's velocity and pitch offset.
+
+On making a step a hyperstep is LEN is automatically set to 192/192 and on destroying a hyperstep
+the step LEN is reset to the default value of 12/192.
+Scaling the Track LEN of the track containing the hyperstep will scale the hyped-track tick length,
+speeding up the hyped-track. The maximum length of a hyped-track is 192 ticks, however Step
+LEN within the hyped-track can be increased by 'skipping' steps. - see Hyperstep LEN Reference
+below:
+
+By muting steps in the hyperstep track the number of steps played in the hyped-track is also
+reduced.
+
+Hyperstep PIT and VEL
+In addition to a ‘Hypedtrack’ being controlled by the Hyperstep LEN, the Hyperstep PIT and VEL
+also control the hypedtrack pitch and velocity. Therefore, the hypedtrack will assume both the pitch
+and the velocity values of the hyperstep.
+Changes to the hyperstep PIT and VEL will influence the hypedtrack in real-time – hence changing
+the hyperstep PIT or VEL offsets will influence the hypedtrack steps at the position of the chase
+light !
+
+
+Engaging hypersteps
+To use hypersteps, go to PAGE mode, hold a track selector down, and at the same time designate
+the hyperstep in the matrix, in a row other than the track's (by pressing it down as well). You will
+see that both the track selector and the hyperstep start flashing between green & orange.
+There can be multiple hypersteps in one track (pointing to different hyped-
+tracks) but a hyped-track can only have one associated hyperstep.
+Hypersteps cannot be 'nested', i.e. it is not possible to have a hyperstep
+within a hyped-track.
+
+Destroying hypersteps
+To disengage or destroy the hyperstep of a hyped track, hold the respective track selector of the
+hyped track pressed and then press any step button in the matrix row of the hyped track. The
+association between the step and the track will be removed.
+
+
+
+       31                      Octopus Reference Manual CE v5.30                             31
+

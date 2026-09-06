@@ -1,0 +1,49 @@
+Playing direction maps
+So now, how do you work with all of this? The answer is "Direction Maps". From Track Mode (of
+any track), select for that track the direction you would like to program.
+Make sure to choose a direction between 6 and 16, since directions 1-5 are read-only and cannot be
+modified.
+After choosing the direction, double-click on the DIR attribute button to enter the direction map. In
+this view, you will see in row 0 a Orange light, reminding you of the index of the position you are
+just about to edit.
+Press some of the keys in row 0 and you will see a Green flashing light following your presses - the
+Green flashing light is showing you the index of the slice that you are just editing. When the
+flashing Green and the Orange light overlap, you will get a flashing Orange light.
+
+Editing trigger sets
+The area above row 0 (i.e. rows 1-9), will show none, one, or more Red lights, which specify the
+triggers contained in the selected slice.
+You may select triggers at will by simply toggling them in the Matrix, but there can be only one per
+row: the trigger sequence is naturally given by the rows you select them in. Therefore, a row will
+only hold one trigger.
+Rows holding no trigger will simply be ignored at runtime. But remember, if all rows are empty,
+you will get a random* trigger to play in that slice before the next slice is called.
+
+Editing Certainty_next
+While editing, you may jump between trigger sets using the key of row 0 as you like. Last thing to
+mention is the certainty_next probability.
+This is simply the number shown in the numeric field of the circle, in the top left quadrant. The
+number is edited as expected, using the top right rotary encoder, in addition to the buttons in the
+numeric quadrant.
+Here, some key combinations may be of interest: double clicking 5 will produce a 50, clicking
+(simple) 100 will produce 100, and double clicking 100 will produce a 0.
+For the rest, it is left as an exercise to the reader to look at how the five default directions are
+programmed, in order to get the final clarification or confirmation on having understood how the
+Octopus direction model works.
+Please also refer to the dedicated tutorial in the back section of this manual or available as a
+separate document on our web site.
+
+Remarks
+The direction map is no different to the other maps we have seen so far: press ESC at any time to
+return to the page mode, but be aware that any change you make to the direction will be permanent,
+like any other change on the Octopus. However, unlike with regular MIDI data, there is no "PLAY"
+capability for the directions. You may however use CLR to restore the forward direction in slots 6-
+16. In fact, remember that directions 1-5 are read-only and not editable.
+Finally, when you need an inspiration boost, go into a direction map
+and start using RND. That one may get you going.
+
+
+
+
+       57                      Octopus Reference Manual CE v5.30                           57
+

@@ -1,0 +1,27 @@
+Lower than neutral values have a reducing effect, higher than neutral values have an amplifying
+effect.
+The neutral value is displayed as a Orange 1, reducing values shown using a Green bar, and
+amplifying values shown using a Red bar.
+
+Working with map factors
+In order to view the scaling factor of a particular map, go to track mode, and press and hold the
+corresponding attribute selector. The numeric quadrant in the outer circle will display the scaling
+factor.
+An Orange dot at the 1 position indicates the middle setting. Turning the main rotary will either
+render a Red bar up, or a Green bar down, depending on the turn direction.
+Note that the map factors may also be accessed directly from the MAP mode. Use the main rotary
+encoder to modify the respective value.
+
+In Use
+The Scaling Factor will only effect 'offsets', therefore steps that are not offset from the Track
+attributes will not be changed - with the exception of DIR, POS and MCH.
+
+In Use with Step Events
+Step Events are changes to the Scaling Factor and again the scaling factor changes will only effect
+'offsets'.
+
+
+
+
+       54                      Octopus Reference Manual CE v5.30                              54
+

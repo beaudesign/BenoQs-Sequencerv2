@@ -1,0 +1,47 @@
+What you should notice is that the changes produced by the events will be bound between the base
+value of the track for that attribute and the sum of the base and the interval size.
+
+Event execution
+Another detail that may be of interest is that events will always execute exactly on the beat and not
+be influenced by the step's STA value to be pulled or pushed against the time line.
+
+Step event offset reset
+Finally, a step AMT of 0 (zero) will discard the offset that was produced by a step event.
+
+AMT events
+You may have noticed that while the AMT value of a step determines the effect an event has on its
+respective attribute, the AMT map factor may be modified by events as well.
+By creating AMT events, you are effectively able to have dynamic changes in the actual amount of
+change that is being applied to an attribute map factor, so we will be seeing changes to the change
+rate!
+This is a powerful instrument to create evolving and to a large degree unpredictable sequences.
+
+
+Maximum             Track Attribute Map factor Scaling shown in Green for compress
+Event Range                               and Red for expand
+   16 (1)       0   0   0   0   0    0   0   0   0    0   0    0   0 0 0 0 0
+   15 (2)       0   0   0   0   0    0   0   0   0    0   0    0   0 0 0 0 0
+   14 (3)       0   0   0   0   0    0   0   0   0    0   0    0   0 0 0 0 0
+   13 (4)       0   0   0   0   0    0   0   0   1    1   1    1   1 1 1 2 2
+   12 (5)       0   0   0   0   0    1   1   1   1    2   2    2   2 3 3 3 3
+   11 (6)       0   0   0   1   1    1   2   2   2    3   3    3   4 4 5 5 5
+   10 (7)       0   0   1   1   2    2   3   3   4    4   5    5   6 6 7 7 8
+    9 (8)       0   0   1   2   3    4   5   5   6    7   8    9   10 10 11 12 13
+8 - Neutral     0 1 2 3 4 5 6 7 8 9 10 11 12 13 14                              15 16
+                  Numbers in Blue are the actual Step Attribute Offset
+  7 (2) A       0 1 2 3 4 6 7 8 9 10 12 13 14 15 17                             18   19
+  6 (3) B       0 1 2 4 5 7 8 10 11 12 14 15 17 18 20                           21   23
+  5 (4) C       0 1 3 5 6 8 10 11 13 15 17 18 20 22 23                          25   27
+  4 (5) D       0 1 3 5 7 9 11 13 15 17 19 21 23 25 27                          29   31
+  3 (6) E       0 2 4 6 8 11 13 15 17 20 22 24 26 29 31                         33   35
+  2 (7).....    0 2 5 7 10 12 15 17 20 23 25 28 30 33 35                        38   40
+  1 (8) F       0 3 6 9 12 16 19 22 25 29 32 35 38 42 45                        48   51
+  0 (9).....    0 4 8 12 16 20 24 28 32 36 40 44 48 52 56                       60   64
+                              The maximum Event Range is 17,
+               however it is shown 0…16 as represented by the numeric circle
+
+
+
+
+       35                       Octopus Reference Manual CE v5.30                            35
+

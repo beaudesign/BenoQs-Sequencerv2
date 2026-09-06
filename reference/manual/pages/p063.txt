@@ -1,0 +1,51 @@
+**Feeder at x1 with 3 tick time delay and Listener at x4 Track Speed
+                                      Feeder Measure 1                 ( X = Skip Step )
+       Track Speed          Ticks 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+Chain x4                      3       X X X X X X X X X X X X X X X
+Feeder x1 Feeder offset 12
+Listener x4 Influence         3
+On Measure 1, the head track of the Feeder Track Chain introduces a '3 tick' time delay to the
+Feeder Track.
+The Feeder attribute offset is applied to the Listener on Step 2 onward….
+At x4 Track Speed the Listener Step has a length of 3 ticks, however, only 3 Listener Steps are
+influenced by each Feeder step as there is effectively a 'reset' on the global step (x1).
+
+                                      Feeder Measure 2                 ( X = Skip Step )
+       Track Speed          Ticks 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+Chain x4                      3       X X X X X X X X X X X X X X X
+Feeder x1 Feeder offset 12
+Listener x4 Influence         3
+On Measure 2, the head track of the Feeder Track Chain introduces an additional 3 tick time delay
+to the Feeder Track.
+The Feeder attribute offset is applied to the Listener after 6 ticks (3+3), on Step 3 onward….
+
+                                     Feeder Measure 3 ( X = Skip Step )
+       Track Speed         Ticks 1   2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+Chain x4                      3      X X X X X X X X X X X X X X X
+Feeder x1 Feeder offset 12
+Listener x4 Influence         3
+On Measure 3, the head track of the Feeder Track Chain introduces an additional 3 tick time delay
+to the Feeder Track.
+The Feeder attribute offset is applied to the Listener after 9 ticks (3+3+3), on Step 4 only.
+
+                                      Feeder Measure 4              ( X = Skip Step )
+       Track Speed          Ticks 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+Chain x4                      3       X X X X X X X X X X X X X X X
+Feeder x1 Feeder offset 12
+Listener x4 Influence         3
+On Measure 4, the head track of the Feeder Track Chain again introduces an additional 3 tick time
+delay to the Feeder Track.
+The Feeder offset Track is now 12 ticks, or a global (x1) step delayed, therefore, the Listener Track
+will have all 4 steps influenced by the feeder… and so on.
+
+
+Effector Listener Step Mask
+
+If a Listener (or Listening/Feeder) step has a Step AMT attribute value of -127 then that Listener
+step will not be influenced by the Feeder.
+
+
+
+
+       63                     Octopus Reference Manual CE v5.30                            63
+

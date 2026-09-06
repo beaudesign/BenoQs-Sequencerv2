@@ -1,28 +1,31 @@
 # Reference material — status
 
-This repo currently has **no reference photography** and **no copy of the
-Octopus CE OS v5.30 reference manual**.
+## Manual: present, page-indexed
 
-Both are required before real work can start in two roles:
+`reference/manual/CE-v5.30-reference-manual.pdf` (the real genoQs Octopus CE OS
+v5.30 Reference Manual, 124pp, Stuttgart 2009) is in the repo, split into
+per-page plain text at `reference/manual/pages/`, and topic-indexed at
+`reference/manual/INDEX.md`. `just manual <topic>` greps the index and returns
+the matched pages — see that file's header for the exact convention and its
+page-numbering note (there's a 2-page offset between the PDF's own page count
+and the manual's printed footer numbers; already accounted for).
 
-- **Panelwright** needs calibrated plates (`reference/plates/`) to build
-  `contracts/panel.truth.json` per
-  [`docs/01-panel-truth.md`](../docs/01-panel-truth.md). Without them there is
-  no measured geometry, and N1 ("the panel is measured, not drawn") cannot be
-  satisfied — inventing coordinates would violate the non-negotiable it exists
-  to enforce.
-- **Metronome** needs the manual (`reference/manual/`, page-indexed) to cite
-  every behavioral constant per
-  [`docs/03-sequencer-core.md`](../docs/03-sequencer-core.md) §1. Without it
-  there is no source of truth to write conformance fixtures against, and
-  `verify:conformance`'s citation lint has nothing to check against.
+Metronome can now cite real behavioral constants per
+[`docs/03-sequencer-core.md`](../docs/03-sequencer-core.md) §1 instead of
+porting guesses from the archived v1 implementations. See
+`tests/conformance/AMBIGUITIES.md` for what's been confirmed, what's newly
+corrected (several archived-v1-derived guesses turned out to be outright wrong,
+not just unconfirmed), and what still needs a follow-up read (a handful of large
+non-linear lookup tables that are confirmed to exist but not yet transcribed to
+full precision).
 
-This is a genuine open blocker, tracked in `journal/STATE.md`, not a
-placeholder to fill with invented numbers or guessed constants.
+## Reference photography: one plate, topology-check only
 
-When plates and the manual arrive:
-- Plates go in `reference/plates/`, calibrated, with a note per plate on what
-  it's good for (per `docs/08-agent-operating-model.md` §8, the note is the
-  interface — nobody should need to load the image itself into context).
-- The manual goes in `reference/manual/`, split and page-indexed, so
-  `just manual <topic>` can grep it and return only the relevant pages.
+`reference/plates/web-frontal-01.jpg` — a single uncalibrated frontal product
+photo. See `reference/plates/NOTES.md` for exactly what it can and can't be used
+for. **It does not unblock `contracts/panel.truth.json`.** Panelwright still
+needs ≥3 calibrated plates (known lens/calibration set, in-plane scale anchor,
+ColorChecker, raw/16-bit capture) per `docs/01-panel-truth.md` §3.1 before any
+geometry work — inventing coordinates from what's available now would violate
+N1, the non-negotiable this requirement exists to enforce. This remains a
+genuine open blocker, tracked in `journal/STATE.md`.

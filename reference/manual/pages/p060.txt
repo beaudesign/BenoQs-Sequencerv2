@@ -1,0 +1,54 @@
+The EFF mechanism
+
+The modulation is always happening "top-down", i.e. upper tracks may modulate lower tracks, but
+not vice-versa.
+Here "upper" and "lower" refers to the respective track index. For example, track 9 may modulate
+all other tracks but track 0 cannot modulate any other track.
+
+Feeders, Listeners and Listening Feeders
+Modulator tracks are called "feeders" and modulated tracks "listeners", for a better distinction of
+terms.
+Because the effect of the feeder tracks is additive down the track indexes, you may picture the
+feeder tracks as feeding the effector and listener tracks listening to whatever is in the effector at
+their particular index slot.
+A track may also be both a listeners and a feeder, which we call a listening feeder. This means that
+if that track itself is playing notes, then the attributes of those notes are modulated, while the
+resulting values will modulate the corresponding listeners below it.
+
+Effector dry-run
+In the example below, Track 9 is feeding its Step offsets for VEL, PIT and LEN into the effector.
+This means that all listeners in the page may be modulated by those offsets. In this example we
+have set tracks 8, 4 and 0 as listeners, and therefore to be modulated by track 9's offsets.
+Assuming that Track 9 is currently at a Step whose PIT offset is +3, and assuming no other feeders
+exist, the notes played in the tracks 8, 4, and 0 will be played 3 semitones higher than defined in
+those tracks for the current position.
+But: track 6 is also a feeder, and modulates all listeners below it,
+i.e. Tracks 4 and 0. Assuming that the current Step in track 6 has a PIT offset of -1, listener tracks
+below will see a total PIT modulation effect of +3 -1 = +2.
+Similarly, Tracks 3 and 2 are set as further feeders, which means that the last listener, Track 0, is
+being modulated by four feeders: Tracks 9, 6, 3, and 2.
+Assuming Tracks 3 and 2 each have a Step PIT offset of -2, this means
+that the net PIT offset for row 0 is: +3 -1 -2 -2 = -2.
+
+Remarks
+The values fed into the effector are really the deltas between the actual step offset for a given
+attribute and the default value of that attribute. In the above example the default step offset was
+always 0.
+The first remark here is that the offsets fed into the effector may obviously be both positive and
+negative.
+The second remark to make is that the attribute values fed into the effector by both feeders and
+listening feeders will be influenced by the factor set for that particular track.
+When using step events to scale both the feeder track and the listener track, the feeder offsets are
+only applied to the listener after the listener has itself been scaled.
+
+Using EFF with events
+The effector may be used in conjunction with using events to modulate the track attribute map
+factors.
+We will not elaborate further on the possible results, and leave it as an exercise to the reader, but
+this does open quite new ways of cross modulation among the page tracks.
+
+
+
+
+       60                      Octopus Reference Manual CE v5.30                              60
+

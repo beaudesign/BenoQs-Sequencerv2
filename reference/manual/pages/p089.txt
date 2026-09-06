@@ -1,0 +1,56 @@
+Step-note recording
+Holding a step on the matrix, and playing a key on your keyboard will assign the note data
+(including velocity) to the selected step.
+To record more than just one step in a take, simply keep playing on your keyboard and you should
+see the played notes fill in one after another. They will default to length 1/16 and will simply follow
+the flow of the respective track.
+Also note that the recording of MIDI data will follow the pattern described in the following.
+
+Fresh recording
+If you step-note record on a step that is turned of (i.e. you pressed it once on, then of again and did
+not release the button yet), the step will be freshly assigned the value of the incoming note.
+
+Stacked recording
+Step-note recording on a step that is turned on will stack the incoming pitch on top of the already
+existing data, letting you effectively create chords.
+
+Chord recording
+You may record chords directly, in the same manner as simple notes. You can record chords
+stacking on top of what's there already, or starting from scratch.
+
+Track live transposition
+Finally, if a track is selected while a page is armed for recording (a track selection may also be
+locked in using the SEL button), you will dynamically and directly change the pitch assignment for
+that particular track effectively transposing it a playtime.
+With only one track selected, and holding the track selector pressed, you may observe the change in
+pitch assignment directly in the pitch circle.
+
+
+Step real-time entry
+
+There is a simple way to tap steps into a track in real time.
+Simply grab the track you would like to tap into - you will notice that the STEP LED in the MODE
+block turns Red.
+
+Step tapping
+While the sequencer is playing, tap the STEP key as you go and you will see that the steps under the
+chase-light get toggled on as you tap.
+In fact they are placed into the track at the precise position of the tap, within a 1/192 resolution,
+trying to reflect to the greatest extent possible what you have entered.
+If you are less than satisfied with the results of your play, you may clean up the mess by simply
+clearing the track as we have already seen before.
+
+Quantized recording
+In the section on attribute map factors, we have described the workings of the factoring mechanism.
+One application is non-destructive quantization of track content, including recorded material as you
+record it during a live session.
+In order to get quantized output, you may want to set the STA factor for the track to the lowest
+possible value, in which case the map is not in effect.
+Note that you may always increase the factor for the STA map in order to gradually increase the
+amount by which steps are pulled or delayed during play.
+
+
+
+
+       89                      Octopus Reference Manual CE v5.30                              89
+

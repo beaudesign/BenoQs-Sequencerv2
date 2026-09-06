@@ -1,0 +1,55 @@
+Step events
+
+Steps may be used to generate so called events. Events are simply automated changes that happen at
+runtime. In general terms, an event is a programmed change of the attributes of a track and is
+attached to a step. All track attributes may be modulated by events.
+The finer definition is however, that for the DIR, POS, and MCH events the track attribute value
+changes, while in the case of the other attributes, (VEL, PIT, LEN, STA, AMT, GRV, and MCC)
+what changes is really the attribute map factor of any steps having offsets from the track value.
+Please refer to the section on attribute maps for details.
+
+Creating events
+To create an event, double click on a step to zoom into it, and select one of the attributes in the SEL
+column. As discussed earlier, initially these are all lit, waiting to be selected. Once selected as an
+event, they will flash.
+You will notice that some are coloured Orange, some Green. The Orange
+attributes indicate that their events will influence the attribute map factor, while the events for the
+Green ones will change the attribute value directly.
+
+The step led of an event will be Orange.
+
+Note: If the 'Play' button is set to flashing Orange (Play Mode) then the events will not be retained
+when the sequencer is 'stopped'.
+
+Set event values
+The amount (AMT) value of the step determines the change in the track attribute every time the step
+is played.
+In the case where the set amount is larger than the possible value range of the target, a modulo
+operation will be carried out to bring it into the range. Note that the changes can be positive or
+negative, according to the amount value.
+
+Random event values
+Random event values, via a non-zero value of the GRV attribute for the step generating an event, is
+a disabled feature in version 1.6203 and later.
+
+Clearing events
+Events may be cleared from a track by zooming into the step and pressing the flashing SEL attribute
+button so it is solid Orange or Green again.
+
+Event range settings
+Sometimes it makes sense to limit the range in which the event change occurs to a value below the
+size of its natural range. Those MAXIMUM values are 17 for each of the attribute map factors, 16
+for DIR and 32 for MCH.
+POS Step Event changes the Track POS, not the Step POS(GRV)
+DIR Step Event will change on the following step (this is only relevant when using a custom DIR
+with multiple steps per slice).
+To change the size of the interval used by events, proceed as follows:
+Go into STEP mode, i.e. zoom into your respective step. Activate an event and you should see the
+current size of the event interval for the selected attribute displayed numerically in the numeric field
+of the outer circle. Use the main rotary to adjust it to your desire.
+
+
+
+
+       34                      Octopus Reference Manual CE v5.30                             34
+

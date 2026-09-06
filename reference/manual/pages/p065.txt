@@ -1,0 +1,54 @@
+4.       Page Mode
+
+
+Page Mode Index
+               Page Mode:                                   Page Mode:
+     Attribute MIX maps                    72     Musical Scales                     71
+     Bank View                             77     On-The-Measure Mode                67
+     Clear                                 65     Page POSITION in GRID              66
+     Copy                                  66     Paste                              66
+     EDIT Perform state                    69     Play (Snapshot)                    66
+     EDIT Steps state                      68     Playing Controller Maps            74
+     Editor ATR state                      70     Random (RND)                       65
+     Editor MCC state                      70     Remix (RMX)                        65
+     Exempting Page from FTS               72     Rotate Step Skip Position          73
+     Force to Scale - Quick Guide          72     Scale Cadence                      71
+     Keyboard Transpose                    78     Solo (SOL)                         65
+     Locking the Page Scale                71     Step Shift in Edit Perform         69
+     Midi Control Map Values               74     Switching Pages                    66
+     Mix Map Attr - Quick Assign           73     Toggle (TGL)                       65
+     Mix Map Setups                        75     Viewing the Mix Map                72
+     Mix Map Targets                       73
+
+
+
+
+Page Mutator Functions
+
+When in PAGE mode, holding the PAGE key pressed will make some mutator functions available
+for the page itself - the expected results should be quite obvious. Applying them is a matter of
+pressing the appropriate mutator button.
+
+TGL
+Pressing TGL will toggle the page play status in the grid.
+
+SOL
+Page will be solo-ed and un-solo-ed. When solo-ed, the Page LED in the circle will flash Green as
+opposed to Orange
+
+CLR
+Using CLR on a page will reset the page to the default page values,
+including resetting the tracks to their forward moving direction.
+
+RND
+This will fill the page with random step patterns on all tracks. Note that the track attributes are not
+affected, just the step patterns.
+
+RMX
+All tracks in the page will be applied the RMX function. See track mode for details.
+
+
+
+
+         65                         Octopus Reference Manual CE v5.30                         65
+

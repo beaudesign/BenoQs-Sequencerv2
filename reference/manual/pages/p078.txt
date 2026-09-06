@@ -1,0 +1,39 @@
+Keyboard Transpose
+
+Tracks can now be Transposed using a keyboard or another sequencer, transpose may be absolute or
+relative with regard to the Tracks' Pitch attribute.
+
+Setup Transpose Midi channel and an associated Track
+On a Midi keyboard set the output Midi channel you wish to use to transpose the Octopus.
+In Page mode, hold main SEL button and Select one or more Tracks to be available for Transpose.
+With the Track Selection active, turn the bottom left Mix encoder to set the Midi channel, so it
+corresponds with the Midi keyboard.
+Led Green is midi port 1 (1-16), and led Red midi port 2 (1-16) - turning the encoder left will turn
+off transpose listen and step 1 led will momentarily flash Red.
+
+Choose Transpose Mode
+Transpose may be either Relative to the Pitch Offset of the Track, or Absolute - which forces the
+Track Pitch offset to the pitch of the incoming note.
+With the Track Selection still active you will see the Scale Sel led flashing, click the Scale button to
+chose between Relative Transpose (Led Red) or Absolute Transpose (Led Green).
+
+Start the sequencer, now press a note on the keyboard to transpose the track.
+
+Restore Original Track Pitch Offset
+When a track is first Selected the Pitch Offset is stored so that if any key (on keyboard) is struck
+harder (Midi Velocity >88) it will toggle the Track back to its original Pitch offset prior to any
+transpose.
+
+Editing the 'Original' Pitch Offset
+The Pitch Offset is stored only when a Track is Selected, when in Track zoom any edits to the Pitch
+Offset can be confirmed by holding the Scale Sel key and clicking the PIT attribute button - thus the
+currently shown Pitch Offset will now be the 'Restore' Pitch.
+
+Saving State:
+The Transpose Midi input channel of each Track is stored with the page.
+
+
+
+
+       78                      Octopus Reference Manual CE v5.30                             78
+

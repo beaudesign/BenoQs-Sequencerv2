@@ -1,0 +1,56 @@
+Page Clusters
+
+Building clusters
+In order to play two or more pages consecutively they have to be situated next to each other in the
+GRID. You can achieve this easily by using CPY / PST / CLR mutator functions in order to create
+what we shall call page clusters.
+A page cluster is therefore a group of two or more adjacent pages surrounded by either empty pages
+or grid margins.
+
+Cluster activation
+Create a page cluster consisting of three pages in a row of your choice. Once the cluster is built,
+make sure the sequencer is playing and toggle one of the pages in the cluster to Green (i.e. make it
+play).
+The page will keep on playing.
+Activate cluster play for the row in which the cluster exists by pressing the SEL button of that row
+once - toggling it from Red to Green.
+When Green, you will notice that once the currently playing page is finished playing the next page
+in the cluster starts to play and so forth.
+
+Cluster Page Hold
+With an active Page Cluster any page can be made a 'hold page', cluster play will not advance
+beyond the 'hold page' until the 'hold' is turned off - see Page Repeats (STA). When a Cluster Hold
+Page is playing it will be shown in the Grid as flashing Green.
+
+Bank mute toggles
+In GRID mode, the buttons in the MUT column act as bank mute toggles. Pages in muted banks
+will continue playing in sync with all active ones, but their output will not be sent out to MIDI. This
+provides more immediate and intuitive handling of material in live situations.
+
+
+Track-Across-Cluster operations for Mute and Solo
+
+This mode is used to toggle a Mute or Solo condition across all pages of the current cluster. In
+Track-Across-Cluster Mode both the individual Track Mute/Solo buttons and the main MUT button
+influence all pages within that cluster.
+
+       In Grid mode the Cluster select button now has three states:-
+              Cluster Mode Off - led Red (v5.00 & earlier)
+              Cluster Mode On & Track-Across-Cluster Off - led Green (v5.00 & earlier)
+              Cluster Mode On & Track-Across-Cluster On - led Flashing Orange
+
+In Grid mode to activate Track-Across-Cluster double-click the Cluster select button - the led will
+flash orange indicating that the banks' Pages are operating in Cluster mode and that Track-Across-
+Cluster is also in operation.
+
+A single click will turn off cluster operation, or a double click will switch back to Cluster mode On
+(led Green) and Track-Across-Cluster Off.
+
+Please note that when Track-Across-Cluster mode is active, any changes to Mute (or Solo) 'pattern'
+on the current page will arbitrarily apply the current mute pattern to all other pages in the cluster.
+
+
+
+
+       82                      Octopus Reference Manual CE v5.30                            82
+

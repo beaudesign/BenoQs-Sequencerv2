@@ -103,9 +103,34 @@ report:
 		cat journal/STATE.md
 	fi
 
-# Grep the Octopus reference manual for a topic. Not populated yet.
+# Grep the Octopus reference manual for a topic (matches reference/manual/INDEX.md
+# row labels) and print the matched pages' plain text.
 manual topic:
-	@echo "reference/manual/ is not populated yet — nothing to grep. See reference/NOTES.md."
+	#!/usr/bin/env bash
+	set -euo pipefail
+	idx="reference/manual/INDEX.md"
+	if [ ! -f "$idx" ]; then
+		echo "reference/manual/ is not populated yet — nothing to grep. See reference/NOTES.md."
+		exit 0
+	fi
+	row=$(grep -i "| {{topic}}" "$idx" || true)
+	if [ -z "$row" ]; then
+		echo "no INDEX.md row matches topic '{{topic}}'. Rows are:"
+		grep -E '^\| [a-z-]+ \|' "$idx" | awk -F'|' '{gsub(/^ +| +$/, "", $2); print $2}'
+		exit 1
+	fi
+	echo "$row"
+	echo "---"
+	pages=$(echo "$row" | awk -F'|' '{print $3}')
+	for range in $(echo "$pages" | tr ',' ' '); do
+		start=$(echo "$range" | cut -d- -f1 | tr -d ' ')
+		end=$(echo "$range" | cut -d- -f2 | tr -d ' ')
+		[ -z "$end" ] && end=$start
+		for p in $(seq "$start" "$end"); do
+			f=$(printf "reference/manual/pages/p%03d.txt" "$p")
+			[ -f "$f" ] && { echo "=== p.$p ==="; cat "$f"; }
+		done
+	done
 
 # Open (creating if needed) today's journal entry for a role.
 journal role:

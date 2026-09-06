@@ -1,0 +1,51 @@
+Track STA Reference Chart
+
+ Track STA          Step STA(advance- pull)          Step STA (retard- push)
+     16         -12 -10 -7 -5          -2        0    +2 +5 +7 +10 +12
+     15         -11 -9 -6 -4           -2        0    +2 +4 +6 +9 +11
+     14         -10 -8 -6 -4           -2        0    +2 +4 +6 +8 +10                x2
+     13          -9   -7 -5 -3         -1        0    +1 +3 +5 +7 +9
+     12          -8   -6 -4 -3         -1        0    +1 +3 +4 +6 +8
+     11          -7   -5 -4 -2         -1        0    +1 +2 +4 +5 +7
+     10          -6   -4 -3 -2         -1        0    +1 +2 +3 +4 +6
+      9          -5   -4 -3 -2         -1        0    +1 +1 +3 +4 +5
+ Step STA        -5   -4 -3 -2         -1        0    +1 +2 +3 +4 +5
+      7          -4   -3 -2 -1          0        0     0    +1 +2 +3 +4
+      6          -4   -3 -2 -1          0        0     0    +1 +2 +3 +4
+      5          -3   -2 -2 -1          0        0     0    +1 +2 +2 +3
+      4          -3   -2 -1 -1          0        0     0    +1 +1 +2 +3
+      3          -2   -2 -1 -1          0        0     0    +1 +1 +2 +2
+      2          -2   -1 -1      0      0        0     0    0     +1 +1 +2
+      1          -1    0   0     0      0        0     0    0     0      0   +1
+      0          0     0   0     0      0        0     0    0     0      0   0
+ Track STA          Step STA (advance- pull)         Step STA (retard- push)
+
+Track STA 8 Neutral (shown in blue)
+
+If Track STA 14 then Step STA multiplied by 2
+
+Note: When using track multipliers of less than 1 (reduced speed) the maximum Step STA advance
+(Green) will be -12 ticks with reference to the x1 speed.
+
+
+Track position (POS)
+The POS line will show the pattern of set steps in the track at hand.
+Turning the POS knob will shift the steps around, depending on the turn direction, modifying the
+contents of the play window, just to use the same terms.
+
+Track direction (DIR)
+This line indicates the chosen play direction for a track. Consider it as an index into the following
+default mapping:
+1 - Forward play
+2 - Reverse play
+3 - Ping-Pong
+4 - Brownian, i.e. 2/3 probability forward, 1/3 probability reverse play
+5 - Random order
+6-16 - Same as 1, however: the track play directions 6-16 may also be individually edited and
+changed as needed.
+
+
+
+
+       45                      Octopus Reference Manual CE v5.30                             45
+

@@ -1,0 +1,32 @@
+Identify the Hyperstep associated with Hyped-Track
+When there are multiple Hypersteps on the page, or if a Hyperstep is skipped, it is possible to
+identify the location of a Hyperstep - in Page View simply click & hold the Hyped-Track select
+button and the associated Hyperstep will Shine Red.
+
+Variable Step Sequences
+By using hypersteps we can vary the number of steps played in the hyped-track each time the
+hyperstep is triggered.
+Here's how:- Set up a hyperstep (on step 1) and its associated hyper-track,
+on the hyped-track mute steps 9 -16 (so it will only play 8 steps).
+On the hyperstep track mute steps 5 - 16 (so it will only play 4 steps) and set the hyperstep track
+LEN to 8 (default), then zoom into the hyperstep and change the step length from 192/192(default)
+to 48/192 (4 steps). Now zoom into step 4 (last step) of the hyperstep track and set up a step event
+for LEN with an AMT of -1.
+Each time the hyperstep track plays it will 'scale' the LEN on the hyped-track, so in the above
+configuration the number of steps played will vary between 5 steps and 8 steps - the length time
+taken to play will be the same.
+
+By populating some of the hyped-track steps with MCC we effectively have something very similar
+to a Sample & Hold LFO
+
+
+Aligning Indeterminate Length Sequences
+If a sequence has an indeterminate length, such in the case of a track with a brownian DIR then if
+using that sequence as the hyped-track we can re-align the sequence every time the Hyperstep is
+triggered.
+
+
+
+
+       33                     Octopus Reference Manual CE v5.30                            33
+

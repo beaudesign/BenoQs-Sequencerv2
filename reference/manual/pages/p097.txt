@@ -1,0 +1,46 @@
+Note that playback of SYSEX content to the Octopus may occur at any time, including while the
+sequencer is running.
+Once the page is received, the machine will switch to GRID mode and the page data is pasted from
+the incoming SYSEX buffer into the page memory. This operation is equivalent to a page copy.
+
+Bank exports
+ A bank export will export all non-empty pages in a bank, and behaves very similarly to exporting
+page content, basically chaining several page export operations.
+To trigger a bank export, simply press the button of the bank you would like to export, in the SEL
+column.
+The duration of a bank export is dependent on the number of pages that will be exported, but as an
+indicator, the size of a full bank is on the order of 160KB. Here as well, the circle acts as an
+indicator to show progression of the transmission.
+
+Grid exports
+ The GRID export is covering all the data that is not page related, but has an influence on the
+overall machine behaviour. This includes parameters like strum levels for example.
+To initiate a grid export, simply press the Green lit MIX button on the bottom left side of the front
+panel.
+The exported GRID content will take on the order of 37K, and the circle is used to show the
+progression of the transmission.
+
+All pages and full machine state export
+Two more options are available for SYSEX dump: dump all pages at once via the SEL key, and
+dump the full machine state at once via the EDIT key.
+The same results may be achieved by several partial dumps as described above.
+
+Data transmission rate
+The throughput of SYSEX data is dependent on the tempo set at transmission time. Adjusting it
+knowingly may be useful in cases where your external periphery needs a lower transmission rate
+than Octopus is potentially capable of providing. Obviously, a lower transmission rate will result in
+more time required by the dump to complete. You may want to
+experiment a bit to find the rate that is best suited for your particular setup.
+
+Remarks
+Note that you can use the export functionality only while the sequencer is stopped. This is a
+measure to ensure concurrent data integrity of the SYSEX dump and timing stability of the material
+played.
+You may however, receive SYSEX data while the sequencer is playing.
+This makes it particularly convenient to substitute memory content on the fly, during performance.
+
+
+
+
+       97                      Octopus Reference Manual CE v5.30                            97
+

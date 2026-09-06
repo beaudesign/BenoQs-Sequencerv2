@@ -1,0 +1,48 @@
+MIDI Control Map Setups
+
+
+Map Instrument   Parameter              Track M.Ch MCC AMT (default)
+ 3                                        9
+                                          8
+                                          7
+                                          6
+                                          5
+                                          4
+                                          3
+                                          2
+                                          1
+                                          0
+
+
+
+Map Instrument   Parameter              Track M.Ch MCC AMT (default)
+ 4                                        9
+                                          8
+                                          7
+                                          6
+                                          5
+                                          4
+                                          3
+                                          2
+                                          1
+                                          0
+
+
+
+Map Instrument   Parameter              Track M.Ch MCC AMT (default)
+ 5                                        9
+                                          8
+                                          7
+                                          6
+                                          5
+                                          4
+                                          3
+                                          2
+                                          1
+                                          0
+
+
+
+
+     76                 Octopus Reference Manual CE v5.30              76
+

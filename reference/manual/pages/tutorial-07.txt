@@ -1,0 +1,51 @@
+Octopus - tutorial series
+
+
+
+Real-time MIDI CC control
+The Octopus encoders may be used to send MIDI CC data and hence control
+both external gear and internal sequences. Here’s how to put them to work.
+
+
+                            Standard implementation
+                            Octopus has a standard MIDI CC implementation that spits out a
+                            CC amount per step. To set this up is a three step process:
+                            1. Go into Track mode and set the MIDI CC (MCC) to a particular
+                               controller number.
+                            2. Either zoom into a particular step, or else bring up the Track at-
+                               tribute Map for MCC. This is done by pressing the MCC Selector
+                               button then pressing ZOM to bring up the MCC map.
+                            3. Set the MCC amount for any step or steps in the track.
+                            As the track plays, you’ll hear the MIDI CC aﬀecting your sound.
+                            Remember to set your synthesizer to respond to that CC message.
+                            In addition to this method, Octopus gives you real-time control for
+                            sending MIDI CC data.
+
+
+                            Real-time MIDI CC
+                            Using the MIX knobs in Page mode, you have control of up to 10 dif-
+                            ferent MIDI cc streams PER MAP PER PAGE.
+                            That means with the touch of a button, you have control over 50
+                            MIDI CCs on a page.
+
+
+                            Setting it up
+                               • In Page mode select a Page that has some active steps.
+                               • Double-click on the MAP 1 button under the matrix. You
+                                 should see 3 SEL buttons light up (AMT, MCC, MCH) and one
+                                 (AMT) should be blinking.
+                               • For this tutorial, skip changing the AMT and press the MCH
+                                 button. This allows you to set the MIDI channel for each knob.
+                            The MIDI channel selected here does not have to match the Track
+                            channel. The MIX knobs are completely independent of the Tracks.
+                            After setting the channels, press the MCC button. This is where you
+                            set the MIDI CC number for each knob. ESC out and try it.
+                            With the sequencer running, start twisting the MIX knobs and listen
+                            to what happens. You should hear the MIDI CCs having an eﬀect on
+                            the synthesizer.
+
+
+
+                                               1 of 2
+                                       © genoQs Machines, 2007
+

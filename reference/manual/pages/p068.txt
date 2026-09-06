@@ -1,0 +1,43 @@
+EDIT state
+
+Octopus provides a quick way of previewing steps, in the sense that you can immediately hear what
+they contain, and how they would play under the chase-light.
+This is particularly interesting of course when you are tweaking something to sound just right.
+
+By default, in PAGE mode the EDIT LED button lights steady Green. Click on it once to toggle it
+to flashing Orange.
+
+When the EDIT LED is lit steady Green, everything behaves as you know it: the step buttons toggle
+the step states. When turned to flashing Orange you are in the EDIT state.
+To return to the default state (steady Green), press the EDIT button
+twice (again - twice, and not double-click!).
+
+
+
+
+EDIT PREVIEW state - Editing Steps (Flashing Orange - Edit Realtime)
+
+First make sure the EDIT LED is flashing Orange.
+Now press some buttons in the matrix. You will notice that no steps will be set (as we have done it
+before), but that the MIDI data of the steps is played out of the MIDI port as it is.
+Grab a step and now tweak its attributes, for example pitch, to take the most obvious one: you will
+hear that with every click of the encoder the steps is re-triggered and played such that you can hear
+the change in real time.
+The step velocity is shown and editable in the numeric quadrant of the outer circle, the pitch in the
+inner circle.
+
+In this mode the step length may also be adjusted in the matrix, by holding the step to be adjusted
+and pressing another button at a distance to denote the length in 1/16th intervals or alternatively by
+holding the step to be adjusted and clicking a button in the same column(above or below) to set the
+held step to a LEN of 192/192.
+
+Editing Tracks
+Pressing the track selectors in preview mode will produce a result similar to the steps buttons.
+The note played will basically reveal the tracks velocity and pitch settings, producing a result
+equivalent to having a non-modified step playing in that track.
+
+
+
+
+       68                      Octopus Reference Manual CE v5.30                            68
+

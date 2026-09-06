@@ -1,0 +1,38 @@
+Basic Reference:
+
+Middle C:                           Note number 60 = C5
+
+
+
+In Track view:                      To move to a different Track just turn the desired
+                                    Track MIX encoder.
+
+MCC:                                If set to any value other than "none" then the chase
+                                    light will be orange rather than red.
+
+MCC Attribute:                      At Track level sets the MCC control for that Track, i.e.
+                                    '10' = Pan.
+                                    At Step level sets the amount of 'Pan' (in above case),
+                                    64' = 'centre'.
+
+OS Version & Device Mode:           Reboot machine whilst holding Esc button, the
+                                    version will show on the matrix.
+
+Clear Grid of all Pages             Reboot machine whilst holding Clear button. Note,
+                                    this does not clear the stored 'flash memory' unless a
+                                    subsequent Save operation is applied.
+
+LED comparison                      Red            =       Blue
+                                    Green          =       Yellow
+                                    Orange         =       Purple
+
+
+
+
+              This updated reference includes all new features added in CE OS v5.30
+
+
+
+
+        4                    Octopus Reference Manual CE v5.30                               4
+

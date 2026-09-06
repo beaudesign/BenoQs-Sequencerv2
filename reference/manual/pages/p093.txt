@@ -1,0 +1,55 @@
+7. MIDI
+
+MIDI Index:
+               MIDI:                                       MIDI:
+   ALL NOTES OFF message                94     MIDI Merge                          94
+   Forcing MIDI notes Octopus scale     94     Slave Clock                         93
+   Master Clock                         93     Toggle Page/Set - Extn Pgm Ch       94
+   MIDI Clock echo (in slave mode)      93
+
+
+
+MIDI clock synchronization
+
+MIDI clock selection
+Per default, Octopus does not send or react to MIDI Clock information. However, Octopus may act
+as a MIDI clock source in your setup, or will synchronize to some other source.
+The MIDI clock state is selected and indicated by the button / LED numbered "200" in the top part
+of the outer circle.
+When Octopus is MIDI clock master, MIDI Clock signal will be sent out of both MIDI ports.
+When Octopus acts as MIDI clock slave, MIDI clock will be received on a single port. The MIDI
+port that receives MIDI Clock will be automatically detected and requires no explicit selection by
+the user.
+The MIDI Clock state is remembered as part of the machine state, when the machine state is saved.
+See the "Instrument State Save" section on saving the Octopus state.
+
+Master
+An unlit clock indicator LED means that Octopus is not sending and not receiving MIDI clock
+information.
+Pressing the clock selector turns it Orange - indicating that Octopus is sending MIDI Clock as well
+as associated transport commands out both MIDI ports. Another press toggles it back to of (default
+mode).
+
+Slave
+A double click turns it Green or Red (more on that below), meaning that Octopus is now listening to
+the MIDI clock and that is acting as a MIDI slave.
+Change of clock selection (switching between master and slave mode) is possible only in GRID and
+PAGE mode.
+
+MIDI Clock echo (in slave mode)
+MIDI clock that is received while the machine is in MIDI slave mode can be sent out to the MIDI
+out, so other devices can be slaved along the same chain.
+When switching to slave mode using the 200 key, the default colour of the 200LED is Green.
+Pressing it once toggles it to Red, with a Red setting meaning that the clock information is passed
+through.
+
+'200' button operation
+     Led colour                                                  Led Colour
+ 200 - Orange - Master Midi Clock Send --- Single-click --- 200 - Red - Slave Clock Send (echo'd)
+                                            Double-click
+ 200 - Off - Master No Clock Sent --------- Single-click ---- 200 - Green - Slave No Clock Sent
+
+
+
+       93                       Octopus Reference Manual CE v5.30                          93
+

@@ -1,0 +1,55 @@
+To Pause or not to Pause
+A Paused Track cannot be Un-Paused by itself, it can only be switched back to the Play condition
+by either a Track Toggle Un-Pause Event by a track which is playing, or manually (keyed).
+
+Understanding Event execution
+Another detail that may be of interest is that events will always execute exactly on the beat and not
+be influenced by the step's STA value to be pulled or pushed against the time line.
+Additionally, a Track Toggle Event is executed before the step plays - which means that if a Track
+Toggle Mute 'On' Event is placed on Step 5 then the Mute Toggle occurs before the step plays, so
+no note will be sent (provided the note itself has not been pulled against the timeline).
+
+All tracks are processed by the sequencer in a top-down manner, this means that when a Track
+Toggle Event is applied to tracks higher in the matrix it will be executed on the following step.
+
+Clearing events
+Events may be cleared from a track by zooming into the step and pressing the flashing MAP
+attribute button so it is green again (or setting its Event AMT value to 0).
+
+Step Event Considerations:
+
+1. If the Velocity is 0 then the note is not transmitted.
+2. When 'shifting' maps (Track POS) a step event will remain on its original step, it will not 'shift',
+hence the AMT attribute of all steps remain on its original step.
+3. Attributes DIR, POS & MCH are absolute, i.e. if DIR is 6 a Step Event of '+2' will change it to 8.
+4. Step AMT of '0' will not reset POS, DIR or MCH values. These must be reset using the opposite
+amount of the values by which they were changed.
+5. Track attribute AMT scales its own offset and is therefore best left at the 'neutral' value.
+6. DIR Step Event will change on the following step (this is only relevant when using a custom DIR
+with multiple steps per slice).
+7. DIR will default to the Track attribute amount when the sequencer stops and changes made using
+Step Events may be viewed as they occur in Page ATR view and in Track Zoom.
+8. MCH will also default to the Track attribute amount when the sequencer stops and but changes
+made using Step Events may only be viewed as they occur in Track Zoom.
+9. POS does not restore to the start POS(ition) when stopping the sequencer.
+10. POS Step Event changes the Track POS, not the Step POS(GRV).
+11. v5.30... POS Step Event can now be applied to additional tracks using the Range Value.
+
+Step Event Track Toggle Considerations:
+
+1. Tracks are processed by the sequencer in a top-down manner, this means that when a Track
+Toggle Event is applied to tracks higher in the matrix it will be executed on the following step.
+2. Unlike rotating the track using the POS encoder (or a POS Step Event) the underlying value of
+the Step AMT attribute is also rotated, this allows any Step Event to be rotated.
+3. If a track is part of a Track Chain it may be toggled to Pause even if a different member of the
+Track Chain is currently playing.
+4. Track toggles of Mute & Solo when a track is part of a Track chain will be dependant on the
+condition of the Track Base switch.
+5. Track Toggle Events of Mute & Solo are subordinate to the On-The-Measure mode condition of
+the Page.
+
+
+
+
+       40                      Octopus Reference Manual CE v5.30                            40
+

@@ -1,0 +1,54 @@
+Mix attribute quick assign
+A very quick way to assign an attribute to the MIXER BLOCK is to select the attribute (i.e. to
+select GRV, press and hold the selector of row 2), while pressing the MIX button. Or vice versa -
+hold the MIX button pressed and press the track selector corresponding to the wanted attribute.
+By pressing the MIX button you will notice that the selected attribute has been changed - the
+current selected mix attribute is flashing Orange in the selector column.
+
+Using the MIX block to rotate the Step Skip condition
+By selecting the POS attribute (as described above) all Steps of the Tracks may be rotated using the
+Mix knobs. With the MIX button held and the POS led flashing orange, click the POS button again
+and the led will change to Shine Red - this indicates that the Mix knobs will now rotate only the
+Skip condition of the Tracks (and the position of the actual Steps will not rotate).
+Note: When saving the Page the MIX block is stored as the POS attribute not as Skips 'rotate'.
+
+
+Working with Mix maps
+
+While viewing MIX maps, you can work with a particular track attribute value directly, for all
+tracks at once. You may tweak the value of any one track, or apply some functions to all tracks in
+the page.
+
+Clear
+Clear the MIX map using the CLR button - this will reset the MIX map to default values for each
+track in the page, all at once.
+
+
+Randomize
+You may randomize the displayed values using the RND button. This will assign random values to
+all tracks at once - for the selected attribute of course.
+
+Align
+Using the ALN function you may re-order the tracks in the page, sorting them in the page by the
+values of the selected MIX MAP attribute. The sorting will be done such that the track with the
+highest value will be placed on the top row. Try it out!
+
+Copy / Paste
+Finally, if you have composed a page whose MIX map you would like to replicate, you may use the
+CPY / PST functionality to replicate that attribute assignment across the tracks.
+For example, assuming you have a page whose pitch structure creates a certain mood or harmony;
+you can apply the same mood to an entirely unrelated page or pattern, by simply copying the PIT
+map from one page to the other.
+
+
+
+Mix map targets
+
+Going back to editing, there are three classes of targets: attributes (ATR), preset MIDI CC's (any of
+VOL, PAN, MOD, EXP), and MIDI Control Maps (MAP 0-5). Some explaining is due here.
+
+
+
+
+       73                      Octopus Reference Manual CE v5.30                           73
+

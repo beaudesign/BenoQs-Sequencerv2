@@ -1,0 +1,38 @@
+Sending Nemo Pages to the Octopus
+Any Nemo Flow Factors are stored as step offsets in their respective tracks and will thus be applied
+when the page is imported into the Octopus.
+
+
+Sending Octopus Pages to the Nemo
+If a Octopus Page with Active Scale is transferred to Nemo the Octopus Page Scale goes with the
+Page - hence Nemo Scale button convention will be:-
+
+1. Grid Scale Off (green) and Page Scale off(green) will play Octopus Page Scale.
+2. Grid Scale Off(green) and Page Scale On(red) will play the Page chromatically(i.e. turn off
+Octopus imported page scale).
+3. Grid Scale On(red) and Page Scale On(red) will lock page to grid scale.
+
+
+Imported Page Conversion Mode
+When a Octopus Page is imported via sysex into a Nemo (or when a Nemo Page is imported into an
+Octopus), and Step Event(s) PIT or Step Event(s) VEL exist on the pages transferred then the
+Event(s) themselves will be reversed due to the UI. Additionally, Step Event Track Toggles (v5.30)
+event values will potentially point to incorrect tracks.
+
+Once a Page has been imported, the above values may be converted to match the sequencer UI, as
+follows:
+
+In Grid Edit mode, click & hold matrix Page key, click Mix Master key once to arm 'Import
+Convert' (led will show shine_red), then click a second time to effect Conversion - when complete
+Mix Master led will shine_green.
+
+Note: When the Nemo converts an imported Octopus page the following rules are applied:-
+(i) Step Event Track Toggle attribute AMT values greater than 8 are changed to 0 (off)
+(ii) Step Event Track Toggle Range values 9&10 reduced to 7&8 respectively
+(iii) Tracks 9 & 10 are Cleared
+
+
+
+
+     112                      Octopus Reference Manual CE v5.30                           112
+

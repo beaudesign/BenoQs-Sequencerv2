@@ -137,4 +137,21 @@ mod tests {
             expect note track=0 pit=+7\n";
         run_fixture(fixture).unwrap();
     }
+
+    /// A track with no role at all (neither feeder nor listener) sits outside
+    /// the effector entirely and must not receive a feeder's offsets, even
+    /// though the additive-down-the-index model would otherwise sum every
+    /// feeder above it regardless of what's in between. Not a direct manual
+    /// quote — see the AMBIGUITIES.md entry this guards.
+    #[test]
+    fn non_listener_does_not_receive_effector_feed() {
+        let fixture = "\
+            seed 1\n\
+            page.tracks 9,0 enabled\n\
+            track 9 role feeder\n\
+            track 9 step 0 pit +5\n\
+            play 1 step\n\
+            expect note track=0 pit=+0\n";
+        run_fixture(fixture).unwrap();
+    }
 }

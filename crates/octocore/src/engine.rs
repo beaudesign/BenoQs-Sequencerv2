@@ -490,6 +490,14 @@ impl Engine {
             fixed_routing,
         } = inp;
 
+        // Only an actual listener is modulated by the effector — a track that
+        // is neither a feeder nor a listener sits outside the effector entirely.
+        // Not a direct manual quote: inferred from the existence of the Listener
+        // Step Mask (p.63, next commit), which would have nothing to gate if
+        // every track already received modulation unconditionally regardless of
+        // role. Flagged as a chosen reading in AMBIGUITIES.md.
+        let (feed_pit, feed_vel, feed_len) = if base_track.is_listener { (feed_pit, feed_vel, feed_len) } else { (0, 0, 0) };
+
         let mut final_pit = page_pitch_offset as i32 + base_track.pitch as i32 + step.pitch_offset as i32 + feed_pit;
         if let Some(pcs) = effective_scale {
             final_pit = scale::quantize_to_scale(clamp_midi(final_pit), pcs) as i32;

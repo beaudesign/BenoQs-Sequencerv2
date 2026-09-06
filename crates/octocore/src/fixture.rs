@@ -55,6 +55,7 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                     "vel" => step.velocity_offset = v as i8,
                     "sta" => step.start_offset = v as i8,
                     "strum" => step.strum = v as i8,
+                    "amt" => step.amount = v as i8,
                     other => return Err(format!("{}: unknown step attribute `{}`", ctx(), other)),
                 }
             }

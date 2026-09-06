@@ -183,6 +183,14 @@ pub struct Step {
     pub length_ticks: u8,
     pub length_multiplier: u8,
     pub start_offset: i8,
+    /// Ref: CE v5.30 p.63, "Effector Listener Step Mask": "If a Listener (or
+    /// Listening/Feeder) step has a Step AMT attribute value of -127 then that
+    /// Listener step will not be influenced by the Feeder." `docs/03-sequencer-
+    /// core.md`'s attribute table marks AMT Track-only (no Step ✓) — this field
+    /// contradicts that table; see `journal/metronome/requests/` for the
+    /// cross-zone note filed to Scribe about it. `-127` is the mask sentinel;
+    /// no other value has a defined meaning here yet.
+    pub amount: i8,
     /// GRV at step level: a phrase index 1..=16, or `None` for no phrase.
     /// (GRV at track level means something else entirely — the shuffle amount,
     /// `Track::groove`. Same attribute code, two unrelated meanings; that is the
@@ -213,6 +221,7 @@ impl Default for Step {
             length_ticks: DEFAULT_STEP_TICKS as u8,
             length_multiplier: 1,
             start_offset: 0,
+            amount: 0,
             phrase: None,
             mcc_value: None,
             chord: ChordPool::default(),

@@ -1,0 +1,17 @@
+# tests/conformance/effector/listener_step_mask.fixture
+# Ref: CE v5.30 p.63, "Effector Listener Step Mask": "If a Listener (or
+# Listening/Feeder) step has a Step AMT attribute value of -127 then that
+# Listener step will not be influenced by the Feeder."
+#
+# Track 9 feeds PIT +3. Track 4's step 0 is masked (amt -127) and must show no
+# feeder influence; track 0's step 0 is unmasked and must show the full +3.
+seed 42
+page.tracks 9,4,0 enabled
+track 9 role feeder
+track 4 role listener
+track 0 role listener
+track 9 step 0 pit +3
+track 4 step 0 amt -127
+play 1 step
+expect note track=4 pit=+0
+expect note track=0 pit=+3

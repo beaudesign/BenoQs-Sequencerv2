@@ -1,120 +1,93 @@
 # STATE
 
 Capped at 200 lines. Conductor prunes rather than appends when it grows past
-that. Last pruned: 2026-09-06 (first write).
+that. Last pruned: 2026-09-06 (rewritten after the manual landed — most of
+the previous version described a "no manual yet" world that no longer exists).
 
 ## Phase
 
 **Phase 0 (the ratchet) — scaffolding done, the ratchet itself not built.**
-No real gate exists yet except the umbrella structure. Per
-`docs/09-roadmap.md`, Phase 0 exit criteria (`just verify` green under 4 min,
-`verify:determinism` passing, placeholder renderer discriminating gates,
-report rendering, eight worktrees through the merge queue) are **not met**.
+No real gate exists yet except the umbrella structure and `octocore`'s own
+`verify-octocore`/`verify-conformance`. Per `docs/09-roadmap.md`, Phase 0 exit
+criteria (`just verify` green under 4 min, `verify:determinism` passing,
+placeholder renderer discriminating gates, report rendering, eight worktrees
+through the merge queue) are **not met**. Per "Sequencing notes", `octocore`
+work is explicitly allowed to proceed in parallel during Phase 0 since it has
+no rendering dependency — that's exactly what's landed.
 
-## What's scaffolded (2026-09-06)
+## Reference material: manual present, photography still one insufficient plate
 
-- Repo layout matches `SPEC.md` §5: `docs/`, `contracts/`, `agents/`,
-  `adr/`, `archive/`, `apps/*`, `hosts/*`, `harness/*`, `crates/octoffi`,
-  `reference/*`, `tests/conformance`, `tests/golden`, `journal/`.
-- `justfile` at root: `verify` (umbrella), `verify-<zone>` per
-  `docs/07-verification.md` (all stubs except `octocore`, once it exists),
-  `capture`, `report`, `manual`, `journal`.
-- `adr/0001-portable-cpp-core-with-adapters.md` (moved from `docs/adr/`) and
-  `adr/0002-supersede-v1-adopt-wenge.md` (new — archives both prior efforts).
-- `archive/v1-max4live/` and `archive/v1-cpp-juce/` — both prior
-  implementations, preserved, explicitly not to be merged. See ADR-0002.
-
-## What's missing / blocking
-
-- **No reference manual, no reference photography.** `reference/manual/` and
-  `reference/plates/` are empty. Panelwright cannot build
-  `contracts/panel.truth.json` and Metronome cannot cite behavioral constants
-  without these. See `reference/NOTES.md`. This blocks real (non-placeholder)
-  work in both roles.
+- `reference/manual/` has the real CE v5.30 manual, page-indexed
+  (`reference/manual/INDEX.md`, `just manual <topic>`), including a bundled
+  2007 tutorial series (`pages/tutorial-01..10.txt`) that resolved a design
+  question the main chapters didn't cover on their own (custom direction
+  multi-trigger timing).
+- `reference/plates/web-frontal-01.jpg` — one uncalibrated frontal photo.
+  Confirmed useful for a topology/count sanity check only (see
+  `reference/plates/NOTES.md`); does **not** unblock `contracts/panel.truth.json`
+  at any tolerance. Still need ≥3 calibrated plates per `docs/01-panel-truth.md`
+  §3.1 before any real geometry work.
 - `contracts/panel.truth.json`, `motion.registry.json`, `materials.json`,
-  `room.schema.json` — none exist. Deliberately not fabricated (would violate
-  N1/N2). The three *schema* files for these already exist in `contracts/`.
-- No renderer of any kind exists yet (`apps/OctoPanel` is an empty
-  scaffold) — so `harness/capture` has nothing to drive and Phase 0's
-  placeholder-renderer exit criterion is not yet reachable.
-- Xcode (full, not just Command Line Tools) is not installed in this dev
-  environment — `xcodebuild` and the Metal shader compiler are unavailable.
-  `octopanel`/`octoshell`/the VST3/AU hosts cannot be compiled here until
-  that's resolved.
-## `crates/octocore` (2026-09-06, same session, after the bootstrap above)
+  `room.schema.json` — still none exist. Deliberately not fabricated (N1/N2).
+- No renderer exists (`apps/OctoPanel` is an empty scaffold) — `harness/capture`
+  has nothing to drive yet.
+- Xcode (full) is still not installed here — Metal, signing, VST3/AU/
+  octopanel/octoshell builds remain out of reach in this dev environment.
 
-Real, tested, and committed — not a stub. Rust toolchain installed (`rustup`,
-stable 1.98). Ported/implemented from `docs/03-sequencer-core.md` +
-`archive/v1-max4live/octopus_{engine,data,scale}.js` (the archived JS is the
-only prior working implementation; the archived C++ port has no
-chains/effector/hypersteps at all, so it contributed only the domain-type
-shape, not behaviour):
+## `crates/octocore`: real, tested, now manual-corrected
 
-- Domain model (`domain.rs`): Grid/Bank/Page/Track/Step, fixed-size arrays
-  throughout except `Grid.banks` (heap `Vec<Bank>` — ten `Bank`s is ~1MB,
-  too large to construct as a stack value safely; see the comment on
-  `Grid` for why. Below `Bank`, everything is a plain `Copy` struct — `Page`
-  (~6KB) is copied once per tick as the engine's per-tick snapshot).
-- Deterministic seeded RNG (`rng.rs`, splitmix64) — replaces v1's
-  `Math.random()`, which made the JS engine non-reproducible. Every
-  stochastic decision (GRV shuffle range, direction 4/5, chord polyphony
-  pick) draws from it.
-- `tables.rs`: the GRV shuffle table and chord strum table, ported from v1,
-  flagged PROVISIONAL (not cited against a real manual page — see
-  `tests/conformance/AMBIGUITIES.md`).
-- `engine.rs`: the tick loop. Processes tracks **descending** (9→0), not
-  ascending like v1 — required for the effector (feeders must be computed
-  before the listeners reading them, same tick) and for step-event timing.
-  Implements: transport, per-track multiplier/accumulator, all 5 fixed
-  directions + chains + the effector (feeder/listener) + GRV shuffle +
-  scale quantization + chords/strum/polyphony + MCC step CC + sample-accurate
-  event scheduling via `render()` (an `f64` absolute-sample timeline, not
-  buffer-quantised). Phrases, hyperstep-carry, and step-events exist as real
-  data models with working resolution/carry functions, but are not yet wired
-  into the note-firing path — see AMBIGUITIES.md, they need the manual (or at
-  least a real `panel.truth.json`/input path) to do correctly rather than
-  guessed at.
-- `fixture.rs` + `crates/octocore/tests/conformance.rs`: the DSL runner from
-  §8, walking `tests/conformance/**/*.fixture` (excluding `pending/`).
-  `tests/conformance/effector/feeder_pit.fixture` is the doc's own worked
-  example, transcribed verbatim, and it passes.
-- 18 unit tests + the 1 conformance fixture, all green, in both debug and
-  release (`cargo test -p octocore` / `--release`). `just verify-octocore`
-  and `just verify-conformance` are both wired for real now (see justfile).
-- Six real open ambiguities logged in `tests/conformance/AMBIGUITIES.md`,
-  all against the archived priors rather than a manual citation, because
-  there is still no manual in this repo.
+Built in one session (no manual), then corrected against the real manual in a
+second pass — 17 commits, each with a real `Ref:` citation, `just verify`
+green throughout. Full detail lives in the commit messages
+(`git log --oneline` from `22230c0` through `6cc99e0`) and
+`tests/conformance/AMBIGUITIES.md`, not repeated here. Headline points:
 
-**Not done:** true `no_std` (crate is plain `std` right now — `Vec` in
-`Grid.banks` and in the test-only `fixture.rs`); `verify:timing` (jitter
-measurement — needs a null host); anything requiring the real manual
-(constant citations, ≥250 conformance fixtures, the direction-4/5 and
-phrase-type-2/3 ambiguities).
+- Several bugs the pre-manual pass got **outright wrong**, not just
+  unconfirmed: default track pitches (octave + direction both flipped), the
+  effector (missing MCC, wrong same-tick timing model, no listener gating),
+  chord polyphony's random-pick algorithm, FLT (modeled as a bool attribute —
+  it's actually a multi-track merge operation), phrase types (Reverse did
+  nothing, RandomAll invented fake values), hypersteps (modeled as
+  hold-to-apply — it's a persistent link), custom directions (fell back to
+  uniform random — real mechanism is 16 slices × up to 9 ordered triggers +
+  a certainty_next probability, confirmed via the manual's own bundled
+  tutorial).
+- Two tables ported from the archived v1 JS turned out **cell-for-cell
+  correct** (GRV shuffle, chord strum) — citation-only commits, no logic
+  change.
+- 43 unit tests + 2 conformance fixtures, all green, debug and release.
+- Deliberately **not** attempted: the attribute-map-factor step-event
+  sub-system (VEL/PIT/LEN/STA/AMT/GRV/MCC step events — real, confirmed, too
+  underspecified to implement safely without more transcription work); the
+  LEN/STA/generic attribute scaling lookup tables (confirmed real and
+  non-linear, large enough that hard-coding them now risked a wrong digit in
+  a *cited* constant); genuine same-tick step-event application (the
+  manual's real rule is asymmetric same-tick/next-tick by track index; this
+  engine applies everything uniformly next-tick because same-tick would need
+  reworking the tick loop's per-tick snapshot architecture); Track
+  Rotate/Skip Rotate's actual step-shifting behaviour (data model only);
+  hyperstep's fine-grained LEN-scaling curve (only the binary 12↔192 case is
+  implemented); MCC sub-step CC interpolation.
+- All of the above are logged with page citations in
+  `tests/conformance/AMBIGUITIES.md` for whoever picks this up next — most
+  entries there now name a specific manual page to re-read, not "no manual".
 
-## `crates/octoffi` (2026-09-06, same session, after octocore above)
+## `crates/octoffi`: thin C ABI wrapper, verified with real linked C
 
-Thin C ABI wrapper over `octocore::Engine` — new/free/handle_command/render/
-is_running, `Command`/`Event` crossing by value (already `#[repr(C)]`).
-Verified with a real linked C program (compiled with `clang`, linked against
-`liboctoffi.dylib`), not just Rust-internal tests — Play/Stop correctly
-toggled `is_running` through a hand-written `octoffi.h`. No `cbindgen`
-installed here, so that header is hand-maintained and will drift if
-`Command`/`Event` change shape without a matching header edit.
-
-**Not done:** no Grid-mutation surface over FFI (`Command` has no
-step-editing variant yet — needs `panel.truth.json`'s `ControlId` scheme
-first, which doesn't exist); the C smoke test isn't wired into `just verify`
-(ad hoc, not repo-tracked) — `verify:arch` (docs/07-verification.md, "FFI
-declaration agreement between Rust and Swift") should eventually cover this
-for real.
+new/free/handle_command/render/is_running over an opaque `*mut Engine`.
+Verified with an actual compiled-and-linked C program against the built
+`.dylib`, not just Rust tests. No Grid-mutation surface over FFI yet (needs
+`panel.truth.json`'s `ControlId` scheme first). Hand-maintained `octoffi.h`
+(no `cbindgen` here) — will drift if `Command`/`Event` change shape without a
+matching header edit.
 
 ## Fan-out
 
-Still mostly premature — Phase 0's harness/renderer/photography/manual
-blockers (above) are unchanged. The one thing that *can* now safely proceed
-in parallel, per `docs/09-roadmap.md` "Sequencing notes" ("Metronome can port
-octocore during Phase 0 against the null host, because the core has no
-rendering dependency at all"): more `octocore` work — deepening
-phrases/hyperstep/step-events, or `octoffi` once someone wants to start the
-Swift side against a `cdylib`. Everything else still depends on the manual,
-photography, or Xcode.
+Still mostly premature — the harness/renderer/photography/Xcode blockers
+above are unchanged. What can safely proceed in parallel right now:
+`octoffi`'s Grid-mutation surface (once someone wants to start the Swift
+side against a `cdylib`); a follow-up manual-reading pass to lift the
+deferred items above (scaling tables, map-factor step events, Rotate); or
+starting `octoroom`'s pure-Rust parts (RoomIntent, Eyring RT60 self-check —
+no Metal needed). Everything touching the panel itself still depends on real
+calibrated photography.

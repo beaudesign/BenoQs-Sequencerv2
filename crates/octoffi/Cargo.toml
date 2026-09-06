@@ -1,0 +1,12 @@
+[package]
+name = "octoffi"
+version = "0.1.0"
+edition = "2021"
+description = "C ABI boundary over octocore. Owner: Conductor."
+
+[lib]
+name = "octoffi"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+octocore = { path = "../octocore" }

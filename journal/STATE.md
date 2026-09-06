@@ -87,10 +87,26 @@ shape, not behaviour):
 
 **Not done:** true `no_std` (crate is plain `std` right now — `Vec` in
 `Grid.banks` and in the test-only `fixture.rs`); `verify:timing` (jitter
-measurement — needs a null host); `octoffi` (the C ABI boundary — exists as
-an empty placeholder, depends on this crate's API settling further);
-anything requiring the real manual (constant citations, ≥250 conformance
-fixtures, the direction-4/5 and phrase-type-2/3 ambiguities).
+measurement — needs a null host); anything requiring the real manual
+(constant citations, ≥250 conformance fixtures, the direction-4/5 and
+phrase-type-2/3 ambiguities).
+
+## `crates/octoffi` (2026-09-06, same session, after octocore above)
+
+Thin C ABI wrapper over `octocore::Engine` — new/free/handle_command/render/
+is_running, `Command`/`Event` crossing by value (already `#[repr(C)]`).
+Verified with a real linked C program (compiled with `clang`, linked against
+`liboctoffi.dylib`), not just Rust-internal tests — Play/Stop correctly
+toggled `is_running` through a hand-written `octoffi.h`. No `cbindgen`
+installed here, so that header is hand-maintained and will drift if
+`Command`/`Event` change shape without a matching header edit.
+
+**Not done:** no Grid-mutation surface over FFI (`Command` has no
+step-editing variant yet — needs `panel.truth.json`'s `ControlId` scheme
+first, which doesn't exist); the C smoke test isn't wired into `just verify`
+(ad hoc, not repo-tracked) — `verify:arch` (docs/07-verification.md, "FFI
+declaration agreement between Rust and Swift") should eventually cover this
+for real.
 
 ## Fan-out
 

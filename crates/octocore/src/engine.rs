@@ -389,8 +389,19 @@ impl Engine {
             track
         };
 
-        let mult = base_track.multiplier().max(1e-6);
-        let step_ticks = (DEFAULT_STEP_TICKS as f32 / mult).max(1.0);
+        let hyperstep_link = page.hyperstep_links[ti as usize];
+        // Ref: CE v5.30 p.31: "the track is being triggered to play at a speed
+        // corresponding to the step absolute length (in 1/192)" — a hyped
+        // track's own tick length becomes 192 (full note) rather than the
+        // normal per-multiplier length while linked. The source track's own
+        // Track LEN scaling this further (p.31-32) is a confirmed-but-not-yet-
+        // transcribed refinement — see AMBIGUITIES.md.
+        let step_ticks = if hyperstep_link.is_some() {
+            192.0
+        } else {
+            let mult = base_track.multiplier().max(1e-6);
+            (DEFAULT_STEP_TICKS as f32 / mult).max(1.0)
+        };
 
         {
             let rt = &mut self.track_rt[ti as usize];
@@ -403,7 +414,17 @@ impl Engine {
 
         let raw_index = if is_chain_head { self.track_rt[ti as usize].chain.seg_pos } else { self.track_rt[ti as usize].pos };
         let step_index = ((raw_index as u16 + track.rotation as u16) % page_len as u16) as u8;
-        let step = base_track.steps[(step_index % STEP_COUNT as u8) as usize];
+        let mut step = base_track.steps[(step_index % STEP_COUNT as u8) as usize];
+
+        // Ref: CE v5.30 p.31, "Hyperstep PIT and VEL": "the hypedtrack will
+        // assume both the pitch and the velocity values of the hyperstep...
+        // in real-time... at the position of the chase light" — read live from
+        // the source step every time, not copied once at link creation.
+        if let Some(link) = hyperstep_link {
+            let source = page.tracks[link.source_track as usize].steps[link.source_step as usize];
+            step.pitch_offset = source.pitch_offset;
+            step.velocity_offset = source.velocity_offset;
+        }
 
         let shuffle_delay = if step_index % 2 == 1 {
             tables::grv_delay_ticks(base_track.groove, &mut self.rng)
@@ -709,20 +730,37 @@ impl Engine {
         self.deferred_events[ev.target_track as usize] = Some(ev);
     }
 
-    /// docs/03-sequencer-core.md §3 "Hypersteps": carries `source`'s PIT/VEL onto
-    /// `target` while the source step is held. There is no `panel.truth.json` yet
-    /// (see reference/NOTES.md), so there is no real `ControlId` -> (track, step)
-    /// mapping to drive this from `Command::ButtonDown/Up` — this is the seam a
-    /// future input layer calls once that mapping exists.
-    pub fn hyperstep_carry(&mut self, source_track: TrackIndex, source_step: u8, target_track: TrackIndex, target_step: u8) {
+    /// Ref: CE v5.30 p.31: "hold a track selector down, and at the same time
+    /// designate the hyperstep in the matrix, in a row other than the track's."
+    /// Creates or replaces the hyperstep link on `hyped_track` (each hyped
+    /// track holds at most one, per the manual — assigning a new one replaces
+    /// any existing link on that slot). `source_step`'s own step LEN is set to
+    /// 192/192 ("On making a step a hyperstep its LEN is automatically set to
+    /// 192/192") and its `hyperstep` flag is raised. Real creation is still
+    /// gated on a `ControlId` -> (track, step) mapping this crate doesn't have
+    /// yet (see reference/NOTES.md) — this is the seam a future input layer
+    /// calls once that mapping exists.
+    pub fn hyperstep_link(&mut self, source_track: TrackIndex, source_step: u8, hyped_track: TrackIndex) {
         let page = self.grid.active_page_mut();
-        let src = page.tracks[source_track as usize].steps[source_step as usize];
-        if !src.hyperstep {
-            return;
+        let src = &mut page.tracks[source_track as usize].steps[source_step as usize];
+        src.hyperstep = true;
+        src.length_ticks = 192;
+        src.length_multiplier = 1;
+        page.hyperstep_links[hyped_track as usize] = Some(HyperstepLink { source_track, source_step });
+    }
+
+    /// Ref: CE v5.30 p.31, "Destroying hypersteps": "hold the respective track
+    /// selector of the hyped track pressed and then press any step button in
+    /// the matrix row of the hyped track. The association... will be removed."
+    /// The freed source step's LEN resets "to the default value of 12/192".
+    pub fn hyperstep_unlink(&mut self, hyped_track: TrackIndex) {
+        let page = self.grid.active_page_mut();
+        if let Some(link) = page.hyperstep_links[hyped_track as usize].take() {
+            let src = &mut page.tracks[link.source_track as usize].steps[link.source_step as usize];
+            src.hyperstep = false;
+            src.length_ticks = DEFAULT_STEP_TICKS as u8;
+            src.length_multiplier = 1;
         }
-        let dst = &mut page.tracks[target_track as usize].steps[target_step as usize];
-        dst.pitch_offset = src.pitch_offset;
-        dst.velocity_offset = src.velocity_offset;
     }
 
     /// Ref: CE v5.30 p.23, "The available phrase types are as follows: Type 1:
@@ -1076,5 +1114,72 @@ mod tests {
     fn phrase_count_covers_48_across_three_banks() {
         let engine = Engine::new(1);
         assert_eq!(engine.grid.phrases.len(), 48);
+    }
+
+    /// Ref: CE v5.30 p.31: "the track is being triggered to play at a speed
+    /// corresponding to the step absolute length (in 1/192)" — a linked hyped
+    /// track fires once per 192 ticks, not once per the normal 12.
+    #[test]
+    fn hyperstep_linked_track_fires_every_192_ticks_not_12() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[9].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[5].steps[0].active = true;
+        engine.hyperstep_link(9, 0, 5);
+
+        let mut fires_in_first_12 = 0;
+        for _ in 0..12 {
+            engine.step_once_for_test();
+            fires_in_first_12 += engine.last_tick_fires.as_slice().iter().filter(|f| f.track == 5).count();
+        }
+        assert_eq!(fires_in_first_12, 0, "should not fire at the normal 12-tick boundary while hyperstep-linked");
+
+        for _ in 0..180 {
+            engine.step_once_for_test();
+        }
+        let fired_at_192 = engine.last_tick_fires.as_slice().iter().any(|f| f.track == 5);
+        assert!(fired_at_192, "should fire at tick 192 (12 + 180)");
+    }
+
+    /// Ref: CE v5.30 p.31: "the hypedtrack will assume both the pitch and the
+    /// velocity values of the hyperstep... Changes to the hyperstep PIT and
+    /// VEL will influence the hypedtrack in real-time" — read live from the
+    /// source step, not copied once at link creation.
+    #[test]
+    fn hyperstep_pit_vel_are_read_live_from_source() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[9].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[9].steps[0].pitch_offset = 5;
+        engine.grid.active_page_mut().tracks[5].pitch = 60;
+        // Every step active (not just [0]) since the hyped track's own chase
+        // light keeps advancing across the two 192-tick windows below.
+        for step in engine.grid.active_page_mut().tracks[5].steps.iter_mut() {
+            step.active = true;
+            step.pitch_offset = 99; // must be ignored regardless of which step fires
+        }
+        engine.hyperstep_link(9, 0, 5);
+
+        for _ in 0..192 {
+            engine.step_once_for_test();
+        }
+        let first = engine.last_tick_fires.as_slice().iter().find(|f| f.track == 5).map(|f| f.pitch);
+        assert_eq!(first, Some(65), "expected track 5's base (60) + source's live pitch offset (5)");
+
+        // Live edit to the source step, no re-linking.
+        engine.grid.active_page_mut().tracks[9].steps[0].pitch_offset = 8;
+        for _ in 0..192 {
+            engine.step_once_for_test();
+        }
+        let second = engine.last_tick_fires.as_slice().iter().find(|f| f.track == 5).map(|f| f.pitch);
+        assert_eq!(second, Some(68), "expected the updated live offset (8), proving no value was cached at link time");
+    }
+
+    #[test]
+    fn hyperstep_unlink_restores_default_step_length() {
+        let mut engine = Engine::new(1);
+        engine.hyperstep_link(9, 0, 5);
+        assert_eq!(engine.grid.active_page().tracks[9].steps[0].length_ticks, 192);
+        engine.hyperstep_unlink(5);
+        assert_eq!(engine.grid.active_page().tracks[9].steps[0].length_ticks, DEFAULT_STEP_TICKS as u8);
+        assert!(engine.grid.active_page().hyperstep_links[5].is_none());
     }
 }

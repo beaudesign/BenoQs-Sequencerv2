@@ -211,10 +211,18 @@ pub struct Step {
     /// -9..=9. Sign selects strike direction (up/down); magnitude indexes
     /// `tables::strum_offset_ticks`.
     pub strum: i8,
-    /// docs/03-sequencer-core.md §3 "Hypersteps": true if pressing a step button in
-    /// another row while *this* step is held should carry this step's PIT/VEL into
-    /// the other row. The cross-track wiring is runtime input state, handled by
-    /// `Engine::handle_command`, not stored per-step.
+    /// Ref: CE v5.30 p.31, "Engaging hypersteps": "hold a track selector down,
+    /// and at the same time designate the hyperstep in the matrix... by
+    /// pressing it down as well." This flags which step *can* become one end
+    /// of a hyperstep link via that hold gesture — it does not itself carry
+    /// anything. The actual link (once created) lives on `Page::hyperstep_links`,
+    /// keyed by the *hyped* track, and is live/continuous, not a temporary
+    /// hold-and-release effect (the earlier `Engine::hyperstep_carry` API
+    /// modeled a "carry while held, revert on release" behavior that the
+    /// manual does not describe — see AMBIGUITIES.md). The link-creation
+    /// gesture itself is still out of scope: there is no `panel.truth.json`
+    /// yet, so there's no real `ControlId` -> (track, step) mapping to drive
+    /// it from `Command::ButtonDown/Up`.
     pub hyperstep: bool,
     pub event: Option<StepEvent>,
 }
@@ -373,7 +381,22 @@ pub struct Page {
     pub cluster_mode: bool,
     pub mute_pattern: [bool; TRACK_COUNT],
     pub user_directions: [UserDirection; USER_DIRECTION_COUNT],
+    /// Ref: CE v5.30 p.31: "There can be multiple hypersteps in one track
+    /// (pointing to different hyped-tracks) but a hyped-track can only have
+    /// one associated hyperstep." Indexed by *hyped* track, which encodes that
+    /// one-per-hyped-track rule directly in the type (a `Some` slot can't
+    /// point at two sources at once). "Hypersteps cannot be 'nested'" (a
+    /// hyped-track can't itself contain a hyperstep) is not enforced by this
+    /// type — it's a constraint on the link-creation gesture, which is out of
+    /// scope (see `Step::hyperstep`'s doc comment).
+    pub hyperstep_links: [Option<HyperstepLink>; TRACK_COUNT],
     pub tracks: [Track; TRACK_COUNT],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HyperstepLink {
+    pub source_track: TrackIndex,
+    pub source_step: u8,
 }
 
 impl Page {
@@ -390,6 +413,7 @@ impl Page {
             cluster_mode: false,
             mute_pattern: [false; TRACK_COUNT],
             user_directions: [UserDirection::default(); USER_DIRECTION_COUNT],
+            hyperstep_links: [None; TRACK_COUNT],
             tracks,
         }
     }

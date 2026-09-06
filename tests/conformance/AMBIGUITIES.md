@@ -133,15 +133,25 @@ is never read during `fire_step`, so step events are a real data model with no
 live behaviour wired up.
 **Fixture:** none.
 
-## hyperstep carry: live vs. persisted
+## hyperstep carry: was a wrong model, now corrected
 
-**Manual reference:** none available.
-**Ambiguity:** §3 says a hyperstep carries PIT/VEL into another row "while the
-hyped step is held" — implying a temporary effect that should revert on
-release. There's no held-state model for this yet (see below).
-**Chosen:** `Engine::hyperstep_carry` writes the source step's PIT/VEL onto the
-target step's own fields directly and permanently, rather than layering a
-temporary override that reverts on release. There is also no `panel.truth.json`
-yet, so there is no real input path that could call this from a button
-hold/release pair — see `reference/NOTES.md`.
-**Fixture:** none.
+**Manual reference:** CE v5.30 §2 Step Mode, "Hypersteps", p.31.
+**Resolution:** the earlier guess (a hold-to-apply, revert-on-release
+performance gesture) was outright wrong — the manual describes hold as only
+the UI gesture to create/destroy a *persistent* link, not a temporary carry:
+"if a track is linked to a hyperstep, once the hyperstep is played, the track
+is being triggered to play at a speed corresponding to the step absolute
+length (in 1/192), and taking over the hyperstep's velocity and pitch offset
+... Changes to the hyperstep PIT and VEL will influence the hypedtrack in
+real-time." Replaced `Engine::hyperstep_carry` (which permanently copied
+values once) with `Page::hyperstep_links` (a persistent link) plus
+`Engine::hyperstep_link`/`hyperstep_unlink`, and wired live PIT/VEL
+substitution plus the 192-vs-12-tick length change into `step_one_track`.
+**Still open:** the fine-grained intermediate LEN-scaling curve (p.32,
+"Hyperstep LEN Reference" — only the confirmed binary 12↔192 boundary case is
+implemented, not the source track's own LEN-scaling interaction with it).
+Real link creation is still gated on a `ControlId` -> (track, step) mapping
+that doesn't exist yet (no `panel.truth.json`).
+**Fixture:** `engine::tests::hyperstep_linked_track_fires_every_192_ticks_not_12`,
+`::hyperstep_pit_vel_are_read_live_from_source`,
+`::hyperstep_unlink_restores_default_step_length`.

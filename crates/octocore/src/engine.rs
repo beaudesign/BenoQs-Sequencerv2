@@ -667,11 +667,10 @@ impl Engine {
         }
     }
 
-    /// PROVISIONAL combination rule — see AMBIGUITIES.md "scale grid/page
-    /// combination". `docs/03-sequencer-core.md` §3 names four documented
-    /// behaviours but only three by name ("page scale, chromatic, locked to
-    /// grid"); this resolves the missing fourth as "page overrides grid when both
-    /// are on".
+    /// Ref: CE v5.30 p.72/p.85, "Exempting pages from the grid scale": "the
+    /// GRID scale is overruled by any other scales active in particular
+    /// pages." Page scale, if enabled, always wins; see AMBIGUITIES.md "scale
+    /// grid/page combination" for the full derivation.
     fn effective_scale(&self, page: &Page) -> Option<scale::PitchClassSet> {
         if page.scale.enabled {
             Some(scale::build_scale_pitch_classes(page.scale.root as i32, &to_i32(page.scale.intervals())))

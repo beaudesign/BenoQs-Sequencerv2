@@ -71,17 +71,28 @@ descending track index). Neither is stated explicitly in the manual text.
 
 ## scale grid/page combination
 
-**Manual reference:** none available.
-**Ambiguity:** §3 says grid scale and page scale, independently on/off, produce
-"four documented behaviours (page scale, chromatic, locked to grid, and so
-on)" — naming three, not four, and not stating the combination rule for any of
-them.
-**Chosen:** `engine::Engine::effective_scale` — page scale wins if enabled,
-else grid scale if enabled, else no quantization. This reproduces exactly two
-of the three named behaviours ("page scale", and an unquantized/"chromatic"
-state) and treats "locked to grid" as equivalent to grid-only. The actual
-fourth combination (both enabled, in some way other than "page wins") is
-unimplemented.
+**Manual reference:** CE v5.30 §4 Page Mode, "Exempting pages from the grid
+scale", p.72 (repeated verbatim in §5 Grid Mode, p.85).
+**Resolution:** the original guess ("page wins if both enabled, else grid,
+else none") matches the manual's actual (terse) precedence statement almost
+exactly: "the GRID scale is overruled by any other scales active in
+particular pages. Therefore, an easy way to exempt a page from the grid scale
+is to force that page to a chromatic scale." So: page-scale-enabled always
+overrules the grid scale (including the degenerate case of a page forced to
+chromatic, which is still "a scale active on the page" per the manual's own
+phrasing, so it still technically overrules the grid even though it doesn't
+audibly quantize anything) — `engine::Engine::effective_scale`'s existing
+"page wins if enabled, else grid, else none" logic already implements this
+correctly, no code change needed. The manual does not contain a separately
+enumerated "four documented behaviours" table beyond this one precedence rule
+— that phrasing was this crate's own gloss on the rule, not a manual quote.
+**Also confirmed while reading this section (CE v5.30 p.71):** the *default*
+scale state (before any user edit) is chromatic-C (all 12 pitch classes), not
+a 7-note major scale — "the chromatic C scale is currently active... all
+notes are selected in the scale, and... C is the base tone." Fixed via
+`ScaleForce::chromatic`, now used as the default in `Page::default_page` and
+`Grid::default_grid` (`ScaleForce::major` remains available for when a real
+"select Major from the outer circle" feature is built).
 **Fixture:** `engine::tests::scale_quantization_pulls_pitch_into_scale`
 (page-scale-only case only).
 

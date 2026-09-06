@@ -337,6 +337,20 @@ impl ScaleForce {
         ScaleForce { enabled: false, locked: false, root, intervals, interval_count: 7 }
     }
 
+    /// Ref: CE v5.30 §4 Page Mode, "Musical scales", p.71: "Coming from the
+    /// default state... all scale notes light up, with the exception of upper
+    /// C... What you see here is that all notes are selected in the scale, and
+    /// that C is the base tone of this scale... the chromatic C scale is
+    /// currently active." The starting scale for a fresh page/grid is
+    /// chromatic-C (all 12 pitch classes), not a 7-note major scale.
+    pub fn chromatic(root: u8) -> Self {
+        let mut intervals = [0i8; MAX_SCALE_INTERVALS];
+        for (i, slot) in intervals.iter_mut().enumerate().take(12) {
+            *slot = i as i8;
+        }
+        ScaleForce { enabled: false, locked: false, root, intervals, interval_count: 12 }
+    }
+
     pub fn intervals(&self) -> &[i8] {
         &self.intervals[..self.interval_count as usize]
     }
@@ -364,7 +378,7 @@ impl Page {
             pitch_offset: 0,
             velocity_factor: 8,
             length: STEP_COUNT as u8,
-            scale: ScaleForce::major(60),
+            scale: ScaleForce::chromatic(60),
             cluster_mode: false,
             mute_pattern: [false; TRACK_COUNT],
             user_directions: [UserDirection::default(); USER_DIRECTION_COUNT],
@@ -601,7 +615,7 @@ impl Grid {
             mode: Mode::Grid,
             routing_mode: RoutingMode::Octopus,
             fixed_routing: FixedRouting::default(),
-            global_scale: ScaleForce::major(0),
+            global_scale: ScaleForce::chromatic(0),
             phrases: [Phrase::default(); PHRASE_COUNT],
             banks,
         }

@@ -117,14 +117,14 @@ pub enum ChainBase {
     Head,
 }
 
-/// The effector role (docs/03-sequencer-core.md §3, "The effector"). Track 0 can
-/// never be a feeder — enforced where roles are assigned, not in this type.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TrackRole {
-    None,
-    Feeder,
-    Listener,
-}
+// Effector role: `Track::is_feeder`/`is_listener`, two independent bools rather
+// than a single enum. Ref: CE v5.30 p.59, "Feeders, Listeners and Listening
+// Feeders": "A track may also be both a listener and a feeder, which we call a
+// listening feeder" — a 3-variant None/Feeder/Listener enum can't express that
+// state at all, which is exactly the state the Listener Step Mask and the
+// post-modulation-publish rule below depend on. Track 0 can never be a feeder
+// (p.60: "track 0 cannot modulate any other track") — enforced where roles are
+// assigned, not in this type.
 
 /// Track-level MCC attribute: which CC the track emits, or one of the two special
 /// channel-wide targets. `docs/03-sequencer-core.md` §3 "MCC".
@@ -247,7 +247,8 @@ pub struct Track {
     pub muted: bool,
     pub soloed: bool,
     pub record_armed: bool,
-    pub role: TrackRole,
+    pub is_feeder: bool,
+    pub is_listener: bool,
     pub chain_head: Option<TrackIndex>,
     pub chain_members: [Option<TrackIndex>; CHAIN_MEMBERS_MAX],
     pub chain_member_count: u8,
@@ -299,7 +300,8 @@ impl Track {
             muted: false,
             soloed: false,
             record_armed: false,
-            role: TrackRole::None,
+            is_feeder: false,
+            is_listener: false,
             chain_head: None,
             chain_members: [None; CHAIN_MEMBERS_MAX],
             chain_member_count: 0,

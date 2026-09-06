@@ -34,12 +34,16 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
             }
             ["track", t, "role", role] => {
                 let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
-                engine.grid.active_page_mut().tracks[ti].role = match *role {
-                    "feeder" => TrackRole::Feeder,
-                    "listener" => TrackRole::Listener,
-                    "none" => TrackRole::None,
+                let track = &mut engine.grid.active_page_mut().tracks[ti];
+                let (feeder, listener) = match *role {
+                    "feeder" => (true, false),
+                    "listener" => (false, true),
+                    "both" => (true, true),
+                    "none" => (false, false),
                     other => return Err(format!("{}: unknown role `{}`", ctx(), other)),
                 };
+                track.is_feeder = feeder;
+                track.is_listener = listener;
             }
             ["track", t, "step", s, attr, value] => {
                 let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
@@ -102,4 +106,37 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ref: CE v5.30 p.59, "a track may also be both a listener and a feeder,
+    /// which we call a listening feeder" — the `role` directive's `both` value
+    /// exercises exactly the state a single Feeder/Listener/None enum couldn't
+    /// express (see domain.rs's TrackRole -> is_feeder/is_listener split).
+    /// `run_fixture` only returns pass/fail, not the engine, so this drives the
+    /// same directive syntax through a fixture: track 9 and track 5 are both
+    /// independent feeders of track 0 (the effector sums *every* feeder above a
+    /// listener, not just the nearest one), so track 0 sees +3 (from 9) + +1
+    /// (from 5's own raw step) = +4 at this point in the series. Once the
+    /// post-modulation-publish fix lands (a later commit), track 5 — itself a
+    /// listener of track 9 too — will forward its *modulated* value instead of
+    /// its raw one, and this expectation will need updating; that's the whole
+    /// point of the fixture that commit adds.
+    #[test]
+    fn role_both_receives_and_publishes() {
+        let fixture = "\
+            seed 1\n\
+            page.tracks 9,5,0 enabled\n\
+            track 9 role feeder\n\
+            track 5 role both\n\
+            track 0 role listener\n\
+            track 9 step 0 pit +3\n\
+            track 5 step 0 pit +1\n\
+            play 1 step\n\
+            expect note track=0 pit=+4\n";
+        run_fixture(fixture).unwrap();
+    }
 }

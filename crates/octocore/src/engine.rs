@@ -421,7 +421,7 @@ impl Engine {
         let mut feed_vel = 0i32;
         let mut feed_len = 0i32;
         for j in (ti as usize + 1)..TRACK_COUNT {
-            if matches!(page.tracks[j].role, TrackRole::Feeder) {
+            if page.tracks[j].is_feeder {
                 let f = &self.track_rt[j];
                 feed_pit += f.feed_pitch as i32;
                 feed_vel += f.feed_velocity as i32;

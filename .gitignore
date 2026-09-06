@@ -2,7 +2,10 @@
 
 # Ableton build artifacts / local backups
 Octopus.amxd.bak-template
-.claude/
+
+# Claude Code local-only state (not .claude/ wholesale — .claude/skills/ etc.
+# are project-shared and belong in git)
+.claude/settings.local.json
 
 # Common temp
 *.tmp

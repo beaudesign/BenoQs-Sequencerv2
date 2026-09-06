@@ -20,7 +20,7 @@ Read this file completely before doing anything. It is short on purpose.
 
 ---
 
-## The eight things that get people in trouble here
+## The nine things that get people in trouble here
 
 **1. Working outside your zone.**
 `docs/08-agent-operating-model.md §3` has the ownership map. If you need a change
@@ -55,6 +55,14 @@ contract. Add the number.
 **8. Committing a big change.**
 Commit every 30 minutes of work. Put the gate numbers in the message. See
 `docs/08-agent-operating-model.md §6`.
+
+**9. Committing without pushing.**
+A commit that stays local is invisible to everyone but you — the human
+tracks progress through GitHub, not your working tree. This has already gone
+wrong once: a long session made 22 commits and pushed none of them until
+asked, and from the outside it looked like nothing had happened at all. Push
+after every commit (or small batch of them), and before you report a
+summary or go quiet for a while. See the `commit-and-push` skill.
 
 ---
 

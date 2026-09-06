@@ -104,6 +104,171 @@ pub unsafe extern "C" fn octocore_engine_is_running(engine: *const Engine) -> bo
     }
 }
 
+// --- Grid-mutation surface ---
+//
+// This doesn't need panel.truth.json's ControlId scheme at all — that's for
+// *physical actuation* events (a button/encoder somewhere on the panel),
+// which this crate has no coordinate system for yet. Programming a pattern
+// is a purely logical operation (track N, step M, this attribute, this
+// value) that a test harness, a Swift data-entry UI, or anything else can
+// perform without knowing where a control lives on the panel. Everything
+// crosses as `i32`: it covers every field type here (`u8`/`i8`/`bool`)
+// without precision loss, and keeps the C surface to one setter/one getter
+// per (Track|Step) rather than one function per field.
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OctoTrackAttr {
+    Pitch,
+    Velocity,
+    LengthFactor,
+    StartFactor,
+    DirectionRaw,
+    Rotation,
+    Amount,
+    Groove,
+    MidiChannel,
+    Muted,
+    Soloed,
+    Paused,
+    RecordArmed,
+    IsFeeder,
+    IsListener,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OctoStepAttr {
+    Active,
+    Skip,
+    PitchOffset,
+    VelocityOffset,
+    LengthTicks,
+    LengthMultiplier,
+    StartOffset,
+    Amount,
+    Strum,
+    Hyperstep,
+}
+
+/// Returns `false` (and does nothing / returns 0) for an out-of-range
+/// `track`/`step` index rather than panicking — the same "caller mistake is
+/// a no-op, not a crash" contract as the rest of this boundary.
+fn track_in_range(track: u8) -> bool {
+    (track as usize) < octocore::domain::TRACK_COUNT
+}
+fn step_in_range(step: u8) -> bool {
+    (step as usize) < octocore::domain::STEP_COUNT
+}
+
+/// # Safety
+/// `engine` must be a live pointer from `octocore_engine_new`.
+#[no_mangle]
+pub unsafe extern "C" fn octocore_track_set_i32(engine: *mut Engine, track: u8, attr: OctoTrackAttr, value: i32) -> bool {
+    let Some(engine) = engine.as_mut() else { return false };
+    if !track_in_range(track) {
+        return false;
+    }
+    let t = &mut engine.grid.active_page_mut().tracks[track as usize];
+    match attr {
+        OctoTrackAttr::Pitch => t.pitch = value.clamp(0, 127) as u8,
+        OctoTrackAttr::Velocity => t.velocity = value.clamp(0, 127) as u8,
+        OctoTrackAttr::LengthFactor => t.length_factor = value.clamp(0, 16) as u8,
+        OctoTrackAttr::StartFactor => t.start_factor = value.clamp(0, 16) as u8,
+        OctoTrackAttr::DirectionRaw => t.direction_raw = value.clamp(1, 16) as u8,
+        OctoTrackAttr::Rotation => t.rotation = value.clamp(0, 255) as u8,
+        OctoTrackAttr::Amount => t.amount = value.clamp(-128, 127) as i8,
+        OctoTrackAttr::Groove => t.groove = value.clamp(0, 16) as u8,
+        OctoTrackAttr::MidiChannel => t.midi_channel = value.clamp(1, 32) as u8,
+        OctoTrackAttr::Muted => t.muted = value != 0,
+        OctoTrackAttr::Soloed => t.soloed = value != 0,
+        OctoTrackAttr::Paused => t.paused = value != 0,
+        OctoTrackAttr::RecordArmed => t.record_armed = value != 0,
+        OctoTrackAttr::IsFeeder => t.is_feeder = value != 0,
+        OctoTrackAttr::IsListener => t.is_listener = value != 0,
+    }
+    true
+}
+
+/// # Safety
+/// `engine` must be a live pointer from `octocore_engine_new`. Returns 0 for
+/// an out-of-range `track` — indistinguishable from a real 0 value; callers
+/// that need to tell these apart should validate `track` themselves first
+/// (it's always `< 10`).
+#[no_mangle]
+pub unsafe extern "C" fn octocore_track_get_i32(engine: *const Engine, track: u8, attr: OctoTrackAttr) -> i32 {
+    let Some(engine) = engine.as_ref() else { return 0 };
+    if !track_in_range(track) {
+        return 0;
+    }
+    let t = &engine.grid.active_page().tracks[track as usize];
+    match attr {
+        OctoTrackAttr::Pitch => t.pitch as i32,
+        OctoTrackAttr::Velocity => t.velocity as i32,
+        OctoTrackAttr::LengthFactor => t.length_factor as i32,
+        OctoTrackAttr::StartFactor => t.start_factor as i32,
+        OctoTrackAttr::DirectionRaw => t.direction_raw as i32,
+        OctoTrackAttr::Rotation => t.rotation as i32,
+        OctoTrackAttr::Amount => t.amount as i32,
+        OctoTrackAttr::Groove => t.groove as i32,
+        OctoTrackAttr::MidiChannel => t.midi_channel as i32,
+        OctoTrackAttr::Muted => t.muted as i32,
+        OctoTrackAttr::Soloed => t.soloed as i32,
+        OctoTrackAttr::Paused => t.paused as i32,
+        OctoTrackAttr::RecordArmed => t.record_armed as i32,
+        OctoTrackAttr::IsFeeder => t.is_feeder as i32,
+        OctoTrackAttr::IsListener => t.is_listener as i32,
+    }
+}
+
+/// # Safety
+/// `engine` must be a live pointer from `octocore_engine_new`.
+#[no_mangle]
+pub unsafe extern "C" fn octocore_step_set_i32(engine: *mut Engine, track: u8, step: u8, attr: OctoStepAttr, value: i32) -> bool {
+    let Some(engine) = engine.as_mut() else { return false };
+    if !track_in_range(track) || !step_in_range(step) {
+        return false;
+    }
+    let s = &mut engine.grid.active_page_mut().tracks[track as usize].steps[step as usize];
+    match attr {
+        OctoStepAttr::Active => s.active = value != 0,
+        OctoStepAttr::Skip => s.skip = value != 0,
+        OctoStepAttr::PitchOffset => s.pitch_offset = value.clamp(-128, 127) as i8,
+        OctoStepAttr::VelocityOffset => s.velocity_offset = value.clamp(-128, 127) as i8,
+        OctoStepAttr::LengthTicks => s.length_ticks = value.clamp(1, 192) as u8,
+        OctoStepAttr::LengthMultiplier => s.length_multiplier = value.clamp(1, 8) as u8,
+        OctoStepAttr::StartOffset => s.start_offset = value.clamp(-5, 5) as i8,
+        OctoStepAttr::Amount => s.amount = value.clamp(-128, 127) as i8,
+        OctoStepAttr::Strum => s.strum = value.clamp(-9, 9) as i8,
+        OctoStepAttr::Hyperstep => s.hyperstep = value != 0,
+    }
+    true
+}
+
+/// # Safety
+/// `engine` must be a live pointer from `octocore_engine_new`. Same
+/// out-of-range convention as `octocore_track_get_i32`.
+#[no_mangle]
+pub unsafe extern "C" fn octocore_step_get_i32(engine: *const Engine, track: u8, step: u8, attr: OctoStepAttr) -> i32 {
+    let Some(engine) = engine.as_ref() else { return 0 };
+    if !track_in_range(track) || !step_in_range(step) {
+        return 0;
+    }
+    let s = &engine.grid.active_page().tracks[track as usize].steps[step as usize];
+    match attr {
+        OctoStepAttr::Active => s.active as i32,
+        OctoStepAttr::Skip => s.skip as i32,
+        OctoStepAttr::PitchOffset => s.pitch_offset as i32,
+        OctoStepAttr::VelocityOffset => s.velocity_offset as i32,
+        OctoStepAttr::LengthTicks => s.length_ticks as i32,
+        OctoStepAttr::LengthMultiplier => s.length_multiplier as i32,
+        OctoStepAttr::StartOffset => s.start_offset as i32,
+        OctoStepAttr::Amount => s.amount as i32,
+        OctoStepAttr::Strum => s.strum as i32,
+        OctoStepAttr::Hyperstep => s.hyperstep as i32,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,6 +302,64 @@ mod tests {
             // in octocore already covers properly over many buffers. This test
             // is about the FFI plumbing (no crash, no garbage pointer writes),
             // not the sequencing logic.
+
+            octocore_engine_free(e);
+        }
+    }
+
+    #[test]
+    fn track_and_step_set_get_round_trip() {
+        let e = octocore_engine_new(1);
+        unsafe {
+            assert!(octocore_track_set_i32(e, 3, OctoTrackAttr::Pitch, 60));
+            assert_eq!(octocore_track_get_i32(e, 3, OctoTrackAttr::Pitch), 60);
+            assert!(octocore_track_set_i32(e, 3, OctoTrackAttr::Muted, 1));
+            assert_eq!(octocore_track_get_i32(e, 3, OctoTrackAttr::Muted), 1);
+
+            assert!(octocore_step_set_i32(e, 3, 5, OctoStepAttr::Active, 1));
+            assert!(octocore_step_set_i32(e, 3, 5, OctoStepAttr::PitchOffset, -7));
+            assert_eq!(octocore_step_get_i32(e, 3, 5, OctoStepAttr::Active), 1);
+            assert_eq!(octocore_step_get_i32(e, 3, 5, OctoStepAttr::PitchOffset), -7);
+
+            // A different step on the same track is untouched.
+            assert_eq!(octocore_step_get_i32(e, 3, 6, OctoStepAttr::Active), 0);
+
+            octocore_engine_free(e);
+        }
+    }
+
+    #[test]
+    fn out_of_range_indices_are_a_no_op_not_a_crash() {
+        let e = octocore_engine_new(1);
+        unsafe {
+            assert!(!octocore_track_set_i32(e, 200, OctoTrackAttr::Pitch, 60));
+            assert_eq!(octocore_track_get_i32(e, 200, OctoTrackAttr::Pitch), 0);
+            assert!(!octocore_step_set_i32(e, 0, 200, OctoStepAttr::Active, 1));
+            assert_eq!(octocore_step_get_i32(e, 0, 200, OctoStepAttr::Active), 0);
+            octocore_engine_free(e);
+        }
+    }
+
+    /// Programming a pattern purely through the FFI surface (no direct
+    /// `octocore` struct access, unlike the other tests here) and confirming
+    /// it actually plays — proves the Grid-mutation surface is sufficient on
+    /// its own to drive real playback, not just store values nobody reads.
+    #[test]
+    fn a_pattern_programmed_entirely_through_ffi_actually_plays() {
+        let e = octocore_engine_new(1);
+        unsafe {
+            assert!(octocore_track_set_i32(e, 0, OctoTrackAttr::Pitch, 60));
+            assert!(octocore_step_set_i32(e, 0, 0, OctoStepAttr::Active, 1));
+            assert!(octocore_step_set_i32(e, 0, 0, OctoStepAttr::PitchOffset, 3));
+            octocore_engine_handle_command(e, Command::Play);
+
+            let params = OctoRenderParams { sample_rate: 48_000.0, buffer_len: 4096, bpm: 120.0, playing: true };
+            let mut events = [Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }; 64];
+            let mut count: usize = 0;
+            octocore_engine_render(e, params, events.as_mut_ptr(), events.len(), &mut count);
+
+            let has_note_on_63 = events[..count].iter().any(|ev| matches!(ev, Event::NoteOn { note: 63, .. }));
+            assert!(has_note_on_63, "expected a NoteOn at 60+3=63 from the pattern programmed via FFI; got {:?}", &events[..count]);
 
             octocore_engine_free(e);
         }

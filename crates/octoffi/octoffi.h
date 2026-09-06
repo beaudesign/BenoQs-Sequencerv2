@@ -82,6 +82,51 @@ int32_t octocore_engine_render(OctoEngine *engine, OctoRenderParams params,
                                 size_t *out_count);
 bool octocore_engine_is_running(const OctoEngine *engine);
 
+// --- Grid-mutation surface ---
+// Logical (track, step) addressing, not a physical panel ControlId — see
+// lib.rs's module comment on why this doesn't need panel.truth.json.
+// track is always < 10, step < 16 (octocore::domain::TRACK_COUNT/STEP_COUNT).
+
+typedef enum {
+    OCTO_TRACK_PITCH = 0,
+    OCTO_TRACK_VELOCITY,
+    OCTO_TRACK_LENGTH_FACTOR,
+    OCTO_TRACK_START_FACTOR,
+    OCTO_TRACK_DIRECTION_RAW,
+    OCTO_TRACK_ROTATION,
+    OCTO_TRACK_AMOUNT,
+    OCTO_TRACK_GROOVE,
+    OCTO_TRACK_MIDI_CHANNEL,
+    OCTO_TRACK_MUTED,
+    OCTO_TRACK_SOLOED,
+    OCTO_TRACK_PAUSED,
+    OCTO_TRACK_RECORD_ARMED,
+    OCTO_TRACK_IS_FEEDER,
+    OCTO_TRACK_IS_LISTENER,
+} OctoTrackAttr;
+
+typedef enum {
+    OCTO_STEP_ACTIVE = 0,
+    OCTO_STEP_SKIP,
+    OCTO_STEP_PITCH_OFFSET,
+    OCTO_STEP_VELOCITY_OFFSET,
+    OCTO_STEP_LENGTH_TICKS,
+    OCTO_STEP_LENGTH_MULTIPLIER,
+    OCTO_STEP_START_OFFSET,
+    OCTO_STEP_AMOUNT,
+    OCTO_STEP_STRUM,
+    OCTO_STEP_HYPERSTEP,
+} OctoStepAttr;
+
+// All setters return false (a no-op) for an out-of-range track/step index
+// rather than crashing. All getters return 0 in that case too, which is
+// indistinguishable from a real 0 — validate track < 10 / step < 16
+// yourself first if that matters.
+bool octocore_track_set_i32(OctoEngine *engine, uint8_t track, OctoTrackAttr attr, int32_t value);
+int32_t octocore_track_get_i32(const OctoEngine *engine, uint8_t track, OctoTrackAttr attr);
+bool octocore_step_set_i32(OctoEngine *engine, uint8_t track, uint8_t step, OctoStepAttr attr, int32_t value);
+int32_t octocore_step_get_i32(const OctoEngine *engine, uint8_t track, uint8_t step, OctoStepAttr attr);
+
 #ifdef __cplusplus
 }
 #endif

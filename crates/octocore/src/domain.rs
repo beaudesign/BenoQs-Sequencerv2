@@ -197,13 +197,45 @@ pub enum ToggleKind {
     Pause,
 }
 
+/// The seven attributes whose step events walk a map factor rather than the
+/// track value itself. Ref: CE v5.30 p.34.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MapAttr {
+    Vel = 0,
+    Pit = 1,
+    Len = 2,
+    Sta = 3,
+    Amt = 4,
+    Grv = 5,
+    Mcc = 6,
+}
+
+impl MapAttr {
+    pub const COUNT: usize = 7;
+
+    pub fn index(self) -> usize {
+        self as usize
+    }
+
+    /// Persisted display-style factor (0..=16, 8 = Neutral) for this attr.
+    /// LEN/STA reuse `Track::length_factor` / `start_factor` (p.53: those
+    /// track attributes *are* the map factors).
+    pub fn base_factor(self, track: &Track) -> u8 {
+        match self {
+            MapAttr::Vel => track.vel_map_factor,
+            MapAttr::Pit => track.pit_map_factor,
+            MapAttr::Len => track.length_factor,
+            MapAttr::Sta => track.start_factor,
+            MapAttr::Amt => track.amt_map_factor,
+            MapAttr::Grv => track.grv_map_factor,
+            MapAttr::Mcc => track.mcc_map_factor,
+        }
+    }
+}
+
 /// Ref: CE v5.30 p.34: "for the DIR, POS, and MCH events the track attribute
 /// value changes, while in the case of the other attributes... what changes
-/// is really the attribute map factor" — only the DIR/POS/MCH family
-/// (absolute-value events) and Track Toggle events are implemented here; the
-/// attribute-map-factor family (VEL/PIT/LEN/STA/AMT/GRV/MCC step events) is
-/// deliberately not — see AMBIGUITIES.md "step events: attribute map-factor
-/// sub-system".
+/// is really the attribute map factor".
 #[derive(Clone, Copy, Debug)]
 pub enum StepEventKind {
     /// Ref p.34: "Attributes DIR, POS & MCH are absolute, i.e. if DIR is 6 a
@@ -239,6 +271,12 @@ pub enum StepEventKind {
     /// Ref p.39, "Track Skip Rotate": rotates only the skip condition, not
     /// full step data. Wired through `Track::rotate_skips`.
     TrackSkipRotate { amt: i8 },
+    /// Ref p.34-37: walks the named attribute's map factor on the event's
+    /// own track. `amt` is the change per firing (signed; 0 resets).
+    /// `range` is the event interval (0..=16); wrap modulus is `range + 1`
+    /// (p.37's range-3 example visits four rows). Clamped at fire time to
+    /// `available_event_range(base)` = `17 - factor` (p.36).
+    ScaleMap { attr: MapAttr, amt: i8, range: u8 },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -246,7 +284,7 @@ pub struct StepEvent {
     /// Meaningful only for `SetDir`/`SetPos`/`SetMch`, which target another
     /// track explicitly. `TrackToggle` computes its own target(s) from its
     /// `amt`/`range` fields instead (Ref p.39); `TrackRotate`/`TrackSkipRotate`
-    /// apply to the event's own track and ignore this field entirely.
+    /// and `ScaleMap` apply to the event's own track and ignore this field.
     pub target_track: TrackIndex,
     pub kind: StepEventKind,
 }
@@ -277,9 +315,8 @@ pub struct Step {
     /// Ref: CE v5.30 p.17, "Step phrase time compression (POS)": "The POS
     /// value will become visible as soon as a phrase is selected... A value
     /// of 8 is neutral. Values lower than 8 will speedup the playback of the
-    /// phrase, while values greater than 8 will slow down." Stored and
-    /// defaulted; the p.30 remapping table is not applied yet — see
-    /// AMBIGUITIES.md "phrase POS time compression".
+    /// phrase, while values greater than 8 will slow down." Applied in
+    /// `fire_step` via `tables::scale_phrase_sta`.
     pub phrase_pos: u8,
     /// MCC at step level: the value this step emits on the track's configured CC
     /// (or bend/pressure target).
@@ -331,8 +368,17 @@ pub struct Track {
     pub pitch: u8,
     pub velocity: u8,
     /// Neutral = 8 (v1 `len_factor`/`sta_factor`; the tick loop treats 8 as ×1.0).
+    /// These *are* the LEN/STA map factors (Ref p.53).
     pub length_factor: u8,
     pub start_factor: u8,
+    /// Display-style map factors 0..=16, Neutral 8. Walked live by
+    /// `StepEventKind::ScaleMap`; only the runtime walk reverts on stop.
+    /// Ref: CE v5.30 p.34-37, p.53.
+    pub vel_map_factor: u8,
+    pub pit_map_factor: u8,
+    pub amt_map_factor: u8,
+    pub grv_map_factor: u8,
+    pub mcc_map_factor: u8,
     pub direction_raw: u8,
     /// POS attribute: a static rotation/phase offset added to the runtime step
     /// cursor before indexing into `steps` (docs §2: "track rotation / phase").
@@ -470,6 +516,11 @@ impl Track {
             velocity: 100,
             length_factor: 8,
             start_factor: 8,
+            vel_map_factor: 8,
+            pit_map_factor: 8,
+            amt_map_factor: 8,
+            grv_map_factor: 8,
+            mcc_map_factor: 8,
             direction_raw: 1,
             rotation: 0,
             amount: 0,

@@ -38,6 +38,11 @@ enum DeferredAction {
     AddMch(i8),
     ToggleOn(ToggleKind),
     ToggleOff(ToggleKind),
+    /// Ref: CE v5.30 p.38-39. Applied to the event's own track (`source`),
+    /// not via AMT-as-target — AMT's sign/magnitude is the rotate direction
+    /// and distance, not a track index.
+    Rotate(i8),
+    SkipRotate(i8),
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -761,6 +766,46 @@ impl Engine {
             }
         }
 
+        // Ref: CE v5.30 p.16, "Step phrasing (GRV)": "A Step may be enriched
+        // at playtime by a certain amount of notes determined by phrases."
+        // p.27: phrase #0 "has no effect, i.e. plays the step as is" — so the
+        // step's own note (already scheduled above) always fires, and a
+        // selected phrase adds extras. Phrase PIT/VEL/LEN/STA are offsets on
+        // top of the step's already-resolved values. Phrase POS compression
+        // (p.17 / p.30) is not applied yet — extras use raw `start_ticks`.
+        // Chord + phrase together: extras are scheduled from `final_pit`
+        // only, not per chord tone (chosen; p.23 warns GRV "will not function
+        // as expected" on random-rest steps, and says nothing about chords).
+        if let Some(phrase_idx_1based) = step.phrase {
+            if phrase_idx_1based > 0 {
+                let idx = phrase_idx_1based.saturating_sub(1);
+                let (phrase_notes, poly) = self.resolve_phrase(idx);
+                let mut fired = 0usize;
+                for note in phrase_notes {
+                    if !note.enabled {
+                        continue;
+                    }
+                    if fired >= poly {
+                        break;
+                    }
+                    fired += 1;
+                    let extra_pit = clamp_midi(final_pit as i32 + note.pitch_offset as i32);
+                    let extra_pit = if let Some(pcs) = effective_scale {
+                        scale::quantize_to_scale(extra_pit, pcs)
+                    } else {
+                        extra_pit
+                    };
+                    let extra_vel = clamp_midi(final_vel as i32 + note.velocity_offset as i32);
+                    let extra_len = (final_len_ticks as i32 + note.length_ticks as i32).clamp(1, 192 * 8);
+                    let extra_start = on_tick_offset + note.start_ticks as i32;
+                    self.last_tick_fires.push(NoteFire { track: ti, pitch: extra_pit, velocity: extra_vel });
+                    let due = tick_due_sample + extra_start as f64 * samples_per_tick;
+                    self.schedule(due, RawEvent::NoteOn { port, ch, note: extra_pit, vel: extra_vel });
+                    self.schedule(due + extra_len as f64 * samples_per_tick, RawEvent::NoteOff { port, ch, note: extra_pit });
+                }
+            }
+        }
+
         if let Some(step_mcc) = step.mcc_value {
             let due = tick_due_sample + on_tick_offset as f64 * samples_per_tick;
             if let Mcc::Cc(cc) = base_track.mcc {
@@ -911,6 +956,12 @@ impl Engine {
                 // of deferred_actions — by the time this runs, that decision
                 // has already been made.
             }
+            DeferredAction::Rotate(amt) => {
+                self.grid.active_page_mut().tracks[target as usize].rotate_steps(amt);
+            }
+            DeferredAction::SkipRotate(amt) => {
+                self.grid.active_page_mut().tracks[target as usize].rotate_skips(amt);
+            }
         }
     }
 
@@ -919,7 +970,7 @@ impl Engine {
     /// the next tick. `Ref: CE v5.30 p.34-40` — see `deferred_actions`' doc
     /// comment for why every target defers uniformly rather than the manual's
     /// same-tick/next-tick split.
-    fn queue_step_event(&mut self, _source: TrackIndex, ev: StepEvent) {
+    fn queue_step_event(&mut self, source: TrackIndex, ev: StepEvent) {
         match ev.kind {
             StepEventKind::SetDir(delta) => self.deferred_actions[ev.target_track as usize] = Some(DeferredAction::AddDir(delta)),
             StepEventKind::SetPos(delta) => self.deferred_actions[ev.target_track as usize] = Some(DeferredAction::AddPos(delta)),
@@ -951,9 +1002,19 @@ impl Engine {
                     }
                 }
             }
-            // Ref p.38-39: whole-track step-data rotation, not a per-target
-            // toggle — data model only, not implemented. See AMBIGUITIES.md.
-            StepEventKind::TrackRotate { .. } | StepEventKind::TrackSkipRotate { .. } => {}
+            // Ref p.38-39: applies to the event's own track. AMT is
+            // direction/distance (p.39: positive = forward, negative =
+            // backward), not a target-track index like Mute/Solo.
+            StepEventKind::TrackRotate { amt } => {
+                if amt != 0 {
+                    self.deferred_actions[source as usize] = Some(DeferredAction::Rotate(amt));
+                }
+            }
+            StepEventKind::TrackSkipRotate { amt } => {
+                if amt != 0 {
+                    self.deferred_actions[source as usize] = Some(DeferredAction::SkipRotate(amt));
+                }
+            }
         }
     }
 
@@ -1619,5 +1680,162 @@ mod tests {
             engine.step_once_for_test();
         }
         assert_eq!(engine.track_rt[0].pos, 2, "0% certainty must always go backward");
+    }
+
+    /// Ref: CE v5.30 p.16 / p.27. Phrase #0 (None) plays the step as-is; a
+    /// selected phrase *enriches* it — base note plus programmed extras.
+    #[test]
+    fn phrase_on_step_fires_base_plus_enabled_extras() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].pitch = 60;
+        engine.grid.active_page_mut().tracks[0].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[0].steps[0].phrase = Some(1);
+        let mut phrase = Phrase::default();
+        phrase.notes[0].enabled = true;
+        phrase.notes[0].pitch_offset = 7;
+        phrase.notes[0].start_ticks = 0;
+        phrase.notes[1].enabled = true;
+        phrase.notes[1].pitch_offset = 12;
+        phrase.notes[1].start_ticks = 24;
+        phrase.notes[2].enabled = false;
+        phrase.notes[2].pitch_offset = 99;
+        phrase.polyphony = 8;
+        engine.grid.phrases[0] = phrase;
+
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        let mut pitches: Vec<u8> = engine.last_tick_fires.as_slice().iter().filter(|f| f.track == 0).map(|f| f.pitch).collect();
+        pitches.sort_unstable();
+        assert_eq!(pitches, vec![60, 67, 72], "base 60 plus extras +7 and +12; disabled +99 must not fire");
+    }
+
+    /// Ref: CE v5.30 p.23. Phrase polyphony limits how many of the enabled
+    /// extras actually fire (on top of the base note).
+    #[test]
+    fn phrase_polyphony_limits_extra_notes() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].pitch = 60;
+        engine.grid.active_page_mut().tracks[0].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[0].steps[0].phrase = Some(1);
+        let mut phrase = Phrase::default();
+        for (i, note) in phrase.notes.iter_mut().enumerate() {
+            note.enabled = true;
+            note.pitch_offset = (i as i8 + 1) * 2;
+        }
+        phrase.polyphony = 1;
+        engine.grid.phrases[0] = phrase;
+
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        let extras: Vec<u8> = engine
+            .last_tick_fires
+            .as_slice()
+            .iter()
+            .filter(|f| f.track == 0 && f.pitch != 60)
+            .map(|f| f.pitch)
+            .collect();
+        assert_eq!(extras.len(), 1, "polyphony 1 must fire exactly one extra on top of the base; got {:?}", extras);
+        assert_eq!(extras[0], 62, "forward type + poly 1 takes the first enabled extra (+2)");
+    }
+
+    /// Phrase extras are real scheduled MIDI, not just FireLog entries — STA
+    /// delay must show up as a later `at_sample` than the base note.
+    #[test]
+    fn phrase_sta_delays_the_extra_note() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].pitch = 60;
+        engine.grid.active_page_mut().tracks[0].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[0].steps[0].phrase = Some(1);
+        let mut phrase = Phrase::default();
+        phrase.notes[0].enabled = true;
+        phrase.notes[0].pitch_offset = 4;
+        phrase.notes[0].start_ticks = 24;
+        engine.grid.phrases[0] = phrase;
+
+        let ctx = RenderContext { sample_rate: 48_000.0, buffer_len: 512, bpm: 120.0, playing: true };
+        let mut base_abs = None;
+        let mut extra_abs = None;
+        for buf_i in 0..40u32 {
+            let mut out = EventBuffer::new();
+            engine.render(&ctx, &mut out);
+            let origin = buf_i * ctx.buffer_len;
+            for e in out.as_slice() {
+                if let Event::NoteOn { note: 60, at_sample, .. } = *e {
+                    base_abs = Some(origin + at_sample);
+                }
+                if let Event::NoteOn { note: 64, at_sample, .. } = *e {
+                    extra_abs = Some(origin + at_sample);
+                }
+            }
+            if base_abs.is_some() && extra_abs.is_some() {
+                break;
+            }
+        }
+        let base_abs = base_abs.expect("base note 60 should have fired");
+        let extra_abs = extra_abs.expect("phrase extra 64 should have fired");
+        // 120 bpm / 192 PPQN / 48 kHz ≈ 125 samples/tick; 24 ticks ≈ 3000 samples.
+        let delta = extra_abs as i32 - base_abs as i32;
+        assert!(
+            (2800..=3200).contains(&delta),
+            "expected ~3000-sample STA delay, got extra={extra_abs} base={base_abs} delta={delta}"
+        );
+    }
+
+    /// Ref: CE v5.30 p.38-39. A Track Rotate event on the source track moves
+    /// that track's step data (next-tick, same as every other step event).
+    #[test]
+    fn track_rotate_event_moves_step_data_next_tick() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[5].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[5].steps[0].pitch_offset = 3;
+        engine.grid.active_page_mut().tracks[5].steps[0].event = Some(StepEvent {
+            target_track: 5,
+            kind: StepEventKind::TrackRotate { amt: 1 },
+        });
+        engine.grid.active_page_mut().tracks[5].steps[1].active = true;
+        engine.grid.active_page_mut().tracks[5].steps[1].pitch_offset = 7;
+        // p.38 rotates *all* steps except skip/hyperstep/mask — skip the
+        // unused tail so the rotatable set is exactly {0, 1}.
+        for step in engine.grid.active_page_mut().tracks[5].steps[2..].iter_mut() {
+            step.skip = true;
+        }
+
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        assert_eq!(engine.grid.active_page().tracks[5].steps[0].pitch_offset, 3, "rotate is deferred to the next tick");
+        engine.step_once_for_test();
+        assert_eq!(engine.grid.active_page().tracks[5].steps[0].pitch_offset, 7);
+        assert_eq!(engine.grid.active_page().tracks[5].steps[1].pitch_offset, 3);
+    }
+
+    /// Ref: CE v5.30 p.45. Direction 4 is Brownian: "2/3 probability forward,
+    /// 1/3 probability reverse play."
+    #[test]
+    fn brownian_is_biased_two_thirds_forward() {
+        let mut forward = 0u32;
+        let mut backward = 0u32;
+        for seed in 0..400u64 {
+            let mut engine = Engine::new(seed);
+            engine.grid.active_page_mut().tracks[0].direction_raw = 4;
+            engine.grid.active_page_mut().length = 16;
+            engine.track_rt[0].pos = 8;
+            for _ in 0..DEFAULT_STEP_TICKS {
+                engine.step_once_for_test();
+            }
+            match engine.track_rt[0].pos {
+                9 => forward += 1,
+                7 => backward += 1,
+                other => panic!("brownian from 8 must land on 7 or 9, got {other}"),
+            }
+        }
+        // 400 trials, p=2/3: expected ~267/133, σ ≈ 9.4. 230/80 is several
+        // sigma inside the 2/3 region and several sigma away from 1/2 (200).
+        assert!(
+            forward > 230 && backward > 80,
+            "expected ~2/3 forward over 400 seeds, got forward={forward} backward={backward}"
+        );
     }
 }

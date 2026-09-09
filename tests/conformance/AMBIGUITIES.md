@@ -37,9 +37,9 @@ forward, 1/3 probability reverse play, 5 - Random order." `domain::Direction`
 already matched this; only the doc comment's citation needed updating, from
 PROVISIONAL to a real `Ref:` line.
 **Fixture:** `engine::tests::forward_direction_advances_one_step`,
-`::reverse_direction_wraps_backward`, `::ping_pong_bounces_at_upper_edge` —
-none specifically exercise 4/5's exact probability split yet (a statistical
-test over many seeds would be the natural next fixture here).
+`::reverse_direction_wraps_backward`, `::ping_pong_bounces_at_upper_edge`,
+`::brownian_is_biased_two_thirds_forward` (400 seeds; asserts the 2/3
+forward split, not merely that both directions occur).
 
 ## user-programmed directions (dir 6+): resolved
 
@@ -133,9 +133,35 @@ generated values, which is what the code guessed before this fixed it.
 moves between slots (chosen) or the whole note follows its pitch. The manual
 says only "notes pitches are played in random order", which reads as
 pitch-only, but doesn't rule out the alternative explicitly.
+**Resolution (playback, 2026-09-09):** `resolve_phrase` is now called from
+`fire_step` when `Step::phrase` is `Some(1..=48)`. Phrase #0 / `None` still
+plays the step as-is (p.27). A selected phrase *enriches* the step: the
+step's own note always fires, then up to `polyphony` enabled phrase notes
+fire as extras, with PIT/VEL added to the step's already-resolved values
+and STA/LEN applied as extra 192-PPQN ticks (`PhraseNote::start_ticks` /
+`length_ticks`). Factory charts (p.24-26) store STA as 24/48/72… (1/8-note
+echoes) and occasionally 160 — so phrase STA is a u8 tick delay, not the
+step-level -5..=5 pull/push. Phrase index is 1-based into the 48-slot pool
+(three banks of 16, p.16).
+**Still chosen, not cited (playback):** extras are scheduled from the
+step's base pitch only, not per chord tone. p.23 says GRV "will not
+function as expected" on random-rest steps and does not describe
+chord+phrase.
+**Still open — phrase POS time compression (p.17, p.28, p.30):**
+`Step::phrase_pos` exists and defaults to 8 (neutral) but is not applied.
+The p.30 remapping table is a groove-class rewrite (dotted/triplet/on-beat)
+keyed off "the STA offset of the first non-zero phrase note", not a simple
+scalar, and is deferred rather than guessed.
+**Still open — factory phrase charts (p.24-26):** not transcribed. The
+pdftotext columns are too packed to trust in one pass; playback is tested
+against hand-authored phrases.
 **Fixture:** `engine::tests::phrase_forward_plays_programmed_order`,
 `::phrase_reverse_plays_8_to_1`, `::phrase_random_pitch_permutes_pitch_only`,
-`::phrase_random_all_permutes_whole_notes`.
+`::phrase_random_all_permutes_whole_notes`,
+`::phrase_on_step_fires_base_plus_enabled_extras`,
+`::phrase_polyphony_limits_extra_notes`,
+`::phrase_sta_delays_the_extra_note`,
+`tests/conformance/phrases/forward_enriches_step.fixture`.
 
 ## step events: real addressing/timing implemented, several gaps still open
 
@@ -153,9 +179,13 @@ wrapping — confirmed against the manual's own worked example ("AMT +1 & Range
 4... Tracks 1 & 0 and Tracks 9 & 8 will be Muted") in
 `engine::tests::track_toggle_range_wraps_manual_worked_example`. Also added
 the two missing toggle kinds structurally: `Pause` is a real, working toggle;
-`TrackRotate`/`TrackSkipRotate` exist as data (p.38-39 reveal these are a
-*different* operation — whole-track step-data rotation, not a per-track
-toggle at all) but are not wired into playback — seeded, not guessed at.
+`TrackRotate`/`TrackSkipRotate` are now wired (2026-09-09): they apply to
+the event's own track (AMT is direction/distance, p.39, not a target-track
+index). `Track::rotate_steps` hops over skip, hyperstep, AMT = -127, and
+— chosen, not cited as a whole-step rule — a step whose event is
+VEL-masked at -127. `Track::rotate_skips` rotates only the skip flag;
+AMT = -127 steps neither donate nor receive a skip. Magnitude is how
+many rotatable slots to move; sign is forward (+) / backward (−).
 DIR/MCH now revert to the persisted `Track` attribute when the sequencer
 stops via a live-override shadow on `TrackRuntime` (p.40: "DIR will default
 to the Track attribute amount when the sequencer stops" / same for MCH); POS
@@ -181,15 +211,16 @@ so deferred rather than done halfway.
   p.35). Confirmed real, not implemented — see the `Step` attribute-offset
   model, which still only supports VEL/PIT/LEN/STA/GRV/MCC as simple
   offsets/absolutes, no map-factor scaling at all.
-- Track Rotate / Track Skip Rotate's actual step-data-shifting behaviour
-  (p.38-39) — data model present, playback not implemented.
 - POS's own wrap maximum isn't given anywhere in the manual (unlike DIR's 16
   and MCH's 32) — left unwrapped; harmless since it only ever feeds a
   `% page_len` downstream.
 **Fixture:** `engine::tests::step_event_set_dir_is_additive_and_wraps`,
 `::step_event_set_dir_reverts_on_stop`,
 `::track_toggle_range_wraps_manual_worked_example`,
-`::track_toggle_amt_10_targets_track_0`, `::track_toggle_negative_amt_is_off`.
+`::track_toggle_amt_10_targets_track_0`, `::track_toggle_negative_amt_is_off`,
+`::track_rotate_event_moves_step_data_next_tick`,
+`domain::tests::rotate_steps_moves_active_content_forward_and_hops_excluded`,
+`::rotate_skips_moves_only_the_skip_flag`.
 
 ## on-the-measure deferral for Mute/Solo Track Toggles: resolved
 

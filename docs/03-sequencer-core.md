@@ -59,9 +59,9 @@ EDIT encoders on the panel.
 | PIT | Pitch | ✓ | ✓ | note number; middle C = 60 = C5 in Octopus naming |
 | LEN | Length | ✓ | ✓ | gate length, with a track-level multiplier |
 | STA | Start | ✓ | ✓ | intra-step start offset |
-| POS | Position | ✓ | ✗ | track rotation / phase. When a step has a phrase selected, the same encoder is time-compression for that phrase (neutral 8; p.17) — stored as `Step::phrase_pos`, not yet applied. |
+| POS | Position | ✓ | ✗ | track rotation / phase. When a step has a phrase selected, the same encoder is time-compression for that phrase (neutral 8; p.17) — stored as `Step::phrase_pos` and applied via the p.30 table. |
 | DIR | Direction | ✓ | ✗ | playback direction, 1–5 fixed, 6+ user-editable |
-| AMT | Amount | ✓ | ✓ | track: scales the track's own offsets. Step: `-127` is the Effector Listener Step Mask (p.63) and the Track Rotate mask (p.38); no other step-level AMT value has a defined meaning yet. |
+| AMT | Amount | ✓ | ✓ | track: map-factor for AMT (p.34-37; Neutral 8). Step: event delta when the step carries an event; `-127` is the Effector Listener Step Mask (p.63) and the Track Rotate mask (p.38). AMT-scales-AMT (p.37) is not applied yet. |
 | GRV | Groove / phrase | ✓ | ✓ | track: shuffle table; step: phrase index 1–48 (three banks of 16; 0 = none) |
 | MCC | MIDI CC | ✓ | ✓ | track: which CC; step: the value |
 | MCH | MIDI channel | ✓ | ✗ | 1–32 across two ports |
@@ -101,11 +101,10 @@ behaviour depends on the chain's configuration).
 **Hypersteps.** A step can be "hyped" so that pressing a step button in another row
 while the hyped step is held creates a cross-track relationship, carrying PIT and VEL.
 
-**Phrases.** Sixteen phrases, eight notes each, with per-note VEL, PIT, LEN, STA
-offsets and a type. Type 4 randomises the programmed note attributes, which is the
-basis of several of the manual's suggested techniques. Polyphony setting on a phrase
-determines how many of the pool actually fire, which is how the machine produces
-probabilistic rests (a one-note step with polyphony 2 plays half the time).
+**Phrases.** Forty-eight phrases (three banks of sixteen), eight notes each, with
+per-note VEL, PIT, LEN, STA offsets and a type. Type 4 randomises the programmed
+note attributes. Phrase POS (neutral 8) time-compresses extra STA via the p.30
+table. Polyphony determines how many of the pool actually fire.
 
 **Chords.** Per-step chord pool with a polyphony count, a random-pick mode, and a
 strum with a timing table indexed by strum level and note ordinal.
@@ -115,11 +114,15 @@ PIT, and LEN offsets into lower-indexed tracks (listeners). Multiple feeders
 accumulate. Track 0 can never be a feeder. Muting interacts with the effector in a
 documented and non-obvious way.
 
-**Step events and track toggles.** A step can carry an event that changes another
-track's POS, DIR, or MCH, or toggles another track's Mute, Solo, or Record. Events
-applied to *higher-indexed* tracks execute on the following step, because of the
-top-down processing order. Range and value semantics wrap around the track set.
-Track toggles are subordinate to on-the-measure mode.
+**Step events and track toggles.** DIR, POS, and MCH events change the track
+attribute value (additive). VEL, PIT, LEN, STA, AMT, GRV, and MCC events walk
+that attribute's map factor (p.34-37): Neutral 8 is identity; AMT is the
+per-firing change; Range is the wrap interval (`range + 1` rows). AMT 0
+discards the live walk. Track Rotate / Skip Rotate move step data on the
+event's own track. Mute/Solo/Record/Pause toggles use AMT/Range addressing
+and are subordinate to on-the-measure mode. This engine applies every event
+at the *next* tick uniformly; genuine same-tick application for lower-indexed
+targets is still deferred.
 
 **Scales.** Two levels: grid scale and page scale, each independently on or off, with
 four combinations producing four documented behaviours (page scale, chromatic, locked

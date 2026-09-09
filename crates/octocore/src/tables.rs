@@ -13,6 +13,39 @@
 
 use crate::rng::Rng;
 
+/// First-interval tick of a unit-24 (1/8-note) phrase at each POS 1..=16.
+/// Index 0 is unused. Ref: CE v5.30 p.30, "Step GRV Phrase timing with
+/// reference to POS number" — POS 8 is Neutral (24). Derived from the first
+/// non-zero (Bar, Step, Tick) of each table, with one table-step = 48 ticks
+/// (the unique reading that makes POS 8's four events 0, 24, 48, 72 and
+/// POS 11's on-beats 0, 48, 96, 144). POS 16 is printed "Same as 15".
+const PHRASE_POS_INTERVAL_24: [u16; 17] = [0, 3, 6, 8, 9, 12, 16, 18, 24, 32, 36, 48, 64, 72, 96, 128, 128];
+
+/// Remap a phrase-note STA through the p.30 POS table.
+///
+/// Ref p.17: "A value of 8 is neutral. Values lower than 8 will speedup the
+/// playback of the phrase, while values greater than 8 will slow down."
+/// Ref p.28: "if POS doesn't understand the timing of the current phrase, it
+/// uses a simple factor two multiply or division. POS uses the STA offset of
+/// the first non-zero phrase note to analyze the timing."
+///
+/// Chosen implementation (logged in AMBIGUITIES.md): scale every STA by
+/// `PHRASE_POS_INTERVAL_24[pos] / 24`. That is identity at POS 8 for any
+/// phrase unit, which is what p.30's 1/16-note footnote requires ("will have
+/// this as Neutral (ie POS 8), effectively all ticks halved" — the written
+/// STAs of a 1/16 phrase are already half the 1/8 table; POS 8 leaves them
+/// as written). The "doesn't understand" factor-of-two fallback is not
+/// separately applied: every integer STA is understood as a multiple of the
+/// unit-24 table.
+pub fn scale_phrase_sta(start_ticks: u8, phrase_pos: u8) -> u16 {
+    let pos = phrase_pos.clamp(1, 16) as usize;
+    if pos == 8 || start_ticks == 0 {
+        return start_ticks as u16;
+    }
+    let num = start_ticks as u32 * PHRASE_POS_INTERVAL_24[pos] as u32;
+    ((num + 12) / 24) as u16
+}
+
 /// Track shuffle delay in ticks, applied to even-numbered step positions (2, 4, ...,
 /// 16; zero-based indices 1, 3, ..., 15). `grv` is the track's GRV attribute, 0..=16.
 ///
@@ -284,5 +317,24 @@ mod tests {
         for offset in -5..=5 {
             assert_eq!(scale_sta_ticks(0, offset), 0);
         }
+    }
+
+    /// Ref: CE v5.30 p.30. POS 8 is identity; POS 5 is double-speed (half
+    /// ticks); POS 11 is half-speed (double ticks); POS 1 is 8x (24 → 3).
+    #[test]
+    fn phrase_pos_neutral_is_identity() {
+        for sta in [0u8, 1, 12, 24, 48, 72, 160] {
+            assert_eq!(scale_phrase_sta(sta, 8), sta as u16);
+        }
+    }
+
+    #[test]
+    fn phrase_pos_matches_manual_speed_labels() {
+        assert_eq!(scale_phrase_sta(24, 1), 3, "8x speed");
+        assert_eq!(scale_phrase_sta(24, 5), 12, "double speed");
+        assert_eq!(scale_phrase_sta(24, 11), 48, "1/2 speed");
+        assert_eq!(scale_phrase_sta(24, 14), 96, "1/4 speed");
+        assert_eq!(scale_phrase_sta(24, 16), 128, "POS 16 same as 15");
+        assert_eq!(scale_phrase_sta(12, 5), 6, "scales any unit, not just 24");
     }
 }

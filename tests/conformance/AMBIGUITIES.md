@@ -147,20 +147,33 @@ step-level -5..=5 pull/push. Phrase index is 1-based into the 48-slot pool
 step's base pitch only, not per chord tone. p.23 says GRV "will not
 function as expected" on random-rest steps and does not describe
 chord+phrase.
-**Still open — phrase POS time compression (p.17, p.28, p.30):**
-`Step::phrase_pos` exists and defaults to 8 (neutral) but is not applied.
-The p.30 remapping table is a groove-class rewrite (dotted/triplet/on-beat)
-keyed off "the STA offset of the first non-zero phrase note", not a simple
-scalar, and is deferred rather than guessed.
-**Still open — factory phrase charts (p.24-26):** not transcribed. The
-pdftotext columns are too packed to trust in one pass; playback is tested
-against hand-authored phrases.
+**Resolution (POS remapping, 2026-09-09 later):** `tables::scale_phrase_sta`
+applies the p.30 table. POS 8 is identity. Other values scale every extra's
+STA by `first_interval(pos) / 24`, where the unit-24 first-intervals are
+transcribed from p.30 (3, 6, 8, 9, 12, 16, 18, 24, 32, 36, 48, 64, 72, 96,
+128, 128). One table-step = 48 ticks is the unique reading that makes POS 8
+= 0/24/48/72 and POS 11 = 0/48/96/144. p.28's "doesn't understand → factor
+two" fallback is not separately applied: every integer STA is treated as a
+multiple of the unit-24 table (which also satisfies the 1/16-note footnote:
+POS 8 leaves written STAs as-is).
+**Resolution (factory charts, 2026-09-09 later):** all 48 factory phrases
+are transcribed in `phrases.rs` from `pdftoppm` of pp.24-26. Empty cells
+omitted; a note is enabled iff any of VEL/PIT/LEN/STA is non-zero. Green/Red
+poly `x` = 8. `Engine::new` loads this pool. Sparse Red/Orange cells were
+read from the rendered plate plus the `-layout` extract; a residual
+off-by-column on a sparse Red cell is possible and should be fixed against
+hardware, not guessed further here.
 **Fixture:** `engine::tests::phrase_forward_plays_programmed_order`,
 `::phrase_reverse_plays_8_to_1`, `::phrase_random_pitch_permutes_pitch_only`,
 `::phrase_random_all_permutes_whole_notes`,
 `::phrase_on_step_fires_base_plus_enabled_extras`,
 `::phrase_polyphony_limits_extra_notes`,
 `::phrase_sta_delays_the_extra_note`,
+`::phrase_pos_double_speed_halves_sta_delay`,
+`::factory_green_phrase_1_enriches_a_step`,
+`phrases::tests::green_phrase_1_is_eighth_echo`,
+`::orange_bank_is_random_all_poly_1`,
+`tables::tests::phrase_pos_matches_manual_speed_labels`,
 `tests/conformance/phrases/forward_enriches_step.fixture`.
 
 ## step events: real addressing/timing implemented, several gaps still open

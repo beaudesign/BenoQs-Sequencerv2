@@ -6,6 +6,7 @@
 pub mod domain;
 pub mod engine;
 pub mod fixture;
+pub mod phrases;
 pub mod rng;
 pub mod scale;
 pub mod tables;

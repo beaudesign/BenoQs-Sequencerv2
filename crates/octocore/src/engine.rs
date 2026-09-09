@@ -261,8 +261,12 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(seed: u64) -> Self {
+        let mut grid = Grid::default_grid();
+        // Ref: CE v5.30 p.16 / p.23-26 — a fresh machine ships the three
+        // factory phrase banks, not an empty pool.
+        grid.phrases = crate::phrases::factory_phrases();
         Engine {
-            grid: Grid::default_grid(),
+            grid,
             rng: Rng::new(seed),
             running: false,
             global_tick: 0,
@@ -797,7 +801,9 @@ impl Engine {
                     };
                     let extra_vel = clamp_midi(final_vel as i32 + note.velocity_offset as i32);
                     let extra_len = (final_len_ticks as i32 + note.length_ticks as i32).clamp(1, 192 * 8);
-                    let extra_start = on_tick_offset + note.start_ticks as i32;
+                    // Ref: CE v5.30 p.17 / p.30 — phrase POS time-compresses
+                    // the extras' STA. Neutral 8 is identity.
+                    let extra_start = on_tick_offset + tables::scale_phrase_sta(note.start_ticks, step.phrase_pos) as i32;
                     self.last_tick_fires.push(NoteFire { track: ti, pitch: extra_pit, velocity: extra_vel });
                     let due = tick_due_sample + extra_start as f64 * samples_per_tick;
                     self.schedule(due, RawEvent::NoteOn { port, ch, note: extra_pit, vel: extra_vel });
@@ -1781,6 +1787,66 @@ mod tests {
             (2800..=3200).contains(&delta),
             "expected ~3000-sample STA delay, got extra={extra_abs} base={base_abs} delta={delta}"
         );
+    }
+
+    /// Ref: CE v5.30 p.30. POS 5 is double-speed: a 24-tick extra becomes 12.
+    #[test]
+    fn phrase_pos_double_speed_halves_sta_delay() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].pitch = 60;
+        engine.grid.active_page_mut().tracks[0].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[0].steps[0].phrase = Some(1);
+        engine.grid.active_page_mut().tracks[0].steps[0].phrase_pos = 5;
+        let mut phrase = Phrase::default();
+        phrase.notes[0].enabled = true;
+        phrase.notes[0].pitch_offset = 4;
+        phrase.notes[0].start_ticks = 24;
+        engine.grid.phrases[0] = phrase;
+
+        let ctx = RenderContext { sample_rate: 48_000.0, buffer_len: 512, bpm: 120.0, playing: true };
+        let mut base_abs = None;
+        let mut extra_abs = None;
+        for buf_i in 0..40u32 {
+            let mut out = EventBuffer::new();
+            engine.render(&ctx, &mut out);
+            let origin = buf_i * ctx.buffer_len;
+            for e in out.as_slice() {
+                if let Event::NoteOn { note: 60, at_sample, .. } = *e {
+                    base_abs = Some(origin + at_sample);
+                }
+                if let Event::NoteOn { note: 64, at_sample, .. } = *e {
+                    extra_abs = Some(origin + at_sample);
+                }
+            }
+            if base_abs.is_some() && extra_abs.is_some() {
+                break;
+            }
+        }
+        let delta = extra_abs.expect("extra") as i32 - base_abs.expect("base") as i32;
+        // 12 ticks ≈ 1500 samples at 120 bpm / 48 kHz.
+        assert!(
+            (1400..=1600).contains(&delta),
+            "POS 5 should halve a 24-tick STA to ~1500 samples, got {delta}"
+        );
+    }
+
+    /// Selecting factory Green phrase 1 (index 1) enriches with a -10 vel,
+    /// +0 pit echo. The base pitch is unchanged.
+    #[test]
+    fn factory_green_phrase_1_enriches_a_step() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].pitch = 60;
+        engine.grid.active_page_mut().tracks[0].steps[0].active = true;
+        engine.grid.active_page_mut().tracks[0].steps[0].phrase = Some(1);
+
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        let pitches: Vec<u8> = engine.last_tick_fires.as_slice().iter().filter(|f| f.track == 0).map(|f| f.pitch).collect();
+        assert_eq!(pitches.iter().filter(|&&p| p == 60).count(), 2, "base + same-pitch echo: {:?}", pitches);
+        let vels: Vec<u8> = engine.last_tick_fires.as_slice().iter().filter(|f| f.track == 0).map(|f| f.velocity).collect();
+        assert!(vels.contains(&100), "base vel: {:?}", vels);
+        assert!(vels.contains(&90), "echo vel 100-10: {:?}", vels);
     }
 
     /// Ref: CE v5.30 p.38-39. A Track Rotate event on the source track moves

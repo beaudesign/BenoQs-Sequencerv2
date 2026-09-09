@@ -64,18 +64,19 @@ half) is explicitly allowed to proceed in parallel during Phase 0.
   ordered triggers + a certainty_next probability).
 - LEN/STA track scaling: was a linear 0..2x formula, confirmed wrong;
   replaced with the manual's real non-linear lookup tables (p.44-45).
-- **Phrases now play.** `resolve_phrase` is called from `fire_step`: a
-  selected phrase enriches the step (base + extras). Phrase POS compression
-  (p.30) and factory charts (p.24-26) are still open.
+- **Phrases now play**, including factory charts and POS remapping.
+  `Engine::new` loads the 48 factory phrases (p.24-26). `scale_phrase_sta`
+  applies the p.30 speed table (POS 8 = identity).
 - **Track Rotate / Skip Rotate now play.** Hop over skip, hyperstep,
   AMT=-127. AMT is direction/distance, applied to the event's own track.
 - Brownian (dir 4) has a 400-seed statistical fixture for the 2/3 forward
   split.
-- 56 unit tests + 3 conformance fixtures, all green, debug and release.
+- 66 unit tests + 3 conformance fixtures, all green.
 - **Still open, logged with citations:** generic VEL/PIT-style scaling
   table (p.53-55); attribute-map-factor step events (p.34-37); genuine
   same-tick step-event application; hyperstep LEN-scaling curve; MCC
-  sub-step CC interpolation; phrase POS remapping; factory phrase charts.
+  sub-step CC interpolation. Sparse Red/Orange factory cells should be
+  spot-checked against hardware.
 
 ## `crates/octoffi`: thin C ABI wrapper + Grid-mutation surface
 
@@ -97,9 +98,8 @@ compute and aren't attempted — see `crates/octoroom/README.md`.
 
 ## Fan-out
 
-What can proceed without Xcode or real photography: factory phrase-chart
-transcription (p.24-26) and phrase POS remapping (p.30); the still-open
-`octocore` items above; `octoffi` phrase-pool accessors; deepening
+What can proceed without Xcode or real photography: attribute-map-factor
+step events (p.34-37); `octoffi` phrase-pool accessors; deepening
 `octoroom` (more materials, real prompt-parsing once/if an LLM call
 becomes available). Everything touching the panel itself still depends
 on real calibrated photography.

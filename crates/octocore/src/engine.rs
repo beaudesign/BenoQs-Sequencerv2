@@ -43,6 +43,9 @@ enum DeferredAction {
     /// and distance, not a track index.
     Rotate(i8),
     SkipRotate(i8),
+    /// Ref: CE v5.30 p.34-37. Walks one map factor on the event's own track.
+    /// `amt == 0` resets the walk (p.35).
+    WalkMap { attr: MapAttr, amt: i8, range: u8 },
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -79,6 +82,11 @@ struct TrackRuntime {
     /// next, for a `Direction::UserProgrammed` track. Reset to 0 whenever the
     /// slice itself advances.
     custom_dir_cursor: u8,
+    /// Live walk per `MapAttr` (index = `MapAttr::index`). Added to the
+    /// persisted factor; cleared on stop and by an AMT-0 event. Ref p.35,
+    /// p.40 Play Mode: event offsets are not retained when the sequencer
+    /// stops.
+    map_walk: [i8; MapAttr::COUNT],
 }
 
 impl Default for TrackRuntime {
@@ -94,6 +102,7 @@ impl Default for TrackRuntime {
             live_direction_raw: None,
             live_midi_channel: None,
             custom_dir_cursor: 0,
+            map_walk: [0; MapAttr::COUNT],
         }
     }
 }
@@ -299,6 +308,7 @@ impl Engine {
             for rt in self.track_rt.iter_mut() {
                 rt.live_direction_raw = None;
                 rt.live_midi_channel = None;
+                rt.map_walk = [0; MapAttr::COUNT];
             }
         }
         self.running = running;
@@ -654,26 +664,38 @@ impl Engine {
         let masked = step.amount == -127;
         let (feed_pit, feed_vel, feed_len) = if base_track.is_listener && !masked { (feed_pit, feed_vel, feed_len) } else { (0, 0, 0) };
 
-        let mut final_pit = page_pitch_offset as i32 + base_track.pitch as i32 + step.pitch_offset as i32 + feed_pit;
+        // Ref: CE v5.30 p.34-37 — VEL/PIT offsets go through the attribute
+        // map-factor chart. Neutral factor 8 is identity, so existing
+        // unscaled tests keep their numbers. Feeder injection stays raw
+        // (chosen; see AMBIGUITIES.md).
+        let walks = self.track_rt[ti as usize].map_walk;
+        let pit_factor = tables::effective_map_factor(base_track.pit_map_factor, walks[MapAttr::Pit.index()]);
+        let vel_factor = tables::effective_map_factor(base_track.vel_map_factor, walks[MapAttr::Vel.index()]);
+        let len_factor = tables::effective_map_factor(base_track.length_factor, walks[MapAttr::Len.index()]);
+        let sta_factor = tables::effective_map_factor(base_track.start_factor, walks[MapAttr::Sta.index()]);
+        let pit_off = tables::scale_map_offset(pit_factor, step.pitch_offset as i32);
+        let vel_off = tables::scale_map_offset(vel_factor, step.velocity_offset as i32);
+
+        let mut final_pit = page_pitch_offset as i32 + base_track.pitch as i32 + pit_off + feed_pit;
         if let Some(pcs) = effective_scale {
             final_pit = scale::quantize_to_scale(clamp_midi(final_pit), pcs) as i32;
         }
         let final_pit = clamp_midi(final_pit);
 
-        let vel_raw = clamp_midi(base_track.velocity as i32 + step.velocity_offset as i32 + feed_vel) as i32;
+        let vel_raw = clamp_midi(base_track.velocity as i32 + vel_off + feed_vel) as i32;
         let vf = page_velocity_factor.max(1) as i32;
         let final_vel = clamp_midi(vel_raw * vf / 8);
 
         self.last_tick_fires.push(NoteFire { track: ti, pitch: final_pit, velocity: final_vel });
 
         // Ref: CE v5.30 p.44-45 — real non-linear lookup tables, not a linear
-        // 0..2x formula (see tables.rs).
-        let sta_ticks = tables::scale_sta_ticks(base_track.start_factor, step.start_offset as i32);
+        // 0..2x formula (see tables.rs). LEN/STA events walk these factors.
+        let sta_ticks = tables::scale_sta_ticks(sta_factor, step.start_offset as i32);
 
         let base_len = (step.length_ticks as i32).clamp(1, 192);
         let len_mult = (step.length_multiplier as i32).clamp(1, 8);
         let raw_len = (base_len * len_mult + feed_len).min(192);
-        let final_len_ticks = tables::scale_len_ticks(base_track.length_factor, raw_len);
+        let final_len_ticks = tables::scale_len_ticks(len_factor, raw_len);
 
         let (port, ch) = resolve_port_channel(base_track.midi_channel, routing_mode, fixed_routing, ti);
         let on_tick_offset = shuffle_delay as i32 + sta_ticks;
@@ -968,6 +990,13 @@ impl Engine {
             DeferredAction::SkipRotate(amt) => {
                 self.grid.active_page_mut().tracks[target as usize].rotate_skips(amt);
             }
+            DeferredAction::WalkMap { attr, amt, range } => {
+                let base = attr.base_factor(&self.grid.active_page().tracks[target as usize]);
+                let available = tables::available_event_range(base);
+                let range = range.min(available);
+                let walk = &mut self.track_rt[target as usize].map_walk[attr.index()];
+                *walk = tables::next_map_walk(*walk, amt, range);
+            }
         }
     }
 
@@ -1020,6 +1049,12 @@ impl Engine {
                 if amt != 0 {
                     self.deferred_actions[source as usize] = Some(DeferredAction::SkipRotate(amt));
                 }
+            }
+            // Ref p.34-37: applies to the event's own track. AMT is the
+            // per-firing change of the map factor (0 resets); Range is the
+            // wrap interval, further clamped to 17 − base factor (p.36).
+            StepEventKind::ScaleMap { attr, amt, range } => {
+                self.deferred_actions[source as usize] = Some(DeferredAction::WalkMap { attr, amt, range });
             }
         }
     }
@@ -1903,5 +1938,143 @@ mod tests {
             forward > 230 && backward > 80,
             "expected ~2/3 forward over 400 seeds, got forward={forward} backward={backward}"
         );
+    }
+
+    fn collect_vel_over_cycles(engine: &mut Engine, track: TrackIndex, cycles: usize) -> Vec<u8> {
+        let mut out = Vec::new();
+        for _ in 0..cycles {
+            for _ in 0..DEFAULT_STEP_TICKS {
+                engine.step_once_for_test();
+            }
+            if let Some(vel) = engine.last_tick_fires.as_slice().iter().find(|f| f.track == track).map(|f| f.velocity) {
+                out.push(vel);
+            }
+        }
+        out
+    }
+
+    fn loop_step_zero(engine: &mut Engine) {
+        // Keep the chase light on step 0 so one event/offset pair can fire
+        // every cycle. Page length 1 is a real machine setting (p.67).
+        engine.grid.active_page_mut().length = 1;
+    }
+
+    /// Ref: CE v5.30 p.37. Neutral factor, range 3, AMT +1, initial offset 12
+    /// → applied offsets 12, 14, 17, 20, 12… Default track VEL is 100.
+    #[test]
+    fn map_factor_vel_plus_one_matches_manual_worked_example() {
+        let mut engine = Engine::new(1);
+        loop_step_zero(&mut engine);
+        let step = &mut engine.grid.active_page_mut().tracks[0].steps[0];
+        step.active = true;
+        step.velocity_offset = 12;
+        step.event = Some(StepEvent {
+            target_track: 0,
+            kind: StepEventKind::ScaleMap { attr: MapAttr::Vel, amt: 1, range: 3 },
+        });
+        let vels = collect_vel_over_cycles(&mut engine, 0, 5);
+        assert_eq!(vels, vec![112, 114, 117, 120, 112]);
+    }
+
+    /// Ref p.37: AMT −1 is the same offsets in reverse: 12, 20, 17, 14…
+    #[test]
+    fn map_factor_vel_minus_one_is_reverse_order() {
+        let mut engine = Engine::new(1);
+        loop_step_zero(&mut engine);
+        let step = &mut engine.grid.active_page_mut().tracks[0].steps[0];
+        step.active = true;
+        step.velocity_offset = 12;
+        step.event = Some(StepEvent {
+            target_track: 0,
+            kind: StepEventKind::ScaleMap { attr: MapAttr::Vel, amt: -1, range: 3 },
+        });
+        let vels = collect_vel_over_cycles(&mut engine, 0, 5);
+        assert_eq!(vels, vec![112, 120, 117, 114, 112]);
+    }
+
+    /// Ref p.35: AMT 0 discards the offset produced by a step event.
+    #[test]
+    fn map_factor_amt_zero_resets_walk() {
+        let mut engine = Engine::new(1);
+        loop_step_zero(&mut engine);
+        let step = &mut engine.grid.active_page_mut().tracks[0].steps[0];
+        step.active = true;
+        step.velocity_offset = 12;
+        step.event = Some(StepEvent {
+            target_track: 0,
+            kind: StepEventKind::ScaleMap { attr: MapAttr::Vel, amt: 1, range: 3 },
+        });
+        let _ = collect_vel_over_cycles(&mut engine, 0, 2);
+        assert_eq!(engine.track_rt[0].map_walk[MapAttr::Vel.index()], 1);
+        engine.grid.active_page_mut().tracks[0].steps[0].event = Some(StepEvent {
+            target_track: 0,
+            kind: StepEventKind::ScaleMap { attr: MapAttr::Vel, amt: 0, range: 3 },
+        });
+        // The next firing queues the reset; one extra tick applies it.
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        engine.step_once_for_test();
+        assert_eq!(engine.track_rt[0].map_walk[MapAttr::Vel.index()], 0);
+    }
+
+    /// Ref p.36: a step that is not offset is not influenced.
+    #[test]
+    fn map_factor_zero_offset_stays_unscaled() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[0].vel_map_factor = 11;
+        let step = &mut engine.grid.active_page_mut().tracks[0].steps[0];
+        step.active = true;
+        step.velocity_offset = 0;
+        for _ in 0..DEFAULT_STEP_TICKS {
+            engine.step_once_for_test();
+        }
+        let vel = engine.last_tick_fires.as_slice().iter().find(|f| f.track == 0).map(|f| f.velocity);
+        assert_eq!(vel, Some(100));
+    }
+
+    /// Play Mode / p.40: event-produced map-factor offsets fall away on stop.
+    #[test]
+    fn map_factor_walk_reverts_on_stop() {
+        let mut engine = Engine::new(1);
+        loop_step_zero(&mut engine);
+        engine.set_running(true);
+        let step = &mut engine.grid.active_page_mut().tracks[0].steps[0];
+        step.active = true;
+        step.velocity_offset = 12;
+        step.event = Some(StepEvent {
+            target_track: 0,
+            kind: StepEventKind::ScaleMap { attr: MapAttr::Vel, amt: 1, range: 3 },
+        });
+        let _ = collect_vel_over_cycles(&mut engine, 0, 2);
+        assert_ne!(engine.track_rt[0].map_walk[MapAttr::Vel.index()], 0);
+        engine.set_running(false);
+        assert_eq!(engine.track_rt[0].map_walk[MapAttr::Vel.index()], 0);
+        assert_eq!(engine.grid.active_page().tracks[0].vel_map_factor, 8, "persisted factor is not walked");
+    }
+
+    /// A PIT event uses the same chart. Offset +12 at Neutral / +1 → +14.
+    #[test]
+    fn map_factor_pit_uses_the_same_chart() {
+        let mut engine = Engine::new(1);
+        loop_step_zero(&mut engine);
+        engine.grid.active_page_mut().tracks[0].pitch = 60;
+        let step = &mut engine.grid.active_page_mut().tracks[0].steps[0];
+        step.active = true;
+        step.pitch_offset = 12;
+        step.event = Some(StepEvent {
+            target_track: 0,
+            kind: StepEventKind::ScaleMap { attr: MapAttr::Pit, amt: 1, range: 3 },
+        });
+        let mut pits = Vec::new();
+        for _ in 0..2 {
+            for _ in 0..DEFAULT_STEP_TICKS {
+                engine.step_once_for_test();
+            }
+            if let Some(p) = engine.last_tick_fires.as_slice().iter().find(|f| f.track == 0).map(|f| f.pitch) {
+                pits.push(p);
+            }
+        }
+        assert_eq!(pits, vec![72, 74]);
     }
 }

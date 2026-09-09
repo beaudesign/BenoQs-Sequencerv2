@@ -215,15 +215,27 @@ currently reads one snapshot taken once at tick start specifically so
 mid-tick mutations from other tracks aren't visible — see `engine.rs` module
 docs) — a bigger architectural change than fits alongside the addressing fix,
 so deferred rather than done halfway.
-**New, still open (not attempted this pass):**
-- The attribute-map-factor step-event sub-system (VEL/PIT/LEN/STA/AMT/GRV/MCC
-  step events, p.34-37): "what changes is really the attribute map factor of
-  any steps having offsets from the track value" — a real, non-trivial
-  scaling-factor progression system ("Available Step Event Range = 17 - Track
-  Attribute Scaling Factor", with a 9-row × 17-column reference chart on
-  p.35). Confirmed real, not implemented — see the `Step` attribute-offset
-  model, which still only supports VEL/PIT/LEN/STA/GRV/MCC as simple
-  offsets/absolutes, no map-factor scaling at all.
+**Map-factor step events (2026-09-09):** implemented. `StepEventKind::ScaleMap`
+walks a live per-attribute factor on `TrackRuntime` (reverts on stop, AMT 0
+resets). VEL/PIT offsets go through the p.35 chart (0..=16) and the p.36
+large-offset columns (exact headers only). LEN/STA events walk the existing
+`length_factor`/`start_factor` into the p.44-45 tables, not through p.35 —
+those track attributes *are* the map factors (p.53). Wrap modulus is
+`range + 1` so p.37's range-3 example visits four rows. Display factor
+0..=16, Neutral 8; chart row = `16 - factor`. The chart's parenthetical
+"(4)" sits on row 13 (= factor 3 under this mapping); hardware should
+confirm static non-neutral factors. Sign is not printed — `|offset|` is
+looked up and the sign restored. Offsets that are neither 0..=16 nor a
+p.36 column are left unchanged (no interpolation).
+**Still open inside this family:**
+- AMT-scales-AMT (p.37, range locked to 6, columns A–F). The AMT walk is
+  stored; it does not yet remap another event's AMT at fire time.
+- GRV/MCC application: walks are stored; phrase index and MCC value are
+  not remapped (phrase index is not an offset; track MCC is a CC number).
+- Feeder injection uses the raw step offset, not the feeder's already-
+  scaled value (chosen).
+- p.55 generic VEL/PIT-style chart is a separate, still-unclean numbering
+  and was not merged into this lookup.
 - POS's own wrap maximum isn't given anywhere in the manual (unlike DIR's 16
   and MCH's 32) — left unwrapped; harmless since it only ever feeds a
   `% page_len` downstream.
@@ -233,7 +245,12 @@ so deferred rather than done halfway.
 `::track_toggle_amt_10_targets_track_0`, `::track_toggle_negative_amt_is_off`,
 `::track_rotate_event_moves_step_data_next_tick`,
 `domain::tests::rotate_steps_moves_active_content_forward_and_hops_excluded`,
-`::rotate_skips_moves_only_the_skip_flag`.
+`::rotate_skips_moves_only_the_skip_flag`,
+`tables::tests::map_offset_12_matches_manual_worked_example`,
+`::map_walk_plus_one_range_three_wraps`,
+`engine::tests::map_factor_vel_plus_one_matches_manual_worked_example`,
+`::map_factor_vel_minus_one_is_reverse_order`,
+`tests/conformance/events/map_factor_neutral_vel.fixture`.
 
 ## on-the-measure deferral for Mute/Solo Track Toggles: resolved
 

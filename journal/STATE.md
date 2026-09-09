@@ -53,8 +53,8 @@ half) is explicitly allowed to proceed in parallel during Phase 0.
 
 ## `crates/octocore`: real, tested, manual-corrected, still growing
 
-23 commits total against the real manual. `tests/conformance/AMBIGUITIES.md`
-has the full per-topic detail; headline points only, here:
+23 commits against the real manual, plus the 2026-09-09 phrase/rotate pass.
+`tests/conformance/AMBIGUITIES.md` has the full per-topic detail; headlines:
 
 - Several early bugs were **outright wrong**, not just unconfirmed: default
   track pitches, the effector (missing MCC, wrong timing, no listener gate),
@@ -63,27 +63,28 @@ has the full per-topic detail; headline points only, here:
   a persistent link), custom directions (real mechanism: 16 slices × up to 9
   ordered triggers + a certainty_next probability).
 - LEN/STA track scaling: was a linear 0..2x formula, confirmed wrong;
-  replaced with the manual's real non-linear lookup tables (p.44-45),
-  transcribed via `pdftotext -layout` once that was actually tried (an
-  earlier pass wrote these off as too risky from image reads alone — worth
-  re-attempting a "too hard" deferral once better tooling exists).
-- 49 unit tests + 2 conformance fixtures, all green, debug and release.
-- **Deliberately not attempted, logged with citations:** the generic
-  VEL/PIT-style scaling table (p.53-55 — its row-numbering doesn't resolve
-  cleanly, see AMBIGUITIES.md); the attribute-map-factor step-event
-  sub-system (VEL/PIT/LEN/STA/AMT/GRV/MCC step events); genuine same-tick
-  step-event application (needs reworking the tick loop's snapshot
-  architecture); Track Rotate/Skip Rotate's real behaviour; hyperstep's
-  fine-grained LEN-scaling curve; MCC sub-step CC interpolation.
+  replaced with the manual's real non-linear lookup tables (p.44-45).
+- **Phrases now play.** `resolve_phrase` is called from `fire_step`: a
+  selected phrase enriches the step (base + extras). Phrase POS compression
+  (p.30) and factory charts (p.24-26) are still open.
+- **Track Rotate / Skip Rotate now play.** Hop over skip, hyperstep,
+  AMT=-127. AMT is direction/distance, applied to the event's own track.
+- Brownian (dir 4) has a 400-seed statistical fixture for the 2/3 forward
+  split.
+- 56 unit tests + 3 conformance fixtures, all green, debug and release.
+- **Still open, logged with citations:** generic VEL/PIT-style scaling
+  table (p.53-55); attribute-map-factor step events (p.34-37); genuine
+  same-tick step-event application; hyperstep LEN-scaling curve; MCC
+  sub-step CC interpolation; phrase POS remapping; factory phrase charts.
 
-## `crates/octoffi`: thin C ABI wrapper, verified with real linked C
+## `crates/octoffi`: thin C ABI wrapper + Grid-mutation surface
 
-new/free/handle_command/render/is_running over an opaque `*mut Engine`.
-Verified with an actual compiled-and-linked C program, not just Rust tests.
-No Grid-mutation surface yet (a logical track/step-attribute API doesn't
-actually need `panel.truth.json`'s `ControlId` scheme — that's only for
-physical input events — so this is more open than previously noted; just
-not built yet). Hand-maintained `octoffi.h` (no `cbindgen` here).
+new/free/handle_command/render/is_running over an opaque `*mut Engine`,
+plus `octocore_track_{set,get}_i32` / `octocore_step_{set,get}_i32` (landed
+on `main` as `c68959a`). A pattern programmed entirely through FFI plays.
+Hand-maintained `octoffi.h` (no `cbindgen` here). Phrase / phrase-note
+programming is not on this surface yet — step GRV can store an index, but
+the 48-slot phrase pool is still Rust-only.
 
 ## `crates/octoroom`: new, pure-Rust parts of D3
 
@@ -96,11 +97,9 @@ compute and aren't attempted — see `crates/octoroom/README.md`.
 
 ## Fan-out
 
-What can proceed without Xcode or real photography: `octoffi`'s
-Grid-mutation surface; a follow-up manual read for the still-open
-`octocore` items above; deepening `octoroom` (more materials, real
-prompt-parsing once/if an LLM call becomes available); wiring the
-still-dormant `resolve_phrase`/`Step::phrase` into the tick loop for real
-(the resolution logic is correct and tested in isolation, but nothing calls
-it from `fire_step` yet). Everything touching the panel itself still depends
+What can proceed without Xcode or real photography: factory phrase-chart
+transcription (p.24-26) and phrase POS remapping (p.30); the still-open
+`octocore` items above; `octoffi` phrase-pool accessors; deepening
+`octoroom` (more materials, real prompt-parsing once/if an LLM call
+becomes available). Everything touching the panel itself still depends
 on real calibrated photography.

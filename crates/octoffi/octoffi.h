@@ -116,6 +116,8 @@ typedef enum {
     OCTO_STEP_AMOUNT,
     OCTO_STEP_STRUM,
     OCTO_STEP_HYPERSTEP,
+    OCTO_STEP_PHRASE,
+    OCTO_STEP_PHRASE_POS,
 } OctoStepAttr;
 
 // All setters return false (a no-op) for an out-of-range track/step index

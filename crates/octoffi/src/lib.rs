@@ -149,6 +149,10 @@ pub enum OctoStepAttr {
     Amount,
     Strum,
     Hyperstep,
+    /// 0 = no phrase (`None`); 1..=48 indexes `Grid::phrases` (1-based).
+    Phrase,
+    /// Phrase time-compression; 8 is neutral (CE v5.30 p.17). Stored only.
+    PhrasePos,
 }
 
 /// Returns `false` (and does nothing / returns 0) for an out-of-range
@@ -241,6 +245,10 @@ pub unsafe extern "C" fn octocore_step_set_i32(engine: *mut Engine, track: u8, s
         OctoStepAttr::Amount => s.amount = value.clamp(-128, 127) as i8,
         OctoStepAttr::Strum => s.strum = value.clamp(-9, 9) as i8,
         OctoStepAttr::Hyperstep => s.hyperstep = value != 0,
+        OctoStepAttr::Phrase => {
+            s.phrase = if value <= 0 { None } else { Some(value.clamp(1, 48) as u8) };
+        }
+        OctoStepAttr::PhrasePos => s.phrase_pos = value.clamp(1, 16) as u8,
     }
     true
 }
@@ -266,6 +274,8 @@ pub unsafe extern "C" fn octocore_step_get_i32(engine: *const Engine, track: u8,
         OctoStepAttr::Amount => s.amount as i32,
         OctoStepAttr::Strum => s.strum as i32,
         OctoStepAttr::Hyperstep => s.hyperstep as i32,
+        OctoStepAttr::Phrase => s.phrase.map(|p| p as i32).unwrap_or(0),
+        OctoStepAttr::PhrasePos => s.phrase_pos as i32,
     }
 }
 
@@ -320,6 +330,11 @@ mod tests {
             assert!(octocore_step_set_i32(e, 3, 5, OctoStepAttr::PitchOffset, -7));
             assert_eq!(octocore_step_get_i32(e, 3, 5, OctoStepAttr::Active), 1);
             assert_eq!(octocore_step_get_i32(e, 3, 5, OctoStepAttr::PitchOffset), -7);
+
+            assert!(octocore_step_set_i32(e, 3, 5, OctoStepAttr::Phrase, 12));
+            assert_eq!(octocore_step_get_i32(e, 3, 5, OctoStepAttr::Phrase), 12);
+            assert!(octocore_step_set_i32(e, 3, 5, OctoStepAttr::Phrase, 0));
+            assert_eq!(octocore_step_get_i32(e, 3, 5, OctoStepAttr::Phrase), 0);
 
             // A different step on the same track is untouched.
             assert_eq!(octocore_step_get_i32(e, 3, 6, OctoStepAttr::Active), 0);

@@ -53,8 +53,9 @@ half) is explicitly allowed to proceed in parallel during Phase 0.
 
 ## `crates/octocore`: real, tested, manual-corrected, still growing
 
-23 commits against the real manual, plus the 2026-09-09 phrase/rotate pass.
-`tests/conformance/AMBIGUITIES.md` has the full per-topic detail; headlines:
+23 commits against the real manual, plus the 2026-09-09 phrase/rotate and
+map-factor passes. `tests/conformance/AMBIGUITIES.md` has the full per-topic
+detail; headlines:
 
 - Several early bugs were **outright wrong**, not just unconfirmed: default
   track pitches, the effector (missing MCC, wrong timing, no listener gate),
@@ -71,21 +72,24 @@ half) is explicitly allowed to proceed in parallel during Phase 0.
   AMT=-127. AMT is direction/distance, applied to the event's own track.
 - Brownian (dir 4) has a 400-seed statistical fixture for the 2/3 forward
   split.
-- 66 unit tests + 3 conformance fixtures, all green.
-- **Still open, logged with citations:** generic VEL/PIT-style scaling
-  table (p.53-55); attribute-map-factor step events (p.34-37); genuine
-  same-tick step-event application; hyperstep LEN-scaling curve; MCC
-  sub-step CC interpolation. Sparse Red/Orange factory cells should be
-  spot-checked against hardware.
+- **Attribute-map-factor step events now play** (p.34-37). VEL/PIT offsets
+  go through the p.35/p.36 charts. `ScaleMap` walks a live factor (AMT 0
+  resets; stop clears). The p.37 worked example (offset 12 → 12,14,17,20)
+  is a fixture. LEN/STA events walk the existing p.44-45 factors.
+- 81 unit tests + 4 conformance fixtures, all green.
+- **Still open, logged with citations:** AMT-scales-AMT (p.37); generic
+  VEL/PIT-style scaling table (p.53-55); genuine same-tick step-event
+  application; hyperstep LEN-scaling curve; MCC sub-step CC interpolation.
+  Sparse Red/Orange factory cells should be spot-checked against hardware.
 
 ## `crates/octoffi`: thin C ABI wrapper + Grid-mutation surface
 
 new/free/handle_command/render/is_running over an opaque `*mut Engine`,
 plus `octocore_track_{set,get}_i32` / `octocore_step_{set,get}_i32` (landed
-on `main` as `c68959a`). A pattern programmed entirely through FFI plays.
-Hand-maintained `octoffi.h` (no `cbindgen` here). Phrase / phrase-note
-programming is not on this surface yet — step GRV can store an index, but
-the 48-slot phrase pool is still Rust-only.
+on `main` as `c68959a`), including VEL/PIT/AMT/GRV/MCC map factors and
+step Phrase / PhrasePos. A pattern programmed entirely through FFI plays.
+Hand-maintained `octoffi.h` (no `cbindgen` here). The 48-slot phrase *pool*
+(the Phrase structs themselves) is still Rust-only.
 
 ## `crates/octoroom`: new, pure-Rust parts of D3
 
@@ -98,8 +102,7 @@ compute and aren't attempted — see `crates/octoroom/README.md`.
 
 ## Fan-out
 
-What can proceed without Xcode or real photography: attribute-map-factor
-step events (p.34-37); `octoffi` phrase-pool accessors; deepening
-`octoroom` (more materials, real prompt-parsing once/if an LLM call
-becomes available). Everything touching the panel itself still depends
-on real calibrated photography.
+What can proceed without Xcode or real photography: AMT-scales-AMT (p.37);
+`octoffi` phrase-pool accessors; deepening `octoroom` (more materials,
+real prompt-parsing once/if an LLM call becomes available). Everything
+touching the panel itself still depends on real calibrated photography.

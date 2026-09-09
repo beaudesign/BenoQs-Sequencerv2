@@ -59,10 +59,10 @@ EDIT encoders on the panel.
 | PIT | Pitch | ✓ | ✓ | note number; middle C = 60 = C5 in Octopus naming |
 | LEN | Length | ✓ | ✓ | gate length, with a track-level multiplier |
 | STA | Start | ✓ | ✓ | intra-step start offset |
-| POS | Position | ✓ | ✗ | track rotation / phase |
+| POS | Position | ✓ | ✗ | track rotation / phase. When a step has a phrase selected, the same encoder is time-compression for that phrase (neutral 8; p.17) — stored as `Step::phrase_pos`, not yet applied. |
 | DIR | Direction | ✓ | ✗ | playback direction, 1–5 fixed, 6+ user-editable |
-| AMT | Amount | ✓ | ✗ | scales the track's own offsets; neutral value recommended |
-| GRV | Groove / phrase | ✓ | ✓ | track: shuffle table; step: phrase index 1–16 |
+| AMT | Amount | ✓ | ✓ | track: scales the track's own offsets. Step: `-127` is the Effector Listener Step Mask (p.63) and the Track Rotate mask (p.38); no other step-level AMT value has a defined meaning yet. |
+| GRV | Groove / phrase | ✓ | ✓ | track: shuffle table; step: phrase index 1–48 (three banks of 16; 0 = none) |
 | MCC | MIDI CC | ✓ | ✓ | track: which CC; step: the value |
 | MCH | MIDI channel | ✓ | ✗ | 1–32 across two ports |
 | FLT | Flat | ✓ | ✗ | page-level flattening |

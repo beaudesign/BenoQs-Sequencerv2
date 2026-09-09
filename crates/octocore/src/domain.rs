@@ -234,10 +234,10 @@ pub enum StepEventKind {
     /// (including Step Events & Track Toggle Events), with the exception of
     /// Skipped Steps or Hypersteps" — a whole-track step-data rotation, not a
     /// per-track toggle (no AMT-based targeting; applies to the event's own
-    /// track). Data model only — not wired into playback. See AMBIGUITIES.md.
+    /// track). Wired through `Track::rotate_steps`.
     TrackRotate { amt: i8 },
     /// Ref p.39, "Track Skip Rotate": rotates only the skip condition, not
-    /// full step data. Data model only — not wired into playback.
+    /// full step data. Wired through `Track::rotate_skips`.
     TrackSkipRotate { amt: i8 },
 }
 
@@ -268,11 +268,19 @@ pub struct Step {
     /// cross-zone note filed to Scribe about it. `-127` is the mask sentinel;
     /// no other value has a defined meaning here yet.
     pub amount: i8,
-    /// GRV at step level: a phrase index 1..=16, or `None` for no phrase.
-    /// (GRV at track level means something else entirely — the shuffle amount,
-    /// `Track::groove`. Same attribute code, two unrelated meanings; that is the
-    /// spec's own table, not a bug introduced here.)
+    /// GRV at step level: a 1-based phrase index into `Grid::phrases` (1..=48
+    /// across the three banks of 16; Ref: CE v5.30 p.16), or `None` for phrase
+    /// #0 — "has no effect, i.e. plays the step as is" (p.27). Track-level GRV
+    /// is the shuffle amount (`Track::groove`); same attribute code, two
+    /// unrelated meanings — that is the spec's own table, not a bug.
     pub phrase: Option<u8>,
+    /// Ref: CE v5.30 p.17, "Step phrase time compression (POS)": "The POS
+    /// value will become visible as soon as a phrase is selected... A value
+    /// of 8 is neutral. Values lower than 8 will speedup the playback of the
+    /// phrase, while values greater than 8 will slow down." Stored and
+    /// defaulted; the p.30 remapping table is not applied yet — see
+    /// AMBIGUITIES.md "phrase POS time compression".
+    pub phrase_pos: u8,
     /// MCC at step level: the value this step emits on the track's configured CC
     /// (or bend/pressure target).
     pub mcc_value: Option<u8>,
@@ -308,6 +316,7 @@ impl Default for Step {
             start_offset: 0,
             amount: 0,
             phrase: None,
+            phrase_pos: 8,
             mcc_value: None,
             chord: ChordPool::default(),
             strum: 0,
@@ -361,6 +370,85 @@ impl Track {
 
     pub fn direction(&self) -> Direction {
         Direction::from_raw(self.direction_raw)
+    }
+
+    /// Ref: CE v5.30 p.38, "Track Rotate": "A Track Rotate Event will move
+    /// all steps (including Step Events & Track Toggle Events), with the
+    /// exception of Skipped Steps or Hypersteps." Masked steps (AMT = -127)
+    /// are also excluded: "steps can be 'masked' (excluded) from the Track
+    /// Rotation" / "set its Amount (AMT) attribute to -127". Step events with
+    /// VEL = -127 are likewise excluded ("Step Events can also be 'Masked' by
+    /// setting their VEL attribute to -127") — chosen reading: the whole step
+    /// hops out of the rotatable set, same as AMT = -127. See AMBIGUITIES.md.
+    ///
+    /// Ref p.39: "a positive value will rotate the track in a forward
+    /// direction and a negative value will rotate the track in a backward
+    /// direction." Magnitude is how many rotatable slots to move; content
+    /// shifts toward higher step indices when `amt > 0`.
+    pub fn rotate_steps(&mut self, amt: i8) {
+        if amt == 0 {
+            return;
+        }
+        let mut idxs = [0u8; STEP_COUNT];
+        let mut count = 0usize;
+        for i in 0..STEP_COUNT {
+            if step_excluded_from_rotate(&self.steps[i]) {
+                continue;
+            }
+            idxs[count] = i as u8;
+            count += 1;
+        }
+        if count < 2 {
+            return;
+        }
+        let mut payload = [Step::default(); STEP_COUNT];
+        for i in 0..count {
+            payload[i] = self.steps[idxs[i] as usize];
+        }
+        let k = (amt as i32).rem_euclid(count as i32) as usize;
+        let mut rotated = [Step::default(); STEP_COUNT];
+        for i in 0..count {
+            rotated[(i + k) % count] = payload[i];
+        }
+        for i in 0..count {
+            self.steps[idxs[i] as usize] = rotated[i];
+        }
+    }
+
+    /// Ref: CE v5.30 p.39, "Track Skip Rotate": "only the skip condition will
+    /// Rotate, not the steps themselves." AMT = -127 excludes a step from the
+    /// rotating set ("will not have the Skip condition applied" / a skipped
+    /// step with AMT = -127 "will not rotate"). VEL = -127 on a step event is
+    /// the same hop-out as in `rotate_steps`.
+    pub fn rotate_skips(&mut self, amt: i8) {
+        if amt == 0 {
+            return;
+        }
+        let mut idxs = [0u8; STEP_COUNT];
+        let mut count = 0usize;
+        for i in 0..STEP_COUNT {
+            let s = &self.steps[i];
+            if s.amount == -127 || (s.event.is_some() && s.velocity_offset == -127) {
+                continue;
+            }
+            idxs[count] = i as u8;
+            count += 1;
+        }
+        if count < 2 {
+            return;
+        }
+        let mut flags = [false; STEP_COUNT];
+        for i in 0..count {
+            flags[i] = self.steps[idxs[i] as usize].skip;
+        }
+        let k = (amt as i32).rem_euclid(count as i32) as usize;
+        let mut rotated = [false; STEP_COUNT];
+        for i in 0..count {
+            rotated[(i + k) % count] = flags[i];
+        }
+        for i in 0..count {
+            self.steps[idxs[i] as usize].skip = rotated[i];
+        }
     }
 
     /// Ref: CE v5.30 §3 Track Mode, "Track attributes", p.43: "Octopus uses the
@@ -602,14 +690,25 @@ impl Bank {
     }
 }
 
-/// A phrase: 8 notes, each with VEL/PIT/LEN/STA offsets.
-/// docs/03-sequencer-core.md §3 "Phrases".
+/// A phrase: 8 notes, each with VEL/PIT/LEN/STA offsets applied on top of
+/// the step that selected the phrase. Ref: CE v5.30 p.16, "Step phrasing
+/// (GRV)": "A Step may be enriched at playtime by a certain amount of notes
+/// determined by phrases." p.23: the four attributes of all 8 phrase notes
+/// plus polyphony and type.
 #[derive(Clone, Copy, Debug)]
 pub struct PhraseNote {
     pub pitch_offset: i8,
     pub velocity_offset: i8,
+    /// Extra gate length in 192-PPQN ticks, added to the step's already-scaled
+    /// length. Factory charts (p.24-26) store this as a small integer offset,
+    /// not a replacement length.
     pub length_ticks: u8,
-    pub start_offset: i8,
+    /// Start delay in 192-PPQN ticks relative to the step's own STA. Factory
+    /// Green phrases use 24/48/72… (1/8-note echoes at 192 PPQN). This is
+    /// *not* the step-level STA pull/push of -5..=5 — phrase STA is an
+    /// absolute tick delay, and the factory charts go well past i8 (160 on
+    /// p.25).
+    pub start_ticks: u8,
     pub enabled: bool,
 }
 
@@ -618,8 +717,8 @@ impl Default for PhraseNote {
         PhraseNote {
             pitch_offset: 0,
             velocity_offset: 0,
-            length_ticks: DEFAULT_STEP_TICKS as u8,
-            start_offset: 0,
+            length_ticks: 0,
+            start_ticks: 0,
             enabled: false,
         }
     }
@@ -751,6 +850,12 @@ pub fn clamp_midi(v: i32) -> u8 {
     v.clamp(0, 127) as u8
 }
 
+/// Ref: CE v5.30 p.38 — skip, hyperstep, AMT = -127, and (chosen) a step
+/// whose event is VEL-masked at -127, all hop out of Track Rotate.
+fn step_excluded_from_rotate(step: &Step) -> bool {
+    step.skip || step.hyperstep || step.amount == -127 || (step.event.is_some() && step.velocity_offset == -127)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -819,5 +924,59 @@ mod tests {
     fn flatten_requires_at_least_two_tracks() {
         let mut page = Page::default_page();
         assert!(page.apply_flatten(&[3]).is_err());
+    }
+
+    /// Ref: CE v5.30 p.38-39. Positive AMT rotates content toward higher
+    /// indices among the rotatable (non-skip, non-hyperstep, non-masked) set.
+    #[test]
+    fn rotate_steps_moves_active_content_forward_and_hops_excluded() {
+        let mut track = Track::default_for_index(0);
+        track.steps[0].active = true;
+        track.steps[0].pitch_offset = 1;
+        track.steps[1].skip = true;
+        track.steps[1].pitch_offset = 99; // must stay put
+        track.steps[2].active = true;
+        track.steps[2].pitch_offset = 2;
+        track.steps[3].amount = -127;
+        track.steps[3].pitch_offset = 88; // masked, must stay put
+        track.steps[4].active = true;
+        track.steps[4].pitch_offset = 3;
+        // Inactive steps still rotate (p.38: "all steps… with the exception of
+        // Skipped Steps or Hypersteps") — skip the unused tail so the
+        // rotatable set is exactly {0, 2, 4}.
+        for step in track.steps[5..].iter_mut() {
+            step.skip = true;
+        }
+
+        track.rotate_steps(1);
+
+        assert_eq!(track.steps[0].pitch_offset, 3, "last rotatable hops to the first slot");
+        assert_eq!(track.steps[1].pitch_offset, 99, "skipped step is not in the rotatable set");
+        assert_eq!(track.steps[2].pitch_offset, 1);
+        assert_eq!(track.steps[3].pitch_offset, 88, "AMT=-127 step is not in the rotatable set");
+        assert_eq!(track.steps[4].pitch_offset, 2);
+        assert!(track.steps[1].skip);
+        assert_eq!(track.steps[3].amount, -127);
+    }
+
+    /// Ref: CE v5.30 p.39. Only the skip flags move; pitch/active stay put.
+    #[test]
+    fn rotate_skips_moves_only_the_skip_flag() {
+        let mut track = Track::default_for_index(0);
+        track.steps[0].active = true;
+        track.steps[0].pitch_offset = 5;
+        track.steps[0].skip = true;
+        track.steps[1].active = true;
+        track.steps[1].pitch_offset = 6;
+        track.steps[2].amount = -127;
+        track.steps[2].skip = true; // masked+skipped: must not rotate
+
+        track.rotate_skips(1);
+
+        assert!(!track.steps[0].skip, "skip moved off step 0");
+        assert!(track.steps[1].skip, "skip landed on the next participating step");
+        assert_eq!(track.steps[0].pitch_offset, 5, "step data itself must not move");
+        assert_eq!(track.steps[1].pitch_offset, 6);
+        assert!(track.steps[2].skip, "AMT=-127 skipped step does not rotate");
     }
 }

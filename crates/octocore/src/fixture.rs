@@ -56,7 +56,27 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                     "sta" => step.start_offset = v as i8,
                     "strum" => step.strum = v as i8,
                     "amt" => step.amount = v as i8,
+                    "phrase" => step.phrase = if v == 0 { None } else { Some(v as u8) },
+                    "skip" => step.skip = v != 0,
+                    "active" => step.active = v != 0,
                     other => return Err(format!("{}: unknown step attribute `{}`", ctx(), other)),
+                }
+            }
+            ["phrase", n, "note", i, attr, value] => {
+                let pi: usize = n.parse().map_err(|_| format!("{}: bad phrase index", ctx()))?;
+                let ni: usize = i.parse().map_err(|_| format!("{}: bad phrase-note index", ctx()))?;
+                if pi >= PHRASE_COUNT || ni >= PHRASE_NOTE_COUNT {
+                    return Err(format!("{}: phrase/note out of range", ctx()));
+                }
+                let note = &mut engine.grid.phrases[pi].notes[ni];
+                let v: i32 = value.trim_start_matches('+').parse().map_err(|_| format!("{}: bad value", ctx()))?;
+                match *attr {
+                    "pit" => note.pitch_offset = v as i8,
+                    "vel" => note.velocity_offset = v as i8,
+                    "len" => note.length_ticks = v.clamp(0, 255) as u8,
+                    "sta" => note.start_ticks = v.clamp(0, 255) as u8,
+                    "enabled" => note.enabled = v != 0,
+                    other => return Err(format!("{}: unknown phrase-note attribute `{}`", ctx(), other)),
                 }
             }
             ["flatten", list] => {

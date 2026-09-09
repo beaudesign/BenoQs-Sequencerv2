@@ -1,5 +1,8 @@
 # Request: `docs/03-sequencer-core.md` §2's attribute table needs an AMT correction
 
+**Status:** done 2026-09-09 — Scribe updated the AMT row to Step ✓ with the
+-127 mask note, and GRV to 1–48.
+
 **From:** Metronome
 **Zone:** `docs/**` (Scribe-owned) — filing a request rather than editing directly,
 per `docs/08-agent-operating-model.md` §3.

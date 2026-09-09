@@ -1,0 +1,11 @@
+# Ref: CE v5.30 p.16, "Step phrasing (GRV)": "A Step may be enriched at
+# playtime by a certain amount of notes determined by phrases." p.27: phrase
+# #0 plays the step as-is; a selected phrase adds extras on top of the base.
+seed 1
+page.tracks 0 enabled
+phrase 0 note 0 pit +7
+phrase 0 note 0 enabled 1
+track 0 step 0 phrase 1
+play 1 step
+expect note track=0 pit=0
+expect note track=0 pit=+7

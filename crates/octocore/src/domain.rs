@@ -10,7 +10,6 @@ pub const TRACK_COUNT: usize = 10;
 pub const STEP_COUNT: usize = 16;
 pub const BANK_COUNT: usize = 10;
 pub const PAGE_COUNT: usize = 16;
-pub const PAGE_SET_COUNT: usize = 16;
 /// Ref: CE v5.30 p.16, "Step phrasing (GRV)": "There are three banks of 16
 /// phrases, for a total of 48." p.16-17: "As you turn the GRV encoder to the
 /// right you will see the phrase number increase from 1 to 16 (0 means no

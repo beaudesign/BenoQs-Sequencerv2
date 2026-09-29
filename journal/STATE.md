@@ -1,7 +1,7 @@
 # STATE
 
 Capped at 200 lines. Conductor prunes rather than appends when it grows past
-that. Last pruned: 2026-09-29 (Phase and SPEC-0001 sections rewritten; before that 2026-09-06, rewritten after the repo split — this is now
+that. Last pruned: 2026-09-29 (Phase and SPEC-0001 sections rewritten, again after O6 and the O4 plan; before that 2026-09-06, rewritten after the repo split — this is now
 `BenoQs-Sequencerv2`, not a branch/PR against the original).
 
 ## This repo's origin (read this before anything else)
@@ -75,7 +75,7 @@ lifecycle and `specs/SPEC-0001/` for the current plan.
 - Brownian (dir 4) has a 400-seed statistical fixture for the 2/3 forward
   split.
 - The tests and fixtures that must keep passing are listed in `harness/baseline.txt`
-  (210 tests and 11 fixtures on 2026-09-29). `cargo xtask verify` refuses a run that lost any.
+  (258 tests and 11 fixtures on 2026-09-29, at the top of the PR stack). `cargo xtask verify` refuses a run that lost any.
 - **Still open, logged with citations:** generic VEL/PIT-style scaling
   table (p.53-55); attribute-map-factor step events (p.34-37); genuine
   same-tick step-event application; hyperstep LEN-scaling curve; MCC
@@ -112,22 +112,32 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   headless runner, golden hashes, WASM smoke test), O8 (real gates, ratchet, CI, CODEOWNERS),
   O10 (ordering, velocity 0, bend and pressure), O9 (fixture DSL v3, invariants), plus
   WENGE-0011 (queue headroom, overload warning) from the independent review.
-- **Not approved, not started:** O4 (integer tick clock and host lock, high tier, needs both
-  specs and a release plan) and O6 (command ring, needs Q6). Also the design-system and DSP
-  track (Q1, unanswered).
+- **O6 (command ring and snapshot) approved in r2 and built:** PR #11. Wait-free ring in,
+  snapshot out, `SetTrack` and `SetStep`, additive C interface (ABI 2), no `unsafe` in
+  `octocore`. Loom models plus mutation scripts; two `AcqRel` orderings are reasoned, not tested
+  (needs an ARM soak).
+- **O4 (integer tick clock and host lock) approved for a release plan only:** PR #12, revision 2,
+  no code, decisions D0 to D6 for the owner. **D0 is a finding: the engine counts 192 ticks per
+  quarter note and the manual 192 per whole note, so steps play four times too fast.** Engine
+  untouched; `WENGE-0012` is the triage record. Nothing for O4 is built until the owner approves.
+- **Not approved, not started:** the design-system and DSP track (Q1, unanswered).
 - **Merge state on 2026-09-29:** PR #5 (factory layer) is on `main`. #6, #7 and #8 were merged
   into their parent branches, not `main`, so `main` lacks them. #9 was retargeted to `main`
-  and carries PRs 2 to 5; #10 is stacked on it. Delete each branch on merge.
+  and carries PRs 2 to 5; #10, #11 and #12 are stacked on it in that order. Delete each branch
+  on merge. `specs/SPEC-0001/review-guide.md` says what to read, decide and run.
 - **Owner-only:** branch protection and required Code Owner review (make the `verify` check
   required); the `jsonschema` dev-dependency (about 100 lockfile entries).
 - **Known limits:** the 256-events-per-call cap binds above about 4,096 samples on dense
   patterns; the queue (1,024) overflows on the dense stress scene, by design and counted; the
-  lookahead costs up to 12 ticks of command latency and assumes a constant tempo; legato
-  (manual p.16) and live `midir` output are not done.
+  lookahead costs up to 12 ticks of command latency and assumes a constant tempo, so a tempo
+  ramp leaves a permanent offset (24 ms after a 60 to 180 BPM ramp; O4 plan); **the tick is four
+  times too short against the manual (D0, `WENGE-0012`)**; legato (manual p.16) and live `midir`
+  output are not done.
 
-**Next three steps:** (1) owner merges #9 then #10 and checks the first CI run; (2) Scribe
-works through `journal/metronome/requests/`; (3) owner answers Q1 and approves a release plan
-for O4, or the design-system track gets its own spec.
+**Next three steps:** (1) owner reviews and merges #9, #10, #11 in order, and answers D0 and D1
+on #12; (2) Scribe, Referee and Conductor work through `journal/metronome/requests/` (docs 02 and
+03, the loom gate and an ARM soak, the `AGENTS.md` crate table); (3) if O4 is approved, the guard
+tests and the null host first, then 4a; if D0 says fix the tick, `WENGE-0012` gets a spec before 4b.
 
 ## Fan-out
 

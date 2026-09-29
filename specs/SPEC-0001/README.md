@@ -19,6 +19,7 @@
 | `tech.md` | Current design, proposed change, files touched, risks, alternatives, plan. |
 | `o6-test-plan.md` | The tests for `WENGE-0006`, written before the ring code (r2). |
 | `o4-release-plan.md` | Release plan for `WENGE-0004`, for the owner to approve or reject (r2). Written (revision 2, after an independent review), with seven decisions D0 to D6 in section 0. D0 is a finding: the engine's tick is four times too short against the manual. Nothing is built until the owner answers. |
+| `review-guide.md` | What to read, decide, run and merge, in what order, for the review of PRs #9 to #12 (written 2026-09-29). |
 
 ## Approval record
 

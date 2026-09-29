@@ -32,8 +32,9 @@ commit. Referenced in `agents/CLAUDE.md`'s "nine things" list.
 (golden event streams from `octorun`). The other 11 report `not_implemented`, which is
 never a pass. Per `docs/09-roadmap.md`, Phase 0 exit criteria (`just verify` green under
 4 min, placeholder renderer discriminating gates, report rendering, eight worktrees through
-the merge queue) are **not met**: no renderer exists, and the CI workflows have never run on
-GitHub. Work with no rendering dependency (`octocore`, `octorun`, `octoroom`'s pure-Rust half)
+the merge queue) are **not met**: no renderer exists. The `verify` workflow (its `verify` and
+`wasm-smoke` jobs) has run on GitHub for every branch tip of the SPEC-0001 series and passed,
+but it is not yet a required check. Work with no rendering dependency (`octocore`, `octorun`, `octoroom`'s pure-Rust half)
 proceeds in parallel, as the roadmap's sequencing notes allow. See `AGENTS.md` for the task
 lifecycle and `specs/SPEC-0001/` for the current plan.
 
@@ -117,8 +118,8 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
 - **Merge state on 2026-09-29:** PR #5 (factory layer) is on `main`. #6, #7 and #8 were merged
   into their parent branches, not `main`, so `main` lacks them. #9 was retargeted to `main`
   and carries PRs 2 to 5; #10 is stacked on it. Delete each branch on merge.
-- **Owner-only:** branch protection and required Code Owner review; the first GitHub run of
-  the CI workflows; the `jsonschema` dev-dependency (about 100 lockfile entries).
+- **Owner-only:** branch protection and required Code Owner review (make the `verify` check
+  required); the `jsonschema` dev-dependency (about 100 lockfile entries).
 - **Known limits:** the 256-events-per-call cap binds above about 4,096 samples on dense
   patterns; the queue (1,024) overflows on the dense stress scene, by design and counted; the
   lookahead costs up to 12 ticks of command latency and assumes a constant tempo; legato

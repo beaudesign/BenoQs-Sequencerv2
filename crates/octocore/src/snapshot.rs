@@ -5,6 +5,13 @@
 //! two per encoder (`angle_radians`, `detent_index`), then one per playhead (`step_index` and
 //! `track_index << 8`), then the transport (`playing`, then `tick` as 2), the mode, and the
 //! active bank and page (`bank | page << 8`). Floats travel as their exact bits.
+//!
+//! **The snapshot leads the sound.** It is published at the end of a render, after the engine
+//! has stepped up to `MAX_EARLY_TICKS` (12) ticks past the audio so that a note pulled early
+//! is still in time. `transport.tick` and the playheads therefore run about 13 ticks ahead of
+//! what the host is playing (after the first 256-sample render at 120 BPM and 48 kHz: tick 15
+//! in the snapshot against about tick 2 audible). A display that must line up with the sound
+//! has to delay by that many ticks. Found by the independent review of PR #11; not changed here.
 
 use crate::domain::{Mode, TRACK_COUNT};
 use crate::types::{

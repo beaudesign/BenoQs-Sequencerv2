@@ -48,8 +48,9 @@ impl CommandSender {
         self.tx.push(w);
     }
 
-    /// Commands pushed, applied (`received`) and dropped. Always
-    /// `pushed == received + dropped + pending`.
+    /// Commands pushed, applied (`received`) and dropped. `pushed == received + dropped +
+    /// pending` whenever no push or drain is in flight; read from another thread while the
+    /// engine is draining, the three can be a step apart.
     pub fn stats(&self) -> RingStats {
         self.tx.stats()
     }

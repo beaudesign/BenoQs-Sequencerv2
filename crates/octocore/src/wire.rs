@@ -228,6 +228,35 @@ mod tests {
     }
 
     #[test]
+    fn w5_a_single_stray_bit_in_a_valid_command_never_decodes_to_a_command_that_encodes_differently() {
+        // W2's random sweep almost never lands on a valid command, so it cannot see a decoder
+        // that forgets to check one field (an independent review broke SetStep's stray-bit
+        // check and SetMode's range check and W2 stayed green). Here every valid command has
+        // each of its 192 bits flipped in turn: the result must either not decode, or decode
+        // to a command that encodes back to exactly those words.
+        let mut decoded_after_flip = 0;
+        let mut flips = 0;
+        for c in all_commands() {
+            let words = c.to_words();
+            for i in 0..3 {
+                for bit in 0..64 {
+                    let mut w = words;
+                    w[i] ^= 1u64 << bit;
+                    flips += 1;
+                    if let Some(d) = Command::from_words(w) {
+                        decoded_after_flip += 1;
+                        assert_eq!(d.to_words(), w, "{c:?} with word {i} bit {bit} flipped decoded to {d:?}, which encodes differently");
+                    }
+                }
+            }
+        }
+        assert!(flips > 25_000);
+        // Some flips are legitimate (a flipped value bit is still a value), so this is not zero,
+        // but most must be refused.
+        assert!(decoded_after_flip < flips / 2, "{decoded_after_flip} of {flips} flips were accepted");
+    }
+
+    #[test]
     fn w3_every_variant_is_covered_by_the_round_trip_list() {
         let mut seen = std::collections::BTreeSet::new();
         for c in all_commands() {

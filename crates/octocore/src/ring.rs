@@ -126,7 +126,9 @@ impl Sender {
 
 impl Receiver {
     /// Takes the oldest command still in the ring. `None` means there is nothing to take
-    /// right now.
+    /// right now, or that `MAX_ATTEMPTS` slots in a row were overwritten by a producer that
+    /// is lapping this consumer while it read (some commands may then still be pending: the
+    /// next call finds them, or counts them as dropped).
     pub fn pop(&mut self) -> Option<Words> {
         let shared = &*self.shared;
         let capacity = shared.mask + 1;
@@ -190,9 +192,12 @@ impl Receiver {
 
     /// Moves the command `pop` just returned from "received" to "dropped". The engine calls
     /// it when the words do not decode to a `Command`, so the counters still add up.
+    /// A call with nothing to move (no command received yet) does nothing, so a stray call
+    /// cannot wrap the counter.
     pub fn reject(&mut self) {
-        self.shared.received.fetch_sub(1, Ordering::Relaxed);
-        self.shared.dropped.fetch_add(1, Ordering::Relaxed);
+        if self.shared.received.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| v.checked_sub(1)).is_ok() {
+            self.shared.dropped.fetch_add(1, Ordering::Relaxed);
+        }
     }
 }
 

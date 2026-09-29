@@ -208,6 +208,9 @@ typedef struct {
     uint8_t mode; // 0=Grid 1=Page 2=Track 3=Step
     OctoActiveRefs active;
 } OctoSnapshot;
+// The snapshot leads the sound: the engine steps up to 12 ticks ahead of the audio before it
+// publishes, so transport.tick and the playheads are about 13 ticks ahead of what is playing.
+// A display that must line up with the sound has to delay by that many ticks.
 
 // Takes the newest published snapshot if there is one newer than the last claim, and returns
 // a pointer to the reader's copy. With nothing new it returns the last one (all zero, generation 0,

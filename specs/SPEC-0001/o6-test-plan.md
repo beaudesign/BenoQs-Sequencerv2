@@ -287,8 +287,22 @@ says so, so that nothing in the plan reads as true when it is not.
 **Loom result for the mutants** is in `handoffs/evidence/o6-mutants.txt`: M1 to M7 caught, M8 survives as expected. M6 is caught by an abort of the whole `l3_` test process rather than by a named assertion, which the runner now says instead of printing a bare "a loom test".
 
 **Measured, from the build.** The snapshot is 8,408 bytes. Publishing it costs about 0.7
-microseconds per render and applying 256 commands about 7 microseconds (release build,
-`handoffs/evidence/o6-cost.txt`). `Engine` grew from 47,552 to 47,560 bytes.
+microseconds per render and applying 256 `SetTrack` commands about 7 microseconds; 256
+`Reset` commands cost about 64 (release build, `handoffs/evidence/o6-cost.txt`, which the
+independent review of PR #11 asked to be extended past the cheapest command). `Engine` grew from 47,552 to 47,560 bytes.
+
+**Independent review of PR #11 (a fresh session) and what changed because of it.** It found no
+defect in the ring, the triple buffer, the wire format or the engine hooks. It found: test C6
+could not fail (rewritten); the header test ignored enumerator order (now a `_Static_assert` per
+enumerator); the wire decoder's strictness was only partly pinned (test W5 flips every bit of
+every valid command); the cost figure was for the cheapest command (measured for five types
+now); the slice-4 red runs showed only that the API was missing (`o6-link-mutants.txt`: 12 of 12
+breakages of the engine hooks caught). It also found what is **not** fixed: the two `AcqRel`
+swaps in `triple.rs` are not protected by any test (loom cannot see reordering past a later
+atomic operation and the soaks run on x86-64, so they are reasoned, not tested, until there is
+an ARM soak); the snapshot leads the sound by about 13 ticks; and the C header test does not
+link. Loom's "every interleaving" means every interleaving within a preemption bound of 3, on
+models of 2 to 4 operations.
 
 **Found on the way, and recorded rather than fixed here:**
 

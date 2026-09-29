@@ -25,3 +25,15 @@ Asked:
    so it cannot fail a minimal machine. A CI runner has one, so CI could insist.
 
 Until these exist, the loom results are evidence in the handoff, not enforcement.
+
+## Added after the independent review of PR #11
+
+5. `crates/octocore/loom/link_mutants.py`: twelve one-line breakages of the engine hooks, the
+   snapshot publishing and the attribute setters. About 4 minutes; exit status 0 means every one
+   is caught by `cargo test`. Same nightly job as item 3. Result: `handoffs/evidence/o6-link-mutants.txt`.
+6. **An `aarch64` runner for the two-thread soaks.** Loom does not model a load or store being
+   reordered past a later atomic operation, and the soaks run on x86-64, whose memory ordering is
+   stronger than ARM's. The review broke two orderings on purpose (the writer's and the reader's
+   `AcqRel` swap in `triple.rs`, weakened to `Release` and `Acquire`) and neither loom nor the soaks
+   noticed. The orderings in the code are the ones the design argues for; nothing *tests* them, and the
+   product ships on Apple Silicon. Until an ARM soak exists, those two orderings are reasoned, not tested.

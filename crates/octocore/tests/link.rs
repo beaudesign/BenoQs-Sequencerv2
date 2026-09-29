@@ -215,18 +215,22 @@ fn c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_comm
     a.render(&mut direct, 8, true);
     let before = a.events.len();
     direct.handle_command(Command::Stop);
-    a.render(&mut direct, 4, false);
+    // The host still says "playing", so the only thing that can flush the notes is the Stop
+    // command itself (a host that said "stopped" would flush them without any command).
+    a.render(&mut direct, 4, true);
 
     let mut linked = scene();
     let (mut tx, _rx) = linked.open_link().unwrap();
     let mut b = Host::new();
     b.render(&mut linked, 8, true);
     tx.push(Command::Stop);
-    b.render(&mut linked, 4, false);
+    b.render(&mut linked, 4, true);
 
     assert_eq!(a.events, b.events);
-    let flush: Vec<_> = a.events[before..].iter().filter(|(_, e)| matches!(e, Event::NoteOff { .. })).collect();
-    assert!(!flush.is_empty(), "the scene must have notes sounding when Stop arrives, or this proves nothing");
+    let flush_a = a.events[before..].iter().filter(|(_, e)| matches!(e, Event::NoteOff { .. })).count();
+    let flush_b = b.events[before..].iter().filter(|(_, e)| matches!(e, Event::NoteOff { .. })).count();
+    assert!(flush_a > 0, "the scene must have notes sounding when Stop arrives, or this proves nothing");
+    assert_eq!(flush_a, flush_b, "the Stop that came through the ring flushed the same notes");
 }
 
 #[test]

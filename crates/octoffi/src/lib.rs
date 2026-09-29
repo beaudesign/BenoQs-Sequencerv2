@@ -850,6 +850,51 @@ mod tests {
         for (expr, want) in assertions {
             c += &format!("_Static_assert({expr} == {want}, \"{expr}\");\n");
         }
+        // Every enumerator against the Rust value it must equal. The attribute numbers travel
+        // on the wire, so a header with two enumerators swapped would make a C caller's
+        // Velocity write land on LengthFactor, and no size or offset check can see that (an
+        // independent review swapped two and every other test stayed green).
+        fn upper_snake(camel: &str) -> String {
+            let mut out = String::new();
+            for (i, ch) in camel.chars().enumerate() {
+                if ch.is_uppercase() && i > 0 {
+                    out.push('_');
+                }
+                out.extend(ch.to_uppercase());
+            }
+            out
+        }
+        for (i, a) in octocore::types::TrackAttr::ALL.iter().enumerate() {
+            assert_eq!(*a as usize, i, "TrackAttr::ALL is in discriminant order");
+            c += &format!("_Static_assert(OCTO_TRACK_{} == {i}, \"OCTO_TRACK_{}\");\n", upper_snake(&format!("{a:?}")), upper_snake(&format!("{a:?}")));
+        }
+        for (i, a) in octocore::types::StepAttr::ALL.iter().enumerate() {
+            assert_eq!(*a as usize, i, "StepAttr::ALL is in discriminant order");
+            c += &format!("_Static_assert(OCTO_STEP_{} == {i}, \"OCTO_STEP_{}\");\n", upper_snake(&format!("{a:?}")), upper_snake(&format!("{a:?}")));
+        }
+        {
+            use octocore::types::{Command as C, ControlId};
+            let all = [
+                ("PLAY", C::Play),
+                ("STOP", C::Stop),
+                ("CONTINUE", C::Continue),
+                ("RESET", C::Reset),
+                ("BUTTON_DOWN", C::ButtonDown { control: ControlId(0), velocity_mm_s: 0.0 }),
+                ("BUTTON_UP", C::ButtonUp { control: ControlId(0) }),
+                ("ENCODER_TURN", C::EncoderTurn { control: ControlId(0), detents: 0, angular_velocity: 0.0 }),
+                ("SET_ACTIVE_PAGE", C::SetActivePage { bank: 0, page: 0 }),
+                ("SET_MODE", C::SetMode { mode: octocore::domain::Mode::Grid }),
+                ("HOST_TRANSPORT", C::HostTransport { ppqn_pos: 0, bpm: 0.0, playing: false }),
+                ("LOAD_STATE", C::LoadState { handle: 0 }),
+                ("SET_TRACK", C::SetTrack { track: 0, attr: octocore::types::TrackAttr::Pitch, value: 0 }),
+                ("SET_STEP", C::SetStep { track: 0, step: 0, attr: octocore::types::StepAttr::Active, value: 0 }),
+            ];
+            for (name, cmd) in all {
+                // The tag is the first four bytes of the `repr(C)` enum.
+                let tag = unsafe { *(&cmd as *const C as *const u32) };
+                c += &format!("_Static_assert(OCTO_CMD_{name} == {tag}, \"OCTO_CMD_{name}\");\n");
+            }
+        }
         c += "int main(void) { return 0; }\n";
         std::fs::write(&src, c).unwrap();
         let out = std::process::Command::new("cc")

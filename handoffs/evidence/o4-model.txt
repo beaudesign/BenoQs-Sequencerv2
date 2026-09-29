@@ -1,0 +1,25 @@
+# Model of the proposed arithmetic, not engine code. Program: o4-baseline/model_tick_timeline.py
+60 to 180 BPM over 8 bars. Error of every tick's time before rounding to a whole sample, in samples (48 kHz: 1 sample = 20.8 us).
+'first' = the buffers where the slope is not known yet (the first two); 'then' = every buffer after them.
+
+HOST POSITION MODE (each buffer anchored on the host's exact position)
+  buffer | tempo at start only: worst | with slope: first, then
+      32 |                      0.001 |             0.000, 0.0000
+      64 |                      0.005 |             0.000, 0.0000
+     128 |                      0.020 |             0.019, 0.0000
+     256 |                      0.082 |             0.081, 0.0000
+     512 |                      0.326 |             0.325, 0.0000
+    1024 |                      1.299 |             1.299, 0.0000
+    2048 |                      5.225 |             5.181, 0.0000
+    4096 |                     21.312 |            21.312, 0.0000
+
+FREE-RUNNING (the engine keeps its own position; error can build up)
+  buffer | tempo at start only: worst, last note | with slope: worst overall, worst after the first two buffers, last note
+      32 |         10.67,      10.67 |         0.003,      0.003,    0.001
+      64 |         21.33,      21.33 |         0.011,      0.011,    0.004
+     128 |         42.67,      42.67 |         0.043,      0.043,    0.014
+     256 |         85.34,      85.34 |         0.170,      0.170,    0.057
+     512 |        170.66,     170.66 |         0.680,      0.680,    0.228
+    1024 |        341.38,     341.34 |         2.715,      2.715,    0.910
+    2048 |        682.79,     682.79 |        10.804,     10.804,    3.641
+    4096 |       1365.80,    1365.80 |        42.779,     42.779,   14.565

@@ -18,7 +18,7 @@
 | `product.md` | Problem, users, scope, acceptance examples A1 to A7, invariants, failure behaviour. |
 | `tech.md` | Current design, proposed change, files touched, risks, alternatives, plan. |
 | `o6-test-plan.md` | The tests for `WENGE-0006`, written before the ring code (r2). |
-| `o4-release-plan.md` | Release plan for `WENGE-0004`, for the owner to approve or reject (r2). Not yet written at this commit. |
+| `o4-release-plan.md` | Release plan for `WENGE-0004`, for the owner to approve or reject (r2). Written, with six decisions in section 0. Nothing is built until the owner answers. |
 
 ## Approval record
 
@@ -68,7 +68,7 @@ factory layer that carries this spec.
 | WENGE-0001 | O1 Flush sounding notes on stop and reset (pilot) | Medium | F0 | Merged into a parent branch, not yet on `main` (PR 3) |
 | WENGE-0002 | O2 Stop the backlog burst on Play after idle | Medium | F0 | Merged into a parent branch, not yet on `main` (PR 3) |
 | WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4) |
-| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan for sign-off (`o4-release-plan.md`). No code, and none until the plan is approved. |
+| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan written and open as PR 8 (#12) for sign-off. No code, and none until the owner approves it. |
 | WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4) |
 | WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Approved in r2. Built as PR 7 (#11), in review. Test plan first (`o6-test-plan.md`, section 10 records where the build differed). |
 | WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | In review (PR 5). Live `midir` mode not done (Q6). |
@@ -92,6 +92,7 @@ owner merges, in order. Nothing merges on the strength of an agent's own status 
 | 5 | #9, open, retargeted to `main` | `conductor/octorun` | WENGE-0007 | PRs 1 to 4 |
 | 6 | #10, open | `metronome/queue-headroom` | WENGE-0011 | PR 5 |
 | 7 | #11, open | `metronome/command-ring` | WENGE-0006 | PR 6 |
+| 8 | opened after this commit | `conductor/o4-release-plan` | WENGE-0004 (plan only, no code) | PR 7 |
 
 **What happened to the stack.** The owner merged #5 to #8 in order, but the branches were not
 deleted after each merge, so GitHub did not retarget the next pull request to `main`. #6, #7

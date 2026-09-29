@@ -55,10 +55,10 @@ pub struct OctoRenderParams {
 /// Renders exactly `params.buffer_len` samples and writes up to
 /// `out_capacity` emitted `Event`s into `out_events` (caller-owned buffer),
 /// writing the actual count into `*out_count`. Returns 0 on success, a negative
-/// code on a null/invalid argument. If more events fired than `out_capacity`
-/// can hold, the extras are silently dropped this call — same "full density is
-/// sized for" contract as `octocore::engine::MAX_EVENTS_PER_TICK` internally, not
-/// a new gap introduced at this boundary.
+/// code on a null/invalid argument. If more events are due than `out_capacity`
+/// can hold, the extras are kept and come out first in the next call (late, at
+/// sample 0), never dropped; `octocore_engine_diagnostics` counts how often that
+/// happened. Capacity beyond `MAX_EVENTS_PER_TICK` (256) is not used.
 ///
 /// # Safety
 /// `engine` must be a live pointer from `octocore_engine_new`. `out_events` must
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn octocore_engine_render(
         bpm: params.bpm,
         playing: params.playing,
     };
-    let mut buf = octocore::engine::EventBuffer::new();
+    let mut buf = octocore::engine::EventBuffer::with_limit(out_capacity);
     engine.render(&ctx, &mut buf);
 
     let events = buf.as_slice();
@@ -91,6 +91,20 @@ pub unsafe extern "C" fn octocore_engine_render(
     let dst = std::slice::from_raw_parts_mut(out_events, n);
     dst.copy_from_slice(&events[..n]);
     *out_count = n;
+    0
+}
+
+/// Copies the engine's health counters to `*out`. Returns 0 on success, -1 for a null
+/// engine, -2 for a null `out`. The counters are cumulative since `octocore_engine_new`.
+///
+/// # Safety
+/// `engine` must be a live pointer from `octocore_engine_new`. `out` must point to one
+/// valid, writable `Diagnostics`.
+#[no_mangle]
+pub unsafe extern "C" fn octocore_engine_diagnostics(engine: *const Engine, out: *mut octocore::Diagnostics) -> i32 {
+    let Some(engine) = engine.as_ref() else { return -1 };
+    let Some(out) = out.as_mut() else { return -2 };
+    *out = engine.diagnostics();
     0
 }
 
@@ -376,6 +390,86 @@ mod tests {
             let has_note_on_63 = events[..count].iter().any(|ev| matches!(ev, Event::NoteOn { note: 63, .. }));
             assert!(has_note_on_63, "expected a NoteOn at 60+3=63 from the pattern programmed via FFI; got {:?}", &events[..count]);
 
+            octocore_engine_free(e);
+        }
+    }
+
+    /// SPEC-0001 O5. `out_capacity` is the caller's room per call. Events that do not fit are
+    /// carried to the next call. Before, the extras were dropped at this boundary, and a
+    /// dropped NoteOff is a note that never ends.
+    #[test]
+    fn a_small_caller_buffer_delays_events_and_never_drops_them() {
+        // (absolute sample, event without its buffer-relative position), for `buffers`
+        // renders of 512 samples with a caller buffer of `capacity` events.
+        fn run(capacity: usize, buffers: usize) -> Vec<(u64, [u8; 4])> {
+            let e = octocore_engine_new(7);
+            let mut all = Vec::new();
+            unsafe {
+                for t in 0..10u8 {
+                    for st in 0..16u8 {
+                        assert!(octocore_step_set_i32(e, t, st, OctoStepAttr::Active, 1));
+                    }
+                }
+                octocore_engine_handle_command(e, Command::Play);
+                let mut events = vec![Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }; capacity];
+                for b in 0..buffers {
+                    let params = OctoRenderParams { sample_rate: 48_000.0, buffer_len: 512, bpm: 120.0, playing: true };
+                    let mut count = 0usize;
+                    assert_eq!(octocore_engine_render(e, params, events.as_mut_ptr(), events.len(), &mut count), 0);
+                    for ev in &events[..count] {
+                        let (at, key) = match *ev {
+                            Event::NoteOn { port, ch, note, at_sample, .. } => (at_sample, [1, port, ch, note]),
+                            Event::NoteOff { port, ch, note, at_sample } => (at_sample, [2, port, ch, note]),
+                            Event::Cc { port, ch, cc, at_sample, .. } => (at_sample, [3, port, ch, cc]),
+                        };
+                        all.push((b as u64 * 512 + at as u64, key));
+                    }
+                }
+                octocore_engine_free(e);
+            }
+            all
+        }
+
+        let buffers = 600;
+        let reference = run(256, buffers);
+        let small = run(8, buffers);
+        assert!(reference.len() > 400, "the scenario must produce plenty of events, got {}", reference.len());
+
+        // Whatever the small run has not delivered by the end is still queued behind the
+        // caller's small buffer, so it can only be among the last events of the reference.
+        let mut remaining: Vec<(u64, [u8; 4])> = small.iter().map(|(_, k)| (0, *k)).collect();
+        let mut missing = Vec::new();
+        for (t, k) in &reference {
+            match remaining.iter().position(|(_, rk)| rk == k) {
+                Some(i) => {
+                    remaining.swap_remove(i);
+                }
+                None => missing.push(*t),
+            }
+        }
+        let cutoff = (buffers as u64 - 24) * 512;
+        let early: Vec<u64> = missing.iter().copied().filter(|t| *t < cutoff).collect();
+        assert!(early.is_empty(), "{} events were dropped, first at sample {:?}", early.len(), early.first());
+    }
+
+    #[test]
+    fn diagnostics_are_readable_and_null_safe() {
+        let e = octocore_engine_new(1);
+        unsafe {
+            let mut d = octocore::Diagnostics { queue_overflows: 9, ..Default::default() };
+            assert_eq!(octocore_engine_diagnostics(e, &mut d), 0);
+            assert_eq!(d, octocore::Diagnostics::default());
+            assert_eq!(octocore_engine_diagnostics(std::ptr::null(), &mut d), -1);
+            assert_eq!(octocore_engine_diagnostics(e, std::ptr::null_mut()), -2);
+
+            // A tempo of 0 with the transport running is counted, and the engine survives it.
+            octocore_engine_handle_command(e, Command::Play);
+            let params = OctoRenderParams { sample_rate: 48_000.0, buffer_len: 512, bpm: 0.0, playing: true };
+            let mut events = [Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }; 8];
+            let mut count = 0usize;
+            assert_eq!(octocore_engine_render(e, params, events.as_mut_ptr(), events.len(), &mut count), 0);
+            assert_eq!(octocore_engine_diagnostics(e, &mut d), 0);
+            assert_eq!(d.unusable_tempo_renders, 1);
             octocore_engine_free(e);
         }
     }

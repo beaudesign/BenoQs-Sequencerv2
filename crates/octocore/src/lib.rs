@@ -13,5 +13,5 @@ pub mod tables;
 pub mod types;
 
 pub use domain::Grid;
-pub use engine::{Engine, EventBuffer, RenderContext};
+pub use engine::{Diagnostics, Engine, EventBuffer, RenderContext};
 pub use types::{Command, Event};

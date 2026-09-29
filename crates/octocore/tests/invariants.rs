@@ -253,6 +253,10 @@ fn stream_with_buffer(seed: u64, bpm: f32, buffer: u32, seconds: f64) -> Vec<(u6
 /// not of the host's buffer size. Fails on the parent commit: a step whose start offset
 /// pulls a note before the tick that fired it is scheduled in the past when the buffer is
 /// small, and the engine clamps it to the buffer's first sample.
+///
+/// The sizes stop at 4,096 samples. Above that, a pattern this dense can put more than the
+/// 256 events one call holds into a single buffer, and the extras wait for the next call,
+/// late but not lost (see `a_full_output_buffer_defers_events_instead_of_dropping_them`).
 #[test]
 fn event_times_do_not_depend_on_the_hosts_buffer_size() {
     let mut failing = Vec::new();
@@ -281,6 +285,46 @@ fn event_times_do_not_depend_on_the_hosts_buffer_size() {
         }
     }
     assert!(failing.is_empty(), "the output depends on the buffer size:\n{}", failing.join("\n"));
+}
+
+// ---------------------------------------------------------------------- WENGE-0005
+
+/// SPEC-0001 O5. `render` returns for any tempo and sample rate a host can hand it. On the
+/// parent commit an infinite tempo makes zero samples per tick, and the tick loop never ends.
+#[test]
+fn absurd_tempos_and_sample_rates_cannot_hang_render() {
+    for bpm in [f32::INFINITY, f32::NEG_INFINITY, f32::NAN, 1.0e30, 1.0e-30, 0.0, -1.0, 5000.0, 0.5] {
+        for rate in [48_000.0f32, 0.0, f32::NAN, f32::INFINITY, 1.0, 1.0e9] {
+            let mut engine = random_engine(3);
+            let mut out = EventBuffer::new();
+            for _ in 0..3 {
+                out.clear();
+                let ctx = RenderContext { sample_rate: rate, buffer_len: 4096, bpm, playing: true };
+                engine.render(&ctx, &mut out);
+            }
+        }
+    }
+}
+
+/// A buffer or two of unusable tempo, then a sane one: the engine plays exactly what a
+/// fresh engine would play from that moment. On the parent commit it never plays again.
+#[test]
+fn a_bad_tempo_costs_nothing_once_the_tempo_is_sane() {
+    let mut fresh = Host::new(random_engine(9), 120.0);
+    fresh.render_seconds(2.0, 512, true);
+
+    let mut host = Host::new(random_engine(9), 0.0);
+    for _ in 0..3 {
+        host.render(512, true);
+    }
+    assert!(host.events.is_empty());
+    let resumed_at = host.clock;
+    host.bpm = 120.0;
+    host.render_seconds(2.0, 512, true);
+
+    let relative: Vec<(u64, Event)> = host.events.iter().map(|(t, e)| (t - resumed_at, *e)).collect();
+    assert!(!relative.is_empty(), "the engine never played again");
+    assert_eq!(relative, fresh.events);
 }
 
 // ---------------------------------------------------------------------- determinism

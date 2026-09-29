@@ -1,0 +1,26 @@
+# WENGE-0010 / SPEC-0001 O10. A track whose MCC is BENDER sends pitch bend messages from
+# the MCC values stored in its steps.
+# Ref: CE v5.30 p.46 (the BENDER flag) and p.91: bend data has 14 bits, but "when editing the
+# MCC data you will currently only operate on the most significant 7 bits of the value", so a
+# step value V is sent as V << 7. 64 is therefore exactly the centre, 8192 (no bend).
+# Before this task the engine sent nothing for a bender track. See AMBIGUITIES.md "MCC bender".
+seed 1
+bpm 120
+page.tracks 0,1,2 enabled
+track 0 mcc bend
+track 1 mcc bend
+track 2 mcc bend
+track 0 mch 1
+track 1 mch 2
+track 2 mch 3
+track 0 step 0 mcc 64
+track 1 step 0 mcc 0
+track 2 step 0 mcc 127
+play
+# One bar is 24,000 samples at 120 BPM, and the step fires on tick 12 (sample 1375), so 20
+# buffers of 512 hold exactly one firing.
+render 20 buffers buffer=512
+expect event bend port=1 ch=1 val=8192 count=1
+expect event bend port=1 ch=2 val=0 count=1
+expect event bend port=1 ch=3 val=16256 count=1
+expect event cc absent

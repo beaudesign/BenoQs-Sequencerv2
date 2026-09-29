@@ -6,7 +6,12 @@
 # line that names an ADR. Owned by the Referee. Do not edit by hand.
 schema baseline/1
 test conformance::all_conformance_fixtures_pass
+test invariants::a_bad_tempo_costs_nothing_once_the_tempo_is_sane
+test invariants::absurd_tempos_and_sample_rates_cannot_hang_render
 test invariants::different_seeds_make_different_scenarios
+test invariants::event_order_does_not_depend_on_the_hosts_buffer_size
+test invariants::event_times_do_not_depend_on_the_hosts_buffer_size
+test invariants::every_note_on_has_a_velocity_of_at_least_1_however_quiet_the_pattern
 test invariants::first_buffer_after_idle_equals_a_fresh_engines_first_buffer
 test invariants::play_command_after_idle_does_not_replay_the_backlog
 test invariants::reset_flushes_sounding_notes
@@ -19,7 +24,17 @@ test octocore::domain::tests::flatten_requires_at_least_two_tracks
 test octocore::domain::tests::flatten_resets_phrase_unless_track_groove_matches
 test octocore::domain::tests::rotate_skips_moves_only_the_skip_flag
 test octocore::domain::tests::rotate_steps_moves_active_content_forward_and_hops_excluded
+test octocore::engine::tests::a_bender_track_sends_pitch_bend_with_the_step_value_in_the_top_7_bits
+test octocore::engine::tests::a_controller_is_sent_before_the_note_it_belongs_to
 test octocore::engine::tests::a_flush_larger_than_one_buffer_finishes_over_the_next_renders
+test octocore::engine::tests::a_full_output_buffer_defers_events_instead_of_dropping_them
+test octocore::engine::tests::a_full_queue_refuses_a_note_as_a_pair_never_half
+test octocore::engine::tests::a_note_with_velocity_zero_is_not_transmitted
+test octocore::engine::tests::a_phrase_extra_that_reaches_velocity_zero_is_not_transmitted
+test octocore::engine::tests::a_pressure_track_sends_channel_pressure_and_a_none_track_sends_nothing_extra
+test octocore::engine::tests::a_render_longer_than_a_chunk_is_split_without_changing_the_result
+test octocore::engine::tests::a_stopped_transport_with_a_bad_tempo_is_not_a_problem
+test octocore::engine::tests::an_unusable_tempo_does_not_wedge_the_clock
 test octocore::engine::tests::brownian_is_biased_two_thirds_forward
 test octocore::engine::tests::chain_member_never_plays_independently
 test octocore::engine::tests::chain_play_order_is_descending_head_first
@@ -29,6 +44,8 @@ test octocore::engine::tests::custom_direction_certainty_next_boundaries_are_det
 test octocore::engine::tests::custom_direction_default_behaves_like_forward
 test octocore::engine::tests::custom_direction_empty_slice_fires_once_then_advances
 test octocore::engine::tests::custom_direction_multi_trigger_slice_fires_step_twice
+test octocore::engine::tests::equal_events_keep_the_order_they_were_scheduled_in
+test octocore::engine::tests::events_in_one_sample_go_off_then_controller_then_on
 test octocore::engine::tests::factory_green_phrase_1_enriches_a_step
 test octocore::engine::tests::flush_waits_for_room_when_the_caller_passes_a_nearly_full_buffer
 test octocore::engine::tests::forward_direction_advances_one_step
@@ -36,6 +53,7 @@ test octocore::engine::tests::host_transport_stop_while_stopped_is_not_a_button_
 test octocore::engine::tests::hyperstep_linked_track_fires_every_192_ticks_not_12
 test octocore::engine::tests::hyperstep_pit_vel_are_read_live_from_source
 test octocore::engine::tests::hyperstep_unlink_restores_default_step_length
+test octocore::engine::tests::max_early_ticks_covers_every_table_and_is_tight
 test octocore::engine::tests::noteoff_without_a_noteon_never_underflows_the_table
 test octocore::engine::tests::out_of_range_port_channel_or_note_is_never_tracked_and_never_panics
 test octocore::engine::tests::phrase_count_covers_48_across_three_banks
@@ -63,6 +81,7 @@ test octocore::engine::tests::track_toggle_mute_applies_next_tick_when_otm_off
 test octocore::engine::tests::track_toggle_mute_defers_to_measure_boundary_when_otm_set
 test octocore::engine::tests::track_toggle_negative_amt_is_off
 test octocore::engine::tests::track_toggle_range_wraps_manual_worked_example
+test octocore::engine::tests::velocity_scaled_down_to_zero_is_not_transmitted_and_1_is_the_quietest_note
 test octocore::fixture::tests::non_listener_does_not_receive_effector_feed
 test octocore::fixture::tests::role_both_receives_and_publishes
 test octocore::fixture::tests::v2_absent_and_count_are_checked
@@ -99,6 +118,9 @@ test octocore::tables::tests::sta_scaling_row_0_is_always_zero
 test octocore::tables::tests::strum_table_first_note_never_delayed
 test octocore::tables::tests::strum_table_known_entries
 test octoffi::tests::a_pattern_programmed_entirely_through_ffi_actually_plays
+test octoffi::tests::a_small_caller_buffer_delays_events_and_never_drops_them
+test octoffi::tests::diagnostics_are_readable_and_null_safe
+test octoffi::tests::new_event_variants_match_the_layout_in_the_c_header
 test octoffi::tests::new_free_roundtrip_is_safe
 test octoffi::tests::out_of_range_indices_are_a_no_op_not_a_crash
 test octoffi::tests::render_fills_caller_buffer
@@ -156,8 +178,12 @@ test xtask::tests::required_gates_file_only_names_known_gates
 test xtask::tests::unknown_options_are_errors
 fixture tests/conformance/effector/feeder_pit.fixture
 fixture tests/conformance/effector/listener_step_mask.fixture
+fixture tests/conformance/mcc/bender_sends_pitch_bend_from_the_top_7_bits.fixture
+fixture tests/conformance/mcc/channel_pressure_sends_the_step_value.fixture
+fixture tests/conformance/mcc/controller_track_still_sends_a_cc.fixture
 fixture tests/conformance/phrases/forward_enriches_step.fixture
 fixture tests/conformance/transport/play_after_idle_has_no_backlog_burst.fixture
 fixture tests/conformance/transport/reset_flushes_sounding_notes.fixture
 fixture tests/conformance/transport/stop_flushes_sounding_notes.fixture
 fixture tests/conformance/transport/stop_while_stopped_sends_all_notes_off.fixture
+fixture tests/conformance/velocity/zero_velocity_is_not_transmitted.fixture

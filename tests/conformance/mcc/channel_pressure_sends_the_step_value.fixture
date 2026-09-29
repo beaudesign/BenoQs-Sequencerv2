@@ -1,0 +1,20 @@
+# WENGE-0010 / SPEC-0001 O10. CE v5.30 p.46: the CHANNEL PRESSURE flag makes the track send
+# channel pressure messages "according to the MCC values stored in that track's steps".
+seed 1
+bpm 120
+page.tracks 0,1 enabled
+track 0 mcc pressure
+track 1 mcc pressure
+track 0 mch 1
+track 1 mch 5
+track 0 step 0 mcc 100
+track 1 step 0 mcc 0
+play
+# One bar is 24,000 samples at 120 BPM, and the step fires on tick 12 (sample 1375), so 20
+# buffers of 512 hold exactly one firing.
+render 20 buffers buffer=512
+# 0 is a valid value (p.46: "a value of 0 does indicate a valid controller value").
+expect event pressure port=1 ch=1 val=100 count=1
+expect event pressure port=1 ch=5 val=0 count=1
+expect event bend absent
+expect event cc absent

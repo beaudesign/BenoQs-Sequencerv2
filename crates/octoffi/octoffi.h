@@ -56,6 +56,8 @@ typedef enum {
     OCTO_EVT_NOTE_ON = 0,
     OCTO_EVT_NOTE_OFF,
     OCTO_EVT_CC,
+    OCTO_EVT_PITCH_BEND,       // added with SPEC-0001 O10; earlier tags unchanged
+    OCTO_EVT_CHANNEL_PRESSURE, // added with SPEC-0001 O10
 } OctoEventTag;
 
 typedef struct {
@@ -64,6 +66,8 @@ typedef struct {
         struct { uint8_t port, ch, note, vel; uint32_t at_sample; } note_on;
         struct { uint8_t port, ch, note; uint32_t at_sample; } note_off;
         struct { uint8_t port, ch, cc, val; uint32_t at_sample; } cc;
+        struct { uint8_t port, ch; uint16_t value; uint32_t at_sample; } pitch_bend; // 0..16383, 8192 = centre
+        struct { uint8_t port, ch, value; uint32_t at_sample; } channel_pressure;    // 0..127
     };
 } OctoEvent;
 

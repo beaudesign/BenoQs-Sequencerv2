@@ -421,6 +421,8 @@ mod tests {
                             Event::NoteOn { port, ch, note, at_sample, .. } => (at_sample, [1, port, ch, note]),
                             Event::NoteOff { port, ch, note, at_sample } => (at_sample, [2, port, ch, note]),
                             Event::Cc { port, ch, cc, at_sample, .. } => (at_sample, [3, port, ch, cc]),
+                            Event::PitchBend { port, ch, at_sample, .. } => (at_sample, [4, port, ch, 0]),
+                            Event::ChannelPressure { port, ch, at_sample, .. } => (at_sample, [5, port, ch, 0]),
                         };
                         all.push((b as u64 * 512 + at as u64, key));
                     }
@@ -472,5 +474,31 @@ mod tests {
             assert_eq!(d.unusable_tempo_renders, 1);
             octocore_engine_free(e);
         }
+    }
+
+    /// `octoffi.h` is written by hand, so the bytes of the new events are pinned here: tag
+    /// values, and where each field sits in the 12-byte `Event`. Little-endian layouts, which
+    /// is every platform this ships on. Only bytes that hold data are read, never padding.
+    #[cfg(target_endian = "little")]
+    #[test]
+    fn new_event_variants_match_the_layout_in_the_c_header() {
+        assert_eq!(std::mem::size_of::<Event>(), 12, "adding variants must not grow Event");
+        fn bytes(e: &Event, at: &[usize]) -> Vec<u8> {
+            let base = e as *const Event as *const u8;
+            // SAFETY: `at` lists offsets of initialised bytes inside the 12 bytes of `*e`.
+            at.iter().map(|i| unsafe { *base.add(*i) }).collect()
+        }
+        // Tag at 0..4.
+        let tag = |e: &Event| bytes(e, &[0, 1, 2, 3]);
+        let bend = Event::PitchBend { port: 2, ch: 9, value: 0x1234, at_sample: 0xAABB_CCDD };
+        let pressure = Event::ChannelPressure { port: 1, ch: 16, value: 100, at_sample: 0x0102_0304 };
+        assert_eq!(tag(&Event::NoteOn { port: 0, ch: 0, note: 0, vel: 0, at_sample: 0 }), [0, 0, 0, 0]);
+        assert_eq!(tag(&Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }), [2, 0, 0, 0]);
+        assert_eq!(tag(&bend), [3, 0, 0, 0], "OCTO_EVT_PITCH_BEND = 3");
+        assert_eq!(tag(&pressure), [4, 0, 0, 0], "OCTO_EVT_CHANNEL_PRESSURE = 4");
+        // struct { uint8_t port, ch; uint16_t value; uint32_t at_sample; }
+        assert_eq!(bytes(&bend, &[4, 5, 6, 7, 8, 9, 10, 11]), [2, 9, 0x34, 0x12, 0xDD, 0xCC, 0xBB, 0xAA]);
+        // struct { uint8_t port, ch, value; uint32_t at_sample; }
+        assert_eq!(bytes(&pressure, &[4, 5, 6, 8, 9, 10, 11]), [1, 16, 100, 4, 3, 2, 1]);
     }
 }

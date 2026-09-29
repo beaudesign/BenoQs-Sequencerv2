@@ -16,13 +16,16 @@
 //! render 40 buffers buffer=256  render 40 buffers of 256 samples
 //! render 10 s buffer=512        render 10 seconds of audio in 512-sample buffers
 //! clear events                  forget the events collected so far
-//! expect event on|off|cc [port=1|2] [ch=1..16] [note=N] [vel=N] [cc=N] [val=N]
-//!                        [at=N|lo..hi] [len=N|lo..hi] [count=N] [absent]
+//! expect event on|off|cc|bend|pressure [port=1|2] [ch=1..16] [note=N] [vel=N] [cc=N]
+//!                        [val=N] [at=N|lo..hi] [len=N|lo..hi] [count=N] [absent]
 //! expect balance                every NoteOn has a NoteOff per (port, channel, note)
 //! track T mch V                 MIDI channel 1..32
-//! track T step S|all attr V     as before; `len` (ticks) and `lenmul` are new
+//! track T vel V                 base velocity 0..127 (DSL v3, SPEC-0001 O10)
+//! track T mcc none|bend|pressure|cc N   what the track's step MCC values send
+//! track T step S|all attr V     as before; `len` (ticks), `lenmul` and `mcc` are new
 //! ```
 //!
+//! `val` matches the CC value, the pressure value, or the 14-bit bend value (8192 is centre).
 //! `at` is an absolute sample position since the first `render`. `count=N` is exact,
 //! `count=lo..hi` a range. Without `count=`, an `expect event` line passes if at least one
 //! event matches; `absent` means none.
@@ -50,7 +53,11 @@ fn parse_range(v: &str) -> Option<(i64, i64)> {
 
 fn at_sample(e: &Event) -> u32 {
     match *e {
-        Event::NoteOn { at_sample, .. } | Event::NoteOff { at_sample, .. } | Event::Cc { at_sample, .. } => at_sample,
+        Event::NoteOn { at_sample, .. }
+        | Event::NoteOff { at_sample, .. }
+        | Event::Cc { at_sample, .. }
+        | Event::PitchBend { at_sample, .. }
+        | Event::ChannelPressure { at_sample, .. } => at_sample,
     }
 }
 
@@ -76,10 +83,13 @@ struct EventFilter {
 
 impl EventFilter {
     fn matches(&self, e: &Emitted) -> bool {
-        let (kind, port, ch, note, vel, cc, val) = match e.ev {
+        // `val` is the CC value, the pressure value or the 14-bit bend value.
+        let (kind, port, ch, note, vel, cc, val): (&str, u8, u8, Option<u8>, Option<u8>, Option<u8>, Option<i64>) = match e.ev {
             Event::NoteOn { port, ch, note, vel, .. } => ("on", port, ch, Some(note), Some(vel), None, None),
             Event::NoteOff { port, ch, note, .. } => ("off", port, ch, Some(note), None, None, None),
-            Event::Cc { port, ch, cc, val, .. } => ("cc", port, ch, None, None, Some(cc), Some(val)),
+            Event::Cc { port, ch, cc, val, .. } => ("cc", port, ch, None, None, Some(cc), Some(val as i64)),
+            Event::PitchBend { port, ch, value, .. } => ("bend", port, ch, None, None, None, Some(value as i64)),
+            Event::ChannelPressure { port, ch, value, .. } => ("pressure", port, ch, None, None, None, Some(value as i64)),
         };
         let eq = |want: Option<i64>, got: Option<u8>| match (want, got) {
             (None, _) => true,
@@ -92,7 +102,11 @@ impl EventFilter {
             && eq(self.note, note)
             && eq(self.vel, vel)
             && eq(self.cc, cc)
-            && eq(self.val, val)
+            && match (self.val, val) {
+                (None, _) => true,
+                (Some(w), Some(g)) => w == g,
+                (Some(_), None) => false,
+            }
             && self.at.map_or(true, |(lo, hi)| (lo..=hi).contains(&(e.at as i64)))
     }
 }
@@ -132,7 +146,7 @@ fn check_balance(events: &[Emitted]) -> Result<(), String> {
         match e.ev {
             Event::NoteOn { port, ch, note, .. } => *net.entry((port, ch, note)).or_default() += 1,
             Event::NoteOff { port, ch, note, .. } => *net.entry((port, ch, note)).or_default() -= 1,
-            Event::Cc { .. } => {}
+            Event::Cc { .. } | Event::PitchBend { .. } | Event::ChannelPressure { .. } => {}
         }
     }
     let unbalanced: Vec<String> =
@@ -214,9 +228,37 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                         "active" => step.active = v != 0,
                         "len" => step.length_ticks = v.clamp(1, 255) as u8,
                         "lenmul" => step.length_multiplier = v.clamp(1, 8) as u8,
+                        "mcc" => step.mcc_value = Some(v.clamp(0, 127) as u8),
                         other => return Err(format!("{}: unknown step attribute `{}`", ctx(), other)),
                     }
                 }
+            }
+            ["track", t, "vel", v] => {
+                let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
+                let vel: u8 = v.parse().ok().filter(|v| *v <= 127).ok_or_else(|| format!("{}: velocity is 0..=127", ctx()))?;
+                if ti >= TRACK_COUNT {
+                    return Err(format!("{}: track index out of range", ctx()));
+                }
+                engine.grid.active_page_mut().tracks[ti].velocity = vel;
+            }
+            ["track", t, "mcc", kind @ ("none" | "bend" | "pressure")] => {
+                let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
+                if ti >= TRACK_COUNT {
+                    return Err(format!("{}: track index out of range", ctx()));
+                }
+                engine.grid.active_page_mut().tracks[ti].mcc = match *kind {
+                    "bend" => Mcc::Bend,
+                    "pressure" => Mcc::Pressure,
+                    _ => Mcc::None,
+                };
+            }
+            ["track", t, "mcc", "cc", n] => {
+                let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
+                let cc: u8 = n.parse().ok().filter(|n| *n <= 127).ok_or_else(|| format!("{}: controller is 0..=127", ctx()))?;
+                if ti >= TRACK_COUNT {
+                    return Err(format!("{}: track index out of range", ctx()));
+                }
+                engine.grid.active_page_mut().tracks[ti].mcc = Mcc::Cc(cc);
             }
             ["track", t, "mch", v] => {
                 let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
@@ -267,8 +309,8 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
             ["clear", "events"] => events.clear(),
             ["expect", "balance"] => check_balance(&events).map_err(|e| format!("{}: {}", ctx(), e))?,
             ["expect", "event", kind, rest @ ..] => {
-                if !matches!(*kind, "on" | "off" | "cc") {
-                    return Err(format!("{}: event kind must be on, off or cc", ctx()));
+                if !matches!(*kind, "on" | "off" | "cc" | "bend" | "pressure") {
+                    return Err(format!("{}: event kind must be on, off, cc, bend or pressure", ctx()));
                 }
                 let mut f = EventFilter { kind: Some(kind.to_string()), ..Default::default() };
                 for kv in rest {

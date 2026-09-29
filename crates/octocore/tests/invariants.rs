@@ -55,12 +55,18 @@ fn without_position(e: Event) -> Event {
         Event::NoteOn { port, ch, note, vel, .. } => Event::NoteOn { port, ch, note, vel, at_sample: 0 },
         Event::NoteOff { port, ch, note, .. } => Event::NoteOff { port, ch, note, at_sample: 0 },
         Event::Cc { port, ch, cc, val, .. } => Event::Cc { port, ch, cc, val, at_sample: 0 },
+        Event::PitchBend { port, ch, value, .. } => Event::PitchBend { port, ch, value, at_sample: 0 },
+        Event::ChannelPressure { port, ch, value, .. } => Event::ChannelPressure { port, ch, value, at_sample: 0 },
     }
 }
 
 fn at_sample(e: &Event) -> u32 {
     match *e {
-        Event::NoteOn { at_sample, .. } | Event::NoteOff { at_sample, .. } | Event::Cc { at_sample, .. } => at_sample,
+        Event::NoteOn { at_sample, .. }
+        | Event::NoteOff { at_sample, .. }
+        | Event::Cc { at_sample, .. }
+        | Event::PitchBend { at_sample, .. }
+        | Event::ChannelPressure { at_sample, .. } => at_sample,
     }
 }
 
@@ -71,7 +77,7 @@ fn imbalance(events: &[(u64, Event)]) -> BTreeMap<(u8, u8, u8), i64> {
         match *e {
             Event::NoteOn { port, ch, note, .. } => *net.entry((port, ch, note)).or_default() += 1,
             Event::NoteOff { port, ch, note, .. } => *net.entry((port, ch, note)).or_default() -= 1,
-            Event::Cc { .. } => {}
+            Event::Cc { .. } | Event::PitchBend { .. } | Event::ChannelPressure { .. } => {}
         }
     }
     net.retain(|_, n| *n != 0);
@@ -325,6 +331,61 @@ fn a_bad_tempo_costs_nothing_once_the_tempo_is_sane() {
     let relative: Vec<(u64, Event)> = host.events.iter().map(|(t, e)| (t - resumed_at, *e)).collect();
     assert!(!relative.is_empty(), "the engine never played again");
     assert_eq!(relative, fresh.events);
+}
+
+// ---------------------------------------------------------------------- WENGE-0010
+
+/// CE v5.30 p.40: a note with velocity 0 is not transmitted, and a NoteOn with velocity 0 is
+/// a NoteOff to every receiver. So every NoteOn on the wire has velocity 1..=127, and every
+/// NoteOff has a NoteOn (the stream balances). Quiet tracks, low velocity factors and
+/// negative velocity offsets are what reach 0, so the random patterns are made quiet.
+#[test]
+fn every_note_on_has_a_velocity_of_at_least_1_however_quiet_the_pattern() {
+    let mut zero = Vec::new();
+    for seed in 0..SEEDS {
+        let mut rng = Rng::new(seed + 5000);
+        let mut engine = random_engine(seed);
+        engine.grid.active_page_mut().velocity_factor = 1 + rng.next_below(8) as u8;
+        for t in 0..TRACK_COUNT {
+            let track = &mut engine.grid.active_page_mut().tracks[t];
+            track.velocity = rng.next_below(40) as u8;
+            for step in track.steps.iter_mut() {
+                step.velocity_offset = rng.next_below(21) as i8 - 20;
+            }
+        }
+        let mut host = Host::new(engine, random_bpm(&mut rng));
+        host.render_seconds(3.0, 256, true);
+        host.render(256, false);
+        for (t, e) in &host.events {
+            if let Event::NoteOn { vel: 0, .. } = e {
+                zero.push(format!("seed {seed} sample {t}"));
+                break;
+            }
+        }
+        let net = imbalance(&host.events);
+        assert!(net.is_empty(), "seed {seed}: unbalanced {net:?}");
+    }
+    assert!(zero.is_empty(), "NoteOn with velocity 0 in {} of {SEEDS} seeds, first: {:?}", zero.len(), zero.first());
+}
+
+/// The order of events in one sample does not depend on the host's buffer size either.
+/// Compared exactly, not sorted: the stream a synth receives is the stream that is tested.
+#[test]
+fn event_order_does_not_depend_on_the_hosts_buffer_size() {
+    let exact = |seed: u64, buffer: u32| {
+        let horizon = 2 * SAMPLE_RATE as u64;
+        let mut host = Host::new(random_engine(seed), 141.0);
+        while host.clock < horizon + 4096 {
+            host.render(buffer, true);
+        }
+        host.events.into_iter().filter(|(t, _)| *t < horizon).map(|(t, e)| (t, without_position(e))).collect::<Vec<_>>()
+    };
+    for seed in 0..12u64 {
+        let reference = exact(seed, 512);
+        for buffer in [7u32, 100, 1024, 4096] {
+            assert_eq!(exact(seed, buffer), reference, "seed {seed}, buffer {buffer}");
+        }
+    }
 }
 
 // ---------------------------------------------------------------------- determinism

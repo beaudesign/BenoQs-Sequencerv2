@@ -1,0 +1,22 @@
+# O6 slice 4 (engine link: drain at the start of render, publish at the end) - RED, against stubs
+# stubs: Engine::open_link returns None, Engine::snapshot is unimplemented!(), link.rs methods do nothing; tests are final
+# command: cargo test -p octocore --no-fail-fast --test link
+     Running tests/link.rs (target/debug/deps/link-402ffb595c732e36)
+running 10 tests
+test c3_edits_through_the_ring_sound_exactly_like_the_same_edits_made_directly ... FAILED
+test c4_commands_apply_before_the_ticks_of_the_render_that_drains_them ... FAILED
+test c5_a_render_applies_at_most_the_limit_and_the_next_render_carries_on ... FAILED
+test c5_a_flood_beyond_the_ring_keeps_the_newest_commands_and_counts_the_rest ... FAILED
+test c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_command ... FAILED
+test c7_words_that_are_not_a_command_are_counted_as_dropped_and_never_applied ... FAILED
+test e1_the_generation_is_the_number_of_renders ... FAILED
+test e2_the_published_snapshot_is_what_the_engine_says_about_itself ... FAILED
+test e3_an_engine_with_a_link_and_one_without_produce_the_same_events ... FAILED
+test the_link_can_be_opened_once ... FAILED
+test result: FAILED. 0 passed; 10 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+error: test failed, to rerun pass `-p octocore --test link`
+error: 1 target failed:
+# note: on the first green attempt c4 and c6 still failed, and the fault was in the tests, not the code: a fresh engine
+# decides its first note in the first render but it sounds about 1,375 samples later (buffer 5 at 256 samples), so the
+# scenarios rendered too few buffers to hear anything. Both were corrected (c4 now renders 8 buffers and compares with a
+# direct edit; c6 renders 8 buffers before Stop). No engine code changed in that fix.

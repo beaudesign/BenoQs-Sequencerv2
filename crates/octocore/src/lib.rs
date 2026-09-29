@@ -7,6 +7,7 @@ pub mod attrs;
 pub mod domain;
 pub mod engine;
 pub mod fixture;
+pub mod link;
 pub mod phrases;
 pub mod ring;
 pub mod rng;
@@ -20,4 +21,5 @@ pub mod wire;
 
 pub use domain::Grid;
 pub use engine::{Diagnostics, Engine, EventBuffer, RenderContext, QUEUE_CAP};
+pub use link::{CommandSender, SnapshotReader};
 pub use types::{Command, Event};

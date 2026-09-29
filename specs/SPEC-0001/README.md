@@ -92,7 +92,7 @@ owner merges, in order. Nothing merges on the strength of an agent's own status 
 | 5 | #9, open, retargeted to `main` | `conductor/octorun` | WENGE-0007 | PRs 1 to 4 |
 | 6 | #10, open | `metronome/queue-headroom` | WENGE-0011 | PR 5 |
 | 7 | #11, open | `metronome/command-ring` | WENGE-0006 | PR 6 |
-| 8 | opened after this commit | `conductor/o4-release-plan` | WENGE-0004 (plan only, no code) | PR 7 |
+| 8 | #12, open | `conductor/o4-release-plan` | WENGE-0004 (plan only, no code) | PR 7 |
 
 **What happened to the stack.** The owner merged #5 to #8 in order, but the branches were not
 deleted after each merge, so GitHub did not retarget the next pull request to `main`. #6, #7

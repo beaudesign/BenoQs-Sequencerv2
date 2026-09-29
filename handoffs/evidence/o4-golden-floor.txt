@@ -1,0 +1,6 @@
+hello                                    120 BPM  spt                  125.0  ticks  2688  floor differs on   0  first (tick, sum, product) None
+chords_and_strums                         96 BPM  spt                 156.25  ticks  2150  floor differs on   0  first (tick, sum, product) None
+effector                                 128 BPM  spt               117.1875  ticks  2867  floor differs on   0  first (tick, sum, product) None
+phrases                                  110 BPM  spt     136.36363636363637  ticks  2464  floor differs on  57  first (tick, sum, product) (44, 5999, 6000)
+mcc_and_transport (first 2 s)            100 BPM  spt                  150.0  ticks  2240  floor differs on   0  first (tick, sum, product) None
+mcc_and_transport (after the change)     140 BPM  spt     107.14285714285714  ticks  3136  floor differs on 153  first (tick, sum, product) (7, 749, 750)

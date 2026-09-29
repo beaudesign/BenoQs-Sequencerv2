@@ -18,7 +18,7 @@
 | `product.md` | Problem, users, scope, acceptance examples A1 to A7, invariants, failure behaviour. |
 | `tech.md` | Current design, proposed change, files touched, risks, alternatives, plan. |
 | `o6-test-plan.md` | The tests for `WENGE-0006`, written before the ring code (r2). |
-| `o4-release-plan.md` | Release plan for `WENGE-0004`, for the owner to approve or reject (r2). Written, with six decisions in section 0. Nothing is built until the owner answers. |
+| `o4-release-plan.md` | Release plan for `WENGE-0004`, for the owner to approve or reject (r2). Written (revision 2, after an independent review), with seven decisions D0 to D6 in section 0. D0 is a finding: the engine's tick is four times too short against the manual. Nothing is built until the owner answers. |
 
 ## Approval record
 
@@ -68,7 +68,7 @@ factory layer that carries this spec.
 | WENGE-0001 | O1 Flush sounding notes on stop and reset (pilot) | Medium | F0 | Merged into a parent branch, not yet on `main` (PR 3) |
 | WENGE-0002 | O2 Stop the backlog burst on Play after idle | Medium | F0 | Merged into a parent branch, not yet on `main` (PR 3) |
 | WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4) |
-| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan written and open as PR 8 (#12) for sign-off. No code, and none until the owner approves it. |
+| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan (revision 2) open as PR 8 (#12) for sign-off. No code, and none until the owner approves it. |
 | WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4) |
 | WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Approved in r2. Built as PR 7 (#11), in review. Test plan first (`o6-test-plan.md`, section 10 records where the build differed). |
 | WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | In review (PR 5). Live `midir` mode not done (Q6). |
@@ -76,6 +76,7 @@ factory layer that carries this spec.
 | WENGE-0009 | O9 Fixture DSL v2 and metamorphic invariants | Low | F0 and ongoing | Started; merged into a parent branch, not yet on `main` (PR 3: DSL v2, transport invariants. PR 4: DSL v3 `vel`, `mcc`, `bend`, `pressure`, and buffer-size, order and velocity invariants) |
 | WENGE-0010 | O10 Emission details and doc drift | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4). Doc drift was fixed in PR 1. |
 | WENGE-0011 | Review findings: queue headroom (1,024), overload counters in `octorun`, `play N step` guard | Medium | F1 | In review (PR 6). Task added by the independent review. |
+| WENGE-0012 | Tick resolution: 192 ticks per quarter in the engine, per whole note in the manual (found while planning O4, decision D0) | High | Before F2 4b, if approved | Triage only (`handoffs/WENGE-0012.ndjson`). Not approved and not specified. The owner decides D0 first; the engine is untouched. |
 
 ## Pull request series
 

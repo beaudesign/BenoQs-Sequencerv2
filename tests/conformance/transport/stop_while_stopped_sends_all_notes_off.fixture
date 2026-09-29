@@ -1,0 +1,20 @@
+# WENGE-0001. Ref: CE v5.30 p.94, "ALL NOTES OFF message": "When the sequencer is not
+# running but is defined as MIDI master or slave ... pressing the Stop button will send
+# out an ALL NOTES OFF message (controller 123) on each of the 32 MIDI channels."
+# The engine has no master/slave setting, so the condition is treated as always true.
+# See AMBIGUITIES.md "stop with sounding notes".
+seed 1
+page.tracks 0 enabled
+stop
+render 1 buffers buffer=64
+expect event cc cc=123 count=32
+expect event cc cc=123 port=1 count=16
+expect event cc cc=123 port=2 count=16
+expect event cc cc=123 port=1 ch=1 count=1
+expect event cc cc=123 port=2 ch=16 count=1
+expect event on absent
+expect event off absent
+# One press, one panic: rendering on does not repeat it.
+clear events
+render 10 buffers buffer=64
+expect event cc absent

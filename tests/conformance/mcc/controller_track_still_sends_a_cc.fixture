@@ -1,0 +1,13 @@
+# WENGE-0010. The MCC change must not disturb the plain controller case.
+seed 1
+bpm 120
+page.tracks 0 enabled
+track 0 mcc cc 74
+track 0 step 0 mcc 33
+play
+# One bar is 24,000 samples at 120 BPM, and the step fires on tick 12 (sample 1375), so 20
+# buffers of 512 hold exactly one firing.
+render 20 buffers buffer=512
+expect event cc cc=74 val=33 count=1
+expect event bend absent
+expect event pressure absent

@@ -56,6 +56,8 @@ typedef enum {
     OCTO_EVT_NOTE_ON = 0,
     OCTO_EVT_NOTE_OFF,
     OCTO_EVT_CC,
+    OCTO_EVT_PITCH_BEND,       // added with SPEC-0001 O10; earlier tags unchanged
+    OCTO_EVT_CHANNEL_PRESSURE, // added with SPEC-0001 O10
 } OctoEventTag;
 
 typedef struct {
@@ -64,6 +66,8 @@ typedef struct {
         struct { uint8_t port, ch, note, vel; uint32_t at_sample; } note_on;
         struct { uint8_t port, ch, note; uint32_t at_sample; } note_off;
         struct { uint8_t port, ch, cc, val; uint32_t at_sample; } cc;
+        struct { uint8_t port, ch; uint16_t value; uint32_t at_sample; } pitch_bend; // 0..16383, 8192 = centre
+        struct { uint8_t port, ch, value; uint32_t at_sample; } channel_pressure;    // 0..127
     };
 } OctoEvent;
 
@@ -81,6 +85,18 @@ int32_t octocore_engine_render(OctoEngine *engine, OctoRenderParams params,
                                 OctoEvent *out_events, size_t out_capacity,
                                 size_t *out_count);
 bool octocore_engine_is_running(const OctoEngine *engine);
+
+// Health counters, cumulative since octocore_engine_new. See octocore::engine::Diagnostics.
+typedef struct {
+    uint32_t queue_overflows;        // notes/CCs refused because the event queue was full
+    uint32_t queue_high_water;       // most events the queue has held at once (cap 512)
+    uint32_t deferred_events;        // due events held back because out_events was full
+    uint32_t late_events;            // events emitted at sample 0 after their time
+    uint32_t unusable_tempo_renders; // running renders with bpm outside 1..999 or sample_rate outside 8000..768000
+} OctoDiagnostics;
+
+// Returns 0, or -1 for a null engine, -2 for a null out.
+int32_t octocore_engine_diagnostics(const OctoEngine *engine, OctoDiagnostics *out);
 
 // --- Grid-mutation surface ---
 // Logical (track, step) addressing, not a physical panel ControlId — see

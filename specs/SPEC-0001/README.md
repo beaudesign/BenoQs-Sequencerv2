@@ -70,7 +70,7 @@ factory layer that carries this spec.
 | WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4) |
 | WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan for sign-off (`o4-release-plan.md`). No code, and none until the plan is approved. |
 | WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4) |
-| WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Approved in r2. Test plan first (`o6-test-plan.md`), then the build, as PR 7. |
+| WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Approved in r2. Built as PR 7, in review. Test plan first (`o6-test-plan.md`, section 10 records where the build differed). |
 | WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | In review (PR 5). Live `midir` mode not done (Q6). |
 | WENGE-0008 | O8 Real gates: tri-state verify, CI, CODEOWNERS, ratchet | Medium | F0 | Merged into a parent branch, not yet on `main` (PR 2) |
 | WENGE-0009 | O9 Fixture DSL v2 and metamorphic invariants | Low | F0 and ongoing | Started; merged into a parent branch, not yet on `main` (PR 3: DSL v2, transport invariants. PR 4: DSL v3 `vel`, `mcc`, `bend`, `pressure`, and buffer-size, order and velocity invariants) |
@@ -91,6 +91,7 @@ owner merges, in order. Nothing merges on the strength of an agent's own status 
 | 4 | #8, merged into `metronome/transport-safety` | `metronome/timing-and-emission` | WENGE-0003, 0005, 0010 | PR 3 |
 | 5 | #9, open, retargeted to `main` | `conductor/octorun` | WENGE-0007 | PRs 1 to 4 |
 | 6 | #10, open | `metronome/queue-headroom` | WENGE-0011 | PR 5 |
+| 7 | opened after this commit | `metronome/command-ring` | WENGE-0006 | PR 6 |
 
 **What happened to the stack.** The owner merged #5 to #8 in order, but the branches were not
 deleted after each merge, so GitHub did not retarget the next pull request to `main`. #6, #7

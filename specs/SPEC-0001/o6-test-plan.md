@@ -5,7 +5,7 @@
 | Task | `WENGE-0006`, opportunity O6 of SPEC-0001 |
 | Spec revision | r2 (approved by the owner on 2026-09-29, 15:11; Q6 default applies) |
 | Tier | Medium |
-| Status | Plan written and committed before any ring code. Build follows on `metronome/command-ring`, PR 7. |
+| Status | Plan written and committed before any ring code (`842aeb9`). Built on `metronome/command-ring`, PR 7. Section 10 records where the build differed. |
 | Decides | Nothing the owner has not already approved. Section 2 lists the design choices this plan makes inside that approval, and section 9 lists what needs the owner's eyes. |
 
 The rule in `CLAUDE.md` is that every judgement becomes a test. This file is the list of
@@ -245,7 +245,7 @@ snapshot publish, release build, over 100,000 renders) goes into the journal.
 ## 9. What needs the owner
 
 1. **Dependency.** `loom`, under `[target.'cfg(loom)'.dependencies]` in `octocore`, so it
-   is not built for anything except loom runs. It adds roughly 30 lines of packages to
+   is not built for anything except loom runs. It adds 174 lines (18 packages) to
    `Cargo.lock`. `docs/02` §3 says `octocore` has no platform dependencies; loom is a test
    tool, and this is the smallest way to use it.
 2. **The `docs/02` text is wrong in two places** (the triple-buffer protocol, the "6 KB"
@@ -262,3 +262,41 @@ snapshot publish, release build, over 100,000 renders) goes into the journal.
 6. **Kill criterion.** If a loom mutant survives and the model cannot be strengthened, or
    S1 finds a tear that loom did not, the ring is not merged. The plan is then revised
    with the finding, not the test loosened.
+
+## 10. Amendments made during the build
+
+The plan above is kept as it was committed. Where the build disagreed with it, this section
+says so, so that nothing in the plan reads as true when it is not.
+
+| Plan says | What was built | Why |
+|---|---|---|
+| Section 2 D2: the stamp store is `Release` and needs no fence | Same, plus a note that the *final* stamp store could be `Relaxed` without harm | The head counter's own `Release` and `Acquire` already order the payload. Mutant M1 in the plan (final stamp made `Relaxed`) is therefore an equivalent mutant that no test can catch. M1 became "the odd stamp is never written", which is a real defect |
+| Section 4: `Receiver` has `drain` and counters | Also `reject()`, which moves one command from "received" to "dropped" | The engine needs it for words that do not decode. Test R8 covers it. Without it the counters would double-count |
+| Section 5 C4: "`SetStep{Active}` then `Play` in one drain fires the step at tick 0 of that render" | "A command in the first drain lands on exactly the sample a direct edit does" | The first attempt failed for a reason in the test, not the code: the engine decides its first note in the first render, but it sounds about 1,375 samples later (buffer 5 at 256 samples). The test now renders 8 buffers and compares with a direct edit. See `o6-slice4-red.txt` |
+| Section 5: tests C1 to C6, E1 to E4 | Also C7 (undecodable words are counted and never applied), and `the_link_can_be_opened_once` | Both were behaviour the code had that the plan did not name |
+| Section 4 T5, T6 | Also a test that a bad mode word is refused, and one that a zeroed snapshot is all zero words | Same reason |
+| Section 6: `OctoLinkStats` has `pushed`, `dropped`, `applied`, `published` | Three fields; `published` is the snapshot's `generation` | One less thing to keep in step |
+| Section 6: `octocore_reader_claim` "valid until the next claim" | The pointer is the same on every call and valid until `octocore_reader_free`; its contents change only inside `claim` | This is what it does, and it is easier for the caller to hold |
+| Section 6 F1: a text check of the header | Also a real C compiler test with `_Static_assert` on 29 sizes, offsets and tags | The text check alone cannot see a wrong size |
+| Section 7 S2: 10,000,000 publishes; S3: 200,000 | Those counts in a release build; 2,000,000 and 30,000 in a debug build. A debug S3 at 200,000 took about 17 seconds | The default `cargo test` stays quick. The release run and the ignored deep runs do the full counts |
+| Section 7 L4: an owner flag on each slot | The reader reads its slot twice with a scheduling point between and asserts the two reads agree | The slots are private to `triple.rs`. The check finds the same defect: a writer that writes the reader's slot |
+| Section 8: five mutants, `mutants.sh` | Seven mutants that must be caught, plus M8, an equivalent mutant that must survive, in `mutants.py` | M4 (payload loads made `Relaxed`) and M7 (writer swap made `Relaxed`) test the memory ordering, which the first five do not. M8 is the plan's original M1 (final stamp store made `Relaxed`), kept on purpose: it is harmless today, and the day it stops being harmless the run shows a failure to explain. A shell script could not hold replacement text that contains `|` |
+| Section 9.1: "roughly 30 lines" added to `Cargo.lock` | 174 lines, 18 packages | Miscounted |
+| `octocore/Cargo.toml` change: loom under `cfg(loom)` | Also `[lints.rust] unexpected_cfgs`, so `cfg(loom)` is a declared cfg | Otherwise every build warns |
+
+**Loom result for the mutants** is in `handoffs/evidence/o6-mutants.txt`: M1 to M7 caught, M8 survives as expected. M6 is caught by an abort of the whole `l3_` test process rather than by a named assertion, which the runner now says instead of printing a bare "a loom test".
+
+**Measured, from the build.** The snapshot is 8,408 bytes. Publishing it costs about 0.7
+microseconds per render and applying 256 commands about 7 microseconds (release build,
+`handoffs/evidence/o6-cost.txt`). `Engine` grew from 47,552 to 47,560 bytes.
+
+**Found on the way, and recorded rather than fixed here:**
+
+- `RenderContext::playing` overrides `Command::Play` and `Command::Stop` at the top of the
+  render, whether the command came from the ring or from `handle_command`. Who owns the
+  transport is O4's question.
+- An edit made while playing is heard no sooner than the render after it is pushed, and a
+  step less than 12 ticks from firing has already been decided (`MAX_EARLY_TICKS`). That is
+  about 31 ms at 120 BPM. `docs/02` §6 budgets 1.3 ms for "core apply, next tick".
+- `rustfmt --check` reports 396 diffs at the parent commit, so `docs/02` §7's pre-commit
+  check cannot be enforced yet. This PR did not reformat.

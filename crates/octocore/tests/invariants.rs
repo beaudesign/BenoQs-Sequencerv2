@@ -48,6 +48,16 @@ impl Host {
     }
 }
 
+/// The event with its buffer-relative position zeroed, so streams from hosts with different
+/// buffer sizes compare by absolute sample only.
+fn without_position(e: Event) -> Event {
+    match e {
+        Event::NoteOn { port, ch, note, vel, .. } => Event::NoteOn { port, ch, note, vel, at_sample: 0 },
+        Event::NoteOff { port, ch, note, .. } => Event::NoteOff { port, ch, note, at_sample: 0 },
+        Event::Cc { port, ch, cc, val, .. } => Event::Cc { port, ch, cc, val, at_sample: 0 },
+    }
+}
+
 fn at_sample(e: &Event) -> u32 {
     match *e {
         Event::NoteOn { at_sample, .. } | Event::NoteOff { at_sample, .. } | Event::Cc { at_sample, .. } => at_sample,
@@ -220,6 +230,57 @@ fn play_command_after_idle_does_not_replay_the_backlog() {
     let got = host.render(512, true);
     // 512 samples at 120 BPM is 4 ticks, so at most a handful of events can start.
     assert!(got.len() <= 16, "{} events in the first buffer after a 30 s idle", got.len());
+}
+
+// ---------------------------------------------------------------------- WENGE-0003
+
+/// The events of `seconds` of playback, as (absolute sample, event), rendered in buffers of
+/// `buffer` samples, in a canonical order. Only events before the `seconds` mark are kept,
+/// so hosts with different buffer sizes (which end at different samples) compare equal.
+fn stream_with_buffer(seed: u64, bpm: f32, buffer: u32, seconds: f64) -> Vec<(u64, Event)> {
+    let horizon = (seconds * SAMPLE_RATE as f64) as u64;
+    let mut host = Host::new(random_engine(seed), bpm);
+    while host.clock < horizon + 4096 {
+        host.render(buffer, true);
+    }
+    let mut got: Vec<(u64, Event)> =
+        host.events.into_iter().filter(|(t, _)| *t < horizon).map(|(t, e)| (t, without_position(e))).collect();
+    got.sort_by_key(|(t, e)| (*t, format!("{e:?}")));
+    got
+}
+
+/// SPEC-0001 A3. Where an event lands in time is a property of the pattern and the tempo,
+/// not of the host's buffer size. Fails on the parent commit: a step whose start offset
+/// pulls a note before the tick that fired it is scheduled in the past when the buffer is
+/// small, and the engine clamps it to the buffer's first sample.
+#[test]
+fn event_times_do_not_depend_on_the_hosts_buffer_size() {
+    let mut failing = Vec::new();
+    for seed in 0..24u64 {
+        let mut rng = Rng::new(seed + 4000);
+        let bpm = random_bpm(&mut rng);
+        let reference = stream_with_buffer(seed, bpm, 512, 2.0);
+        assert!(reference.len() > 20, "seed {seed}: a scenario with no events tests nothing");
+        for buffer in [7u32, 32, 64, 100, 128, 480, 1024, 4096] {
+            let got = stream_with_buffer(seed, bpm, buffer, 2.0);
+            if got != reference {
+                // Events in `got` with no equal in `reference` (each one matched at most once).
+                let mut unmatched: Vec<&(u64, Event)> = reference.iter().collect();
+                let differing = got
+                    .iter()
+                    .filter(|e| match unmatched.iter().position(|r| *r == *e) {
+                        Some(i) => {
+                            unmatched.swap_remove(i);
+                            false
+                        }
+                        None => true,
+                    })
+                    .count();
+                failing.push(format!("seed {seed} bpm {bpm}: buffer {buffer} differs from 512 in {differing} of {} events", reference.len()));
+            }
+        }
+    }
+    assert!(failing.is_empty(), "the output depends on the buffer size:\n{}", failing.join("\n"));
 }
 
 // ---------------------------------------------------------------------- determinism

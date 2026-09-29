@@ -116,6 +116,14 @@ enum RawEvent {
 
 const QUEUE_CAP: usize = 512;
 
+/// The furthest a note can start ahead of the tick that fires it, in ticks. It is the most
+/// negative entry of `tables::STA_TABLE` (Track STA 16, Step STA -5: "-12", CE v5.30
+/// p.45); shuffle, strum and phrase offsets only ever push a note later. `render` steps
+/// every tick this far before the tick's time, so a note pulled early is still in the
+/// future when it is scheduled. A unit test checks this value against the tables, so
+/// editing a table without editing this constant fails the build.
+pub const MAX_EARLY_TICKS: u32 = 12;
+
 /// How many NoteOns each note has had without a matching NoteOff, as the receiver sees it:
 /// `[port - 1][channel - 1][note]`. 2 x 16 x 128 bytes is 4 KB with no allocation.
 /// Updated only when an event is actually handed to the caller, never when it is merely
@@ -503,7 +511,15 @@ impl Engine {
         };
 
         if self.running {
-            while self.next_tick_due < buffer_end {
+            // Step ticks up to `MAX_EARLY_TICKS` ahead of this buffer's end. A tick that
+            // is stepped only once its time has come can schedule a note before the start
+            // of the buffer that is being rendered, and such a note used to be clamped to
+            // the buffer's first sample: late by an amount that depended on where the
+            // host's buffer boundary fell (SPEC-0001 O3). Stepped this far ahead, every
+            // note is still in the future when it is scheduled, so its time depends only
+            // on the pattern and the tempo.
+            let lookahead = if samples_per_tick.is_finite() { MAX_EARLY_TICKS as f64 * samples_per_tick } else { 0.0 };
+            while self.next_tick_due < buffer_end + lookahead {
                 let at = self.next_tick_due;
                 self.step_all_tracks(at, samples_per_tick);
                 self.next_tick_due += samples_per_tick;
@@ -2207,5 +2223,25 @@ mod tests {
         let mut e = Engine::new(1);
         e.handle_command(crate::types::Command::HostTransport { ppqn_pos: 0, bpm: 120.0, playing: false });
         assert!(!e.flush_pending, "a host repeating 'not playing' every buffer must not panic the receivers");
+    }
+    /// `MAX_EARLY_TICKS` must cover the earliest any note can start, or `render` schedules
+    /// it in the past again. Every input that moves a note earlier is enumerated here, so a
+    /// table edit that lengthens the reach fails this test instead of quietly reintroducing
+    /// SPEC-0001 O3.
+    #[test]
+    fn max_early_ticks_covers_every_table_and_is_tight() {
+        let mut earliest = 0i32;
+        for track_sta in 0..=16u8 {
+            for step_offset in -5..=5i32 {
+                earliest = earliest.min(tables::scale_sta_ticks(track_sta, step_offset));
+            }
+        }
+        assert_eq!(earliest, -(MAX_EARLY_TICKS as i32), "the constant is exactly the STA table's reach");
+
+        // Everything else is unsigned by type, so it can only push a note later. The
+        // signatures are the guard: if one turns signed this stops compiling.
+        let _: u32 = tables::strum_offset_ticks(9, 8);
+        let _: u16 = tables::scale_phrase_sta(u8::MAX, 1);
+        let _: fn(u8, &mut Rng) -> u32 = tables::grv_delay_ticks;
     }
 }

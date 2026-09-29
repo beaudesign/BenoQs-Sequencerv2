@@ -8,9 +8,13 @@ pub mod domain;
 pub mod engine;
 pub mod fixture;
 pub mod phrases;
+pub mod ring;
 pub mod rng;
 pub mod scale;
+pub mod snapshot;
+pub mod sync;
 pub mod tables;
+pub mod triple;
 pub mod types;
 pub mod wire;
 

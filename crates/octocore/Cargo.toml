@@ -11,3 +11,12 @@ crate-type = ["lib", "staticlib", "cdylib"]
 [dependencies]
 
 [dev-dependencies]
+
+# Loom explores every interleaving of the atomics in `sync`. It is compiled only under
+# `RUSTFLAGS="--cfg loom"`, so no normal build, and no build that ships, depends on it
+# (SPEC-0001 O6, `specs/SPEC-0001/o6-test-plan.md` section 7).
+[target.'cfg(loom)'.dependencies]
+loom = "0.7"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }

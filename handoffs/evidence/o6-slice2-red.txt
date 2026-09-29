@@ -1,0 +1,13 @@
+# O6 slice 2 (command ring) - RED, against a stub ring (push does nothing, pop returns None)
+# command: cargo test -p octocore --lib -- ring::
+running 8 tests
+test ring::tests::r2_draining_an_empty_ring_returns_nothing_and_changes_no_counter ... ok
+test ring::tests::r1_push_up_to_capacity_then_drain_returns_them_in_order ... FAILED
+test ring::tests::r3_overflow_keeps_the_newest_capacity_commands_and_counts_the_rest ... FAILED
+test ring::tests::r4_many_wraps_lose_nothing_when_the_consumer_keeps_up ... FAILED
+test ring::tests::r5_capacity_must_be_a_power_of_two_of_at_least_two ... FAILED
+test ring::tests::r6_drain_stops_at_max_and_leaves_the_rest ... FAILED
+test ring::tests::r7_counters_add_up_after_every_operation_in_random_sequences ... FAILED
+test ring::tests::r8_words_that_do_not_decode_can_be_counted_as_dropped ... FAILED
+test result: FAILED. 1 passed; 7 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.09s
+# note: R2 (an empty ring does nothing) passes on the stub by design.

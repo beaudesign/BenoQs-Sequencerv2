@@ -1,0 +1,15 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Gate runner for WENGE: `cargo xtask verify`. Owned by the Referee."
+
+# No runtime dependencies on purpose: the runner must build fast and be auditable.
+[dependencies]
+
+[dev-dependencies]
+# Used only by the test that proves the report we write conforms to
+# contracts/verification.report.schema.json.
+jsonschema = { version = "0.30", default-features = false }
+serde_json = "1"

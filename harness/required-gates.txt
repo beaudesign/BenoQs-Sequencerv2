@@ -1,0 +1,11 @@
+# Gates that must report `pass` for `cargo xtask verify` to succeed (exit 0).
+#
+# A gate that is `fail` always fails the run. A gate listed here that is
+# `not_implemented`, `skipped` or missing fails it too. Gates not listed here are still
+# printed and written to the report, and never count as a pass.
+#
+# This file only grows. Adding a gate here is how a gate becomes real: the change that
+# lands a gate adds its name in the same commit. Removing a line needs an ADR.
+# Owned by the Referee.
+conformance
+regressions

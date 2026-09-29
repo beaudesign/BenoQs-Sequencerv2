@@ -1,88 +1,59 @@
-# WENGE — every verb an agent needs. See agents/CLAUDE.md "Commands".
+# WENGE: every verb an agent needs. See agents/CLAUDE.md "Commands".
 #
-# `just verify:<zone>` from CLAUDE.md isn't literal — `just` recipe names can't
-# contain `:` — so zone gates are `verify-<zone>` here. `verify` is the
-# umbrella: it runs every gate, reports which are wired vs. not yet
-# implemented, and only fails the build on a wired gate that actually failed.
+# `just verify:<zone>` from the docs is not literal: `just` recipe names cannot contain
+# a `:`, so zone gates are `verify-<zone>` here.
+#
+# The gates live in `xtask/` (run as `cargo xtask`, see harness/README.md). `verify`
+# runs all of them, writes harness/report/latest.json and exits non-zero if any gate
+# failed or any gate in harness/required-gates.txt did not pass. A gate that is not
+# built reports `not_implemented`; it is never a silent pass.
 
-zones := "geometry color frames motion timing conformance acoustics a11y arch slop tokens regressions determinism"
+# Run every gate. Extra args go to xtask, for example `just verify --base origin/main`.
+verify *args:
+	cargo xtask verify {{args}}
 
-# Run every gate; fail only on a wired gate that fails.
-verify:
-	#!/usr/bin/env bash
-	set -uo pipefail
-	fail=0
-	for z in {{zones}}; do
-		echo "== verify:$z =="
-		just "verify-$z"
-		code=$?
-		if [ $code -eq 0 ]; then
-			echo "-> pass"
-		elif [ $code -eq 42 ]; then
-			echo "-> not yet implemented (see docs/07-verification.md)"
-		else
-			echo "-> FAIL"
-			fail=1
-		fi
-	done
-	if [ -f crates/octocore/Cargo.toml ]; then
-		echo "== verify:octocore =="
-		just verify-octocore || fail=1
-	fi
-	exit $fail
+# One gate. Exit 42 means "not implemented yet".
+gate name *args:
+	cargo xtask gate {{name}} {{args}}
 
-# octocore is the one zone with real code once crates/octocore exists.
+# Record new tests and fixtures as the ratchet floor. Dropping one needs --remove <kind> <id> --adr ADR-NNNN.
+baseline *args:
+	cargo xtask baseline {{args}}
+
+# Fast check for the sequencer core only (seconds). Not a gate.
 verify-octocore:
-	#!/usr/bin/env bash
-	set -euo pipefail
-	if [ -f crates/octocore/Cargo.toml ]; then
-		cd crates/octocore && cargo test
-	else
-		echo "octocore: not yet implemented"
-		exit 42
-	fi
+	cargo test -p octocore
 
-# Every other zone: honest "not built yet" until its owning role lands it.
-_stub name role:
-	@echo "{{name}}: not yet implemented — owned by {{role}}, see docs/07-verification.md"
-	@exit 42
+# Per-zone gate verbs below. Owners are listed in xtask/src/gates.rs.
 
 verify-geometry:
-	@just _stub geometry panelwright
+	@cargo xtask gate geometry
 verify-color:
-	@just _stub color forge
+	@cargo xtask gate color
 verify-frames:
-	@just _stub frames referee
+	@cargo xtask gate frames
 verify-motion:
-	@just _stub motion forge
+	@cargo xtask gate motion
 verify-timing:
-	@just _stub timing metronome
-# octocore's `tests/conformance.rs` runs every tests/conformance/**/*.fixture
-# (excluding pending/); wired here once octocore exists so this gate stops
-# being a stub even though jitter/host-loopback timing (verify-timing) isn't.
+	@cargo xtask gate timing
 verify-conformance:
-	#!/usr/bin/env bash
-	set -euo pipefail
-	if [ -f crates/octocore/Cargo.toml ]; then
-		cd crates/octocore && cargo test --test conformance
-	else
-		echo "conformance: not yet implemented — owned by metronome, see docs/07-verification.md"
-		exit 42
-	fi
+	@cargo xtask gate conformance
 verify-acoustics:
-	@just _stub acoustics sceneshaper
+	@cargo xtask gate acoustics
 verify-a11y:
-	@just _stub a11y loom
+	@cargo xtask gate a11y
 verify-arch:
-	@just _stub arch conductor
+	@cargo xtask gate arch
 verify-slop:
-	@just _stub slop curator
+	@cargo xtask gate slop
 verify-tokens:
-	@just _stub tokens curator
+	@cargo xtask gate tokens
 verify-regressions:
-	@just _stub regressions referee
+	@cargo xtask gate regressions
 verify-determinism:
-	@just _stub determinism referee
+	@cargo xtask gate determinism
+verify-persistence:
+	@cargo xtask gate persistence
 
 # Deterministic offline capture of a registered scene. Not wired yet — no
 # renderer exists. See harness/capture/ and docs/07-verification.md §2.

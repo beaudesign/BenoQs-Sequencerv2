@@ -238,7 +238,10 @@ pub struct Diagnostics {
     /// The most events the queue has held at once. `QUEUE_CAP` is 1,024.
     pub queue_high_water: u32,
     /// Times an event that was due had to wait for a later render because the caller's
-    /// buffer was full. An event held over two renders counts twice.
+    /// buffer was full. It is counted once per internal chunk of up to `RENDER_CHUNK`
+    /// samples that the event waits through, so one large render can count the same waiting
+    /// event several times. Read it as "nonzero means the caller's buffer was too small",
+    /// not as a number of events.
     pub deferred_events: u32,
     /// Events emitted after their time, at sample 0 of the buffer, because they were
     /// deferred or scheduled in the past.

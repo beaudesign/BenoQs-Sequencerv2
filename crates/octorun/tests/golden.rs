@@ -4,7 +4,9 @@
 //! its event log and of its Standard MIDI File. The engine is deterministic for a seed, so a
 //! changed hash means the engine now plays something different. If that change is intended,
 //! regenerate with `just golden` and say why in the commit. The `determinism` gate reads this
-//! test binary: it passes when every test here passes and all five patterns ran.
+//! test binary: it passes when at least five tests here passed and none failed. It does not
+//! check which five, so `every_example_has_a_golden_file_and_the_other_way_round` is what stops a
+//! pattern from going in without its hash.
 
 use std::path::{Path, PathBuf};
 

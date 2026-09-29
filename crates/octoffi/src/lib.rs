@@ -501,4 +501,39 @@ mod tests {
         // struct { uint8_t port, ch, value; uint32_t at_sample; }
         assert_eq!(bytes(&pressure, &[4, 5, 6, 8, 9, 10, 11]), [1, 16, 100, 4, 3, 2, 1]);
     }
+
+    /// The test above checks the Rust bytes. This one reads `octoffi.h` itself, so an edit to
+    /// the header that disagrees with the Rust side fails a test (review nit 11).
+    #[test]
+    fn the_header_lists_the_event_tags_and_diagnostic_fields_in_the_rust_order() {
+        let h = include_str!("../octoffi.h");
+        let tags: Vec<&str> = h
+            .lines()
+            .map(str::trim)
+            .filter(|l| l.starts_with("OCTO_EVT_"))
+            .map(|l| l.split(|c: char| c == ' ' || c == ',' || c == '=').next().unwrap())
+            .collect();
+        assert_eq!(
+            tags,
+            ["OCTO_EVT_NOTE_ON", "OCTO_EVT_NOTE_OFF", "OCTO_EVT_CC", "OCTO_EVT_PITCH_BEND", "OCTO_EVT_CHANNEL_PRESSURE"],
+            "tags are numbered by position: 0 to 4, and the Rust `Event` tags follow the same order"
+        );
+        assert!(h.contains("OCTO_EVT_NOTE_ON = 0,"));
+        assert!(h.contains("struct { uint8_t port, ch; uint16_t value; uint32_t at_sample; } pitch_bend;"));
+        assert!(h.contains("struct { uint8_t port, ch, value; uint32_t at_sample; } channel_pressure;"));
+
+        let start = h.find("typedef struct {").and_then(|_| h.find("uint32_t queue_overflows")).expect("OctoDiagnostics");
+        let end = h[start..].find("} OctoDiagnostics;").expect("end of OctoDiagnostics") + start;
+        let fields: Vec<&str> = h[start..end]
+            .lines()
+            .filter_map(|l| l.trim().strip_prefix("uint32_t "))
+            .map(|l| l.split(';').next().unwrap())
+            .collect();
+        assert_eq!(
+            fields,
+            ["queue_overflows", "queue_high_water", "deferred_events", "late_events", "unusable_tempo_renders"],
+            "the fields of `Diagnostics` (repr(C)) in declaration order"
+        );
+        assert_eq!(std::mem::size_of::<octocore::Diagnostics>(), 5 * 4);
+    }
 }

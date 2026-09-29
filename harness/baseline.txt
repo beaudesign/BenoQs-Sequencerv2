@@ -147,6 +147,7 @@ test octoffi::tests::new_event_variants_match_the_layout_in_the_c_header
 test octoffi::tests::new_free_roundtrip_is_safe
 test octoffi::tests::out_of_range_indices_are_a_no_op_not_a_crash
 test octoffi::tests::render_fills_caller_buffer
+test octoffi::tests::the_header_lists_the_event_tags_and_diagnostic_fields_in_the_rust_order
 test octoffi::tests::track_and_step_set_get_round_trip
 test octoroom::acoustics::tests::eyring_matches_hand_computed_value
 test octoroom::acoustics::tests::higher_absorption_means_shorter_decay

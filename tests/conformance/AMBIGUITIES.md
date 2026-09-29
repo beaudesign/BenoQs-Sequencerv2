@@ -312,3 +312,44 @@ exists yet at all — this needs one added before the table itself matters.
 `::len_scaling_interpolates_between_breakpoints`,
 `::sta_scaling_matches_manual_note_row_14_doubles`,
 `::sta_scaling_row_0_is_always_zero`.
+
+## stop with sounding notes
+
+**Manual reference:** CE v5.30 p.94 ("ALL NOTES OFF message"); p.16 (legato mode).
+**Ambiguity:** The manual says what a *second* Stop does: "When the sequencer is not
+running but is defined as MIDI master or slave ... pressing the Stop button will send out
+an ALL NOTES OFF message (controller 123) on each of the 32 MIDI channels." It does not
+say what the first Stop does to a note that is still sounding, or what Reset does.
+**Readings considered:** A) Stop sends a NoteOff for every sounding note, then CC 123 on
+the channels that had one. B) Stop leaves sounding notes alone, and the player presses Stop
+again to send the p.94 panic.
+**Chosen:** A. A plugin cannot ask a person to press Stop twice when the host stops the
+transport, and leaving a note on in the receiver is the worse failure. B stays reachable:
+a Stop pressed while already stopped sends CC 123 on all 32 channels, as p.94 says. The
+"master or slave" condition is treated as always true, because the engine has no clock-role
+setting; under a host it is effectively a slave. A Stop is a `Command::Stop`. A host that
+reports "not playing" on every buffer (`HostTransport`, or `RenderContext::playing`) is not
+a button press and does not send the panic. Reset follows the same rule as the first Stop.
+One NoteOff is sent per NoteOn still owed, so a pitch retriggered while it rang is released
+in a receiver that stacks voices.
+**Still open:** whether hardware sends anything on the first Stop. Needs a real Octopus.
+**Also found while reading p.16 (not changed here):** the minimum step length is "legato
+mode - i.e. no note off MIDI signal will be played for this step". The engine does not do
+this: every step schedules a NoteOff, and LEN is clamped to at least 1 tick. When legato is
+implemented, Stop must still flush those notes, which the sounding table already covers.
+**Fixture:** `transport/stop_flushes_sounding_notes.fixture`,
+`transport/reset_flushes_sounding_notes.fixture`,
+`transport/stop_while_stopped_sends_all_notes_off.fixture`,
+`tests/invariants.rs::stop_at_any_point_leaves_no_note_sounding` and its siblings,
+`engine::tests::retriggered_pitch_gets_one_noteoff_per_noteon_on_stop`.
+
+## Play after idle time
+
+**Manual reference:** none. The manual does not describe the host's idle rendering.
+**Ambiguity:** none in the manual. The engine is driven per buffer, and while stopped it
+still advances its sample clock. Play must start ticking from the current sample, not from
+where the transport stopped.
+**Chosen:** on the stopped-to-running transition `next_tick_due` is set to the current
+sample. Position (POS) and track state are untouched, as p.40 and p.66 describe.
+**Fixture:** `transport/play_after_idle_has_no_backlog_burst.fixture`,
+`tests/invariants.rs::first_buffer_after_idle_equals_a_fresh_engines_first_buffer`.

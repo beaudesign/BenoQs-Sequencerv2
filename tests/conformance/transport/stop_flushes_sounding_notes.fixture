@@ -1,0 +1,33 @@
+# WENGE-0001 / SPEC-0001 A1. Stop must not leave a note ringing in the receiver.
+# Ref: CE v5.30 is silent on what Stop does to a note that is still sounding (p.94 covers
+# only the second press of Stop). Reading chosen: every sounding note gets a NoteOff and
+# CC 123 goes out on each channel that had one. See AMBIGUITIES.md "stop with sounding notes".
+#
+# Two long notes on two ports: track 0 on port 1 channel 1, track 3 on port 2 channel 4.
+seed 1
+bpm 120
+page.tracks 0,3 enabled
+track 0 mch 1
+track 3 mch 20
+track 0 step 0 len 192
+track 3 step 0 len 192
+play
+render 4 buffers buffer=512
+expect event on port=1 ch=1 count=1
+expect event on port=2 ch=4 count=1
+expect event off absent
+stop
+render 1 buffers buffer=512
+# The flush lands at sample 0 of the render that follows the stop.
+expect event off port=1 ch=1 count=1 at=2048
+expect event off port=2 ch=4 count=1 at=2048
+expect event cc cc=123 port=1 ch=1 count=1 at=2048
+expect event cc cc=123 port=2 ch=4 count=1 at=2048
+expect event cc cc=123 count=2
+expect balance
+# Nothing more happens while stopped.
+clear events
+render 100 buffers buffer=512
+expect event on absent
+expect event off absent
+expect event cc absent

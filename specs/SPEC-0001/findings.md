@@ -26,7 +26,16 @@ Cost of one 64-sample render call against its 1,333 us budget:
 |---|---|---|---|
 | 14.0 us (1.1%) | 39.3 us (3.0%) | 57.7 us (4.3%) | 321.8 us (24.1%) |
 
-The core is not slow. The problem is correctness under a host and missing enforcement.
+The core is not slow: the median is about 1% of budget and the p99.9 is under 8%.
+The problem is correctness under a host and missing enforcement.
+
+**Correction (2026-09-29, WENGE-0001).** The 321.8 us maximum above came from one lucky
+run and must not be quoted as "24% of budget". Seven later runs in the same
+container (three on `6ef921f`, four after the O1 and O2 fix) gave: median 12.4 to 14.0 us, p99 35.4 to
+44.2 us, p99.9 57.1 to 106.0 us (4.3% to 8.0% of budget), and a maximum between 0.9 ms and
+3.8 ms. The maximum is scheduler pre-emption in a shared container, not the engine: it
+moves by 4x between identical runs and is the same before and after the fix. Read the
+p99.9, and repeat on real hardware before quoting any worst case.
 
 ## Ten opportunities
 

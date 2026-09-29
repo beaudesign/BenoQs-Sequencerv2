@@ -52,6 +52,9 @@ fn run() -> Result<(), String> {
     let path = resolve(&pattern.ok_or_else(|| USAGE.to_string())?)?;
     let source = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let out = octorun::run_pattern(&source).map_err(|e| format!("{}: {e}", path.display()))?;
+    for w in out.warnings() {
+        eprintln!("octorun: warning: {}: {w}", path.display());
+    }
 
     if to_stdout {
         print!("{}", out.ndjson);

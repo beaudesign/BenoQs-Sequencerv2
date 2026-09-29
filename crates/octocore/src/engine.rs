@@ -132,7 +132,10 @@ impl RawEvent {
     }
 }
 
-const QUEUE_CAP: usize = 512;
+/// Events the engine can hold between scheduling and emission. A heavy but ordinary pattern
+/// (every step a strummed 6-note chord at 240 BPM) peaks near 430; the overload scene fills
+/// it. Public so a test or a host can compare `Diagnostics::queue_high_water` with it.
+pub const QUEUE_CAP: usize = 1024;
 
 /// The furthest a note can start ahead of the tick that fires it, in ticks. It is the most
 /// negative entry of `tables::STA_TABLE` (Track STA 16, Step STA -5: "-12", CE v5.30
@@ -232,7 +235,7 @@ pub struct Diagnostics {
     /// Notes (or CCs) refused because the event queue was full. A note is refused whole,
     /// never as a lone NoteOn.
     pub queue_overflows: u32,
-    /// The most events the queue has held at once. `QUEUE_CAP` is 512.
+    /// The most events the queue has held at once. `QUEUE_CAP` is 1,024.
     pub queue_high_water: u32,
     /// Times an event that was due had to wait for a later render because the caller's
     /// buffer was full. An event held over two renders counts twice.

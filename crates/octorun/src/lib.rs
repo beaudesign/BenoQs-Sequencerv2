@@ -12,6 +12,7 @@ pub mod sha256;
 pub mod smf;
 
 use octocore::fixture::{run_script, Limits};
+use octocore::{Diagnostics, QUEUE_CAP};
 
 /// A pattern may render at most an hour at 48 kHz and produce at most 5 million events, so a
 /// typo is an error message and not an out-of-memory.
@@ -22,6 +23,8 @@ pub struct Output {
     pub smf: Vec<u8>,
     pub events: usize,
     pub samples: u64,
+    /// What the engine refused, deferred or delayed while playing the pattern.
+    pub diagnostics: Diagnostics,
 }
 
 impl Output {
@@ -33,6 +36,30 @@ impl Output {
         sha256::sha256_hex(&self.smf)
     }
 
+    /// Lines to show a person when the engine could not play the pattern in full. Empty for a
+    /// clean run. The output is still written: it is what the engine did, and that is what a
+    /// golden hash records, but a stream with missing notes must not pass for a good one.
+    pub fn warnings(&self) -> Vec<String> {
+        let d = &self.diagnostics;
+        let mut w = Vec::new();
+        if d.queue_overflows > 0 {
+            w.push(format!(
+                "the engine refused {} notes because its event queue (capacity {QUEUE_CAP}) was full; the output is missing them",
+                d.queue_overflows
+            ));
+        }
+        if d.deferred_events > 0 {
+            w.push(format!("{} events waited for a later render because a buffer was full", d.deferred_events));
+        }
+        if d.late_events > 0 {
+            w.push(format!("{} events were sent after their time", d.late_events));
+        }
+        if d.unusable_tempo_renders > 0 {
+            w.push(format!("{} renders had a tempo or sample rate the engine cannot follow and played nothing", d.unusable_tempo_renders));
+        }
+        w
+    }
+
     /// The two-line form stored in `examples/golden/<name>.sha256`.
     pub fn golden_text(&self) -> String {
         format!("events {}\nsmf {}\n", self.ndjson_sha256(), self.smf_sha256())
@@ -42,5 +69,5 @@ impl Output {
 pub fn run_pattern(source: &str) -> Result<Output, String> {
     let played = run_script(source, LIMITS)?;
     let smf = smf::render(&played)?;
-    Ok(Output { ndjson: ndjson::render(&played), smf, events: played.events.len(), samples: played.samples })
+    Ok(Output { ndjson: ndjson::render(&played), smf, events: played.events.len(), samples: played.samples, diagnostics: played.diagnostics })
 }

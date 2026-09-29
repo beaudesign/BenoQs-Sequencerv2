@@ -5,6 +5,7 @@
 # `cargo xtask baseline --remove <kind> <id> --adr ADR-NNNN`, which records a `removed`
 # line that names an ADR. Owned by the Referee. Do not edit by hand.
 schema baseline/1
+test cli::a_pattern_that_overloads_the_engine_says_so_on_stderr_and_a_clean_one_does_not
 test cli::bad_input_is_an_error_message_and_a_failing_exit_code_not_a_panic
 test cli::the_extension_is_optional_and_stdout_and_golden_modes_write_nothing_else
 test cli::writes_the_log_and_the_midi_file_and_prints_their_hashes_twice_the_same
@@ -15,15 +16,20 @@ test golden::effector
 test golden::every_example_has_a_golden_file_and_the_other_way_round
 test golden::hello
 test golden::mcc_and_transport
+test golden::no_golden_pattern_overflows_the_queue_or_runs_late
 test golden::phrases
 test golden::the_seed_matters
 test invariants::a_bad_tempo_costs_nothing_once_the_tempo_is_sane
+test invariants::a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full
+test invariants::a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times
 test invariants::absurd_tempos_and_sample_rates_cannot_hang_render
 test invariants::different_seeds_make_different_scenarios
 test invariants::event_order_does_not_depend_on_the_hosts_buffer_size
 test invariants::event_times_do_not_depend_on_the_hosts_buffer_size
+test invariants::event_times_survive_a_host_that_changes_its_buffer_size_on_every_call
 test invariants::every_note_on_has_a_velocity_of_at_least_1_however_quiet_the_pattern
 test invariants::first_buffer_after_idle_equals_a_fresh_engines_first_buffer
+test invariants::overload_is_counted_and_refuses_whole_notes_never_half
 test invariants::play_command_after_idle_does_not_replay_the_backlog
 test invariants::reset_flushes_sounding_notes
 test invariants::same_seed_replays_the_same_stream
@@ -93,6 +99,7 @@ test octocore::engine::tests::track_toggle_mute_defers_to_measure_boundary_when_
 test octocore::engine::tests::track_toggle_negative_amt_is_off
 test octocore::engine::tests::track_toggle_range_wraps_manual_worked_example
 test octocore::engine::tests::velocity_scaled_down_to_zero_is_not_transmitted_and_1_is_the_quietest_note
+test octocore::fixture::tests::a_play_count_that_overflows_is_an_error_not_a_panic_or_a_wrap
 test octocore::fixture::tests::non_listener_does_not_receive_effector_feed
 test octocore::fixture::tests::role_both_receives_and_publishes
 test octocore::fixture::tests::run_script_enforces_its_limits_and_still_runs_expects

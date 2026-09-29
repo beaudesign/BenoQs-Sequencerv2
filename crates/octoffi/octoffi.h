@@ -89,7 +89,7 @@ bool octocore_engine_is_running(const OctoEngine *engine);
 // Health counters, cumulative since octocore_engine_new. See octocore::engine::Diagnostics.
 typedef struct {
     uint32_t queue_overflows;        // notes/CCs refused because the event queue was full
-    uint32_t queue_high_water;       // most events the queue has held at once (cap 512)
+    uint32_t queue_high_water;       // most events the queue has held at once (cap 1024)
     uint32_t deferred_events;        // due events held back because out_events was full
     uint32_t late_events;            // events emitted at sample 0 after their time
     uint32_t unusable_tempo_renders; // running renders with bpm outside 1..999 or sample_rate outside 8000..768000

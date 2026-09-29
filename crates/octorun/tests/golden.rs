@@ -49,6 +49,16 @@ fn a_pattern_gives_identical_bytes_every_time() {
     }
 }
 
+/// A golden hash of a stream with refused notes would lock in a wrong performance. Every
+/// example must play in full: nothing refused, deferred or late.
+#[test]
+fn no_golden_pattern_overflows_the_queue_or_runs_late() {
+    for name in ["hello", "chords_and_strums", "phrases", "effector", "mcc_and_transport"] {
+        let out = run(name);
+        assert!(out.warnings().is_empty(), "{name}: {:?} ({:?})", out.warnings(), out.diagnostics);
+    }
+}
+
 /// A different seed is a different performance. Without this, the tests above could pass on a
 /// runner that ignored the seed. Random direction (dir 5) and a random groove (grv 4) draw
 /// from the seeded generator.

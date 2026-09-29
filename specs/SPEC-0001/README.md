@@ -63,6 +63,7 @@ factory layer that carries this spec.
 | WENGE-0008 | O8 Real gates: tri-state verify, CI, CODEOWNERS, ratchet | Medium | F0 | In review (PR 2) |
 | WENGE-0009 | O9 Fixture DSL v2 and metamorphic invariants | Low | F0 and ongoing | Started (PR 3: DSL v2, transport invariants. PR 4: DSL v3 `vel`, `mcc`, `bend`, `pressure`, and buffer-size, order and velocity invariants) |
 | WENGE-0010 | O10 Emission details and doc drift | Medium | F1 | In review (PR 4). Doc drift was fixed in PR 1. |
+| WENGE-0011 | Review findings: queue headroom (1,024), overload counters in `octorun`, `play N step` guard | Medium | F1 | In review (PR 6). Task added by the independent review. |
 
 ## Pull request series
 
@@ -77,6 +78,7 @@ owner merges, in order. Nothing merges on the strength of an agent's own status 
 | 3 | `metronome/transport-safety` | WENGE-0001, 0002, 0009 | PR 2 |
 | 4 | `metronome/timing-and-emission` | WENGE-0003, 0005, 0010 | PR 3 |
 | 5 | `conductor/octorun` | WENGE-0007 | PR 4 |
+| 6 | `metronome/queue-headroom` | WENGE-0011 | PR 5 |
 
 `journal/STATE.md` is updated once at the end of the series, so the branches do not
 conflict on it.

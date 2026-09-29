@@ -16,6 +16,24 @@ verify *args:
 gate name *args:
 	cargo xtask gate {{name}} {{args}}
 
+# Run a pattern headless: `just run examples/hello`. Writes target/octorun/NAME.ndjson and
+# NAME.mid and prints the SHA-256 of each. The same pattern gives the same bytes every time.
+run pattern *args:
+	cargo run -q --release -p octorun -- {{pattern}} {{args}}
+
+# Rewrite the golden hashes in examples/golden/ after an INTENDED change to what the engine
+# plays. Review the diff and say why in the commit. `cargo test -p octorun` fails until then.
+golden:
+	cargo build -q --release -p octorun
+	for p in examples/*.pattern; do n=$(basename $p .pattern); ./target/release/octorun $p --golden > examples/golden/$n.sha256; done
+
+# WebAssembly smoke test: builds octoffi for wasm32, plays the example patterns in Node and
+# checks the event log against the native golden hashes. Needs `rustup target add
+# wasm32-unknown-unknown` and Node 18 or newer.
+wasm-smoke:
+	cargo build -q --release -p octoffi --target wasm32-unknown-unknown
+	node harness/wasm/smoke.mjs
+
 # Record new tests and fixtures as the ratchet floor. Dropping one needs --remove <kind> <id> --adr ADR-NNNN.
 baseline *args:
 	cargo xtask baseline {{args}}

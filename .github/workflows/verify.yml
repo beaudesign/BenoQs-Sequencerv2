@@ -75,3 +75,20 @@ jobs:
             harness/report/latest.json
             harness/report/cargo-test.log
           if-no-files-found: warn
+
+  # SPEC-0001 O7: the engine compiled to WebAssembly plays the example patterns and the event
+  # log is byte-identical to the native golden hashes. Node is preinstalled on the runner.
+  wasm-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust with the wasm target
+        run: |
+          rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+          rustup default stable
+      - name: Build octoffi for wasm32 and run the smoke test
+        run: |
+          cargo build --release -p octoffi --target wasm32-unknown-unknown
+          node --version
+          node harness/wasm/smoke.mjs

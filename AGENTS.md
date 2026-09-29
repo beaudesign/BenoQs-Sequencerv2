@@ -20,6 +20,7 @@ no renderer, plugin or UI yet (blocked on Xcode and calibrated photography, see
 | `crates/octocore` | Sequencer core. 192 PPQN tick loop, tracks stepped 9 down to 0, fixed-size `Copy` structs, no dependencies, zero heap allocation on the audio path. |
 | `crates/octoffi` | C ABI over the core. `octoffi.h` is hand-maintained. |
 | `crates/octoroom` | Room geometry and Eyring RT60. Pure Rust half of the acoustics work. |
+| `crates/octorun` | Headless runner. Reads a pattern (the fixture language), writes a byte-reproducible event log and a Standard MIDI File. Golden hashes for 5 patterns in `examples/golden/`. |
 
 The manual in `reference/manual/` wins over any other source of musical behaviour.
 Where it is silent, the choice goes in `tests/conformance/AMBIGUITIES.md` with both
@@ -35,14 +36,14 @@ result behind it.
 | Install | `rustup toolchain install stable` and `cargo install just --locked` | Tested with Rust 1.95. |
 | Fast check | `cargo test --release -p octocore` | Seconds. Before every handoff. |
 | All Rust tests | `cargo test --workspace` | `just verify` runs this once and feeds two gates from it. |
-| Full verification | `just verify` | Exits 0 only if no gate failed and every gate in `harness/required-gates.txt` passed. 12 of 14 gates are still `not_implemented`, and the output says so. |
+| Full verification | `just verify` | Exits 0 only if no gate failed and every gate in `harness/required-gates.txt` passed. 11 of 14 gates are still `not_implemented`, and the output says so. |
 | Before a pull request | `just verify --base origin/<base branch>` | Also checks that no test or fixture left `harness/baseline.txt` (the ratchet). CI runs this. |
 | Record new tests | `just baseline` | Adds new tests and fixtures to the ratchet floor. Dropping one needs `--remove <kind> <id> --adr ADR-NNNN`. |
 | One zone | `just verify-<zone>` | Docs write the gate name as `verify:<zone>`. The recipe uses a hyphen because `just` names cannot contain a colon. |
 | Report | `just report` | Prints `harness/report/latest.json` once it exists, else `journal/STATE.md`. |
 | Manual | `just manual <topic>` | Returns pages of the reference manual. |
 | Build | `cargo build --release --workspace` | WASM: `cargo build -p octocore --release --target wasm32-unknown-unknown --lib`. |
-| Run | none yet | `just run <pattern>` arrives with SPEC-0001 O7. |
+| Run | `just run examples/hello` | Headless: a pattern file in, `target/octorun/NAME.ndjson` and `NAME.mid` out, plus the SHA-256 of each. Byte-identical for a given seed. `just golden` rewrites `examples/golden/` after an intended change. |
 | Report JSON | `harness/report/latest.json` | Written by every `just verify`. Schema `verification.report/1`. Not committed. |
 
 ## Working rules
@@ -153,7 +154,7 @@ reproduction. A replay (seed, command log, host clock trace) is the preferred fo
 | Item | State |
 |---|---|
 | Project context and links | Done |
-| Commands | Done. `just run` is marked as not yet present (SPEC-0001 O7). |
+| Commands | Done. `just run` and `just golden` exist (SPEC-0001 O7). |
 | Named approver | Repo owner `@beaudesign` for all tiers (SPEC-0001 Q3 default). |
 | CI workflow | Present in `.github/workflows/verify.yml`. Advisory until branch protection requires it. |
 | Branch protection and required review | Open. Only the repo owner can enable it in GitHub settings: require the `verify` check and Code Owner review. |

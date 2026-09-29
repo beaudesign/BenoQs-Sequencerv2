@@ -21,6 +21,8 @@
 //! expect balance                every NoteOn has a NoteOff per (port, channel, note)
 //! track T mch V                 MIDI channel 1..32
 //! track T vel V                 base velocity 0..127 (DSL v3, SPEC-0001 O10)
+//! track T dir V                 direction code (1 forward, 2 reverse, 4 brownian, 5 random, ...)
+//! track T grv V                 groove 0..16 (even values draw a random delay per even step)
 //! track T mcc none|bend|pressure|cc N   what the track's step MCC values send
 //! track T step S|all attr V     as before; `len` (ticks), `lenmul` and `mcc` are new
 //! ```
@@ -158,8 +160,45 @@ fn check_balance(events: &[Emitted]) -> Result<(), String> {
     }
 }
 
+/// Everything a script rendered, for tools that want the event stream itself rather than a
+/// pass or a fail (`octorun`). `expect` lines still run and still fail the script.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Played {
+    /// Every event the `render` directives produced, in emission order, with its absolute
+    /// sample position. `clear events` forgets events for `expect` only, never here.
+    pub events: Vec<(u64, Event)>,
+    /// `(sample, bpm)`: the tempo in force from that sample on. Starts with `(0, 120.0)`.
+    pub tempo: Vec<(u64, f32)>,
+    pub sample_rate: f32,
+    /// Samples rendered in total.
+    pub samples: u64,
+    /// False if a `samplerate` directive changed the rate after rendering began. The sample
+    /// positions above then mix two rates and a converter must refuse them.
+    pub sample_rate_constant: bool,
+}
+
+/// Ceilings for a script run by a tool, so a typo (`render 10000000 s`) is an error and not
+/// an out-of-memory. Fixtures run without ceilings.
+#[derive(Debug, Clone, Copy)]
+pub struct Limits {
+    pub max_samples: u64,
+    pub max_events: usize,
+}
+
+impl Limits {
+    pub const NONE: Limits = Limits { max_samples: u64::MAX, max_events: usize::MAX };
+}
+
 pub fn run_fixture(source: &str) -> Result<(), String> {
+    run_script(source, Limits::NONE).map(|_| ())
+}
+
+/// Runs a script (the fixture DSL, v1 to v3) and returns what it rendered.
+pub fn run_script(source: &str, limits: Limits) -> Result<Played, String> {
     let mut engine = Engine::new(0);
+    let mut all: Vec<(u64, Event)> = Vec::new();
+    let mut tempo: Vec<(u64, f32)> = vec![(0, 120.0)];
+    let mut sample_rate_constant = true;
     let mut fired: Vec<NoteFire> = Vec::new();
     // Sample-domain state (DSL v2).
     let mut bpm: f32 = 120.0;
@@ -260,6 +299,20 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                 }
                 engine.grid.active_page_mut().tracks[ti].mcc = Mcc::Cc(cc);
             }
+            ["track", t, attr @ ("dir" | "grv"), v] => {
+                let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
+                if ti >= TRACK_COUNT {
+                    return Err(format!("{}: track index out of range", ctx()));
+                }
+                let max = if *attr == "dir" { 255 } else { 16 };
+                let n: u8 = v.parse().ok().filter(|n| *n <= max).ok_or_else(|| format!("{}: {} is 0..={}", ctx(), attr, max))?;
+                let track = &mut engine.grid.active_page_mut().tracks[ti];
+                if *attr == "dir" {
+                    track.direction_raw = n;
+                } else {
+                    track.groove = n;
+                }
+            }
             ["track", t, "mch", v] => {
                 let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
                 let ch: u8 = v.parse().map_err(|_| format!("{}: bad channel", ctx()))?;
@@ -268,8 +321,20 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                 }
                 engine.grid.active_page_mut().tracks[ti].midi_channel = ch;
             }
-            ["bpm", v] => bpm = v.parse().map_err(|_| format!("{}: bad bpm", ctx()))?,
-            ["samplerate", v] => sample_rate = v.parse().map_err(|_| format!("{}: bad sample rate", ctx()))?,
+            ["bpm", v] => {
+                bpm = v.parse().map_err(|_| format!("{}: bad bpm", ctx()))?;
+                match tempo.last_mut() {
+                    Some(last) if last.0 == clock => last.1 = bpm,
+                    _ => tempo.push((clock, bpm)),
+                }
+            }
+            ["samplerate", v] => {
+                let rate: f32 = v.parse().map_err(|_| format!("{}: bad sample rate", ctx()))?;
+                if clock > 0 && rate != sample_rate {
+                    sample_rate_constant = false;
+                }
+                sample_rate = rate;
+            }
             ["play"] => {
                 engine.handle_command(Command::Play);
                 playing = true;
@@ -296,12 +361,19 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                     }
                     other => return Err(format!("{}: render unit must be `buffers` or `s`, not `{}`", ctx(), other)),
                 };
+                if clock.saturating_add(count.saturating_mul(buffer_len as u64)) > limits.max_samples {
+                    return Err(format!("{}: renders past the {} sample limit", ctx(), limits.max_samples));
+                }
                 let mut out = EventBuffer::new();
                 for _ in 0..count {
                     out.clear();
                     engine.render(&RenderContext { sample_rate, buffer_len, bpm, playing }, &mut out);
                     for e in out.as_slice() {
                         events.push(Emitted { at: clock + at_sample(e) as u64, ev: *e });
+                        all.push((clock + at_sample(e) as u64, *e));
+                    }
+                    if all.len() > limits.max_events {
+                        return Err(format!("{}: more than {} events", ctx(), limits.max_events));
                     }
                     clock += buffer_len as u64;
                 }
@@ -417,7 +489,7 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
         }
     }
 
-    Ok(())
+    Ok(Played { events: all, tempo, sample_rate, samples: clock, sample_rate_constant })
 }
 
 #[cfg(test)]
@@ -580,5 +652,50 @@ mod tests {
             play 1 step\n\
             expect note track=0 pit=+0\n";
         run_fixture(fixture).unwrap();
+    }
+
+    // ------------------------------------------------------------ run_script (WENGE-0007)
+
+    const SCRIPT_ONE_NOTE: &str = "seed 1\nbpm 120\ntrack 0 step 0 active 1\nplay\nrender 20 buffers buffer=512\n";
+
+    #[test]
+    fn run_script_returns_every_event_even_after_clear_events() {
+        let src = format!("{SCRIPT_ONE_NOTE}clear events\nrender 20 buffers buffer=512\nexpect event on absent\n");
+        let played = run_script(&src, Limits::NONE).unwrap();
+        assert_eq!(played.events.len(), 2, "the NoteOn and NoteOff from before the clear: {:?}", played.events);
+        assert_eq!(played.samples, 40 * 512);
+        assert_eq!(played.tempo, vec![(0, 120.0)]);
+        assert!(played.sample_rate_constant);
+    }
+
+    #[test]
+    fn run_script_records_tempo_changes_at_the_sample_they_take_effect() {
+        let src = "bpm 100\nrender 2 buffers buffer=256\nbpm 140\nbpm 150\nrender 1 buffers buffer=256\n";
+        let played = run_script(src, Limits::NONE).unwrap();
+        assert_eq!(played.tempo, vec![(0, 100.0), (512, 150.0)], "a second bpm at the same sample replaces the first");
+    }
+
+    #[test]
+    fn run_script_flags_a_sample_rate_change_after_rendering_began() {
+        let ok = run_script("samplerate 44100\nrender 1 buffers buffer=64\nsamplerate 44100\n", Limits::NONE).unwrap();
+        assert!(ok.sample_rate_constant && ok.sample_rate == 44_100.0);
+        let late = run_script("render 1 buffers buffer=64\nsamplerate 96000\n", Limits::NONE).unwrap();
+        assert!(!late.sample_rate_constant);
+    }
+
+    #[test]
+    fn run_script_enforces_its_limits_and_still_runs_expects() {
+        let lim = Limits { max_samples: 1000, max_events: 10 };
+        assert!(run_script("render 2 buffers buffer=512\n", lim).unwrap_err().contains("sample limit"));
+        let dense = "seed 1\ntrack 0 step all active 1\ntrack 0 step all len 1\nplay\nrender 4 s buffer=64\n";
+        assert!(run_script(dense, Limits { max_samples: u64::MAX, max_events: 10 }).unwrap_err().contains("events"));
+        assert!(run_script("expect event on\n", Limits::NONE).is_err(), "an expect that fails fails the script");
+    }
+
+    #[test]
+    fn v3_dir_and_grv_set_the_track_and_reject_bad_values() {
+        assert!(run_script("track 0 dir 5\ntrack 0 grv 16\n", Limits::NONE).is_ok());
+        assert!(run_script("track 0 grv 17\n", Limits::NONE).unwrap_err().contains("grv is 0..=16"));
+        assert!(run_script("track 10 dir 1\n", Limits::NONE).unwrap_err().contains("out of range"));
     }
 }

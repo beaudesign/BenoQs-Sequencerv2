@@ -1,0 +1,45 @@
+# Controllers and transport: a bender track, a pressure track and a CC track; a tempo change
+# in the middle; two Stop and Play cycles with long notes ringing when Stop lands; and a track
+# at velocity 0, which must send nothing (manual p.40).
+seed 11
+bpm 100
+track 0 mch 1
+track 0 mcc bend
+track 0 step 0 active 1
+track 0 step 0 mcc 64
+track 0 step 4 active 1
+track 0 step 4 mcc 32
+track 0 step 8 active 1
+track 0 step 8 mcc 96
+track 0 step 12 active 1
+track 0 step 12 mcc 127
+track 1 mch 2
+track 1 mcc pressure
+track 1 step 0 active 1
+track 1 step 0 mcc 100
+track 1 step 8 active 1
+track 1 step 8 mcc 0
+track 2 mch 18
+track 2 mcc cc 74
+track 2 step 0 active 1
+track 2 step 0 mcc 33
+track 2 step 0 len 192
+track 2 step 0 lenmul 4
+track 3 mch 4
+track 3 vel 0
+track 3 step all active 1
+play
+render 2 s buffer=128
+bpm 140
+render 2 s buffer=128
+stop
+render 1 s buffer=128
+play
+render 2 s buffer=128
+stop
+render 1 s buffer=128
+expect balance
+expect event bend val=8192
+expect event pressure val=100
+expect event cc cc=74 val=33
+expect event on ch=4 absent

@@ -255,7 +255,7 @@ verb, it does not exist as far as the operating model is concerned.
 just setup            # toolchains, git-lfs, hooks
 just build            # everything, debug
 just build --release
-just run              # standalone
+just run <pattern>    # headless sequencer run (octorun); the standalone app comes later
 just test             # unit + conformance, no GPU
 just capture <scene>  # deterministic offline frame capture
 just verify           # every gate; this is what CI runs

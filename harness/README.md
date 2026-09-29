@@ -18,7 +18,7 @@ just baseline                      # record new tests as the new floor (never dr
 
 1. Runs `cargo test --workspace --no-fail-fast` once and parses the result by test name.
 2. Evaluates every gate in `contracts/verification.report.schema.json`. Two gates exist
-   today (`conformance`, `regressions`). The other twelve report `not_implemented`.
+   today (`conformance`, `regressions`, `determinism`). The other eleven report `not_implemented`.
 3. Writes `harness/report/latest.json` (schema `verification.report/1`) and
    `harness/report/cargo-test.log`. Both are git-ignored. CI uploads them.
 4. Prints a table, then exits **0 only if** no gate failed **and** every gate listed in

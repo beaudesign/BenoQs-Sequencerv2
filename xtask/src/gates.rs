@@ -165,6 +165,7 @@ pub fn evaluate(inp: &Inputs) -> (Vec<Gate>, Assertions) {
         .iter()
         .map(|def| match def.name {
             "conformance" => conformance(def, inp),
+            "determinism" => determinism(def, inp),
             "regressions" => regressions(def, inp, &passing, &failed, base_violations.as_deref()),
             _ => Gate {
                 name: def.name,
@@ -237,6 +238,39 @@ fn conformance(def: &GateDef, inp: &Inputs) -> Gate {
         Metric::new("conformance.tests_passed", n_ok, "tests", Comparator::Gte, 1),
         Metric::new("conformance.tests_failed", n_bad, "tests", Comparator::Eq, 0),
         Metric::new("conformance.fixtures", inp.fixtures.len(), "fixtures", Comparator::Gte, inp.baseline.fixtures.len()),
+    ];
+    finish(def, inp.run.duration_s, metrics, failures)
+}
+
+/// Golden event streams (SPEC-0001 O7). The `golden` test binary of `octorun` runs each
+/// example pattern headless and compares the SHA-256 of its event log and MIDI file with
+/// `examples/golden/`. The gate passes when at least `MIN_GOLDEN` of those tests ran and none failed.
+const MIN_GOLDEN: usize = 5;
+
+fn determinism(def: &GateDef, inp: &Inputs) -> Gate {
+    let mut failures = Vec::new();
+    if let Some(e) = &inp.run.build_error {
+        failures.push(Failure::new("cargo test", e.clone()));
+    }
+    let (n_ok, n_bad) = match inp.run.parsed.binary("golden") {
+        Some(b) => {
+            for t in b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Failed) {
+                failures.push(Failure::new(t.id.clone(), "golden or determinism test failed"));
+            }
+            let ok = b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Ok).count();
+            let bad = b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Failed).count();
+            (ok, bad)
+        }
+        None => {
+            if inp.run.build_error.is_none() {
+                failures.push(Failure::new("determinism", "the octorun golden test binary did not run"));
+            }
+            (0, 0)
+        }
+    };
+    let metrics = vec![
+        Metric::new("determinism.golden_tests_passed", n_ok, "tests", Comparator::Gte, MIN_GOLDEN),
+        Metric::new("determinism.golden_tests_failed", n_bad, "tests", Comparator::Eq, 0),
     ];
     finish(def, inp.run.duration_s, metrics, failures)
 }
@@ -349,11 +383,12 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
     #[test]
     fn a_clean_run_passes_the_two_wired_gates_and_the_rest_are_not_implemented() {
-        let gates = eval(OUT, &baseline(), None);
+        let gates = eval(&full_run(), &baseline(), None);
         assert_eq!(status(&gates, "conformance"), Status::Pass);
         assert_eq!(status(&gates, "regressions"), Status::Pass);
+        assert_eq!(status(&gates, "determinism"), Status::Pass);
         assert_eq!(status(&gates, "geometry"), Status::NotImplemented);
-        assert_eq!(gates.iter().filter(|g| g.status == Status::NotImplemented).count(), GATES.len() - 2);
+        assert_eq!(gates.iter().filter(|g| g.status == Status::NotImplemented).count(), GATES.len() - 3);
     }
 
     #[test]
@@ -375,14 +410,14 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
     #[test]
     fn a_required_gate_that_is_not_implemented_fails_the_run() {
-        let gates = eval(OUT, &baseline(), None);
-        assert!(run_succeeds(&gates, &set(&["conformance", "regressions"])));
+        let gates = eval(&full_run(), &baseline(), None);
+        assert!(run_succeeds(&gates, &set(&["conformance", "regressions", "determinism"])));
         assert!(!run_succeeds(&gates, &set(&["conformance", "regressions", "timing"])));
     }
 
     #[test]
     fn an_unrequired_stub_does_not_fail_the_run_but_is_never_reported_as_pass() {
-        let gates = eval(OUT, &baseline(), None);
+        let gates = eval(&full_run(), &baseline(), None);
         assert!(run_succeeds(&gates, &BTreeSet::new()));
         assert_ne!(status(&gates, "timing"), Status::Pass);
     }
@@ -400,6 +435,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         assert_eq!(status(&gates, "conformance"), Status::Fail);
     }
 
+    // Names of the next two tests still say "two"/"both": renaming a test drops it from the
+    // ratchet baseline, and the name is not worth an ADR. Determinism is the third wired gate.
     #[test]
     fn a_build_error_fails_both_wired_gates() {
         let run = TestRun { parsed: Parsed::default(), duration_s: 0.5, build_error: Some("error[E0432]".into()) };
@@ -408,6 +445,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         let (gates, _) = evaluate(&inputs);
         assert_eq!(status(&gates, "conformance"), Status::Fail);
         assert_eq!(status(&gates, "regressions"), Status::Fail);
+        assert_eq!(status(&gates, "determinism"), Status::Fail);
     }
 
     #[test]
@@ -435,5 +473,38 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         assert_eq!(a.total, 3 + 2);
         assert_eq!(a.previous_total, 2 + 1);
         assert_eq!(a.added, ["octocore::a::two", "tests/conformance/y.fixture"]);
+    }
+
+    const GOLDEN: &str = "\
+     Running tests/golden.rs (target/debug/deps/golden-0123456789abcdef)
+test chords_and_strums ... ok
+test effector ... ok
+test hello ... ok
+test mcc_and_transport ... ok
+test phrases ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+";
+
+    /// The output of a workspace run: the octocore and conformance binaries plus the golden one.
+    fn full_run() -> String {
+        format!("{OUT}\n{GOLDEN}")
+    }
+
+    #[test]
+    fn the_determinism_gate_passes_on_five_golden_tests_and_fails_otherwise() {
+        let out = full_run();
+        assert_eq!(status(&eval(&out, &baseline(), None), "determinism"), Status::Pass);
+
+        // No golden binary at all.
+        assert_eq!(status(&eval(OUT, &baseline(), None), "determinism"), Status::Fail);
+
+        // One golden test fails.
+        let one_bad = out.replace("test hello ... ok", "test hello ... FAILED").replace("5 passed; 0 failed", "4 passed; 1 failed");
+        assert_eq!(status(&eval(&one_bad, &baseline(), None), "determinism"), Status::Fail);
+
+        // Only four ran: a pattern was dropped without saying so.
+        let four = out.replace("test phrases ... ok\n", "").replace("5 passed", "4 passed");
+        assert_eq!(status(&eval(&four, &baseline(), None), "determinism"), Status::Fail);
     }
 }

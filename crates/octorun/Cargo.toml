@@ -1,0 +1,15 @@
+[package]
+name = "octorun"
+version = "0.1.0"
+edition = "2021"
+description = "Headless runner for the WENGE sequencer core: a pattern file in, a byte-reproducible event log and Standard MIDI File out. Owner: Conductor."
+
+[lib]
+name = "octorun"
+
+[[bin]]
+name = "octorun"
+path = "src/main.rs"
+
+[dependencies]
+octocore = { path = "../octocore" }

@@ -1,0 +1,27 @@
+# Step phrases: one step fires its own note plus the notes of phrase 1, each with its own
+# pitch, velocity, length and start offset.
+seed 3
+bpm 110
+phrase 0 note 0 pit +4
+phrase 0 note 0 enabled 1
+phrase 0 note 1 pit +7
+phrase 0 note 1 sta 6
+phrase 0 note 1 enabled 1
+phrase 0 note 2 pit +12
+phrase 0 note 2 vel -20
+phrase 0 note 2 sta 12
+phrase 0 note 2 len 3
+phrase 0 note 2 enabled 1
+track 0 mch 1
+track 0 step 0 active 1
+track 0 step 0 phrase 1
+track 0 step 6 active 1
+track 0 step 6 phrase 1
+track 0 step 6 pit -5
+track 0 step 11 active 1
+play
+render 6 s buffer=64
+stop
+render 1 s buffer=64
+expect event on
+expect balance

@@ -1,7 +1,7 @@
 # STATE
 
 Capped at 200 lines. Conductor prunes rather than appends when it grows past
-that. Last pruned: 2026-09-06 (rewritten after the repo split — this is now
+that. Last pruned: 2026-09-29 (Phase and SPEC-0001 sections rewritten; before that 2026-09-06, rewritten after the repo split — this is now
 `BenoQs-Sequencerv2`, not a branch/PR against the original).
 
 ## This repo's origin (read this before anything else)
@@ -26,14 +26,16 @@ commit. Referenced in `agents/CLAUDE.md`'s "nine things" list.
 
 ## Phase
 
-**Phase 0 (the ratchet) — scaffolding done, the ratchet itself not built.**
-No real gate exists yet except the umbrella structure and `octocore`'s own
-`verify-octocore`/`verify-conformance`. Per `docs/09-roadmap.md`, Phase 0
-exit criteria (`just verify` green under 4 min, `verify:determinism`
-passing, placeholder renderer discriminating gates, report rendering, eight
-worktrees through the merge queue) are **not met**. Per "Sequencing notes,"
-work with no rendering dependency (`octocore`, now `octoroom`'s pure-Rust
-half) is explicitly allowed to proceed in parallel during Phase 0.
+**Phase 0 (the ratchet) — the ratchet exists, most gates do not.**
+`cargo xtask verify` runs 14 gates. Three are real and required: `conformance`,
+`regressions` (the name-based ratchet over `harness/baseline.txt`) and `determinism`
+(golden event streams from `octorun`). The other 11 report `not_implemented`, which is
+never a pass. Per `docs/09-roadmap.md`, Phase 0 exit criteria (`just verify` green under
+4 min, placeholder renderer discriminating gates, report rendering, eight worktrees through
+the merge queue) are **not met**: no renderer exists, and the CI workflows have never run on
+GitHub. Work with no rendering dependency (`octocore`, `octorun`, `octoroom`'s pure-Rust half)
+proceeds in parallel, as the roadmap's sequencing notes allow. See `AGENTS.md` for the task
+lifecycle and `specs/SPEC-0001/` for the current plan.
 
 ## Reference material: manual present, photography still one insufficient plate
 
@@ -71,7 +73,8 @@ half) is explicitly allowed to proceed in parallel during Phase 0.
   AMT=-127. AMT is direction/distance, applied to the event's own track.
 - Brownian (dir 4) has a 400-seed statistical fixture for the 2/3 forward
   split.
-- 66 unit tests + 3 conformance fixtures, all green.
+- The tests and fixtures that must keep passing are listed in `harness/baseline.txt`
+  (210 tests and 11 fixtures on 2026-09-29). `cargo xtask verify` refuses a run that lost any.
 - **Still open, logged with citations:** generic VEL/PIT-style scaling
   table (p.53-55); attribute-map-factor step events (p.34-37); genuine
   same-tick step-event application; hyperstep LEN-scaling curve; MCC
@@ -83,7 +86,9 @@ half) is explicitly allowed to proceed in parallel during Phase 0.
 new/free/handle_command/render/is_running over an opaque `*mut Engine`,
 plus `octocore_track_{set,get}_i32` / `octocore_step_{set,get}_i32` (landed
 on `main` as `c68959a`). A pattern programmed entirely through FFI plays.
-Hand-maintained `octoffi.h` (no `cbindgen` here). Phrase / phrase-note
+Since SPEC-0001: `octocore_engine_diagnostics` (counters for refused, deferred and late
+events), `render` respects `out_capacity`, and `Event` has PitchBend and ChannelPressure.
+Hand-maintained `octoffi.h` (no `cbindgen` here); a test now parses it. Phrase / phrase-note
 programming is not on this surface yet — step GRV can store an index, but
 the 48-slot phrase pool is still Rust-only.
 
@@ -95,6 +100,33 @@ shape, and the Eyring RT60 prediction §3 names as `verify:acoustics`'s
 self-check (cross-checked against a hand-computed value). 10 tests. The
 optical bake, acoustic ray-traced bake, and grade derivation all need Metal
 compute and aren't attempted — see `crates/octoroom/README.md`.
+
+## SPEC-0001 (2026-09-29): make the sequencer run, make the factory enforce it
+
+Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
+`specs/SPEC-0001/README.md`; handoffs in `handoffs/`; red runs in `handoffs/evidence/`.
+
+- **Done, in review:** O1, O2 (Stop flushes notes, Play does not replay a backlog), O3 (event
+  times do not depend on buffer size), O5 (nothing dropped silently, counters), O7 (`octorun`
+  headless runner, golden hashes, WASM smoke test), O8 (real gates, ratchet, CI, CODEOWNERS),
+  O10 (ordering, velocity 0, bend and pressure), O9 (fixture DSL v3, invariants), plus
+  WENGE-0011 (queue headroom, overload warning) from the independent review.
+- **Not approved, not started:** O4 (integer tick clock and host lock, high tier, needs both
+  specs and a release plan) and O6 (command ring, needs Q6). Also the design-system and DSP
+  track (Q1, unanswered).
+- **Merge state on 2026-09-29:** PR #5 (factory layer) is on `main`. #6, #7 and #8 were merged
+  into their parent branches, not `main`, so `main` lacks them. #9 was retargeted to `main`
+  and carries PRs 2 to 5; #10 is stacked on it. Delete each branch on merge.
+- **Owner-only:** branch protection and required Code Owner review; the first GitHub run of
+  the CI workflows; the `jsonschema` dev-dependency (about 100 lockfile entries).
+- **Known limits:** the 256-events-per-call cap binds above about 4,096 samples on dense
+  patterns; the queue (1,024) overflows on the dense stress scene, by design and counted; the
+  lookahead costs up to 12 ticks of command latency and assumes a constant tempo; legato
+  (manual p.16) and live `midir` output are not done.
+
+**Next three steps:** (1) owner merges #9 then #10 and checks the first CI run; (2) Scribe
+works through `journal/metronome/requests/`; (3) owner answers Q1 and approves a release plan
+for O4, or the design-system track gets its own spec.
 
 ## Fan-out
 

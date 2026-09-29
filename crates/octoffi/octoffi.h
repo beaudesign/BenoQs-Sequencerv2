@@ -20,6 +20,40 @@ extern "C" {
 
 typedef struct OctoEngine OctoEngine; // opaque
 
+// --- Attribute numbers, shared by the setters below and by the SetTrack / SetStep commands ---
+typedef enum {
+    OCTO_TRACK_PITCH = 0,
+    OCTO_TRACK_VELOCITY,
+    OCTO_TRACK_LENGTH_FACTOR,
+    OCTO_TRACK_START_FACTOR,
+    OCTO_TRACK_DIRECTION_RAW,
+    OCTO_TRACK_ROTATION,
+    OCTO_TRACK_AMOUNT,
+    OCTO_TRACK_GROOVE,
+    OCTO_TRACK_MIDI_CHANNEL,
+    OCTO_TRACK_MUTED,
+    OCTO_TRACK_SOLOED,
+    OCTO_TRACK_PAUSED,
+    OCTO_TRACK_RECORD_ARMED,
+    OCTO_TRACK_IS_FEEDER,
+    OCTO_TRACK_IS_LISTENER,
+} OctoTrackAttr;
+
+typedef enum {
+    OCTO_STEP_ACTIVE = 0,
+    OCTO_STEP_SKIP,
+    OCTO_STEP_PITCH_OFFSET,
+    OCTO_STEP_VELOCITY_OFFSET,
+    OCTO_STEP_LENGTH_TICKS,
+    OCTO_STEP_LENGTH_MULTIPLIER,
+    OCTO_STEP_START_OFFSET,
+    OCTO_STEP_AMOUNT,
+    OCTO_STEP_STRUM,
+    OCTO_STEP_HYPERSTEP,
+    OCTO_STEP_PHRASE,
+    OCTO_STEP_PHRASE_POS,
+} OctoStepAttr;
+
 // --- Command, mirrors octocore::types::Command (#[repr(C)]) ---
 // A Rust `#[repr(C)]` enum with data is a C-ABI-compatible tagged union: a
 // discriminant tag followed by the active variant's payload. The tag order
@@ -36,6 +70,8 @@ typedef enum {
     OCTO_CMD_SET_MODE,
     OCTO_CMD_HOST_TRANSPORT,
     OCTO_CMD_LOAD_STATE,
+    OCTO_CMD_SET_TRACK, // added with SPEC-0001 O6; earlier tags unchanged. Sizeof(OctoCommand) stays 24.
+    OCTO_CMD_SET_STEP,  // added with SPEC-0001 O6
 } OctoCommandTag;
 
 typedef struct {
@@ -48,6 +84,8 @@ typedef struct {
         struct { uint8_t mode; } set_mode; // 0=Grid 1=Page 2=Track 3=Step
         struct { uint64_t ppqn_pos; float bpm; bool playing; } host_transport;
         struct { uint64_t handle; } load_state;
+        struct { uint8_t track; OctoTrackAttr attr; int32_t value; } set_track;                // active page; track < 10
+        struct { uint8_t track; uint8_t step; OctoStepAttr attr; int32_t value; } set_step;   // active page; track < 10, step < 16
     };
 } OctoCommand;
 
@@ -102,39 +140,6 @@ int32_t octocore_engine_diagnostics(const OctoEngine *engine, OctoDiagnostics *o
 // Logical (track, step) addressing, not a physical panel ControlId — see
 // lib.rs's module comment on why this doesn't need panel.truth.json.
 // track is always < 10, step < 16 (octocore::domain::TRACK_COUNT/STEP_COUNT).
-
-typedef enum {
-    OCTO_TRACK_PITCH = 0,
-    OCTO_TRACK_VELOCITY,
-    OCTO_TRACK_LENGTH_FACTOR,
-    OCTO_TRACK_START_FACTOR,
-    OCTO_TRACK_DIRECTION_RAW,
-    OCTO_TRACK_ROTATION,
-    OCTO_TRACK_AMOUNT,
-    OCTO_TRACK_GROOVE,
-    OCTO_TRACK_MIDI_CHANNEL,
-    OCTO_TRACK_MUTED,
-    OCTO_TRACK_SOLOED,
-    OCTO_TRACK_PAUSED,
-    OCTO_TRACK_RECORD_ARMED,
-    OCTO_TRACK_IS_FEEDER,
-    OCTO_TRACK_IS_LISTENER,
-} OctoTrackAttr;
-
-typedef enum {
-    OCTO_STEP_ACTIVE = 0,
-    OCTO_STEP_SKIP,
-    OCTO_STEP_PITCH_OFFSET,
-    OCTO_STEP_VELOCITY_OFFSET,
-    OCTO_STEP_LENGTH_TICKS,
-    OCTO_STEP_LENGTH_MULTIPLIER,
-    OCTO_STEP_START_OFFSET,
-    OCTO_STEP_AMOUNT,
-    OCTO_STEP_STRUM,
-    OCTO_STEP_HYPERSTEP,
-    OCTO_STEP_PHRASE,
-    OCTO_STEP_PHRASE_POS,
-} OctoStepAttr;
 
 // All setters return false (a no-op) for an out-of-range track/step index
 // rather than crashing. All getters return 0 in that case too, which is

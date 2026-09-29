@@ -486,6 +486,12 @@ impl Engine {
             }
             Command::SetMode { mode } => self.grid.mode = mode,
             Command::HostTransport { playing, .. } => self.set_running(playing),
+            Command::SetTrack { track, attr, value } => {
+                self.grid.set_track_attr(track, attr, value);
+            }
+            Command::SetStep { track, step, attr, value } => {
+                self.grid.set_step_attr(track, step, attr, value);
+            }
             Command::ButtonDown { .. } | Command::ButtonUp { .. } | Command::EncoderTurn { .. } | Command::LoadState { .. } => {}
         }
     }

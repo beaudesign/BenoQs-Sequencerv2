@@ -3,6 +3,7 @@
 //! manual at `reference/manual/`. Ambiguities and deliberate deferrals live in
 //! `tests/conformance/AMBIGUITIES.md`.
 
+pub mod attrs;
 pub mod domain;
 pub mod engine;
 pub mod fixture;
@@ -11,6 +12,7 @@ pub mod rng;
 pub mod scale;
 pub mod tables;
 pub mod types;
+pub mod wire;
 
 pub use domain::Grid;
 pub use engine::{Diagnostics, Engine, EventBuffer, RenderContext, QUEUE_CAP};

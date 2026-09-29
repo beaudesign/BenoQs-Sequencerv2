@@ -11,8 +11,95 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ControlId(pub u32);
 
+/// A per-track attribute the logical commands and the FFI setters can write. The order is
+/// the C enum's order in `octoffi.h` (`OCTO_TRACK_*`), so the numbers must not change.
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrackAttr {
+    Pitch,
+    Velocity,
+    LengthFactor,
+    StartFactor,
+    DirectionRaw,
+    Rotation,
+    Amount,
+    Groove,
+    MidiChannel,
+    Muted,
+    Soloed,
+    Paused,
+    RecordArmed,
+    IsFeeder,
+    IsListener,
+}
+
+impl TrackAttr {
+    pub const ALL: [TrackAttr; 15] = [
+        TrackAttr::Pitch,
+        TrackAttr::Velocity,
+        TrackAttr::LengthFactor,
+        TrackAttr::StartFactor,
+        TrackAttr::DirectionRaw,
+        TrackAttr::Rotation,
+        TrackAttr::Amount,
+        TrackAttr::Groove,
+        TrackAttr::MidiChannel,
+        TrackAttr::Muted,
+        TrackAttr::Soloed,
+        TrackAttr::Paused,
+        TrackAttr::RecordArmed,
+        TrackAttr::IsFeeder,
+        TrackAttr::IsListener,
+    ];
+
+    pub fn from_u32(i: u32) -> Option<TrackAttr> {
+        TrackAttr::ALL.get(i as usize).copied()
+    }
+}
+
+/// A per-step attribute. The order is the C enum's order (`OCTO_STEP_*`).
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StepAttr {
+    Active,
+    Skip,
+    PitchOffset,
+    VelocityOffset,
+    LengthTicks,
+    LengthMultiplier,
+    StartOffset,
+    Amount,
+    Strum,
+    Hyperstep,
+    /// 0 = no phrase (`None`); 1..=48 indexes `Grid::phrases` (1-based).
+    Phrase,
+    /// Phrase time-compression; 8 is neutral (CE v5.30 p.17). Stored only.
+    PhrasePos,
+}
+
+impl StepAttr {
+    pub const ALL: [StepAttr; 12] = [
+        StepAttr::Active,
+        StepAttr::Skip,
+        StepAttr::PitchOffset,
+        StepAttr::VelocityOffset,
+        StepAttr::LengthTicks,
+        StepAttr::LengthMultiplier,
+        StepAttr::StartOffset,
+        StepAttr::Amount,
+        StepAttr::Strum,
+        StepAttr::Hyperstep,
+        StepAttr::Phrase,
+        StepAttr::PhrasePos,
+    ];
+
+    pub fn from_u32(i: u32) -> Option<StepAttr> {
+        StepAttr::ALL.get(i as usize).copied()
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Command {
     Play,
     Stop,
@@ -25,6 +112,12 @@ pub enum Command {
     SetMode { mode: crate::domain::Mode },
     HostTransport { ppqn_pos: u64, bpm: f32, playing: bool },
     LoadState { handle: u64 },
+    /// Writes one attribute of one track of the active page. A `track` of 10 or more does
+    /// nothing. Added after `LoadState` (SPEC-0001 O6), so every tag above keeps its number.
+    SetTrack { track: u8, attr: TrackAttr, value: i32 },
+    /// Writes one attribute of one step. A `track` of 10 or more, or a `step` of 16 or
+    /// more, does nothing.
+    SetStep { track: u8, step: u8, attr: StepAttr, value: i32 },
 }
 
 #[repr(C)]

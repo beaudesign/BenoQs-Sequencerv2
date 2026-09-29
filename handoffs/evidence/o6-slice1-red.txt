@@ -1,0 +1,18 @@
+# O6 slice 1 (wire format, SetTrack/SetStep, attribute table) - RED, against stubs
+# stubs: wire.rs and attrs.rs bodies are unimplemented!(); types and tests are final
+# command: cargo test -p octocore --no-fail-fast --test attrs --lib -- wire attrs
+     Running unittests src/lib.rs (target/debug/deps/octocore-f9a7c8ae71b43653)
+running 4 tests
+test wire::tests::w1_round_trip_is_exact_for_every_variant_at_boundary_values ... FAILED
+test wire::tests::w2_words_no_command_could_produce_decode_to_none_and_never_panic ... FAILED
+test wire::tests::w3_every_variant_is_covered_by_the_round_trip_list ... ok
+test wire::tests::w4_command_size_is_the_by_value_abi ... ok
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 104 filtered out; finished in 0.08s
+     Running tests/attrs.rs (target/debug/deps/attrs-34f36c761b498191)
+running 4 tests
+test c1_commands_and_setters_agree_for_every_attribute_and_value ... FAILED
+test c1_step_attribute_clamping_matches_the_ffi_table_from_9e4860b ... FAILED
+test c1_track_attribute_clamping_matches_the_ffi_table_from_9e4860b ... FAILED
+test c2_out_of_range_track_or_step_changes_nothing_and_does_not_panic ... FAILED
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+# note: W3 (compile-time variant coverage) and W4 (size pin) pass on the stub by design: they pin properties of the types, which are final in this slice.

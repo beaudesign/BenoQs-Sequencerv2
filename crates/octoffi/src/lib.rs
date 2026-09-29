@@ -130,82 +130,23 @@ pub unsafe extern "C" fn octocore_engine_is_running(engine: *const Engine) -> bo
 // without precision loss, and keeps the C surface to one setter/one getter
 // per (Track|Step) rather than one function per field.
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OctoTrackAttr {
-    Pitch,
-    Velocity,
-    LengthFactor,
-    StartFactor,
-    DirectionRaw,
-    Rotation,
-    Amount,
-    Groove,
-    MidiChannel,
-    Muted,
-    Soloed,
-    Paused,
-    RecordArmed,
-    IsFeeder,
-    IsListener,
-}
+/// The attribute enums live in `octocore` (`TrackAttr`, `StepAttr`), where the logical commands
+/// `SetTrack` and `SetStep` use them too. These names are the C header's.
+pub type OctoTrackAttr = octocore::types::TrackAttr;
+pub type OctoStepAttr = octocore::types::StepAttr;
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OctoStepAttr {
-    Active,
-    Skip,
-    PitchOffset,
-    VelocityOffset,
-    LengthTicks,
-    LengthMultiplier,
-    StartOffset,
-    Amount,
-    Strum,
-    Hyperstep,
-    /// 0 = no phrase (`None`); 1..=48 indexes `Grid::phrases` (1-based).
-    Phrase,
-    /// Phrase time-compression; 8 is neutral (CE v5.30 p.17). Stored only.
-    PhrasePos,
-}
-
-/// Returns `false` (and does nothing / returns 0) for an out-of-range
-/// `track`/`step` index rather than panicking — the same "caller mistake is
-/// a no-op, not a crash" contract as the rest of this boundary.
-fn track_in_range(track: u8) -> bool {
-    (track as usize) < octocore::domain::TRACK_COUNT
-}
-fn step_in_range(step: u8) -> bool {
-    (step as usize) < octocore::domain::STEP_COUNT
-}
+// Setters return `false` (and do nothing), and getters return 0, for an out-of-range
+// `track` or `step`: the same "caller mistake is a no-op, not a crash" contract as the rest
+// of this boundary. The clamping tables live in `octocore::attrs`.
 
 /// # Safety
 /// `engine` must be a live pointer from `octocore_engine_new`.
 #[no_mangle]
 pub unsafe extern "C" fn octocore_track_set_i32(engine: *mut Engine, track: u8, attr: OctoTrackAttr, value: i32) -> bool {
-    let Some(engine) = engine.as_mut() else { return false };
-    if !track_in_range(track) {
-        return false;
+    match engine.as_mut() {
+        Some(engine) => engine.grid.set_track_attr(track, attr, value),
+        None => false,
     }
-    let t = &mut engine.grid.active_page_mut().tracks[track as usize];
-    match attr {
-        OctoTrackAttr::Pitch => t.pitch = value.clamp(0, 127) as u8,
-        OctoTrackAttr::Velocity => t.velocity = value.clamp(0, 127) as u8,
-        OctoTrackAttr::LengthFactor => t.length_factor = value.clamp(0, 16) as u8,
-        OctoTrackAttr::StartFactor => t.start_factor = value.clamp(0, 16) as u8,
-        OctoTrackAttr::DirectionRaw => t.direction_raw = value.clamp(1, 16) as u8,
-        OctoTrackAttr::Rotation => t.rotation = value.clamp(0, 255) as u8,
-        OctoTrackAttr::Amount => t.amount = value.clamp(-128, 127) as i8,
-        OctoTrackAttr::Groove => t.groove = value.clamp(0, 16) as u8,
-        OctoTrackAttr::MidiChannel => t.midi_channel = value.clamp(1, 32) as u8,
-        OctoTrackAttr::Muted => t.muted = value != 0,
-        OctoTrackAttr::Soloed => t.soloed = value != 0,
-        OctoTrackAttr::Paused => t.paused = value != 0,
-        OctoTrackAttr::RecordArmed => t.record_armed = value != 0,
-        OctoTrackAttr::IsFeeder => t.is_feeder = value != 0,
-        OctoTrackAttr::IsListener => t.is_listener = value != 0,
-    }
-    true
 }
 
 /// # Safety
@@ -215,27 +156,9 @@ pub unsafe extern "C" fn octocore_track_set_i32(engine: *mut Engine, track: u8, 
 /// (it's always `< 10`).
 #[no_mangle]
 pub unsafe extern "C" fn octocore_track_get_i32(engine: *const Engine, track: u8, attr: OctoTrackAttr) -> i32 {
-    let Some(engine) = engine.as_ref() else { return 0 };
-    if !track_in_range(track) {
-        return 0;
-    }
-    let t = &engine.grid.active_page().tracks[track as usize];
-    match attr {
-        OctoTrackAttr::Pitch => t.pitch as i32,
-        OctoTrackAttr::Velocity => t.velocity as i32,
-        OctoTrackAttr::LengthFactor => t.length_factor as i32,
-        OctoTrackAttr::StartFactor => t.start_factor as i32,
-        OctoTrackAttr::DirectionRaw => t.direction_raw as i32,
-        OctoTrackAttr::Rotation => t.rotation as i32,
-        OctoTrackAttr::Amount => t.amount as i32,
-        OctoTrackAttr::Groove => t.groove as i32,
-        OctoTrackAttr::MidiChannel => t.midi_channel as i32,
-        OctoTrackAttr::Muted => t.muted as i32,
-        OctoTrackAttr::Soloed => t.soloed as i32,
-        OctoTrackAttr::Paused => t.paused as i32,
-        OctoTrackAttr::RecordArmed => t.record_armed as i32,
-        OctoTrackAttr::IsFeeder => t.is_feeder as i32,
-        OctoTrackAttr::IsListener => t.is_listener as i32,
+    match engine.as_ref() {
+        Some(engine) => engine.grid.track_attr(track, attr),
+        None => 0,
     }
 }
 
@@ -243,28 +166,10 @@ pub unsafe extern "C" fn octocore_track_get_i32(engine: *const Engine, track: u8
 /// `engine` must be a live pointer from `octocore_engine_new`.
 #[no_mangle]
 pub unsafe extern "C" fn octocore_step_set_i32(engine: *mut Engine, track: u8, step: u8, attr: OctoStepAttr, value: i32) -> bool {
-    let Some(engine) = engine.as_mut() else { return false };
-    if !track_in_range(track) || !step_in_range(step) {
-        return false;
+    match engine.as_mut() {
+        Some(engine) => engine.grid.set_step_attr(track, step, attr, value),
+        None => false,
     }
-    let s = &mut engine.grid.active_page_mut().tracks[track as usize].steps[step as usize];
-    match attr {
-        OctoStepAttr::Active => s.active = value != 0,
-        OctoStepAttr::Skip => s.skip = value != 0,
-        OctoStepAttr::PitchOffset => s.pitch_offset = value.clamp(-128, 127) as i8,
-        OctoStepAttr::VelocityOffset => s.velocity_offset = value.clamp(-128, 127) as i8,
-        OctoStepAttr::LengthTicks => s.length_ticks = value.clamp(1, 192) as u8,
-        OctoStepAttr::LengthMultiplier => s.length_multiplier = value.clamp(1, 8) as u8,
-        OctoStepAttr::StartOffset => s.start_offset = value.clamp(-5, 5) as i8,
-        OctoStepAttr::Amount => s.amount = value.clamp(-128, 127) as i8,
-        OctoStepAttr::Strum => s.strum = value.clamp(-9, 9) as i8,
-        OctoStepAttr::Hyperstep => s.hyperstep = value != 0,
-        OctoStepAttr::Phrase => {
-            s.phrase = if value <= 0 { None } else { Some(value.clamp(1, 48) as u8) };
-        }
-        OctoStepAttr::PhrasePos => s.phrase_pos = value.clamp(1, 16) as u8,
-    }
-    true
 }
 
 /// # Safety
@@ -272,24 +177,9 @@ pub unsafe extern "C" fn octocore_step_set_i32(engine: *mut Engine, track: u8, s
 /// out-of-range convention as `octocore_track_get_i32`.
 #[no_mangle]
 pub unsafe extern "C" fn octocore_step_get_i32(engine: *const Engine, track: u8, step: u8, attr: OctoStepAttr) -> i32 {
-    let Some(engine) = engine.as_ref() else { return 0 };
-    if !track_in_range(track) || !step_in_range(step) {
-        return 0;
-    }
-    let s = &engine.grid.active_page().tracks[track as usize].steps[step as usize];
-    match attr {
-        OctoStepAttr::Active => s.active as i32,
-        OctoStepAttr::Skip => s.skip as i32,
-        OctoStepAttr::PitchOffset => s.pitch_offset as i32,
-        OctoStepAttr::VelocityOffset => s.velocity_offset as i32,
-        OctoStepAttr::LengthTicks => s.length_ticks as i32,
-        OctoStepAttr::LengthMultiplier => s.length_multiplier as i32,
-        OctoStepAttr::StartOffset => s.start_offset as i32,
-        OctoStepAttr::Amount => s.amount as i32,
-        OctoStepAttr::Strum => s.strum as i32,
-        OctoStepAttr::Hyperstep => s.hyperstep as i32,
-        OctoStepAttr::Phrase => s.phrase.map(|p| p as i32).unwrap_or(0),
-        OctoStepAttr::PhrasePos => s.phrase_pos as i32,
+    match engine.as_ref() {
+        Some(engine) => engine.grid.step_attr(track, step, attr),
+        None => 0,
     }
 }
 

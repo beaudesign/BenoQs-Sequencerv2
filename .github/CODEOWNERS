@@ -1,0 +1,58 @@
+# CODEOWNERS for WENGE. Mirrors the ownership map in docs/08-agent-operating-model.md
+# section 3, plus the paths added by ADR-0004.
+#
+# GitHub can only enforce named users or teams, not the zone roles, so every path lists
+# the repo owner. The working role is in the comment above each group. When roles get
+# their own accounts or teams, replace the owner here and nothing else changes.
+#
+# Last match wins, so the specific paths come after the general ones.
+# This file only takes effect once branch protection has "Require review from Code
+# Owners" switched on. Only the repo owner can do that, in GitHub settings.
+
+# Default: everything not listed below.
+*                                @beaudesign
+
+# Conductor: contracts, decisions, build verbs, the C ABI, the lifecycle layer.
+/contracts/**                    @beaudesign
+/adr/**                          @beaudesign
+/justfile                        @beaudesign
+/crates/octoffi/**               @beaudesign
+/AGENTS.md                       @beaudesign
+/specs/**                        @beaudesign
+/handoffs/**                     @beaudesign
+/.github/**                      @beaudesign
+/journal/STATE.md                @beaudesign
+/crates/octorun/**               @beaudesign
+
+# Referee: the harness, the ratchet, thresholds, the cargo xtask crate.
+/harness/**                      @beaudesign
+/tests/golden/**                 @beaudesign
+/xtask/**                        @beaudesign
+
+# Curator: lint and tokens.
+/harness/lint/**                 @beaudesign
+
+# Panelwright: reference material and geometry measurement.
+/reference/**                    @beaudesign
+/harness/measure/geometry/**     @beaudesign
+
+# Metronome: the sequencer core, hosts and conformance fixtures.
+/crates/octocore/**              @beaudesign
+/hosts/**                        @beaudesign
+/tests/conformance/**            @beaudesign
+
+# Sceneshaper: rooms.
+/crates/octoroom/**              @beaudesign
+
+# Forge: renderer.
+/apps/OctoPanel/**               @beaudesign
+
+# Loom: shell.
+/apps/OctoShell/**               @beaudesign
+
+# Scribe: documentation.
+/docs/**                         @beaudesign
+/README.md                       @beaudesign
+
+# Journals belong to the role that wrote them.
+/journal/**                      @beaudesign

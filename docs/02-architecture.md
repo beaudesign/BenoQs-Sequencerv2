@@ -211,7 +211,7 @@ golden tests and a non-deterministic renderer cannot have pixel tests.
 
 Requirements:
 
-- All randomness goes through `Core::rng`, a seeded PCG64. `Math.random()` equivalents
+- All randomness goes through `Core::rng`, a seeded splitmix64 (`crates/octocore/src/rng.rs`). `Math.random()` equivalents
   are banned; `verify:arch` greps for them.
 - Random draws happen in a fixed order per tick, defined by track index ascending.
   The Octopus itself processes tracks top-down (track 9 first, track 0 last, per the
@@ -259,7 +259,7 @@ just run              # standalone
 just test             # unit + conformance, no GPU
 just capture <scene>  # deterministic offline frame capture
 just verify           # every gate; this is what CI runs
-just verify:geometry  # …and each gate individually
+just verify-geometry  # …and each gate individually
 just report           # open the HTML verification report
 just truth            # re-run geometry extraction (Panelwright only)
 just journal <role>   # open today's journal entry

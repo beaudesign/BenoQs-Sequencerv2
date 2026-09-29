@@ -84,7 +84,7 @@ you are improving.
 
 ```
 just verify            # all gates, under 4 minutes. Run before every push.
-just verify:<zone>     # your zone only, under 1 minute. Run before every commit.
+just verify-<zone>     # your zone only, under 1 minute. Run before every commit.
 just capture <scene>   # deterministic offline frames
 just report            # the shared world model, rendered
 just manual <topic>    # grep the Octopus reference manual, returns pages
@@ -98,6 +98,7 @@ just journal <role>    # open today's entry
 | Need | Go to |
 |---|---|
 | The thesis and the non-negotiables | `SPEC.md` |
+| Task lifecycle, risk tiers, handoffs, review checklist | `AGENTS.md` |
 | Why v1 looked generated, and the design plan | `docs/00-north-star.md` |
 | Panel geometry, the truth file, measurement | `docs/01-panel-truth.md` |
 | Threading, modules, host strategy | `docs/02-architecture.md` |

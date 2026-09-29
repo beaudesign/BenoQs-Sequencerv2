@@ -21,7 +21,7 @@ work composes.
 2. **One zone, one owner.** Every path in the repo maps to exactly one role. Nobody
    edits outside their zone without a cross-zone request.
 3. **One worktree per agent.** Physical isolation, not just social convention.
-4. **Verification is local.** Every zone has `just verify:<zone>` that runs in under
+4. **Verification is local.** Every zone has `just verify-<zone>` that runs in under
    a minute, so an agent learns whether it is right without waiting for anyone.
 5. **Communication is artefacts.** Journals and the report, not conversation. An
    agent that needs to ask another agent a question has found a missing contract.
@@ -30,7 +30,7 @@ work composes.
 
 ## 2. Roles
 
-Eight. Each has a brief in `agents/roles/`. A role is a *hat*, not a person: one
+Nine. Each has a brief in `agents/ROLES.md`. A role is a *hat*, not a person: one
 model instance may wear several hats sequentially, but never two at once, because the
 value of the role system is that it constrains what you are allowed to touch.
 
@@ -45,6 +45,10 @@ value of the role system is that it constrains what you are allowed to touch.
 | **Curator** | `contracts/design.tokens.json`, rubric, anchors, `harness/lint/` | taste, made explicit |
 | **Referee** | `harness/` (except measure/geometry), CI, thresholds | the ratchet |
 | **Scribe** | `docs/`, `README`, `CHANGELOG` | the record |
+
+Roles have a second axis, the stage a task is in (coordinator, spec, implementation,
+review, verification), plus risk tiers and handoff records. Those live in the root
+`AGENTS.md` (ADR-0004). The zone roles above are unchanged.
 
 Two rules about roles:
 

@@ -100,8 +100,23 @@ fn parse_opts(args: &[String]) -> Result<Opts, String> {
     Ok(o)
 }
 
+/// The repository the command is run in. The working directory decides, so a git
+/// worktree, or a shared `CARGO_TARGET_DIR`, verifies the tree it is standing in and not
+/// the one this binary was compiled from. Falls back to the compile-time location only
+/// when the working directory is not inside a git checkout.
 fn root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("xtask lives one level below the root").to_path_buf()
+    let from_cwd = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .stderr(Stdio::null())
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| PathBuf::from(s.trim()))
+        .filter(|p| p.join("harness/required-gates.txt").is_file());
+    from_cwd.unwrap_or_else(|| {
+        Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("xtask lives one level below the root").to_path_buf()
+    })
 }
 
 // ---------------------------------------------------------------- environment
@@ -323,7 +338,7 @@ fn gate(name: &str, o: &Opts) -> Result<ExitCode, String> {
         let names: Vec<&str> = gates::GATES.iter().map(|g| g.name).collect();
         return Err(format!("unknown gate '{name}'. Gates: {}", names.join(", ")));
     };
-    if !matches!(name, "conformance" | "regressions") {
+    if !gates::is_wired(name) {
         println!("{name}: not yet implemented, owned by {}, see docs/07-verification.md", def.owner);
         return Ok(ExitCode::from(EXIT_NOT_IMPLEMENTED));
     }
@@ -441,5 +456,21 @@ mod tests {
     fn required_gates_file_only_names_known_gates() {
         let req = load_required(&root()).unwrap();
         assert!(req.contains("conformance") && req.contains("regressions"));
+    }
+
+    #[test]
+    fn every_required_gate_can_be_run_on_its_own() {
+        // `verify` requires these to pass, so `xtask gate <name>` must be able to run them
+        // and not answer "not implemented" (exit 42) while `verify` says the gate is real.
+        for name in load_required(&root()).unwrap() {
+            assert!(gates::is_wired(&name), "{name} is required by verify but `xtask gate {name}` is not wired");
+        }
+    }
+
+    #[test]
+    fn the_root_is_the_checkout_the_command_runs_in() {
+        let r = root();
+        assert!(r.join("harness/required-gates.txt").is_file());
+        assert!(r.join("Cargo.toml").is_file());
     }
 }

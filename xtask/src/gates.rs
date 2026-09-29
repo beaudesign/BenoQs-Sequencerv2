@@ -33,6 +33,15 @@ pub const GATES: &[GateDef] = &[
     GateDef { name: "persistence", owner: "conductor" },
 ];
 
+/// The gates that `evaluate` computes. Every other gate reports `not_implemented`.
+/// `xtask gate <name>` uses this list, so it cannot disagree with `xtask verify`. A test
+/// checks that this list and the match in `evaluate` say the same thing.
+pub const WIRED: &[&str] = &["conformance", "regressions", "determinism"];
+
+pub fn is_wired(name: &str) -> bool {
+    WIRED.contains(&name)
+}
+
 pub fn is_known(name: &str) -> bool {
     GATES.iter().any(|g| g.name == name)
 }
@@ -367,6 +376,22 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
     fn status(gates: &[Gate], name: &str) -> Status {
         gates.iter().find(|g| g.name == name).unwrap().status
+    }
+
+    #[test]
+    fn the_wired_list_matches_what_evaluate_computes() {
+        let gates = eval(&full_run(), &baseline(), None);
+        for g in &gates {
+            assert_eq!(
+                g.status != Status::NotImplemented,
+                is_wired(g.name),
+                "{}: WIRED and evaluate() disagree",
+                g.name
+            );
+        }
+        for name in WIRED {
+            assert!(is_known(name), "{name} is in WIRED but not in GATES");
+        }
     }
 
     #[test]

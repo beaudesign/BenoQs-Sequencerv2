@@ -197,9 +197,9 @@ p99.9, and repeat on real hardware before quoting any worst case.
 ## Deliberately not proposed
 
 Micro-optimising the tick loop. The per-tick copy of a 6.7 KB `Page` and the linear scan
-of the event queue look wasteful, but the measured worst case is 24% of budget and the
-median 1%. Revisit only if the stress benchmark's p99.9 crosses 50% of budget on target
-hardware.
+of the event queue look wasteful, but the measured p99.9 is 4.3% to 8.0% of budget and
+the median about 1% (the 24% maximum was one noisy run, see the correction above). Revisit
+only if the stress benchmark's p99.9 crosses 50% of budget on target hardware.
 
 ## Known limits of this audit
 

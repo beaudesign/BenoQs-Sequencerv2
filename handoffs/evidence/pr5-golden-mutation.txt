@@ -1,0 +1,4 @@
+test hello ... FAILED
+hello: the engine now plays this pattern differently.
+If that is intended, run `just golden`, review the diff of the log with `just run examples/hello`, and explain it in the commit.
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.08s

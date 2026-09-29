@@ -11,6 +11,14 @@ use octocore::Event;
 
 pub const DIVISION: u16 = 960;
 
+/// The most a Set Tempo meta event can hold: 3 bytes of microseconds per quarter note.
+const MAX_TEMPO_META: u32 = 0x00FF_FFFF;
+
+fn micros_per_quarter(bpm: f32) -> u32 {
+    // Saturating float to int cast: a tiny tempo gives a huge value, never a wrapped one.
+    (60_000_000.0f64 / bpm as f64).round() as u32
+}
+
 fn varlen(mut v: u32, out: &mut Vec<u8>) {
     let mut bytes = [0u8; 5];
     let mut n = 0;
@@ -71,6 +79,11 @@ pub fn render(played: &Played) -> Result<Vec<u8>, String> {
         if !(bpm.is_finite() && bpm > 0.0) {
             return Err(format!("bad tempo {bpm}"));
         }
+        if micros_per_quarter(bpm) > MAX_TEMPO_META {
+            return Err(format!(
+                "tempo {bpm} BPM is too slow for a Standard MIDI File: a tempo event holds 3 bytes, so the slowest is 3.58 BPM"
+            ));
+        }
     }
 
     // Track 0: name, then a tempo event for each entry of the tempo map.
@@ -81,7 +94,7 @@ pub fn render(played: &Played) -> Result<Vec<u8>, String> {
         let tick = ticks_at(&played.tempo, rate, at).round() as u64;
         varlen((tick - last_tick) as u32, &mut conductor);
         last_tick = tick;
-        let micros = (60_000_000.0f64 / bpm as f64).round() as u32;
+        let micros = micros_per_quarter(bpm);
         conductor.extend_from_slice(&[0xFF, 0x51, 0x03, (micros >> 16) as u8, (micros >> 8) as u8, micros as u8]);
     }
 
@@ -216,6 +229,22 @@ mod tests {
     fn a_stream_with_no_events_is_a_valid_file_with_only_the_tempo_track() {
         let f = render(&played(vec![], vec![(0, 100.0)])).unwrap();
         assert_eq!(u16::from_be_bytes([f[10], f[11]]), 1);
+    }
+
+    #[test]
+    fn a_tempo_too_slow_for_a_three_byte_tempo_meta_is_refused_not_truncated() {
+        // A Set Tempo meta holds microseconds per quarter note in 3 bytes: at most 16,777,215,
+        // which is 3.5763 BPM. The engine follows tempos down to 1 BPM. Truncating 3 BPM
+        // (20,000,000 us) wrote 3,222,784 us, a file that plays at about 18.6 BPM.
+        for bpm in [1.0f32, 3.0, 3.5] {
+            let e = render(&played(vec![], vec![(0, bpm)])).unwrap_err();
+            assert!(e.contains("3.58") && e.contains("tempo"), "bpm {bpm}: {e}");
+        }
+        // The slowest tempo that fits still round-trips exactly.
+        let f = render(&played(vec![], vec![(0, 3.58)])).unwrap();
+        let at = f.windows(3).position(|w| w == [0xFF, 0x51, 0x03]).unwrap() + 3;
+        let micros = u32::from_be_bytes([0, f[at], f[at + 1], f[at + 2]]);
+        assert_eq!(micros, (60_000_000.0f64 / 3.58f32 as f64).round() as u32);
     }
 
     #[test]

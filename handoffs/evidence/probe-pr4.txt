@@ -1,0 +1,25 @@
+A hung-notes: before stop ons=6 offs=0 outstanding=6; after stop (2000 buffers) noteoffs=6 cc=1
+B stopped-idle events emitted = 0
+B first play buffer: events=0 (expected ~0-1 in one 512-sample buffer), render took 6.78µs
+C legato 20s: note-ons=640 on-while-on=0 off-while-off=0 on-then-off-same-sample=0
+   t=2875 NoteOn { port: 1, ch: 1, note: 69, vel: 100, at_sample: 59 }
+   t=4375 NoteOff { port: 1, ch: 1, note: 69, at_sample: 23 }
+   t=4375 NoteOn { port: 1, ch: 1, note: 69, vel: 100, at_sample: 23 }
+   t=5875 NoteOff { port: 1, ch: 1, note: 69, at_sample: 243 }
+   t=5875 NoteOn { port: 1, ch: 1, note: 69, vel: 100, at_sample: 243 }
+   t=7375 NoteOff { port: 1, ch: 1, note: 69, at_sample: 207 }
+   t=7375 NoteOn { port: 1, ch: 1, note: 69, vel: 100, at_sample: 207 }
+   t=8875 NoteOff { port: 1, ch: 1, note: 69, at_sample: 171 }
+D buffer=32: events=3743 vs ref(512)=3743 mismatched=0 max_time_delta_on_same_event=0
+D buffer=64: events=3743 vs ref(512)=3743 mismatched=0 max_time_delta_on_same_event=0
+D buffer=128: events=3743 vs ref(512)=3743 mismatched=0 max_time_delta_on_same_event=0
+D buffer=512: events=3743 vs ref(512)=3743 mismatched=0 max_time_delta_on_same_event=0
+D buffer=1024: events=3743 vs ref(512)=3743 mismatched=0 max_time_delta_on_same_event=0
+D2 (STA=0) buffer=32: events=3743 mismatched vs 512 = 0
+D2 (STA=0) buffer=64: events=3743 mismatched vs 512 = 0
+D2 (STA=0) buffer=128: events=3743 mismatched vs 512 = 0
+D2 (STA=0) buffer=512: events=3743 mismatched vs 512 = 0
+D2 (STA=0) buffer=1024: events=3743 mismatched vs 512 = 0
+E stress 60s audio, buf=64, 240bpm: p50=2824ns p99=9588ns p99.9=37434ns max=599732ns; events/60s=667800; buffers hitting 256-event cap=0
+  budget per 64-sample buffer at 48k = 1333333.3333333333 ns
+sizeof Page = 6727 B, Track = 473 B, Step = 27 B, Engine = 27072 B

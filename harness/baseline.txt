@@ -156,6 +156,7 @@ test octorun::ndjson::tests::writes_a_header_then_one_line_per_event_in_a_fixed_
 test octorun::sha256::tests::a_million_a_is_right_and_every_padding_length_is_handled
 test octorun::sha256::tests::matches_the_published_test_vectors
 test octorun::smf::tests::a_stream_with_no_events_is_a_valid_file_with_only_the_tempo_track
+test octorun::smf::tests::a_tempo_too_slow_for_a_three_byte_tempo_meta_is_refused_not_truncated
 test octorun::smf::tests::header_tempo_and_one_note_are_laid_out_as_the_spec_says
 test octorun::smf::tests::one_beat_at_120_bpm_is_960_ticks_and_a_tempo_change_bends_the_map
 test octorun::smf::tests::port_2_gets_its_own_track_with_port_prefix_1_and_bend_and_pressure_are_encoded
@@ -189,6 +190,7 @@ test xtask::gates::tests::deleting_a_test_fails_regressions
 test xtask::gates::tests::every_schema_gate_is_listed_exactly_once
 test xtask::gates::tests::the_conformance_gate_fails_when_its_binary_disappears
 test xtask::gates::tests::the_determinism_gate_passes_on_five_golden_tests_and_fails_otherwise
+test xtask::gates::tests::the_wired_list_matches_what_evaluate_computes
 test xtask::json::tests::empty_containers_are_compact
 test xtask::json::tests::escapes_quotes_backslashes_and_control_chars
 test xtask::json::tests::nested_structure_is_indented_two_spaces
@@ -199,9 +201,11 @@ test xtask::report::tests::the_sample_covers_pass_fail_and_not_implemented
 test xtask::report::tests::the_validator_actually_rejects_bad_reports
 test xtask::tests::a_removal_needs_an_adr
 test xtask::tests::adr_ids_must_be_well_formed_and_exist
+test xtask::tests::every_required_gate_can_be_run_on_its_own
 test xtask::tests::fixtures_exclude_pending_and_use_forward_slashes
 test xtask::tests::options_parse
 test xtask::tests::required_gates_file_only_names_known_gates
+test xtask::tests::the_root_is_the_checkout_the_command_runs_in
 test xtask::tests::unknown_options_are_errors
 fixture tests/conformance/effector/feeder_pit.fixture
 fixture tests/conformance/effector/listener_step_mask.fixture

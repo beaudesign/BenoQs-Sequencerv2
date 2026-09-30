@@ -44,14 +44,6 @@ verify-octocore:
 
 # Per-zone gate verbs below. Owners are listed in xtask/src/gates.rs.
 
-verify-geometry:
-	@cargo xtask gate geometry
-verify-color:
-	@cargo xtask gate color
-verify-frames:
-	@cargo xtask gate frames
-verify-motion:
-	@cargo xtask gate motion
 verify-timing:
 	@cargo xtask gate timing
 verify-conformance:
@@ -72,12 +64,6 @@ verify-persistence:
 	@cargo xtask gate persistence
 verify-scope:
 	@cargo xtask gate scope
-
-# Deterministic offline capture of a registered scene. Not wired yet — no
-# renderer exists. See harness/capture/ and docs/07-verification.md §2.
-capture scene:
-	@echo "capture '{{scene}}': not yet implemented — harness/capture/ has no renderer to drive yet."
-	@exit 1
 
 # The shared world model, rendered. Falls back to STATE.md until the real
 # report exists.

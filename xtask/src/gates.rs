@@ -18,10 +18,6 @@ pub struct GateDef {
 /// Same order as the old `justfile` zone list, with `persistence` (in the schema and in
 /// docs/02) added at the end.
 pub const GATES: &[GateDef] = &[
-    GateDef { name: "geometry", owner: "panelwright" },
-    GateDef { name: "color", owner: "forge" },
-    GateDef { name: "frames", owner: "referee" },
-    GateDef { name: "motion", owner: "forge" },
     GateDef { name: "timing", owner: "metronome" },
     GateDef { name: "conformance", owner: "metronome" },
     GateDef { name: "a11y", owner: "referee" },
@@ -424,8 +420,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
     #[test]
     fn every_schema_gate_is_listed_exactly_once() {
         let schema = [
-            "determinism", "geometry", "color", "frames", "motion", "slop", "tokens", "timing",
-            "conformance", "a11y", "arch", "persistence", "regressions", "scope",
+            "determinism", "slop", "tokens", "timing", "conformance", "a11y", "arch",
+            "persistence", "regressions", "scope",
         ];
         assert_eq!(GATES.len(), schema.len());
         for name in schema {
@@ -439,7 +435,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         assert_eq!(status(&gates, "conformance"), Status::Pass);
         assert_eq!(status(&gates, "regressions"), Status::Pass);
         assert_eq!(status(&gates, "determinism"), Status::Pass);
-        assert_eq!(status(&gates, "geometry"), Status::NotImplemented);
+        assert_eq!(status(&gates, "slop"), Status::NotImplemented);
         assert_eq!(status(&gates, "scope"), Status::Pass);
         assert_eq!(gates.iter().filter(|g| g.status == Status::NotImplemented).count(), GATES.len() - WIRED.len());
     }

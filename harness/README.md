@@ -60,5 +60,7 @@ in a list do not prove a test is meaningful.
 
 ## Files that do not exist yet
 
-`harness/capture/`, `harness/lint/`, `harness/measure/` hold only `.gitkeep`. Their gates
-are `not_implemented` until the renderer and the design tokens exist.
+Gates `slop`, `tokens`, `timing`, `a11y`, `arch` and `persistence` are `not_implemented`. The
+directories that were scaffolds for the photoreal panel (`harness/capture/`, `harness/lint/`,
+`harness/measure/`) are gone (ADR-0006); a gate that needs a directory creates it when it
+lands.

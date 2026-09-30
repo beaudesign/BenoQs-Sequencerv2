@@ -25,8 +25,7 @@
         "properties": {
           "name": {
             "enum": [
-              "determinism", "geometry", "color", "frames", "motion",
-              "slop", "tokens", "timing", "conformance",
+              "determinism", "slop", "tokens", "timing", "conformance",
               "a11y", "arch", "persistence", "regressions", "scope"
             ]
           },
@@ -39,7 +38,7 @@
               "required": ["key", "value", "threshold", "comparator", "result"],
               "additionalProperties": false,
               "properties": {
-                "key": { "type": "string", "description": "e.g. 'geometry.centroid_error_p95_mm'." },
+                "key": { "type": "string", "description": "e.g. 'scope.banned_phrases_found'." },
                 "value": { "type": ["number", "boolean"] },
                 "unit": { "type": "string" },
                 "threshold": { "type": ["number", "boolean"] },

@@ -262,7 +262,7 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
         None => None,
     };
     let fixtures = conformance_fixtures(root);
-    let pending_panel = panel::scan_pending(root);
+    let panel_scan = panel::scan(root);
     let start = Instant::now();
     let run = run_tests(root, o.release)?;
     let adr = |id: &str| adr_exists(root, id);
@@ -270,7 +270,7 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
     let inputs = Inputs {
         run: &run,
         fixtures: &fixtures,
-        pending_panel: &pending_panel,
+        panel_scan: &panel_scan,
         baseline: &baseline,
         base: base.as_ref(),
         adr_exists: &adr,
@@ -482,6 +482,22 @@ mod tests {
         assert!(f.iter().any(|p| p.ends_with(".fixture")), "the engine fixtures are still counted");
         assert!(f.iter().any(|p| p.starts_with("tests/conformance/panel/") && p.ends_with(".panel")), "the panel fixtures are counted");
         assert!(f.iter().all(|p| !p.starts_with("tests/conformance/panel/pending/")));
+    }
+
+    #[test]
+    fn a_panel_file_outside_the_panel_directory_is_not_counted_as_a_fixture() {
+        // The runner only reads tests/conformance/panel/, so a count that included a stray file
+        // would be an assertion that never ran.
+        let root = std::env::temp_dir().join(format!("xtask-main-{}-stray", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        for rel in ["tests/conformance/a.fixture", "tests/conformance/elsewhere/stray.panel", "tests/conformance/panel/edit/live.panel"] {
+            let f = root.join(rel);
+            std::fs::create_dir_all(f.parent().unwrap()).unwrap();
+            std::fs::write(f, "").unwrap();
+        }
+        let got: Vec<String> = conformance_fixtures(&root).into_iter().collect();
+        assert_eq!(got, ["tests/conformance/a.fixture", "tests/conformance/panel/edit/live.panel"]);
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

@@ -18,12 +18,12 @@
 
 use std::path::Path;
 
-/// What the scan of the `pending/` directories found.
+/// What the scan of `tests/conformance` found among the `.panel` files that do not assert.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Pending {
+pub struct PanelScan {
     /// Every pending panel fixture, repo-relative with forward slashes.
-    pub files: Vec<String>,
-    /// `(path, what is wrong)`.
+    pub pending: Vec<String>,
+    /// `(path, what is wrong)`: a pending fixture without its headers, or a `.panel` file where nothing runs it.
     pub problems: Vec<(String, String)>,
 }
 
@@ -79,8 +79,8 @@ pub fn header_problems(text: &str) -> Vec<String> {
 
 /// Read every pending panel fixture under `<root>/tests/conformance`: a `.panel` file at any depth
 /// below a directory named `pending`. Paths are repo-relative with forward slashes, sorted.
-pub fn scan_pending(root: &Path) -> Pending {
-    fn walk(dir: &Path, in_pending: bool, root: &Path, out: &mut Pending) {
+pub fn scan(root: &Path) -> PanelScan {
+    fn walk(dir: &Path, in_pending: bool, root: &Path, out: &mut PanelScan) {
         let Ok(rd) = std::fs::read_dir(dir) else { return };
         let mut entries: Vec<_> = rd.flatten().map(|e| e.path()).collect();
         entries.sort();
@@ -99,11 +99,11 @@ pub fn scan_pending(root: &Path) -> Pending {
                     }
                     Err(e) => out.problems.push((rel.clone(), format!("unreadable: {e}"))),
                 }
-                out.files.push(rel);
+                out.pending.push(rel);
             }
         }
     }
-    let mut out = Pending::default();
+    let mut out = PanelScan::default();
     walk(&root.join("tests/conformance"), false, root, &mut out);
     out
 }
@@ -169,10 +169,10 @@ mod tests {
 
     #[test]
     fn the_scan_reads_the_real_pending_directory_and_finds_it_clean() {
-        let s = scan_pending(&repo());
-        assert!(s.files.len() >= 11, "{:?}", s.files);
-        assert!(s.files.iter().all(|f| f.starts_with("tests/conformance/") && f.contains("/pending/") && f.ends_with(".panel")));
-        assert!(s.files.iter().all(|f| !f.contains('\\')));
+        let s = scan(&repo());
+        // No count here: closing the last open question empties the list, and that is progress.
+        assert!(s.pending.iter().all(|f| f.starts_with("tests/conformance/") && f.contains("/pending/") && f.ends_with(".panel")));
+        assert!(s.pending.iter().all(|f| !f.contains('\\')));
         assert!(s.problems.is_empty(), "{:?}", s.problems);
     }
 
@@ -189,8 +189,8 @@ mod tests {
     #[test]
     fn the_scan_reports_a_pending_file_with_no_headers_by_path() {
         let root = scratch("bare", "naked.panel", "at 0 ms click step(1,1)\n");
-        let s = scan_pending(&root);
-        assert_eq!(s.files, ["tests/conformance/panel/pending/naked.panel"]);
+        let s = scan(&root);
+        assert_eq!(s.pending, ["tests/conformance/panel/pending/naked.panel"]);
         // One message per rule: no pending sentence, no pages, no question, and a script line.
         assert_eq!(s.problems.len(), 4, "{:?}", s.problems);
         assert!(s.problems.iter().all(|p| p.0 == "tests/conformance/panel/pending/naked.panel"));
@@ -206,9 +206,53 @@ mod tests {
         let live = root.join("tests/conformance/panel/edit");
         std::fs::create_dir_all(&live).unwrap();
         std::fs::write(live.join("bare.panel"), "at 0 ms click step(1,1)\n").unwrap();
-        let s = scan_pending(&root);
-        assert!(s.files.is_empty(), "{:?}", s.files);
+        let s = scan(&root);
+        assert!(s.pending.is_empty(), "{:?}", s.pending);
         assert!(s.problems.is_empty(), "{:?}", s.problems);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+    #[test]
+    fn the_manual_header_accepts_a_tutorial_page() {
+        assert_eq!(header_problems(&GOOD.replace("# manual: p013", "# manual: p013, T05")), Vec::<String>::new());
+        let p = header_problems(&GOOD.replace("# manual: p013", "# manual: T5"));
+        assert_eq!(p.len(), 1, "{p:?}");
+    }
+
+    /// A scratch tree with one `.panel` file at `rel` (relative to the root).
+    fn scratch_at(tag: &str, rel: &str, text: &str) -> std::path::PathBuf {
+        let root = std::env::temp_dir().join(format!("xtask-panel-{}-{tag}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let file = root.join(rel);
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(file, text).unwrap();
+        root
+    }
+
+    #[test]
+    fn a_panel_file_outside_the_panel_directory_is_a_problem_because_nothing_runs_it() {
+        let root = scratch_at("stray", "tests/conformance/elsewhere/x.panel", "at 0 ms click step(1,1)\nexpect mode step\n");
+        let s = scan(&root);
+        assert!(s.pending.is_empty(), "{:?}", s.pending);
+        assert_eq!(s.problems.len(), 1, "{:?}", s.problems);
+        assert_eq!(s.problems[0].0, "tests/conformance/elsewhere/x.panel");
+        assert!(s.problems[0].1.contains("tests/conformance/panel"), "{:?}", s.problems);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_panel_file_in_the_engine_pending_directory_is_a_problem_too() {
+        let root = scratch_at("enginepending", "tests/conformance/pending/x.panel", &format!("{GOOD}"));
+        let s = scan(&root);
+        assert!(s.pending.is_empty(), "{:?}", s.pending);
+        assert_eq!(s.problems.len(), 1, "{:?}", s.problems);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_panel_file_in_the_panel_directory_is_not_a_problem_when_it_asserts() {
+        let root = scratch_at("live", "tests/conformance/panel/edit/x.panel", "at 0 ms click step(1,1)\nexpect mode step\n");
+        let s = scan(&root);
+        assert!(s.pending.is_empty() && s.problems.is_empty(), "{s:?}");
         let _ = std::fs::remove_dir_all(&root);
     }
 }

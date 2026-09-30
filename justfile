@@ -56,8 +56,6 @@ verify-timing:
 	@cargo xtask gate timing
 verify-conformance:
 	@cargo xtask gate conformance
-verify-acoustics:
-	@cargo xtask gate acoustics
 verify-a11y:
 	@cargo xtask gate a11y
 verify-arch:

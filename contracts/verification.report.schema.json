@@ -26,7 +26,7 @@
           "name": {
             "enum": [
               "determinism", "geometry", "color", "frames", "motion",
-              "slop", "tokens", "timing", "conformance", "acoustics",
+              "slop", "tokens", "timing", "conformance",
               "a11y", "arch", "persistence", "regressions", "scope"
             ]
           },

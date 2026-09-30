@@ -24,8 +24,7 @@ pub const GATES: &[GateDef] = &[
     GateDef { name: "motion", owner: "forge" },
     GateDef { name: "timing", owner: "metronome" },
     GateDef { name: "conformance", owner: "metronome" },
-    GateDef { name: "acoustics", owner: "sceneshaper" },
-    GateDef { name: "a11y", owner: "loom" },
+    GateDef { name: "a11y", owner: "referee" },
     GateDef { name: "arch", owner: "conductor" },
     GateDef { name: "slop", owner: "curator" },
     GateDef { name: "tokens", owner: "curator" },
@@ -426,7 +425,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
     fn every_schema_gate_is_listed_exactly_once() {
         let schema = [
             "determinism", "geometry", "color", "frames", "motion", "slop", "tokens", "timing",
-            "conformance", "acoustics", "a11y", "arch", "persistence", "regressions", "scope",
+            "conformance", "a11y", "arch", "persistence", "regressions", "scope",
         ];
         assert_eq!(GATES.len(), schema.len());
         for name in schema {

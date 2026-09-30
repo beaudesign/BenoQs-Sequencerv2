@@ -9,7 +9,8 @@
 //! - case-insensitive;
 //! - whole words: the characters on either side of a match must not be letters or digits.
 //!   An underscore, a slash, a colon or a hyphen is a boundary, so `octo_x_room` style
-//!   identifiers and paths are caught;
+//!   identifiers and paths are caught. The last word may carry a plural `s`, so a banned
+//!   phrase and its plural are one phrase;
 //! - words separated by any run of whitespace, including a line break, match a phrase written
 //!   with single spaces. A phrase split by comment leaders (`///`) is not found;
 //! - the path is scanned as well as the content, so an empty file cannot bring a name back.
@@ -131,7 +132,8 @@ pub fn find(text: &str, banned: &[String]) -> Vec<(usize, String)> {
         for (start, _) in norm.match_indices(phrase.as_str()) {
             let end = start + phrase.len();
             let before_ok = norm[..start].chars().next_back().is_none_or(|c| !is_word_char(c));
-            let after_ok = norm[end..].chars().next().is_none_or(|c| !is_word_char(c));
+            let boundary_at = |at: usize| norm[at..].chars().next().is_none_or(|c| !is_word_char(c));
+            let after_ok = boundary_at(end) || (norm[end..].starts_with('s') && boundary_at(end + 1));
             if before_ok && after_ok {
                 found.push((start, line_of[start], phrase.clone()));
             }
@@ -291,6 +293,15 @@ mod tests {
         // Not `warpath`, `warped` or `swarp`. Yes: a comma, brackets, a hyphen and an underscore
         // are boundaries.
         assert_eq!(lines, [2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn the_plural_of_the_last_word_is_the_same_phrase() {
+        // The constitution (`CLAUDE.md`, line 4) held a banned phrase in the plural. The first version of the gate matched only the
+        // singular and let the line through.
+        let s = scan(&[("a.md", "flux capacitors\nwarps\nwarpss\nflux capacitorsx\n")], &[]);
+        let lines: Vec<usize> = s.hits.iter().map(|h| h.line).collect();
+        assert_eq!(lines, [1, 2], "a plural counts, a doubled s or a longer word does not");
     }
 
     #[test]

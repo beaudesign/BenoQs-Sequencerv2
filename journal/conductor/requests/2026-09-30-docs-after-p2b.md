@@ -13,10 +13,17 @@ These lines still call them planned:
 - `docs/00-north-star.md` lines 33 and 154; `docs/07-verification.md` line 104 (the panel fixtures are
   `tests/conformance/panel/**/*.panel`, run by `crates/octoface/tests/panel_fixtures.rs`);
   `docs/08-agent-operating-model.md` lines 40 and 72; `docs/09-roadmap.md` lines 53 and 95 (P2 status).
+- `README.md` line 23 and `AGENTS.md` lines 14 to 18 say "No panel controller" (and AGENTS.md's crate table
+  has no `crates/octoface` row; `journal/metronome/requests/2026-09-29-agents-md-crate-table.md` is the same
+  table).
+- `docs/08-agent-operating-model.md` section 3: add `/tests/conformance/panel/**  @panelwright` above the line
+  `/tests/conformance/**  @metronome` (the last match wins, as in `.github/CODEOWNERS`, where the Conductor has
+  added it), and drop "planned, P2" from the `octoface` lines.
 - Conductor's: `SPEC.md` lines 53, 82, 132, 179 and 182; `agents/ROLES.md` 37; `agents/CLAUDE.md` 58;
   `crates/octoffi/README.md` line 18.
 
 Facts to use, all in `tests/conformance/panel/QUESTIONS.md` and `adr/0007-…`: the numbering scheme
 (Q01 to Q20 are `findings.md` section 6, Q21 onward are in `QUESTIONS.md`), the fixture format, the gate's
 new metrics (`conformance.panel_runner_passed`, `conformance.pending_fixtures`,
-`conformance.panel_files_malformed`), and the baseline (385 assertions after P2b).
+`conformance.panel_files_malformed`), and the baseline (390 assertions after P2b: 342 tests, 48 fixtures), and the stray-file rule (a `.panel` file outside
+`tests/conformance/panel/` is not counted and fails the gate).

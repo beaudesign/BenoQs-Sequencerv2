@@ -166,6 +166,11 @@ impl Layout {
         self.by_n.get(id.0 as usize).copied().flatten()
     }
 
+    /// The control at matrix `row` (0 to 9, row 0 at the bottom) and `step` (0 to 15).
+    ///
+    /// Panics if either is out of range. Both ranges are constants of the layout
+    /// (`TRACK_COUNT`, `STEP_COUNT`), so a caller that loops over them cannot hit it; an address
+    /// that arrives from outside goes through `key`, which returns `None` instead.
     pub fn matrix(&self, row: usize, step: usize) -> ControlId {
         self.matrix[row][step]
     }

@@ -100,8 +100,9 @@ pub struct Panel {
     held: [bool; MAX_CONTROLS],
 }
 
-/// A step's LED in Page view: green on [p018], red skipped [p014], orange with a chord or an event
-/// [p014, p034, p038]. A skipped step shows red whatever else it is.
+/// A step's LED in Page view: green on [p018, "active step (Green)"], red skipped [p014], orange with an
+/// event [p034, p038]. A chord step is orange too, which no page says (Q37, provisional). A skipped step
+/// shows red whatever else it is.
 fn page_led(s: StepView) -> Led {
     if s.skip {
         Led::steady(Colour::Red)

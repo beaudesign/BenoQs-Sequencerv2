@@ -40,6 +40,14 @@ lettered A to I) of 16 pages, with row 0 as the control row (p079, p103; `specs/
 the open finding already in `journal/STATE.md`. The controller does not depend on it; the panel has one
 selector per bank, so the number will matter in P3.
 
-## 4. Stale comments
+## 4. Which LED model the web app reads
+
+`Snapshot::leds` (an RGB `Led` per `ControlId`) is the engine's; the engine leaves it untouched
+(`engine.rs` `snapshot`). The panel controller has its own `LedFrame`: a colour (off, red, green, orange)
+and a phase (steady, flash, shine) per `ControlId`, which is what the manual describes. I have assumed the
+web app reads `LedFrame` and that nothing writes `Snapshot::leds`. The `ControlId` doc comment says the number
+"also indexes `Snapshot::leds`", which is true and could mislead; please say which one is meant to be live.
+
+## 5. Stale comments
 
 See `2026-09-30-stale-panel-truth-comments.md`; its status note says what remains.

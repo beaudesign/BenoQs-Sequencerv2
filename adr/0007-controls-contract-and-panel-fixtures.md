@@ -44,11 +44,18 @@ P2b adds `contracts/controls.json` and `contracts/controls.schema.json` (JSON Sc
 | `at` | A position in the zone's own grid, as **integers in the manual's numbers** (matrix columns are steps 1 to 16; matrix rows are 0 to 9, row 0 at the bottom). No millimetres, no pixels |
 | `led` | Whether the control has an LED |
 | `cite` | The manual pages, `["p013", "p014"]`. At least one. A control cited to no page is not in the file |
-| `pending` | Present when the manual does not settle the control's existence, count or position. It names the question (`specs/SPEC-0002/findings.md` section 6 or `tech.md` section 9). A pending control is listed without a guessed position |
+| `pending` | Present when the manual does not settle a detail of a control that does exist (its position, whether it has a push, what its LED shows). It names the question by number (see below) and gives no guessed value |
 
-The file also carries `zones` (each with its grid size, where the manual gives one), and an
-optional `relations` list of layout facts the manual states, each cited, for example that the
-selector column is left of the matrix. **The file holds what the manual says and nothing else.**
+The file also carries `zones` (each with its grid size, where the manual gives one), an
+optional `relations` list of layout facts the manual states, each cited (for example that the
+selector column is left of the matrix), and an `open` list: groups of controls whose identity
+or count the manual leaves open (for example whether the stores 1 to 5, the control maps 0 to 5
+and the mix targets are one row of keys or three). An `open` group has no `n` and no position.
+It becomes controls by amendment when a hardware check settles it.
+
+**Questions are numbered.** Q01 to Q20 are the twenty items of `specs/SPEC-0002/findings.md`
+section 6, in that order. Questions found while building continue from Q21 in
+`tests/conformance/panel/QUESTIONS.md`, which the Panelwright keeps and the owner answers. **The file holds what the manual says and nothing else.**
 Where the manual gives no arrangement, the web app's own layout file (`apps/web`, the Forge's,
 P3) makes a provisional choice and marks it provisional. A design choice is not a manual fact
 and does not belong in a contract.
@@ -102,10 +109,10 @@ time source. So:
   `*.fixture` only, so it does not see them and is not edited.
 - A fixture is cited to manual pages in its header and names the workflow it covers.
 - A fixture the manual cannot settle lives in `tests/conformance/panel/pending/` and does not
-  assert. It must carry a `# pending:` header with the page, the ambiguity and the question, which
-  `tech.md` section 9 or `findings.md` section 6 lists. It closes by a hardware check or the
-  owner's ruling, never by a guess: the file then moves out of `pending/` with the assertions the
-  answer supports.
+  assert. It must carry `# pending:` (the ambiguity, in a sentence), `# manual:` (the pages) and
+  `# question:` (a Q number, above) headers. It closes by a hardware check or the owner's ruling,
+  never by a guess: the file then moves out of `pending/` with the assertions the answer
+  supports.
 - `xtask` (the Referee's, a tightening): the `conformance` gate counts `.panel` files as
   fixtures, requires the `panel_fixtures` test binary to have run and to pass, and reports the
   number of pending fixtures as a metric. A pending file with no header fails the gate. The

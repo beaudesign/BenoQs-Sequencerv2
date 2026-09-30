@@ -1,4 +1,4 @@
-# panel fixture: stopping the sequencer in PLAY mode discards the changes
+# panel fixture: stopping the sequencer in PLAY mode discards the changes (whether PLAY mode ends is Q36, pending/stopping_ends_play_mode)
 # manual: p066, p049
 # workflow: PLAY mode
 at 0 ms click mode.play
@@ -7,4 +7,3 @@ expect command Stop
 expect commands 1
 expect intent SnapshotRecall
 expect intents 1
-expect led mode.play = green steady

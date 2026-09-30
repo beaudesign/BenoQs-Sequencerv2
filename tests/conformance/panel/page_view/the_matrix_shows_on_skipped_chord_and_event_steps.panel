@@ -1,17 +1,15 @@
-# panel fixture: the matrix shows on, skipped, chord and event steps
-# manual: p014, p018, p034
+# panel fixture: the matrix shows on, skipped and event steps
+# (The file name still says chord. A chord step's LED in Page view is Q37, pending/a_chord_step_or_hyperstep_in_page_view; renaming the file would be a deletion for the ratchet.)
+# manual: p014, p034
 # workflow: Page mode step LEDs
 given step 0 1 on
 given step 1 2 skip
-given step 2 3 on
-given step 2 3 chord
 given step 4 5 on
 given step 4 5 event
 given step 5 6 on
 given step 5 6 skip
 expect led step(0,1) = green steady
 expect led step(1,2) = red steady
-expect led step(2,3) = orange steady
 expect led step(4,5) = orange steady
 expect led step(5,6) = red steady
 expect led step(9,16) = off

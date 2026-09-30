@@ -1,7 +1,9 @@
 # archive/native-panel
 
-Two documents kept for reference: `01-panel-truth.md` (how a photoreal panel would be measured
-from photographs) and `04-render-engine.md` (a native ray-traced renderer for it).
+Four files kept for reference: `01-panel-truth.md` (how a photoreal panel would be measured
+from photographs), `04-render-engine.md` (a native ray-traced renderer for it), and two contract
+schemas, `contracts/panel.truth.schema.json` and `contracts/motion.registry.schema.json`, which
+ADR-0007 retired from `contracts/`. Their replacement is `contracts/controls.json`.
 
 They describe the native, photoreal panel path that ADR-0006 retired
 (`adr/0006-web-sequencer-supersedes-the-rooms-scope.md`). The product is a web panel now

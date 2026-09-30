@@ -2,11 +2,10 @@
 //! docs/03-sequencer-core.md §5-6. This is the FFI-facing surface: `octoffi` wraps
 //! these `#[repr(C)]` types for the Swift side once it exists.
 
-/// Identifies a physical control. Namespace-shared with `panel.truth.json` once that
-/// contract exists (docs/03-sequencer-core.md §5: "the same identifier used in
-/// panel.truth.json. One namespace for the whole system.") — currently just an
-/// opaque numeric id, since panel.truth.json does not exist yet (see
-/// reference/NOTES.md).
+/// Identifies a control on the front panel: the `n` of a control in
+/// `contracts/controls.json` (ADR-0007). `n` is unique, assigned once and never reused, and
+/// is below `MAX_CONTROLS`, so it also indexes `Snapshot::leds`. The engine does not read the
+/// inventory; the panel controller (`crates/octoface`) is what interprets the number.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ControlId(pub u32);

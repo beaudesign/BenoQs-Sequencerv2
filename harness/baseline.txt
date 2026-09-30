@@ -221,16 +221,6 @@ test octoffi::tests::out_of_range_indices_are_a_no_op_not_a_crash
 test octoffi::tests::render_fills_caller_buffer
 test octoffi::tests::the_header_lists_the_event_tags_and_diagnostic_fields_in_the_rust_order
 test octoffi::tests::track_and_step_set_get_round_trip
-test octoroom::acoustics::tests::eyring_matches_hand_computed_value
-test octoroom::acoustics::tests::higher_absorption_means_shorter_decay
-test octoroom::acoustics::tests::stairwell_3am_rt60_is_in_a_plausible_range
-test octoroom::acoustics::tests::zero_absorption_is_infinite
-test octoroom::geometry::tests::different_seeds_can_differ
-test octoroom::geometry::tests::mean_absorption_matches_uniform_material_input
-test octoroom::geometry::tests::same_seed_gives_identical_geometry
-test octoroom::geometry::tests::stairwell_3am_matches_the_contracts_own_numbers
-test octoroom::rng::tests::range_f32_stays_in_bounds
-test octoroom::rng::tests::same_seed_same_sequence
 test octorun::ndjson::tests::buffer_relative_positions_are_not_in_the_log
 test octorun::ndjson::tests::writes_a_header_then_one_line_per_event_in_a_fixed_shape
 test octorun::sha256::tests::a_million_a_is_right_and_every_padding_length_is_handled
@@ -318,3 +308,13 @@ fixture tests/conformance/transport/reset_flushes_sounding_notes.fixture
 fixture tests/conformance/transport/stop_flushes_sounding_notes.fixture
 fixture tests/conformance/transport/stop_while_stopped_sends_all_notes_off.fixture
 fixture tests/conformance/velocity/zero_velocity_is_not_transmitted.fixture
+removed test octoroom::acoustics::tests::eyring_matches_hand_computed_value ADR-0006
+removed test octoroom::acoustics::tests::higher_absorption_means_shorter_decay ADR-0006
+removed test octoroom::acoustics::tests::stairwell_3am_rt60_is_in_a_plausible_range ADR-0006
+removed test octoroom::acoustics::tests::zero_absorption_is_infinite ADR-0006
+removed test octoroom::geometry::tests::different_seeds_can_differ ADR-0006
+removed test octoroom::geometry::tests::mean_absorption_matches_uniform_material_input ADR-0006
+removed test octoroom::geometry::tests::same_seed_gives_identical_geometry ADR-0006
+removed test octoroom::geometry::tests::stairwell_3am_matches_the_contracts_own_numbers ADR-0006
+removed test octoroom::rng::tests::range_f32_stays_in_bounds ADR-0006
+removed test octoroom::rng::tests::same_seed_same_sequence ADR-0006

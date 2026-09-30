@@ -8,7 +8,7 @@
 /// scale).
 pub type PitchClassSet = u16;
 
-pub fn normalize_pitch_class(pc: i32) -> u8 {
+fn normalize_pitch_class(pc: i32) -> u8 {
     (((pc % 12) + 12) % 12) as u8
 }
 
@@ -20,10 +20,6 @@ pub fn build_scale_pitch_classes(root: i32, intervals: &[i32]) -> PitchClassSet 
     }
     set
 }
-
-/// The seven-note major-scale intervals, used as the default when a scale has no
-/// explicit interval list (matches `octopus_data.js` `defaultGlobalScale`).
-pub const DEFAULT_INTERVALS: [i32; 7] = [0, 2, 4, 5, 7, 9, 11];
 
 /// Quantise a MIDI pitch to the nearest pitch class in `scale`. Ties prefer downward
 /// motion, matching v1's tie-break (chosen there for stability in live use).
@@ -49,15 +45,20 @@ pub fn quantize_to_scale(pitch: u8, scale: PitchClassSet) -> u8 {
 mod tests {
     use super::*;
 
+    // C major intervals (matches octopus_data.js defaultGlobalScale). Kept local:
+    // production callers pass page.scale.intervals(); nothing outside this file
+    // referenced DEFAULT_INTERVALS.
+    const MAJOR_INTERVALS: [i32; 7] = [0, 2, 4, 5, 7, 9, 11];
+
     #[test]
     fn in_scale_pitch_is_unchanged() {
-        let maj_c = build_scale_pitch_classes(60, &DEFAULT_INTERVALS);
+        let maj_c = build_scale_pitch_classes(60, &MAJOR_INTERVALS);
         assert_eq!(quantize_to_scale(64, maj_c), 64); // E, in C major
     }
 
     #[test]
     fn out_of_scale_prefers_downward() {
-        let maj_c = build_scale_pitch_classes(60, &DEFAULT_INTERVALS);
+        let maj_c = build_scale_pitch_classes(60, &MAJOR_INTERVALS);
         // C# (61) is not in C major; nearest neighbours are C (60, down 1) and D (62,
         // up 1) — equal distance, downward must win.
         assert_eq!(quantize_to_scale(61, maj_c), 60);

@@ -45,6 +45,26 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                 track.is_feeder = feeder;
                 track.is_listener = listener;
             }
+            ["track", t, "step", s, "event", attr, amt, range] => {
+                let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
+                let si: usize = s.parse().map_err(|_| format!("{}: bad step index", ctx()))?;
+                let map_attr = match *attr {
+                    "vel" => MapAttr::Vel,
+                    "pit" => MapAttr::Pit,
+                    "len" => MapAttr::Len,
+                    "sta" => MapAttr::Sta,
+                    "amt" => MapAttr::Amt,
+                    "grv" => MapAttr::Grv,
+                    "mcc" => MapAttr::Mcc,
+                    other => return Err(format!("{}: unknown map-factor attr `{}`", ctx(), other)),
+                };
+                let amt: i8 = amt.trim_start_matches('+').parse().map_err(|_| format!("{}: bad amt", ctx()))?;
+                let range: u8 = range.parse().map_err(|_| format!("{}: bad range", ctx()))?;
+                engine.grid.active_page_mut().tracks[ti].steps[si].event = Some(StepEvent {
+                    target_track: ti as TrackIndex,
+                    kind: StepEventKind::ScaleMap { attr: map_attr, amt, range },
+                });
+            }
             ["track", t, "step", s, attr, value] => {
                 let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
                 let si: usize = s.parse().map_err(|_| format!("{}: bad step index", ctx()))?;
@@ -104,6 +124,7 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
             ["expect", "note", rest @ ..] => {
                 let mut want_track: Option<usize> = None;
                 let mut want_pit_offset: Option<i32> = None;
+                let mut want_vel_offset: Option<i32> = None;
                 for kv in rest {
                     let (k, v) = kv.split_once('=').ok_or_else(|| format!("{}: bad expect clause `{}`", ctx(), kv))?;
                     match k {
@@ -112,24 +133,34 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
                             want_pit_offset =
                                 Some(v.trim_start_matches('+').parse().map_err(|_| format!("{}: bad pit", ctx()))?)
                         }
+                        "vel" => {
+                            want_vel_offset =
+                                Some(v.trim_start_matches('+').parse().map_err(|_| format!("{}: bad vel", ctx()))?)
+                        }
                         other => return Err(format!("{}: unknown expect key `{}`", ctx(), other)),
                     }
                 }
                 let want_track = want_track.ok_or_else(|| format!("{}: expect needs track=", ctx()))?;
                 let base_pitch = engine.grid.active_page().tracks[want_track].pitch as i32;
+                let base_vel = engine.grid.active_page().tracks[want_track].velocity as i32;
                 let expected_pitch = want_pit_offset.map(|off| base_pitch + off);
+                let expected_vel = want_vel_offset.map(|off| base_vel + off);
 
                 let matched = fired.iter().any(|f| {
-                    f.track as usize == want_track && expected_pitch.map(|p| p == f.pitch as i32).unwrap_or(true)
+                    f.track as usize == want_track
+                        && expected_pitch.map(|p| p == f.pitch as i32).unwrap_or(true)
+                        && expected_vel.map(|v| v == f.velocity as i32).unwrap_or(true)
                 });
                 if !matched {
                     return Err(format!(
-                        "{}: no fired note matched track={} pit_offset={:?} (base_pitch={}); fired={:?}",
+                        "{}: no fired note matched track={} pit_offset={:?} vel_offset={:?} (base_pitch={} base_vel={}); fired={:?}",
                         ctx(),
                         want_track,
                         want_pit_offset,
+                        want_vel_offset,
                         base_pitch,
-                        fired.iter().map(|f| (f.track, f.pitch)).collect::<Vec<_>>()
+                        base_vel,
+                        fired.iter().map(|f| (f.track, f.pitch, f.velocity)).collect::<Vec<_>>()
                     ));
                 }
             }

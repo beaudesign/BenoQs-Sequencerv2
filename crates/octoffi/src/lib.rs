@@ -134,6 +134,13 @@ pub enum OctoTrackAttr {
     RecordArmed,
     IsFeeder,
     IsListener,
+    /// Display-style map factors 0..=16, Neutral 8 (CE v5.30 p.34-37, p.53).
+    /// LEN/STA already expose `LengthFactor` / `StartFactor`.
+    VelMapFactor,
+    PitMapFactor,
+    AmtMapFactor,
+    GrvMapFactor,
+    MccMapFactor,
 }
 
 #[repr(C)]
@@ -151,7 +158,7 @@ pub enum OctoStepAttr {
     Hyperstep,
     /// 0 = no phrase (`None`); 1..=48 indexes `Grid::phrases` (1-based).
     Phrase,
-    /// Phrase time-compression; 8 is neutral (CE v5.30 p.17). Stored only.
+    /// Phrase time-compression; 8 is neutral (CE v5.30 p.17 / p.30).
     PhrasePos,
 }
 
@@ -190,6 +197,11 @@ pub unsafe extern "C" fn octocore_track_set_i32(engine: *mut Engine, track: u8, 
         OctoTrackAttr::RecordArmed => t.record_armed = value != 0,
         OctoTrackAttr::IsFeeder => t.is_feeder = value != 0,
         OctoTrackAttr::IsListener => t.is_listener = value != 0,
+        OctoTrackAttr::VelMapFactor => t.vel_map_factor = value.clamp(0, 16) as u8,
+        OctoTrackAttr::PitMapFactor => t.pit_map_factor = value.clamp(0, 16) as u8,
+        OctoTrackAttr::AmtMapFactor => t.amt_map_factor = value.clamp(0, 16) as u8,
+        OctoTrackAttr::GrvMapFactor => t.grv_map_factor = value.clamp(0, 16) as u8,
+        OctoTrackAttr::MccMapFactor => t.mcc_map_factor = value.clamp(0, 16) as u8,
     }
     true
 }
@@ -222,6 +234,11 @@ pub unsafe extern "C" fn octocore_track_get_i32(engine: *const Engine, track: u8
         OctoTrackAttr::RecordArmed => t.record_armed as i32,
         OctoTrackAttr::IsFeeder => t.is_feeder as i32,
         OctoTrackAttr::IsListener => t.is_listener as i32,
+        OctoTrackAttr::VelMapFactor => t.vel_map_factor as i32,
+        OctoTrackAttr::PitMapFactor => t.pit_map_factor as i32,
+        OctoTrackAttr::AmtMapFactor => t.amt_map_factor as i32,
+        OctoTrackAttr::GrvMapFactor => t.grv_map_factor as i32,
+        OctoTrackAttr::MccMapFactor => t.mcc_map_factor as i32,
     }
 }
 
@@ -325,6 +342,8 @@ mod tests {
             assert_eq!(octocore_track_get_i32(e, 3, OctoTrackAttr::Pitch), 60);
             assert!(octocore_track_set_i32(e, 3, OctoTrackAttr::Muted, 1));
             assert_eq!(octocore_track_get_i32(e, 3, OctoTrackAttr::Muted), 1);
+            assert!(octocore_track_set_i32(e, 3, OctoTrackAttr::VelMapFactor, 11));
+            assert_eq!(octocore_track_get_i32(e, 3, OctoTrackAttr::VelMapFactor), 11);
 
             assert!(octocore_step_set_i32(e, 3, 5, OctoStepAttr::Active, 1));
             assert!(octocore_step_set_i32(e, 3, 5, OctoStepAttr::PitchOffset, -7));

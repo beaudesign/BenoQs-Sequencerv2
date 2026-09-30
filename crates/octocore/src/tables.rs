@@ -208,6 +208,128 @@ pub fn scale_sta_ticks(track_sta_factor: u8, step_offset: i32) -> i32 {
     row[(clamped + 5) as usize]
 }
 
+/// p.35 chart: Maximum Event Range row 0..=16 (8 = Neutral) × step offset 0..=16.
+/// Index `[row][offset]`. Green rows 9..=16 compress; red rows 0..=7 expand.
+/// Ref: CE v5.30 p.35, "Track Attribute Map factor Scaling". Verified against
+/// a `pdftoppm` render of the printed plate (PDF page 37), not packed pdftotext.
+/// p.37's worked example (offset 12 → 12, 14, 17, 20 across rows 8,7,6,5) is
+/// these exact cells.
+#[rustfmt::skip]
+const MAP_OFFSET_LO: [[u8; 17]; 17] = [
+    /*  0 */ [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64],
+    /*  1 */ [0, 3, 6,  9, 12, 16, 19, 22, 25, 29, 32, 35, 38, 42, 45, 48, 51],
+    /*  2 */ [0, 2, 5,  7, 10, 12, 15, 17, 20, 23, 25, 28, 30, 33, 35, 38, 40],
+    /*  3 */ [0, 2, 4,  6,  8, 11, 13, 15, 17, 20, 22, 24, 26, 29, 31, 33, 35],
+    /*  4 */ [0, 1, 3,  5,  7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31],
+    /*  5 */ [0, 1, 3,  5,  6,  8, 10, 11, 13, 15, 17, 18, 20, 22, 23, 25, 27],
+    /*  6 */ [0, 1, 2,  4,  5,  7,  8, 10, 11, 12, 14, 15, 17, 18, 20, 21, 23],
+    /*  7 */ [0, 1, 2,  3,  4,  6,  7,  8,  9, 10, 12, 13, 14, 15, 17, 18, 19],
+    /*  8 */ [0, 1, 2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16],
+    /*  9 */ [0, 0, 1,  2,  3,  4,  5,  5,  6,  7,  8,  9, 10, 10, 11, 12, 13],
+    /* 10 */ [0, 0, 1,  1,  2,  2,  3,  3,  4,  4,  5,  5,  6,  6,  7,  7,  8],
+    /* 11 */ [0, 0, 0,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  5,  5,  5],
+    /* 12 */ [0, 0, 0,  0,  0,  1,  1,  1,  1,  2,  2,  2,  2,  3,  3,  3,  3],
+    /* 13 */ [0, 0, 0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  2,  2],
+    /* 14 */ [0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    /* 15 */ [0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+    /* 16 */ [0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+];
+
+/// p.36 companion chart column headers (the printed "blue" step offsets).
+/// Ref: CE v5.30 p.36, Neutral row. Offsets that are not one of these 16
+/// columns are not invented — `scale_map_offset` leaves them unchanged
+/// (AMBIGUITIES.md).
+const MAP_OFFSET_HI_COLS: [u8; 16] = [20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 72, 80, 88, 96, 104, 112];
+
+#[rustfmt::skip]
+const MAP_OFFSET_HI: [[u8; 16]; 17] = [
+    /*  0 */ [80, 96, 112, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127],
+    /*  1 */ [64, 77,  90, 103, 116, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127],
+    /*  2 */ [51, 61,  71,  81,  92, 102, 112, 122, 127, 127, 127, 127, 127, 127, 127, 127],
+    /*  3 */ [44, 53,  62,  71,  80,  89,  98, 107, 125, 127, 127, 127, 127, 127, 127, 127],
+    /*  4 */ [39, 47,  54,  62,  70,  78,  86,  94, 109, 125, 127, 127, 127, 127, 127, 127],
+    /*  5 */ [34, 40,  47,  54,  61,  68,  74,  81,  95, 108, 122, 127, 127, 127, 127, 127],
+    /*  6 */ [28, 34,  40,  46,  51,  57,  63,  69,  80,  92, 103, 115, 126, 127, 127, 127],
+    /*  7 */ [24, 29,  34,  39,  43,  48,  53,  58,  68,  78,  87,  97, 107, 117, 126, 127],
+    /*  8 */ [20, 24,  28,  32,  36,  40,  44,  48,  56,  64,  72,  80,  88,  96, 104, 112],
+    /*  9 */ [16, 20,  23,  26,  30,  33,  36,  40,  47,  53,  60,  67,  73,  80,  87,  94],
+    /* 10 */ [10, 12,  14,  16,  18,  20,  22,  24,  29,  33,  37,  41,  45,  49,  54,  58],
+    /* 11 */ [ 7,  8,  10,  11,  12,  14,  15,  17,  20,  23,  25,  28,  31,  34,  37,  40],
+    /* 12 */ [ 4,  5,   6,   7,   8,   9,  10,  11,  13,  15,  17,  19,  21,  23,  24,  26],
+    /* 13 */ [ 2,  3,   3,   4,   5,   5,   6,   6,   7,   8,   9,  10,  11,  12,  13,  14],
+    /* 14 */ [ 1,  1,   1,   1,   2,   2,   2,   2,   3,   3,   4,   4,   5,   5,   6,   6],
+    /* 15 */ [ 0,  0,   0,   0,   0,   0,   0,   0,   1,   1,   1,   1,   1,   1,   2,   2],
+    /* 16 */ [ 0,  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+];
+
+/// Display-style map factor 0..=16 (8 = Neutral, matching LEN/STA on p.53)
+/// → p.35/p.36 chart row (Maximum Event Range). Lower factor compresses
+/// (higher chart row); higher factor expands (lower chart row).
+///
+/// Chosen: `row = 16 - factor`, so factor 8 is Neutral. The chart's
+/// parenthetical "(4)" sits on row 13, which would be factor 3 under this
+/// mapping — logged in AMBIGUITIES.md; the p.37 walk from Neutral is exact
+/// either way.
+fn map_chart_row(factor: u8) -> usize {
+    16 - (factor.min(16) as usize)
+}
+
+/// Ref: CE v5.30 p.36: "Available Step Event Range = 17 - Track Attribute
+/// Scaling Factor". Default factor 8 → available 9.
+pub fn available_event_range(factor: u8) -> u8 {
+    17u8.saturating_sub(factor.min(16))
+}
+
+/// Advance the live walk produced by a map-factor step event.
+///
+/// Ref p.35: AMT 0 "will discard the offset that was produced by a step event".
+/// Ref p.37: AMT +1 / range 3 visits four rows (Neutral and three expand
+/// steps) then wraps — wrap modulus is `range + 1`. AMT larger than the
+/// interval is taken modulo that same interval (p.34 / p.37: "divided by
+/// the Step Event Range and the remainder will be applied").
+pub fn next_map_walk(current: i8, amt: i8, range: u8) -> i8 {
+    if amt == 0 {
+        return 0;
+    }
+    let modulus = i32::from(range.min(16)) + 1;
+    (i32::from(current) + i32::from(amt)).rem_euclid(modulus) as i8
+}
+
+/// Live display factor after a walk. +AMT expands (raises the factor,
+/// lowers the chart row). Clamped to 0..=16.
+pub fn effective_map_factor(base: u8, walk: i8) -> u8 {
+    (i32::from(base.min(16)) + i32::from(walk)).clamp(0, 16) as u8
+}
+
+/// Scale a step attribute offset through the p.35 (0..=16) or p.36
+/// (exact large columns) map-factor chart.
+///
+/// Ref p.36: "Step Events will only influence steps whose attributes have
+/// been offset from their respective track values" — offset 0 stays 0 at
+/// every row. Sign is not printed; chosen: look up `|offset|` and restore
+/// sign (AMBIGUITIES.md). Offsets that are neither 0..=16 nor a p.36
+/// column are returned unchanged rather than interpolated.
+pub fn scale_map_offset(factor: u8, offset: i32) -> i32 {
+    if offset == 0 {
+        return 0;
+    }
+    let row = map_chart_row(factor);
+    let sign = if offset < 0 { -1 } else { 1 };
+    let abs = offset.unsigned_abs();
+    if abs <= 16 {
+        return sign * i32::from(MAP_OFFSET_LO[row][abs as usize]);
+    }
+    if abs <= 127 {
+        let abs_u8 = abs as u8;
+        for (col, &header) in MAP_OFFSET_HI_COLS.iter().enumerate() {
+            if header == abs_u8 {
+                return sign * i32::from(MAP_OFFSET_HI[row][col]);
+            }
+        }
+    }
+    offset
+}
+
 fn interpolate(breakpoints: &[i32], values: &[i32; 12], x: i32) -> i32 {
     if x <= breakpoints[0] {
         return values[0];
@@ -336,5 +458,79 @@ mod tests {
         assert_eq!(scale_phrase_sta(24, 14), 96, "1/4 speed");
         assert_eq!(scale_phrase_sta(24, 16), 128, "POS 16 same as 15");
         assert_eq!(scale_phrase_sta(12, 5), 6, "scales any unit, not just 24");
+    }
+
+    /// Ref: CE v5.30 p.37. Offset 12 at Neutral / +1 / +2 / +3 map factors.
+    #[test]
+    fn map_offset_12_matches_manual_worked_example() {
+        assert_eq!(scale_map_offset(8, 12), 12);
+        assert_eq!(scale_map_offset(9, 12), 14);
+        assert_eq!(scale_map_offset(10, 12), 17);
+        assert_eq!(scale_map_offset(11, 12), 20);
+    }
+
+    #[test]
+    fn map_offset_neutral_is_identity_for_0_to_16() {
+        for off in 0..=16 {
+            assert_eq!(scale_map_offset(8, off), off);
+            assert_eq!(scale_map_offset(8, -off), -off);
+        }
+    }
+
+    #[test]
+    fn map_offset_zero_stays_zero_at_every_factor() {
+        for factor in 0..=16 {
+            assert_eq!(scale_map_offset(factor, 0), 0);
+        }
+    }
+
+    #[test]
+    fn map_offset_hi_neutral_is_identity() {
+        for &col in &MAP_OFFSET_HI_COLS {
+            assert_eq!(scale_map_offset(8, col as i32), col as i32);
+        }
+    }
+
+    #[test]
+    fn map_offset_unlisted_value_is_unchanged() {
+        // 18 is between the p.35 max (16) and the first p.36 column (20).
+        assert_eq!(scale_map_offset(11, 18), 18);
+    }
+
+    /// Ref p.37: range 3, AMT +1 visits walk 0,1,2,3 then wraps.
+    #[test]
+    fn map_walk_plus_one_range_three_wraps() {
+        let mut walk = 0i8;
+        let mut seen = [0i8; 5];
+        for slot in &mut seen {
+            *slot = walk;
+            walk = next_map_walk(walk, 1, 3);
+        }
+        assert_eq!(seen, [0, 1, 2, 3, 0]);
+        assert_eq!(
+            seen.map(|w| scale_map_offset(effective_map_factor(8, w), 12)),
+            [12, 14, 17, 20, 12]
+        );
+    }
+
+    #[test]
+    fn map_walk_minus_one_is_reverse_order() {
+        let mut walk = 0i8;
+        let mut seen = [0i32; 5];
+        for slot in &mut seen {
+            *slot = scale_map_offset(effective_map_factor(8, walk), 12);
+            walk = next_map_walk(walk, -1, 3);
+        }
+        assert_eq!(seen, [12, 20, 17, 14, 12]);
+    }
+
+    #[test]
+    fn map_walk_amt_zero_discards_offset() {
+        assert_eq!(next_map_walk(3, 0, 3), 0);
+    }
+
+    #[test]
+    fn available_range_at_default_factor_is_nine() {
+        assert_eq!(available_event_range(8), 9);
     }
 }

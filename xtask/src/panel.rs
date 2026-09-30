@@ -27,16 +27,85 @@ pub struct Pending {
     pub problems: Vec<(String, String)>,
 }
 
-/// What is wrong with the headers of a pending fixture. Empty when it is well formed.
-pub fn header_problems(text: &str) -> Vec<String> {
-    let _ = text;
-    Vec::new()
+/// The values of every `# <key>: <value>` line, trimmed.
+fn headers<'a>(text: &'a str, key: &str) -> Vec<&'a str> {
+    text.lines()
+        .filter_map(|l| l.trim().strip_prefix("# ")?.strip_prefix(key)?.strip_prefix(':'))
+        .map(str::trim)
+        .collect()
 }
 
-/// Read every pending panel fixture under `<root>/tests/conformance`.
+fn is_page(word: &str) -> bool {
+    word.len() == 4 && word.starts_with('p') && word[1..].bytes().all(|b| b.is_ascii_digit())
+}
+
+fn is_question(word: &str) -> bool {
+    word.len() == 3 && word.starts_with('Q') && word[1..].bytes().all(|b| b.is_ascii_digit())
+}
+
+/// What is wrong with the headers of a pending fixture. Empty when it is well formed.
+///
+/// One message per rule, each naming the header it is about: a `# pending:` sentence, a
+/// `# manual:` list of pages (`p013, p014`), exactly one `# question:` (`Q31`), and no script
+/// lines, because a pending fixture asserts nothing.
+pub fn header_problems(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+
+    let pending = headers(text, "pending");
+    if pending.is_empty() || pending.iter().any(|v| v.is_empty()) {
+        out.push("no `# pending:` line with a sentence saying what the manual leaves open".to_string());
+    }
+
+    let manual = headers(text, "manual");
+    let pages: Vec<&str> = manual.iter().flat_map(|v| v.split(|c: char| c == ',' || c.is_whitespace())).filter(|w| !w.is_empty()).collect();
+    if pages.is_empty() {
+        out.push("no `# manual:` line with page numbers such as `p013, p014`".to_string());
+    } else if let Some(bad) = pages.iter().find(|w| !is_page(w)) {
+        out.push(format!("`# manual:` holds '{bad}', which is not a page number such as `p013`"));
+    }
+
+    let question = headers(text, "question");
+    match question.as_slice() {
+        [q] if is_question(q) => {}
+        [] => out.push("no `# question:` line with a number such as `Q31`".to_string()),
+        other => out.push(format!("`# question:` must be exactly one number such as `Q31`, found {other:?}")),
+    }
+
+    if text.lines().any(|l| !l.trim().is_empty() && !l.trim_start().starts_with('#')) {
+        out.push("has script lines: a pending fixture asserts nothing, so its body is comments only".to_string());
+    }
+    out
+}
+
+/// Read every pending panel fixture under `<root>/tests/conformance`: a `.panel` file at any depth
+/// below a directory named `pending`. Paths are repo-relative with forward slashes, sorted.
 pub fn scan_pending(root: &Path) -> Pending {
-    let _ = root;
-    Pending::default()
+    fn walk(dir: &Path, in_pending: bool, root: &Path, out: &mut Pending) {
+        let Ok(rd) = std::fs::read_dir(dir) else { return };
+        let mut entries: Vec<_> = rd.flatten().map(|e| e.path()).collect();
+        entries.sort();
+        for path in entries {
+            if path.is_dir() {
+                let pending = in_pending || path.file_name().is_some_and(|n| n == "pending");
+                walk(&path, pending, root, out);
+            } else if in_pending && path.extension().is_some_and(|e| e == "panel") {
+                let Ok(rel) = path.strip_prefix(root) else { continue };
+                let rel = rel.to_string_lossy().replace('\\', "/");
+                match std::fs::read_to_string(&path) {
+                    Ok(text) => {
+                        for p in header_problems(&text) {
+                            out.problems.push((rel.clone(), p));
+                        }
+                    }
+                    Err(e) => out.problems.push((rel.clone(), format!("unreadable: {e}"))),
+                }
+                out.files.push(rel);
+            }
+        }
+    }
+    let mut out = Pending::default();
+    walk(&root.join("tests/conformance"), false, root, &mut out);
+    out
 }
 
 #[cfg(test)]
@@ -122,8 +191,12 @@ mod tests {
         let root = scratch("bare", "naked.panel", "at 0 ms click step(1,1)\n");
         let s = scan_pending(&root);
         assert_eq!(s.files, ["tests/conformance/panel/pending/naked.panel"]);
-        assert_eq!(s.problems.len(), 1, "{:?}", s.problems);
-        assert_eq!(s.problems[0].0, "tests/conformance/panel/pending/naked.panel");
+        // One message per rule: no pending sentence, no pages, no question, and a script line.
+        assert_eq!(s.problems.len(), 4, "{:?}", s.problems);
+        assert!(s.problems.iter().all(|p| p.0 == "tests/conformance/panel/pending/naked.panel"));
+        for key in ["pending", "manual", "question", "script"] {
+            assert!(s.problems.iter().any(|p| p.1.contains(key)), "{key}: {:?}", s.problems);
+        }
         let _ = std::fs::remove_dir_all(&root);
     }
 

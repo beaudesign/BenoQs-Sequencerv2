@@ -157,7 +157,7 @@ fn conformance_fixtures(root: &Path) -> BTreeSet<String> {
                     continue;
                 }
                 walk(&path, root, out);
-            } else if path.extension().is_some_and(|e| e == "fixture") {
+            } else if path.extension().is_some_and(|e| e == "fixture" || e == "panel") {
                 if let Ok(rel) = path.strip_prefix(root) {
                     out.insert(rel.to_string_lossy().replace('\\', "/"));
                 }

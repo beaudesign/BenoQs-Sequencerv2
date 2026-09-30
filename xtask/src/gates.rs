@@ -226,18 +226,24 @@ fn finish(def: &GateDef, duration_s: f64, metrics: Vec<Metric>, failures: Vec<Fa
     }
 }
 
+/// The test in the octoface `panel_fixtures` binary that runs every `.panel` fixture. Losing it
+/// would leave the fixtures unread, so the gate asks for it by name (ADR-0007 decision 4).
+const PANEL_RUNNER: &str = "all_panel_fixtures_pass";
+
 fn conformance(def: &GateDef, inp: &Inputs) -> Gate {
+    use crate::cargo_out::Outcome;
+
     let mut failures = Vec::new();
     if let Some(e) = &inp.run.build_error {
         failures.push(Failure::new("cargo test", e.clone()));
     }
     let (n_ok, n_bad) = match inp.run.parsed.binary("conformance") {
         Some(b) => {
-            for t in b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Failed) {
+            for t in b.tests.iter().filter(|t| t.outcome == Outcome::Failed) {
                 failures.push(Failure::new(t.id.clone(), "conformance test failed"));
             }
-            let ok = b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Ok).count();
-            let bad = b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Failed).count();
+            let ok = b.tests.iter().filter(|t| t.outcome == Outcome::Ok).count();
+            let bad = b.tests.iter().filter(|t| t.outcome == Outcome::Failed).count();
             (ok, bad)
         }
         None => {
@@ -247,10 +253,50 @@ fn conformance(def: &GateDef, inp: &Inputs) -> Gate {
             (0, 0)
         }
     };
+
+    // Panel fixtures: when any assert on disk, the test binary that runs them must have run, and
+    // the test that walks them all must have passed.
+    let panel_on_disk = inp.fixtures.iter().filter(|p| p.ends_with(".panel")).count();
+    let mut panel_runner_passed = 0;
+    if panel_on_disk > 0 {
+        match inp.run.parsed.binary("panel_fixtures") {
+            Some(b) => {
+                for t in b.tests.iter().filter(|t| t.outcome == Outcome::Failed) {
+                    failures.push(Failure::new(t.id.clone(), "panel fixture test failed"));
+                }
+                let suffix = format!("::{PANEL_RUNNER}");
+                match b.tests.iter().find(|t| t.id.ends_with(&suffix)).map(|t| t.outcome) {
+                    Some(Outcome::Ok) => panel_runner_passed = 1,
+                    Some(_) => {} // failed, and named above
+                    None => failures.push(Failure::new(
+                        "conformance.panel",
+                        format!("the `{PANEL_RUNNER}` test, which runs every panel fixture, is not in the panel_fixtures binary"),
+                    )),
+                }
+            }
+            None => {
+                if inp.run.build_error.is_none() {
+                    failures.push(Failure::new(
+                        "conformance.panel",
+                        format!("{panel_on_disk} panel fixtures are on disk and the octoface panel_fixtures test binary did not run"),
+                    ));
+                }
+            }
+        }
+    }
+
+    // Pending panel fixtures are reported, not floored: closing one is progress.
+    for (path, what) in &inp.pending_panel.problems {
+        failures.push(Failure::new(path.clone(), what.clone()));
+    }
+
     let metrics = vec![
         Metric::new("conformance.tests_passed", n_ok, "tests", Comparator::Gte, 1),
         Metric::new("conformance.tests_failed", n_bad, "tests", Comparator::Eq, 0),
         Metric::new("conformance.fixtures", inp.fixtures.len(), "fixtures", Comparator::Gte, inp.baseline.fixtures.len()),
+        Metric::new("conformance.panel_runner_passed", panel_runner_passed, "tests", Comparator::Gte, usize::from(panel_on_disk > 0)),
+        Metric::new("conformance.pending_fixtures", inp.pending_panel.files.len(), "fixtures", Comparator::Gte, 0),
+        Metric::new("conformance.pending_fixtures_malformed", inp.pending_panel.problems.len(), "fixtures", Comparator::Eq, 0),
     ];
     finish(def, inp.run.duration_s, metrics, failures)
 }

@@ -5,8 +5,8 @@
 | Spec | SPEC-0001 |
 | Revision | r2 (r0 as published on 2026-09-29; r1 adds the open-question resolutions; r2 records the second approval, below) |
 | Audited commit | `6ef921f` |
-| Stage | Product spec and tech spec approved. F0 and F1 implemented and in review. O6 approved for implementation (r2). O4 approved for a release plan only (r2). |
-| Risk tier | Medium overall. O4 is high: its release plan is written for sign-off, and no O4 code exists or may be written until the owner approves that plan. |
+| Stage | Product spec and tech spec approved. F0 and F1 implemented and merged (on `main` with PR 5, #9; PR 6 onward is on `main` once the landing PR `conductor/land-stack` merges). O6 built (r2). O4 approved for a release plan only (r2): the plan is written and merged, and **merging it is not approval to build**. |
+| Risk tier | Medium overall. O4 is high: its release plan is written for sign-off (decisions D0 to D6 are unanswered), and no O4 code exists or may be written until the owner approves that plan. |
 | Owner and approver | `@beaudesign` |
 | Original write-up | Private artifact published 2026-09-29, not a source of truth. This directory is. |
 
@@ -66,17 +66,17 @@ factory layer that carries this spec.
 | Task | Opportunity | Tier | Phase | Status |
 |---|---|---|---|---|
 | WENGE-0000 | Factory layer: `AGENTS.md`, ADR-0004, this spec, CODEOWNERS, handoffs | Medium | F0 | Merged to `main` (PR 1) |
-| WENGE-0001 | O1 Flush sounding notes on stop and reset (pilot) | Medium | F0 | Merged into a parent branch, not yet on `main` (PR 3) |
-| WENGE-0002 | O2 Stop the backlog burst on Play after idle | Medium | F0 | Merged into a parent branch, not yet on `main` (PR 3) |
-| WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4) |
-| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan (revision 2) open as PR 8 (#12) for sign-off. No code, and none until the owner approves it. |
-| WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4) |
-| WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Approved in r2. Built as PR 7 (#11), in review. Test plan first (`o6-test-plan.md`, section 10 records where the build differed). |
-| WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | In review (PR 5). Live `midir` mode not done (Q6). |
-| WENGE-0008 | O8 Real gates: tri-state verify, CI, CODEOWNERS, ratchet | Medium | F0 | Merged into a parent branch, not yet on `main` (PR 2) |
-| WENGE-0009 | O9 Fixture DSL v2 and metamorphic invariants | Low | F0 and ongoing | Started; merged into a parent branch, not yet on `main` (PR 3: DSL v2, transport invariants. PR 4: DSL v3 `vel`, `mcc`, `bend`, `pressure`, and buffer-size, order and velocity invariants) |
-| WENGE-0010 | O10 Emission details and doc drift | Medium | F1 | Merged into a parent branch, not yet on `main` (PR 4). Doc drift was fixed in PR 1. |
-| WENGE-0011 | Review findings: queue headroom (1,024), overload counters in `octorun`, `play N step` guard | Medium | F1 | In review (PR 6). Task added by the independent review. |
+| WENGE-0001 | O1 Flush sounding notes on stop and reset (pilot) | Medium | F0 | Merged to `main` with PR 5 (#9) |
+| WENGE-0002 | O2 Stop the backlog burst on Play after idle | Medium | F0 | Merged to `main` with PR 5 (#9) |
+| WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | Merged to `main` with PR 5 (#9) |
+| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan (revision 2) merged into `metronome/command-ring` (#12), not yet on `main`. **Not approved**: D0 to D6 are unanswered. No code, and none until the owner approves it. |
+| WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | Merged to `main` with PR 5 (#9) |
+| WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Approved in r2. Built as PR 7 (#11), merged into `metronome/queue-headroom`, not yet on `main`. Test plan first (`o6-test-plan.md`, section 10 records where the build differed). |
+| WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | Merged to `main` (PR 5, #9). Live `midir` mode not done (Q6). |
+| WENGE-0008 | O8 Real gates: tri-state verify, CI, CODEOWNERS, ratchet | Medium | F0 | Merged to `main` with PR 5 (#9) |
+| WENGE-0009 | O9 Fixture DSL v2 and metamorphic invariants | Low | F0 and ongoing | Started; merged to `main` with PR 5 (#9) (PR 3: DSL v2, transport invariants. PR 4: DSL v3 `vel`, `mcc`, `bend`, `pressure`, and buffer-size, order and velocity invariants) |
+| WENGE-0010 | O10 Emission details and doc drift | Medium | F1 | Merged to `main` with PR 5 (#9). Doc drift was fixed in PR 1. |
+| WENGE-0011 | Review findings: queue headroom (1,024), overload counters in `octorun`, `play N step` guard | Medium | F1 | Merged into `conductor/octorun` (PR 6, #10), not yet on `main`. Task added by the independent review. |
 | WENGE-0012 | Tick resolution: 192 ticks per quarter in the engine, per whole note in the manual (found while planning O4, decision D0) | High | Before F2 4b, if approved | Triage only (`handoffs/WENGE-0012.ndjson`). Not approved and not specified. The owner decides D0 first; the engine is untouched. |
 
 ## Pull request series
@@ -91,16 +91,21 @@ owner merges, in order. Nothing merges on the strength of an agent's own status 
 | 2 | #6, merged into `conductor/factory-layer` | `referee/ratchet` | WENGE-0008 | PR 1 |
 | 3 | #7, merged into `referee/ratchet` | `metronome/transport-safety` | WENGE-0001, 0002, 0009 | PR 2 |
 | 4 | #8, merged into `metronome/transport-safety` | `metronome/timing-and-emission` | WENGE-0003, 0005, 0010 | PR 3 |
-| 5 | #9, open, retargeted to `main` | `conductor/octorun` | WENGE-0007 | PRs 1 to 4 |
-| 6 | #10, open | `metronome/queue-headroom` | WENGE-0011 | PR 5 |
-| 7 | #11, open | `metronome/command-ring` | WENGE-0006 | PR 6 |
-| 8 | #12, open | `conductor/o4-release-plan` | WENGE-0004 (plan only, no code) | PR 7 |
+| 5 | #9, merged into `main` | `conductor/octorun` | WENGE-0007 | PRs 1 to 4 |
+| 6 | #10, merged into `conductor/octorun` | `metronome/queue-headroom` | WENGE-0011 | PR 5 |
+| 7 | #11, merged into `metronome/queue-headroom` | `metronome/command-ring` | WENGE-0006 | PR 6 |
+| 8 | #12, merged into `metronome/command-ring` | `conductor/o4-release-plan` | WENGE-0004 (plan only, no code) | PR 7 |
 
 **What happened to the stack.** The owner merged #5 to #8 in order, but the branches were not
 deleted after each merge, so GitHub did not retarget the next pull request to `main`. #6, #7
-and #8 were merged into their parent branches and `main` holds only PR 1. Nothing was lost:
-PR 5's branch contains all of it, so #9 now targets `main` and merging it brings PRs 2 to 5
-in. For a stack, delete each branch when it merges, or merge the top of the stack.
+and #8 were merged into their parent branches and `main` held only PR 1. #9 was retargeted to
+`main` and merged, which brought PRs 2 to 5 in. **The same thing then happened to #10, #11 and
+#12**: `conductor/octorun` was not deleted, so #10 merged into it, #11 into
+`metronome/queue-headroom` and #12 into `metronome/command-ring`, and `main` holds PRs 1 to 5
+only. Nothing was lost: `metronome/command-ring` contains all of PRs 6 to 8, and no file
+exists on any other branch that it lacks. The branch `conductor/land-stack` is that tip plus
+this record, and a pull request from it into `main` lands PRs 6 to 8. For a stack, delete each
+branch when it merges, or merge the top of the stack.
 
 `journal/STATE.md` is updated once at the end of the series, so the branches do not
 conflict on it.

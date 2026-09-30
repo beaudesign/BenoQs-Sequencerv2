@@ -3,6 +3,12 @@
 Written on 2026-09-29 evening. Four pull requests are open and none is merged. **The agent
 merges nothing.** CI (`verify` and `wasm-smoke`) is green on the tip of every one of them.
 
+> **Update, 2026-09-30.** All four pull requests were merged, but only #9 into `main`. #10, #11
+> and #12 went into their stacked base branches (the branches were not deleted), so `main` holds
+> PRs 1 to 5. Nothing is lost: `metronome/command-ring` has all of PRs 6 to 8, and the pull
+> request from `conductor/land-stack` into `main` lands them. **Merging #12 was not approval to
+> build O4: D0 to D6 are still unanswered.** The rest of this guide is as written on 2026-09-29.
+
 ## 1. The four pull requests
 
 | PR | Branch → base | What it is | Size | Tier | Needs from you |

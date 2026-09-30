@@ -112,19 +112,20 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   headless runner, golden hashes, WASM smoke test), O8 (real gates, ratchet, CI, CODEOWNERS),
   O10 (ordering, velocity 0, bend and pressure), O9 (fixture DSL v3, invariants), plus
   WENGE-0011 (queue headroom, overload warning) from the independent review.
-- **O6 (command ring and snapshot) approved in r2 and built:** PR #11. Wait-free ring in,
+- **O6 (command ring and snapshot) approved in r2 and built:** PR #11, merged into a stacked branch, not yet on `main`. Wait-free ring in,
   snapshot out, `SetTrack` and `SetStep`, additive C interface (ABI 2), no `unsafe` in
   `octocore`. Loom models plus mutation scripts; two `AcqRel` orderings are reasoned, not tested
   (needs an ARM soak).
 - **O4 (integer tick clock and host lock) approved for a release plan only:** PR #12, revision 2,
-  no code, decisions D0 to D6 for the owner. **D0 is a finding: the engine counts 192 ticks per
+  merged (not approval to build), no code, decisions D0 to D6 still unanswered. **D0 is a finding: the engine counts 192 ticks per
   quarter note and the manual 192 per whole note, so steps play four times too fast.** Engine
   untouched; `WENGE-0012` is the triage record. Nothing for O4 is built until the owner approves.
 - **Not approved, not started:** the design-system and DSP track (Q1, unanswered).
-- **Merge state on 2026-09-29:** PR #5 (factory layer) is on `main`. #6, #7 and #8 were merged
-  into their parent branches, not `main`, so `main` lacks them. #9 was retargeted to `main`
-  and carries PRs 2 to 5; #10, #11 and #12 are stacked on it in that order. Delete each branch
-  on merge. `specs/SPEC-0001/review-guide.md` says what to read, decide and run.
+- **Merge state on 2026-09-30:** `main` holds PRs 1 to 5 (#5, then #9, which carried #6 to #8).
+  #10, #11 and #12 were merged into their stacked base branches, not `main`, because the
+  branches were not deleted (the same trap as #6 to #8). Nothing is lost: `metronome/command-ring`
+  contains PRs 6 to 8. `conductor/land-stack` (that tip plus this record) is the pull request
+  that lands them on `main`. Delete each stacked branch after it lands.
 - **Owner-only:** branch protection and required Code Owner review (make the `verify` check
   required); the `jsonschema` dev-dependency (about 100 lockfile entries).
 - **Known limits:** the 256-events-per-call cap binds above about 4,096 samples on dense
@@ -134,8 +135,8 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   times too short against the manual (D0, `WENGE-0012`)**; legato (manual p.16) and live `midir`
   output are not done.
 
-**Next three steps:** (1) owner reviews and merges #9, #10, #11 in order, and answers D0 and D1
-on #12; (2) Scribe, Referee and Conductor work through `journal/metronome/requests/` (docs 02 and
+**Next three steps:** (1) owner merges the landing PR (`conductor/land-stack`) so `main` holds PRs 6
+to 8, and answers D0 and D1; (2) Scribe, Referee and Conductor work through `journal/metronome/requests/` (docs 02 and
 03, the loom gate and an ARM soak, the `AGENTS.md` crate table); (3) if O4 is approved, the guard
 tests and the null host first, then 4a; if D0 says fix the tick, `WENGE-0012` gets a spec before 4b.
 

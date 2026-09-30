@@ -27,7 +27,7 @@
             "enum": [
               "determinism", "geometry", "color", "frames", "motion",
               "slop", "tokens", "timing", "conformance", "acoustics",
-              "a11y", "arch", "persistence", "regressions"
+              "a11y", "arch", "persistence", "regressions", "scope"
             ]
           },
           "status": { "enum": ["pass", "fail", "skipped", "not_implemented"] },

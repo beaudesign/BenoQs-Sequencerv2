@@ -1,0 +1,15 @@
+# Where the banned phrases may still appear (verify:scope, ADR-0006).
+#
+# History keeps its words. An entry ending in a slash allows the directory and everything
+# below it; any other entry allows exactly that file. Nothing else is allowed, and a new entry
+# widens the gate, so it needs the Referee and a reason in the pull request. Owned by the Referee.
+adr/
+handoffs/
+journal/
+specs/SPEC-0001/
+specs/SPEC-0002/
+archive/
+reference/
+harness/baseline.txt
+harness/scope-banned.txt
+harness/scope-allow.txt

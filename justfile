@@ -72,6 +72,8 @@ verify-determinism:
 	@cargo xtask gate determinism
 verify-persistence:
 	@cargo xtask gate persistence
+verify-scope:
+	@cargo xtask gate scope
 
 # Deterministic offline capture of a registered scene. Not wired yet — no
 # renderer exists. See harness/capture/ and docs/07-verification.md §2.

@@ -1,0 +1,28 @@
+# Phrases that must not appear in the live tree (verify:scope, ADR-0006, SPEC-0002 D9).
+#
+# The product is a web sequencer. These phrases belong to the generated-room product that
+# was removed. One phrase per line, matched without regard to case, as whole words, with any
+# whitespace between words. Words on either side may be separated by a slash, colon, hyphen
+# or underscore. This file and harness/scope-allow.txt are the only places they may sit
+# outside the allow-list.
+#
+# Adding a phrase is free. Removing one loosens the gate: it needs an ADR with a reason and an
+# expiry (CLAUDE.md rule 3), and MIN_BANNED in xtask/src/scope.rs must be lowered in the same
+# change. Owned by the Referee.
+rehearsal room
+light probe
+environment probe
+impulse response
+convolution
+octoroom
+octoshell
+sceneshaper
+genie
+rt60
+eyring
+hdri
+room contract
+room dropdown
+room schema
+prompt-to-room
+probe cross-fade

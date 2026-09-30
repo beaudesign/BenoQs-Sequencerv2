@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 
 use crate::baseline::{Baseline, Violation};
 use crate::cargo_out::Parsed;
+use crate::scope::{self, Scan};
 
 pub struct GateDef {
     pub name: &'static str,
@@ -31,12 +32,13 @@ pub const GATES: &[GateDef] = &[
     GateDef { name: "regressions", owner: "referee" },
     GateDef { name: "determinism", owner: "referee" },
     GateDef { name: "persistence", owner: "conductor" },
+    GateDef { name: "scope", owner: "referee" },
 ];
 
 /// The gates that `evaluate` computes. Every other gate reports `not_implemented`.
 /// `xtask gate <name>` uses this list, so it cannot disagree with `xtask verify`. A test
 /// checks that this list and the match in `evaluate` say the same thing.
-pub const WIRED: &[&str] = &["conformance", "regressions", "determinism"];
+pub const WIRED: &[&str] = &["conformance", "regressions", "determinism", "scope"];
 
 pub fn is_wired(name: &str) -> bool {
     WIRED.contains(&name)
@@ -151,6 +153,8 @@ pub struct Inputs<'a> {
     /// The baseline at the base ref, when `--base` was given.
     pub base: Option<&'a Baseline>,
     pub adr_exists: &'a dyn Fn(&str) -> bool,
+    /// The scan of the tree for the banned phrases (`scope`).
+    pub scope: &'a Scan,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -175,6 +179,7 @@ pub fn evaluate(inp: &Inputs) -> (Vec<Gate>, Assertions) {
         .map(|def| match def.name {
             "conformance" => conformance(def, inp),
             "determinism" => determinism(def, inp),
+            "scope" => scope_gate(def, inp.scope),
             "regressions" => regressions(def, inp, &passing, &failed, base_violations.as_deref()),
             _ => Gate {
                 name: def.name,
@@ -284,6 +289,29 @@ fn determinism(def: &GateDef, inp: &Inputs) -> Gate {
     finish(def, inp.run.duration_s, metrics, failures)
 }
 
+/// The rooms product must stay out of the tree (ADR-0006, `specs/SPEC-0002/removal-plan.md`
+/// section 5). Passes when no banned phrase sits outside the allow-list, the banned list still
+/// has its floor of phrases, and the scan looked at a real tree.
+pub fn scope_gate(def: &GateDef, scan: &Scan) -> Gate {
+    let mut failures = Vec::new();
+    for p in &scan.problems {
+        failures.push(Failure::new("scope", p.clone()));
+    }
+    for h in &scan.hits {
+        let at = if h.line == 0 { format!("{} (path)", h.path) } else { format!("{}:{}", h.path, h.line) };
+        failures.push(Failure::new(
+            at,
+            format!("banned phrase '{}'. Remove it. An allow-list entry needs the Referee (harness/scope-allow.txt)", h.phrase),
+        ));
+    }
+    let metrics = vec![
+        Metric::new("scope.banned_phrases_found", scan.hits.len(), "hits", Comparator::Eq, 0),
+        Metric::new("scope.banned_phrases_listed", scan.banned_listed, "phrases", Comparator::Gte, scope::MIN_BANNED),
+        Metric::new("scope.files_scanned", scan.files_scanned, "files", Comparator::Gte, scope::MIN_FILES_SCANNED),
+    ];
+    finish(def, scan.duration_s, metrics, failures)
+}
+
 fn regressions(
     def: &GateDef,
     inp: &Inputs,
@@ -370,7 +398,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
     fn eval(out: &str, baseline: &Baseline, base: Option<&Baseline>) -> Vec<Gate> {
         let run = TestRun { parsed: parse(out), duration_s: 1.0, build_error: None };
         let fixtures = set(&["tests/conformance/x.fixture"]);
-        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline, base, adr_exists: &|_| false };
+        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline, base, adr_exists: &|_| false, scope: &Scan::clean() };
         evaluate(&inputs).0
     }
 
@@ -398,7 +426,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
     fn every_schema_gate_is_listed_exactly_once() {
         let schema = [
             "determinism", "geometry", "color", "frames", "motion", "slop", "tokens", "timing",
-            "conformance", "acoustics", "a11y", "arch", "persistence", "regressions",
+            "conformance", "acoustics", "a11y", "arch", "persistence", "regressions", "scope",
         ];
         assert_eq!(GATES.len(), schema.len());
         for name in schema {
@@ -413,7 +441,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         assert_eq!(status(&gates, "regressions"), Status::Pass);
         assert_eq!(status(&gates, "determinism"), Status::Pass);
         assert_eq!(status(&gates, "geometry"), Status::NotImplemented);
-        assert_eq!(gates.iter().filter(|g| g.status == Status::NotImplemented).count(), GATES.len() - 3);
+        assert_eq!(status(&gates, "scope"), Status::Pass);
+        assert_eq!(gates.iter().filter(|g| g.status == Status::NotImplemented).count(), GATES.len() - WIRED.len());
     }
 
     #[test]
@@ -466,7 +495,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
     fn a_build_error_fails_both_wired_gates() {
         let run = TestRun { parsed: Parsed::default(), duration_s: 0.5, build_error: Some("error[E0432]".into()) };
         let fixtures = set(&["tests/conformance/x.fixture"]);
-        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline: &baseline(), base: None, adr_exists: &|_| true };
+        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline: &baseline(), base: None, adr_exists: &|_| true, scope: &Scan::clean() };
         let (gates, _) = evaluate(&inputs);
         assert_eq!(status(&gates, "conformance"), Status::Fail);
         assert_eq!(status(&gates, "regressions"), Status::Fail);
@@ -493,7 +522,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         let fixtures = set(&["tests/conformance/x.fixture", "tests/conformance/y.fixture"]);
         let mut b = baseline();
         b.tests.remove("octocore::a::two");
-        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline: &b, base: None, adr_exists: &|_| true };
+        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline: &b, base: None, adr_exists: &|_| true, scope: &Scan::clean() };
         let (_, a) = evaluate(&inputs);
         assert_eq!(a.total, 3 + 2);
         assert_eq!(a.previous_total, 2 + 1);
@@ -531,5 +560,43 @@ test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         // Only four ran: a pattern was dropped without saying so.
         let four = out.replace("test phrases ... ok\n", "").replace("5 passed", "4 passed");
         assert_eq!(status(&eval(&four, &baseline(), None), "determinism"), Status::Fail);
+    }
+
+    #[test]
+    fn the_scope_gate_fails_on_a_hit_and_passes_on_a_clean_scan() {
+        let def = GATES.iter().find(|g| g.name == "scope").unwrap();
+        assert_eq!(scope_gate(def, &Scan::clean()).status, Status::Pass);
+
+        let mut dirty = Scan::clean();
+        dirty.hits.push(scope::Hit { path: "docs/a.md".into(), line: 7, phrase: "x".into() });
+        let g = scope_gate(def, &dirty);
+        assert_eq!(g.status, Status::Fail);
+        assert_eq!(g.failures[0].subject, "docs/a.md:7");
+
+        let mut in_path = Scan::clean();
+        in_path.hits.push(scope::Hit { path: "crates/x/Cargo.toml".into(), line: 0, phrase: "x".into() });
+        assert_eq!(scope_gate(def, &in_path).failures[0].subject, "crates/x/Cargo.toml (path)");
+    }
+
+    #[test]
+    fn the_scope_gate_fails_when_it_scanned_almost_nothing_or_the_list_shrank() {
+        let def = GATES.iter().find(|g| g.name == "scope").unwrap();
+        let mut empty = Scan::clean();
+        empty.files_scanned = 3;
+        assert_eq!(scope_gate(def, &empty).status, Status::Fail, "a scan of three files proves nothing");
+
+        let mut shrunk = Scan::clean();
+        shrunk.banned_listed = scope::MIN_BANNED - 1;
+        assert_eq!(scope_gate(def, &shrunk).status, Status::Fail, "dropping a phrase is a loosening");
+    }
+
+    #[test]
+    fn the_scope_gate_reports_a_missing_list_file_as_a_failure() {
+        let def = GATES.iter().find(|g| g.name == "scope").unwrap();
+        let mut s = Scan::clean();
+        s.problems.push("harness/scope-allow.txt: No such file or directory".into());
+        let g = scope_gate(def, &s);
+        assert_eq!(g.status, Status::Fail);
+        assert!(g.failures[0].detail.contains("scope-allow.txt"));
     }
 }

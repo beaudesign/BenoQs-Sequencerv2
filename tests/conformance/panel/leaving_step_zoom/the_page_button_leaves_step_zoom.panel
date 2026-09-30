@@ -10,6 +10,8 @@ expect command SetMode mode=Page
 expect commands 1
 expect mode page
 expect engine mode page
-at 2000 ms click step(3,5)
-expect command SetStep track=3 step=4 attr=Active value=1
 expect led step(3,5) = green steady
+at 2000 ms click step(3,5)
+expect command SetStep track=3 step=4 attr=Active value=0
+expect engine step 3 5 active = false
+expect led step(3,5) = off

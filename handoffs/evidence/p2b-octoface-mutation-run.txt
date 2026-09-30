@@ -1,0 +1,34 @@
+# P2b: 27 deliberate breakages of crates/octoface/src/panel.rs, each run against
+# `cargo test -p octoface --test panel_fixtures`. A breakage is "caught" when at least one panel
+# fixture fails. All 27 were caught; none survived. (Three first failed to compile because the
+# breakage left a match arm missing; they were rewritten to keep the match exhaustive and re-run.)
+#
+# The edit was made in a scratch copy of the file and reverted each time; the committed file is the
+# unmutated one.
+caught  toggle inverted
+caught  unskip toggles active instead
+caught  edit cycle skips perform
+caught  edit cycle starts in preview
+caught  preview also sets the step
+caught  perform plays the step
+caught  zoom ignores the hold
+caught  esc does not leave zoom
+caught  page button does not leave zoom
+caught  zom does not leave zoom
+caught  leaving zoom sends no mode
+caught  zoom sends no mode
+caught  row 0 key does not move the selection
+caught  skip wins over hyperstep wrongly (Hyperstep & Skip mute LED steady instead of shine)
+caught  footnote ignored (Event & Skip but toggled off)
+caught  off step flashes green
+caught  on and skip mute LED off
+caught  page LED: skip loses to on
+caught  stop does not discard
+caught  program does not keep
+caught  play again keeps instead of discarding
+caught  play LED not flashing
+caught  program LED off in PLAY mode
+caught  TGL toggles skip instead of active
+caught  Main Mute toggles active instead of skip
+caught  ZOM LED not red in Step zoom
+caught  zoom focus off by one step

@@ -1,0 +1,10 @@
+== fixture: play N step overflow, before the fix (parent behaviour) ==
+test fixture::tests::a_play_count_that_overflows_is_an_error_not_a_panic_or_a_wrap ... FAILED
+---- fixture::tests::a_play_count_that_overflows_is_an_error_not_a_panic_or_a_wrap stdout ----
+thread 'fixture::tests::a_play_count_that_overflows_is_an_error_not_a_panic_or_a_wrap' (15157) panicked at crates/octocore/src/fixture.rs:450:29:
+attempt to multiply with overflow
+   2: core::panicking::panic_const::panic_const_mul_overflow
+   5: octocore::fixture::tests::a_play_count_that_overflows_is_an_error_not_a_panic_or_a_wrap
+   6: octocore::fixture::tests::a_play_count_that_overflows_is_an_error_not_a_panic_or_a_wrap::{{closure}}
+    fixture::tests::a_play_count_that_overflows_is_an_error_not_a_panic_or_a_wrap
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 103 filtered out; finished in 0.10s

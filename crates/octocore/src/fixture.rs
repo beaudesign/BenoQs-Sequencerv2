@@ -33,8 +33,12 @@
 //! event matches; `absent` means none.
 
 use crate::domain::*;
-use crate::engine::{Engine, EventBuffer, NoteFire, RenderContext};
+use crate::engine::{Diagnostics, Engine, EventBuffer, NoteFire, RenderContext};
 use crate::types::{Command, Event};
+
+/// The most steps one `play N step` directive runs: 1.2 million ticks. The count times 12
+/// ticks has to fit a `u32`, and a typo should be an error, not minutes of ticking.
+const MAX_PLAY_STEPS: u32 = 100_000;
 
 /// One collected output event with its absolute sample position.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -175,6 +179,10 @@ pub struct Played {
     /// False if a `samplerate` directive changed the rate after rendering began. The sample
     /// positions above then mix two rates and a converter must refuse them.
     pub sample_rate_constant: bool,
+    /// The engine's counters at the end of the script: events it refused, deferred or sent
+    /// late. A pattern that overloads the event queue plays incompletely, and a tool that
+    /// records the stream should say so.
+    pub diagnostics: Diagnostics,
 }
 
 /// Ceilings for a script run by a tool, so a typo (`render 10000000 s`) is an error and not
@@ -447,6 +455,9 @@ pub fn run_script(source: &str, limits: Limits) -> Result<Played, String> {
                 // the default 1x multiplier) — one call to `step_once_for_test`
                 // is one *tick*, not one step; see docs/03-sequencer-core.md §2.
                 let steps: u32 = n.parse().map_err(|_| format!("{}: bad step count", ctx()))?;
+                if steps > MAX_PLAY_STEPS {
+                    return Err(format!("{}: play {steps} step is too long, the most is {MAX_PLAY_STEPS} steps", ctx()));
+                }
                 let ticks = steps * DEFAULT_STEP_TICKS;
                 for _ in 0..ticks {
                     engine.step_once_for_test();
@@ -489,7 +500,7 @@ pub fn run_script(source: &str, limits: Limits) -> Result<Played, String> {
         }
     }
 
-    Ok(Played { events: all, tempo, sample_rate, samples: clock, sample_rate_constant })
+    Ok(Played { events: all, tempo, sample_rate, samples: clock, sample_rate_constant, diagnostics: engine.diagnostics() })
 }
 
 #[cfg(test)]
@@ -697,5 +708,16 @@ mod tests {
         assert!(run_script("track 0 dir 5\ntrack 0 grv 16\n", Limits::NONE).is_ok());
         assert!(run_script("track 0 grv 17\n", Limits::NONE).unwrap_err().contains("grv is 0..=16"));
         assert!(run_script("track 10 dir 1\n", Limits::NONE).unwrap_err().contains("out of range"));
+    }
+
+    #[test]
+    fn a_play_count_that_overflows_is_an_error_not_a_panic_or_a_wrap() {
+        // 400,000,000 steps is 4.8 billion ticks, more than a u32 holds. It used to
+        // overflow (a panic in a debug build, a wrap to a short run in a release build).
+        for n in ["400000000", "4294967295", "100001"] {
+            let e = run_fixture(&format!("play {n} step\n")).unwrap_err();
+            assert!(e.contains("play") && e.contains("too long"), "{n}: {e}");
+        }
+        assert!(run_fixture("play 1 step\n").is_ok());
     }
 }

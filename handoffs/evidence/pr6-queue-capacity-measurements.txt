@@ -1,0 +1,30 @@
+== Event queue capacity 512 against 1024, 48 kHz, 10 s of playback per row ==
+Scenes (committed as `stress_scene` in crates/octocore/tests/invariants.rs):
+  chords: 10 tracks x 16 steps, every step on, 6-note chord, strum 5
+  dense:  the same, plus 4x speed on every track, groove 8, and a phrase on every step
+"overflows" is Diagnostics::queue_overflows, "high_water" is queue_high_water.
+Timings are from a shared cloud container and move by 2x between identical runs.
+Compare the counters, not the microseconds.
+
+QUEUE_CAP = 512 (the parent, be052fe)
+chords: buf=64  bpm=240 events=89370  p50=2690ns p99=7747ns  p99.9=20029ns | overflows=0      high_water=410
+chords: buf=512 bpm=120 events=44530  p50=8690ns p99=17894ns p99.9=30087ns | overflows=0      high_water=430
+dense:  buf=64  bpm=240 events=111186 p50=2947ns p99=10202ns p99.9=39845ns | overflows=230708 high_water=512
+dense:  buf=512 bpm=240 events=89614  p50=24447ns p99=46393ns p99.9=61763ns | overflows=241294 high_water=512
+
+QUEUE_CAP = 1024 (this branch), two runs
+chords: buf=64  bpm=240 events=89370  p50=2600ns p99=7243ns  p99.9=23058ns | overflows=0      high_water=410
+chords: buf=512 bpm=120 events=44530  p50=8219ns p99=20382ns p99.9=36899ns | overflows=0      high_water=430
+dense:  buf=64  bpm=240 events=197282 p50=5786ns p99=30844ns p99.9=112365ns | overflows=187409 high_water=1024
+dense:  buf=512 bpm=240 events=163247 p50=40105ns p99=83149ns p99.9=120779ns | overflows=204254 high_water=1024
+
+Reading:
+- The chords scene peaks at 410 to 430 events either way: with 512 it used 80% to 84% of the
+  queue, with 1024 about 41%. That is the headroom this change buys.
+- The dense scene still overflows at 1024 (187,409 refused in 10 s). It asks for more than any
+  sensible queue holds. It is the overload scene, and the point is that the engine says so.
+- The dense scene emitted 111,186 events at 512 and 197,282 at 1024, so the earlier
+  "p50 8.9 us -> 2.8 us" comparison (two different scenes, one refusing two thirds of its
+  notes) is not a like-for-like measurement and is withdrawn.
+- 0 allocations in 30 s of dense render at 1024 (counting allocator).
+- The worst p99.9 above is 120.8 us, 9.1% of the 1,333 us budget of a 64-sample buffer.

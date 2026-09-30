@@ -1,0 +1,15 @@
+== queue headroom test on QUEUE_CAP = 512 (the parent behaviour), review finding 4 ==
+test a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times ... ok
+test a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full ... FAILED
+test event_times_survive_a_host_that_changes_its_buffer_size_on_every_call ... ok
+test overload_is_counted_and_refuses_whole_notes_never_half ... ok
+thread 'a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full' (14714) panicked at crates/octocore/tests/invariants.rs:395:5:
+the queue reached 410 of 512 slots
+test result: FAILED. 16 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.87s
+
+== after QUEUE_CAP = 1024 ==
+test a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times ... ok
+test a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full ... ok
+test event_times_survive_a_host_that_changes_its_buffer_size_on_every_call ... ok
+test overload_is_counted_and_refuses_whole_notes_never_half ... ok
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.81s

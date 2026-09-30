@@ -60,7 +60,7 @@ mod tests {
     use super::*;
 
     fn played(events: Vec<(u64, Event)>) -> Played {
-        Played { events, tempo: vec![(0, 120.0), (48_000, 133.5)], sample_rate: 48_000.0, samples: 96_000, sample_rate_constant: true }
+        Played { events, tempo: vec![(0, 120.0), (48_000, 133.5)], sample_rate: 48_000.0, samples: 96_000, sample_rate_constant: true, diagnostics: Default::default() }
     }
 
     #[test]

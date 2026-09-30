@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use octocore::domain::{STEP_COUNT, TRACK_COUNT};
 use octocore::rng::Rng;
 use octocore::types::Command;
-use octocore::{Engine, Event, EventBuffer, RenderContext};
+use octocore::{Diagnostics, Engine, Event, EventBuffer, RenderContext, QUEUE_CAP};
 
 const SAMPLE_RATE: f32 = 48_000.0;
 const SEEDS: u64 = 96;
@@ -240,19 +240,28 @@ fn play_command_after_idle_does_not_replay_the_backlog() {
 
 // ---------------------------------------------------------------------- WENGE-0003
 
-/// The events of `seconds` of playback, as (absolute sample, event), rendered in buffers of
-/// `buffer` samples, in a canonical order. Only events before the `seconds` mark are kept,
-/// so hosts with different buffer sizes (which end at different samples) compare equal.
-fn stream_with_buffer(seed: u64, bpm: f32, buffer: u32, seconds: f64) -> Vec<(u64, Event)> {
+/// The events of `seconds` of playback, as (absolute sample, event), rendered by a host whose
+/// buffer sizes cycle through `sizes`, in a canonical order. Only events before the
+/// `seconds` mark are kept, so hosts with different buffer sizes (which end at different
+/// samples) compare equal. Also returns the engine's counters, so a test can say that
+/// nothing was refused, deferred or late on the way.
+fn stream_with_sizes(seed: u64, bpm: f32, sizes: &[u32], seconds: f64) -> (Vec<(u64, Event)>, Diagnostics) {
     let horizon = (seconds * SAMPLE_RATE as f64) as u64;
     let mut host = Host::new(random_engine(seed), bpm);
+    let mut i = 0;
     while host.clock < horizon + 4096 {
-        host.render(buffer, true);
+        host.render(sizes[i % sizes.len()], true);
+        i += 1;
     }
+    let diagnostics = host.engine.diagnostics();
     let mut got: Vec<(u64, Event)> =
         host.events.into_iter().filter(|(t, _)| *t < horizon).map(|(t, e)| (t, without_position(e))).collect();
     got.sort_by_key(|(t, e)| (*t, format!("{e:?}")));
-    got
+    (got, diagnostics)
+}
+
+fn stream_with_buffer(seed: u64, bpm: f32, buffer: u32, seconds: f64) -> Vec<(u64, Event)> {
+    stream_with_sizes(seed, bpm, &[buffer], seconds).0
 }
 
 /// SPEC-0001 A3. Where an event lands in time is a property of the pattern and the tempo,
@@ -272,7 +281,10 @@ fn event_times_do_not_depend_on_the_hosts_buffer_size() {
         let reference = stream_with_buffer(seed, bpm, 512, 2.0);
         assert!(reference.len() > 20, "seed {seed}: a scenario with no events tests nothing");
         for buffer in [7u32, 32, 64, 100, 128, 480, 1024, 4096] {
-            let got = stream_with_buffer(seed, bpm, buffer, 2.0);
+            let (got, d) = stream_with_sizes(seed, bpm, &[buffer], 2.0);
+            if (d.queue_overflows, d.deferred_events, d.late_events) != (0, 0, 0) {
+                failing.push(format!("seed {seed} bpm {bpm}: buffer {buffer} refused, deferred or delayed events: {d:?}"));
+            }
             if got != reference {
                 // Events in `got` with no equal in `reference` (each one matched at most once).
                 let mut unmatched: Vec<&(u64, Event)> = reference.iter().collect();
@@ -291,6 +303,113 @@ fn event_times_do_not_depend_on_the_hosts_buffer_size() {
         }
     }
     assert!(failing.is_empty(), "the output depends on the buffer size:\n{}", failing.join("\n"));
+}
+
+/// Review finding (PR 4): the test above only used one fixed size per run and stopped at 7.
+/// A real host also hands over odd and changing sizes, and one sample at a time is the
+/// smallest buffer there is. Events must land at the same samples for all of them, and the
+/// engine must say it refused, deferred and delayed nothing on the way.
+#[test]
+fn event_times_survive_a_host_that_changes_its_buffer_size_on_every_call() {
+    let cycle = [32u32, 480, 64, 1024, 7, 4096, 100, 1, 512];
+    let mut failing = Vec::new();
+    for seed in 0..8u64 {
+        let mut rng = Rng::new(seed + 5000);
+        let bpm = random_bpm(&mut rng);
+        let (reference, _) = stream_with_sizes(seed, bpm, &[512], 1.0);
+        assert!(reference.len() > 10, "seed {seed}: a scenario with no events tests nothing");
+        let (got, d) = stream_with_sizes(seed, bpm, &cycle, 1.0);
+        if got != reference {
+            failing.push(format!("seed {seed} bpm {bpm}: {} events against {} at a fixed 512", got.len(), reference.len()));
+        }
+        if (d.queue_overflows, d.deferred_events, d.late_events) != (0, 0, 0) {
+            failing.push(format!("seed {seed} bpm {bpm}: counters {d:?}"));
+        }
+    }
+    assert!(failing.is_empty(), "a varying buffer size changes the output:\n{}", failing.join("\n"));
+}
+
+/// The one-sample host, where the lookahead does the most work, on its own so the ordinary
+/// test stays fast.
+#[test]
+fn a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times() {
+    for seed in 0..4u64 {
+        let mut rng = Rng::new(seed + 6000);
+        let bpm = random_bpm(&mut rng);
+        let (reference, _) = stream_with_sizes(seed, bpm, &[512], 0.5);
+        let (got, d) = stream_with_sizes(seed, bpm, &[1], 0.5);
+        assert!(reference.len() > 5, "seed {seed}: a scenario with no events tests nothing");
+        assert_eq!(got, reference, "seed {seed} bpm {bpm}");
+        assert_eq!((d.queue_overflows, d.deferred_events, d.late_events), (0, 0, 0), "seed {seed}: {d:?}");
+    }
+}
+
+// ---------------------------------------------------------------------- queue headroom
+
+/// The stress scene from the audit, committed. Every step of every track is on with a
+/// 6-note chord and a strum. `dense` also runs all tracks at 4x with groove and a phrase on
+/// every step, which is more than the queue can hold: it is the overload scene.
+fn stress_scene(dense: bool) -> Engine {
+    let mut engine = Engine::new(5);
+    for (ti, track) in engine.grid.active_page_mut().tracks.iter_mut().enumerate() {
+        if dense {
+            track.multiplier_num = 4;
+            track.multiplier_den = 1;
+            track.groove = 8;
+        }
+        for (si, step) in track.steps.iter_mut().enumerate() {
+            step.active = true;
+            step.strum = 5;
+            step.chord.count = 6;
+            step.chord.polyphony = 7;
+            step.chord.offsets = [3, 4, 7, 10, 12, 16];
+            if dense {
+                step.phrase = Some(((ti * 3 + si) % 48 + 1) as u8);
+            }
+        }
+    }
+    engine
+}
+
+/// Renders `seconds` of the scene at 64-sample buffers and 240 BPM, then stops and drains.
+fn run_stress(dense: bool, seconds: f64) -> (Host, Diagnostics) {
+    let mut host = Host::new(stress_scene(dense), 240.0);
+    host.render_seconds(seconds, 64, true);
+    // Stop, and render until the flush is out.
+    for _ in 0..64 {
+        host.render(64, false);
+    }
+    let d = host.engine.diagnostics();
+    (host, d)
+}
+
+/// Review finding 4 (PR 4). A pattern a person could really program, with every step a
+/// strummed 6-note chord at 240 BPM, must not come near the queue's capacity. Before this
+/// test the queue held 512 events and this scene used 410 to 430 of them; the tech spec
+/// says 1,024, which leaves it under half full. Nothing may be refused, deferred or late.
+#[test]
+fn a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full() {
+    let (host, d) = run_stress(false, 10.0);
+    assert!(host.events.len() > 50_000, "the scene should be busy, got {} events", host.events.len());
+    assert_eq!((d.queue_overflows, d.deferred_events, d.late_events), (0, 0, 0), "{d:?}");
+    assert!(
+        d.queue_high_water as usize * 2 <= QUEUE_CAP,
+        "the queue reached {} of {QUEUE_CAP} slots",
+        d.queue_high_water
+    );
+    assert!(imbalance(&host.events).is_empty(), "notes left sounding: {:?}", imbalance(&host.events));
+}
+
+/// The overload scene asks for more than any queue holds. The engine must say so through the
+/// counters, must refuse notes whole (never a NoteOn without its NoteOff), and must never
+/// emit an event late because of it.
+#[test]
+fn overload_is_counted_and_refuses_whole_notes_never_half() {
+    let (host, d) = run_stress(true, 5.0);
+    assert!(d.queue_overflows > 0, "the overload scene should overflow the queue: {d:?}");
+    assert_eq!(d.queue_high_water as usize, QUEUE_CAP, "{d:?}");
+    assert_eq!(d.late_events, 0, "{d:?}");
+    assert!(imbalance(&host.events).is_empty(), "a refused note left a half pair: {:?}", imbalance(&host.events));
 }
 
 // ---------------------------------------------------------------------- WENGE-0005

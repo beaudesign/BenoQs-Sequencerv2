@@ -1,0 +1,10 @@
+== octoffi header test with two event tags swapped in octoffi.h (an edit the Rust-only test cannot see) ==
+test tests::new_event_variants_match_the_layout_in_the_c_header ... ok
+test tests::the_header_lists_the_event_tags_and_diagnostic_fields_in_the_rust_order ... FAILED
+thread 'tests::the_header_lists_the_event_tags_and_diagnostic_fields_in_the_rust_order' (17737) panicked at crates/octoffi/src/lib.rs:516:9:
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.10s
+
+== header restored ==
+test tests::new_event_variants_match_the_layout_in_the_c_header ... ok
+test tests::the_header_lists_the_event_tags_and_diagnostic_fields_in_the_rust_order ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s

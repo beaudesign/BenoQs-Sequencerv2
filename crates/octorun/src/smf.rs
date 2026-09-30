@@ -144,7 +144,7 @@ mod tests {
     use super::*;
 
     fn played(events: Vec<(u64, Event)>, tempo: Vec<(u64, f32)>) -> Played {
-        Played { events, tempo, sample_rate: 48_000.0, samples: 96_000, sample_rate_constant: true }
+        Played { events, tempo, sample_rate: 48_000.0, samples: 96_000, sample_rate_constant: true, diagnostics: Default::default() }
     }
 
     fn var(v: u32) -> Vec<u8> {

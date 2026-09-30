@@ -418,6 +418,12 @@ effect on ticks that have not been stepped yet, so up to 12 ticks (one step, 31 
 later than without lookahead. A Stop can leave up to 12 ticks of pattern position already
 consumed, so Play after Stop resumes up to one step further on. Neither affects the notes
 that were already sent, and Stop still silences everything.
+**Also chosen knowingly (review finding 16):** the ticks stepped ahead are timed with the
+tempo in force when they are stepped. If the host slows the tempo inside that lookahead, a
+note already scheduled with the old tempo keeps its old time. After a tempo decrease with an
+extreme STA offset a note can be clamped to the start of the buffer and counted in
+`Diagnostics::late_events`. Not fixed; a constant tempo, which is what a host reports between
+tempo changes, is exact.
 **Alternative:** rewind the position on Stop, or delay all output by 12 ticks and report it as
 latency (its cost changes with tempo). Neither is done.
 **Fixture:** `tests/invariants.rs::event_times_do_not_depend_on_the_hosts_buffer_size`,

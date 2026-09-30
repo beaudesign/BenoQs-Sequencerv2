@@ -8,7 +8,7 @@ This repo holds `crates/octocore` — a from-scratch Rust reimplementation of th
 
 Every non-trivial behavioral constant in `octocore` is cited to a page of the real *Octopus Reference Manual, CE OS v5.30* (genoQs Machines, Stuttgart 2009), which ships in this repo at `reference/manual/`. Where the manual is genuinely ambiguous or a piece of behavior hasn't been implemented yet, that's recorded honestly in `tests/conformance/AMBIGUITIES.md` rather than guessed at silently. The tests and fixtures that must keep passing are listed in `harness/baseline.txt`, and `cargo xtask verify` counts them and refuses a run that lost any. A fresh engine loads the 48 factory phrases (Green / Red / Orange) and applies phrase POS time-compression.
 
-The wenge design vision the crate was built against — a hardware-accurate panel renderer with physically-simulated materials and motion, and a "rehearsal rooms" concept tying acoustic and visual environments together — lives in `SPEC.md` and `docs/`. None of the rendering/room half exists yet; only the sequencer core and its C ABI boundary do. Phrase playback and Track Rotate / Skip Rotate are now wired into the tick loop (CE v5.30 p.16, p.38-39).
+Where it is going: a web sequencer. The engine compiles to WebAssembly; a static page draws the front panel and plays real MIDI to external instruments over Web MIDI, and Ableton Live can use it through a virtual MIDI port. The decision is `adr/0006-web-sequencer-supersedes-the-rooms-scope.md`, the design is `specs/SPEC-0002/`, and the phases are in `docs/09-roadmap.md`. The panel controller, the web app and MIDI input do not exist yet; the sequencer core, its C ABI boundary and the headless runner do. Phrase playback and Track Rotate / Skip Rotate are wired into the tick loop (CE v5.30 p.16, p.38-39).
 
 ## How this repo came to exist
 
@@ -20,7 +20,7 @@ The original repo is unaffected and continues under its own steam.
 
 ## Status
 
-Sequencer core only. No renderer, no shell, no plugin hosts, no room system. See `journal/STATE.md` for the detailed, current state of every piece, and `tests/conformance/AMBIGUITIES.md` for exactly what's confirmed against the manual versus still open.
+Sequencer core, a headless runner and the ratchet. No panel controller, no web app, no MIDI input yet (SPEC-0002 P2 to P4). See `journal/STATE.md` for the detailed, current state of every piece, and `tests/conformance/AMBIGUITIES.md` for exactly what's confirmed against the manual versus still open.
 
 ## Credits
 

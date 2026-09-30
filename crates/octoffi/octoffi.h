@@ -4,8 +4,8 @@
 // environment to generate it instead (it isn't yet — no network/install done
 // for it here).
 //
-// Swift imports this via a bridging header / module map once octopanel or
-// octoshell exist to link against `liboctoffi.a` / `liboctoffi.dylib`.
+// Frozen (SPEC-0002 D5). Its callers today are the tests and the WebAssembly smoke test;
+// a native host, if one is ever built, would link `liboctoffi.a` / `liboctoffi.dylib`.
 
 #ifndef OCTOFFI_H
 #define OCTOFFI_H

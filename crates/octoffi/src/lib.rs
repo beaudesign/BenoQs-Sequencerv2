@@ -5,8 +5,8 @@
 //! interface the whole multi-agent model depends on staying stable).
 //!
 //! Everything here is a thin, allocation-light wrapper: no logic lives in this
-//! crate, only pointer/lifetime bookkeeping and the C-callable entry points Swift
-//! (`octopanel`/`octoshell`) will eventually link against via `octoffi.h`
+//! crate, only pointer/lifetime bookkeeping and the C-callable entry points that the
+//! tests and the WebAssembly smoke test call through `octoffi.h` (frozen, SPEC-0002 D5)
 //! (hand-written alongside this file, not yet run through `cbindgen` — that's
 //! not installed in this dev environment; the header must be kept in sync by
 //! hand until it is).

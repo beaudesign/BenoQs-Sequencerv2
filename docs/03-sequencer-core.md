@@ -174,12 +174,13 @@ pub enum Command {
 ```
 
 Note `ButtonDown` carries an actuation velocity and `EncoderTurn` carries angular
-velocity. The core mostly ignores them, but the *renderer* needs them for physical
-motion (see [Render §6](04-render-engine.md)), and putting them on the command means
-input is described once, physically, rather than twice in two vocabularies.
+velocity. The core mostly ignores them. They were meant for a renderer that simulated
+button travel and encoder inertia; the web panel does not (ADR-0006), so nothing reads
+them today and the web panel sends detent steps. They are kept because changing a
+`repr(C)` command is a breaking change for `octoffi`.
 
-`ControlId` is the same identifier used in `panel.truth.json`. One namespace for the
-whole system.
+`ControlId` is meant to be the identifier used in `contracts/controls.json` (planned, P2).
+One namespace for the whole system. Until then it is an opaque number.
 
 ```rust
 #[repr(C)]

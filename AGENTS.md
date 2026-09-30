@@ -10,16 +10,17 @@ Read in this order: `CLAUDE.md`, this file, `journal/STATE.md`, your role brief 
 
 ## Project context
 
-WENGE is a Rust rebuild of the genoQs Octopus MIDI sequencer, meant to live inside
-generated rehearsal rooms. Today the repo holds a sequencer core and its tests. There is
-no renderer, plugin or UI yet (blocked on Xcode and calibrated photography, see
-`journal/STATE.md`), so the only things that run are tests.
+WENGE is a Rust rebuild of the genoQs Octopus MIDI sequencer, being made into a web
+sequencer that plays live MIDI to external instruments and can be routed into Ableton Live
+(`adr/0006-web-sequencer-supersedes-the-rooms-scope.md`, `specs/SPEC-0002/`). Today the repo
+holds a sequencer core, a headless runner and their tests. There is no panel controller,
+web app or MIDI input yet (SPEC-0002 P2 to P4, see `docs/09-roadmap.md` and
+`journal/STATE.md`), so the only things that run are tests and `octorun`.
 
 | Crate | What it is |
 |---|---|
 | `crates/octocore` | Sequencer core. 192 PPQN tick loop, tracks stepped 9 down to 0, fixed-size `Copy` structs, no dependencies, zero heap allocation on the audio path. |
-| `crates/octoffi` | C ABI over the core. `octoffi.h` is hand-maintained. |
-| `crates/octoroom` | Room geometry and Eyring RT60. Pure Rust half of the acoustics work. |
+| `crates/octoffi` | C ABI over the core. `octoffi.h` is hand-maintained. Frozen (SPEC-0002 D5); the WebAssembly smoke test loads it. |
 | `crates/octorun` | Headless runner. Reads a pattern (the fixture language), writes a byte-reproducible event log and a Standard MIDI File. Golden hashes for 5 patterns in `examples/golden/`. |
 
 The manual in `reference/manual/` wins over any other source of musical behaviour.
@@ -36,7 +37,7 @@ result behind it.
 | Install | `rustup toolchain install stable` and `cargo install just --locked` | Tested with Rust 1.95. |
 | Fast check | `cargo test --release -p octocore` | Seconds. Before every handoff. |
 | All Rust tests | `cargo test --workspace` | `just verify` runs this once and feeds two gates from it. |
-| Full verification | `just verify` | Exits 0 only if no gate failed and every gate in `harness/required-gates.txt` passed. 11 of 14 gates are still `not_implemented`, and the output says so. |
+| Full verification | `just verify` | Exits 0 only if no gate failed and every gate in `harness/required-gates.txt` passed. 6 of 10 gates are still `not_implemented`, and the output says so. |
 | Before a pull request | `just verify --base origin/<base branch>` | Also checks that no test or fixture left `harness/baseline.txt` (the ratchet). CI runs this. |
 | Record new tests | `just baseline` | Adds new tests and fixtures to the ratchet floor. Dropping one needs `--remove <kind> <id> --adr ADR-NNNN`. |
 | One zone | `just verify-<zone>` | Docs write the gate name as `verify:<zone>`. The recipe uses a hyphen because `just` names cannot contain a colon. |
@@ -80,9 +81,10 @@ Every change has a task ID `WENGE-NNNN`. `WENGE-0000` is the factory layer itsel
 | Release | Merge by the owner. High tier also needs a release plan. | Yes |
 | Feedback | Findings and follow-ups are filed as new tasks. | No |
 
-Specs live in `specs/`. The umbrella spec for the current work is
-`specs/SPEC-0001/`. Each task ID maps to one or more of its opportunities in
-`specs/SPEC-0001/README.md`.
+Specs live in `specs/`. `specs/SPEC-0001/` holds the engine plans (O1 to O10, in
+`specs/SPEC-0001/README.md`). `specs/SPEC-0002/` is the web product and the plan that removed
+the old scope; its pull-request series P0 to P5 is in `specs/SPEC-0002/README.md`. Each task
+ID maps to one or more items in one of them.
 
 ### Handoffs
 
@@ -111,7 +113,7 @@ Two axes. Every task gets one pair, for example `(crates/octocore, implementatio
 An agent may wear several hats one after another, never two at once.
 
 Zone roles (where you may edit) are in `agents/ROLES.md`: Conductor, Panelwright, Forge,
-Metronome, Sceneshaper, Loom, Curator, Referee, Scribe. The ownership map is
+Metronome, Curator, Referee, Scribe. The ownership map is
 `docs/08-agent-operating-model.md` section 3, mirrored in `.github/CODEOWNERS`.
 
 Stage roles (what you may do at this point in a task):
@@ -141,10 +143,10 @@ The reviewer copies this into the pull request and answers every line with evide
 
 ## Release and feedback
 
-Nothing ships yet, since no host, plugin or UI exists. Until one does, "release" means
-merge to `main` by the owner after `just verify` and `cargo test --workspace` pass.
-When a plugin build exists, add a smoke test, a rollback step and health signals here,
-and treat any release as high tier.
+Nothing ships yet, since no web app exists. Until one does, "release" means merge to
+`main` by the owner after `just verify` and `cargo test --workspace` pass. When the web app
+is deployed (P3 onward), add a smoke test, a rollback step and health signals here, and
+treat any release as high tier.
 
 Findings from reviews, failed gates and field reports become new task IDs with a
 reproduction. A replay (seed, command log, host clock trace) is the preferred form.

@@ -1,0 +1,111 @@
+# P2b red run: the panel fixtures against the stubbed controller (every input does nothing, every LED is off).
+# Command: cargo test -p octoface   Result: 37 of 37 asserting fixtures fail; the 11 pending fixtures assert nothing.
+# Tests about the files, the contract and the runner itself pass (18); the controller does not exist yet.
+
+warning: method `set` is never used
+  --> crates/octoface/src/led.rs:63:19
+   |
+58 | impl LedFrame {
+   | ------------- method in this implementation
+...
+63 |     pub(crate) fn set(&mut self, id: ControlId, led: Led) {
+   |                   ^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `octoface` (lib) generated 1 warning
+   Compiling octoface v0.1.0 (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/wt-p2b/crates/octoface)
+warning: `octoface` (lib test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.37s
+     Running unittests src/lib.rs (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/p2-target/debug/deps/octoface-14176d0c1b75e44d)
+
+running 6 tests
+test layout::tests::a_complete_inventory_builds_and_maps_both_ways ... ok
+test layout::tests::a_missing_matrix_key_or_role_is_an_error_not_a_panic ... ok
+test layout::tests::a_number_at_or_above_max_controls_is_an_error ... ok
+test layout::tests::matrix_ids_outside_the_grid_are_not_matrix_keys ... ok
+test layout::tests::a_number_or_an_id_used_twice_is_an_error ... ok
+test layout::tests::unused_controls_are_ignored ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contract.rs (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/p2-target/debug/deps/contract-378c2ec5043fff5d)
+
+running 6 tests
+test every_cited_page_exists_in_the_manual ... ok
+test every_question_the_inventory_names_exists ... ok
+test every_zone_named_by_a_control_group_or_relation_exists ... ok
+test numbers_and_ids_are_unique ... ok
+test the_controller_can_be_built_from_the_inventory ... ok
+test controls_json_is_valid_against_its_schema ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/fixture_files.rs (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/p2-target/debug/deps/fixture_files-86c70d96fceb2f3a)
+
+running 4 tests
+test a_fixture_name_is_not_used_twice ... ok
+test a_pending_fixture_names_its_ambiguity_and_question_and_asserts_nothing ... ok
+test an_asserting_fixture_asserts_something ... ok
+test every_panel_fixture_is_cited_to_a_manual_page ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/panel_fixtures.rs (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/p2-target/debug/deps/panel_fixtures-171fdce56fb696d8)
+
+running 3 tests
+test a_fixture_with_a_wrong_expectation_fails_and_the_right_one_passes ... ok
+test the_runner_rejects_what_it_does_not_understand ... ok
+test all_panel_fixtures_pass ... FAILED
+
+failures:
+
+---- all_panel_fixtures_pass stdout ----
+
+thread 'all_panel_fixtures_pass' (5544) panicked at crates/octoface/tests/panel_fixtures.rs:304:5:
+37 of 37 panel fixtures failed:
+edit/a_third_click_returns_to_steady_green_and_keys_toggle_again.panel: line 7: `expect led mode.edit = green steady`: mode.edit: expected green steady, found off
+edit/edit_is_steady_green_by_default.panel: line 4: `expect led mode.edit = green steady`: mode.edit: expected green steady, found off
+edit/in_perform_a_key_sets_nothing_and_plays_nothing.panel: line 6: `expect led mode.edit = green flash`: mode.edit: expected green flash, found off
+edit/in_preview_a_key_plays_the_step_and_sets_nothing.panel: line 7: `expect intent Audition track=3 step=4`: expected intent `Audition track=3 step=4`, the last input gave []
+edit/one_click_is_preview_flashing_orange.panel: line 5: `expect led mode.edit = orange flash`: mode.edit: expected orange flash, found off
+edit/two_clicks_are_perform_flashing_green.panel: line 6: `expect led mode.edit = green flash`: mode.edit: expected green flash, found off
+leaving_step_zoom/esc_in_page_view_sends_nothing_to_the_engine.panel: line 8: `expect led step(3,5) = green steady`: step(3,5): expected green steady, found off
+leaving_step_zoom/esc_leaves_step_zoom.panel: line 9: `expect command SetMode mode=Page`: expected command `SetMode mode=Page`, the last input gave []
+leaving_step_zoom/the_page_button_leaves_step_zoom.panel: line 9: `expect command SetMode mode=Page`: expected command `SetMode mode=Page`, the last input gave []
+leaving_step_zoom/the_zoom_key_leaves_step_zoom.panel: line 9: `expect command SetMode mode=Page`: expected command `SetMode mode=Page`, the last input gave []
+page_view/a_key_turns_an_off_step_on.panel: line 5: `expect command SetStep track=3 step=4 attr=Active value=1`: expected command `SetStep track=3 step=4 attr=Active value=1`, the last input gave []
+page_view/a_key_turns_an_on_step_off.panel: line 5: `expect led step(3,5) = green steady`: step(3,5): expected green steady, found off
+page_view/a_skipped_step_is_unskipped_by_one_press.panel: line 6: `expect led step(2,7) = red steady`: step(2,7): expected red steady, found off
+page_view/row_zero_is_track_zero.panel: line 5: `expect command SetStep track=0 step=0 attr=Active value=1`: expected command `SetStep track=0 step=0 attr=Active value=1`, the last input gave []
+page_view/the_matrix_shows_on_skipped_chord_and_event_steps.panel: line 12: `expect led step(0,1) = green steady`: step(0,1): expected green steady, found off
+play_mode/play_is_green_when_idle.panel: line 4: `expect led mode.play = green steady`: mode.play: expected green steady, found off
+play_mode/pressing_play_again_discards_the_changes.panel: line 6: `expect intent SnapshotRecall`: expected intent `SnapshotRecall`, the last input gave []
+play_mode/pressing_play_flashes_it_orange_and_lights_program_red.panel: line 5: `expect intent SnapshotTake`: expected intent `SnapshotTake`, the last input gave []
+play_mode/program_keeps_the_changes.panel: line 6: `expect engine step 3 5 active = true`: engine step 3 5 active: expected true, found false
+play_mode/stop_outside_play_mode_only_stops.panel: line 5: `expect command Stop`: expected command `Stop`, the last input gave []
+play_mode/stopping_the_sequencer_discards_the_changes.panel: line 6: `expect command Stop`: expected command `Stop`, the last input gave []
+step_zoom/a_bottom_row_key_selects_another_step_of_the_same_track.panel: line 7: `expect led step(0,5) = red flash`: step(0,5): expected red flash, found off
+step_zoom/holding_step_mode_and_pressing_a_key_zooms_into_that_step.panel: line 6: `expect command SetMode mode=Step`: expected command `SetMode mode=Step`, the last input gave []
+step_zoom/main_mute_toggles_skip_on_the_selected_step.panel: line 8: `expect command SetStep track=3 step=4 attr=Skip value=1`: expected command `SetStep track=3 step=4 attr=Skip value=1`, the last input gave []
+step_zoom/table_chord.panel: line 9: `expect led step(0,5) = orange flash`: step(0,5): expected orange flash, found off
+step_zoom/table_chord_and_skipped.panel: line 10: `expect led step(0,5) = red flash`: step(0,5): expected red flash, found off
+step_zoom/table_event.panel: line 9: `expect led step(0,5) = orange flash`: step(0,5): expected orange flash, found off
+step_zoom/table_event_and_skipped.panel: line 10: `expect led step(0,5) = red flash`: step(0,5): expected red flash, found off
+step_zoom/table_event_and_skipped_but_toggled_off.panel: line 9: `expect led step(0,5) = red flash`: step(0,5): expected red flash, found off
+step_zoom/table_hyperstep.panel: line 8: `expect led step(0,5) = red shine`: step(0,5): expected red shine, found off
+step_zoom/table_hyperstep_and_skipped.panel: line 9: `expect led step(0,5) = red flash`: step(0,5): expected red flash, found off
+step_zoom/table_off.panel: line 7: `expect led step(0,5) = red flash`: step(0,5): expected red flash, found off
+step_zoom/table_off_and_skipped.panel: line 8: `expect led step(0,5) = red flash`: step(0,5): expected red flash, found off
+step_zoom/table_on.panel: line 8: `expect led step(0,5) = green flash`: step(0,5): expected green flash, found off
+step_zoom/table_on_and_skipped.panel: line 9: `expect led step(0,5) = red flash`: step(0,5): expected red flash, found off
+step_zoom/tgl_toggles_the_selected_step.panel: line 8: `expect command SetStep track=3 step=4 attr=Active value=1`: expected command `SetStep track=3 step=4 attr=Active value=1`, the last input gave []
+step_zoom/the_zoom_key_is_red_in_step_zoom.panel: line 7: `expect led mutator.zom = red steady`: mutator.zom: expected red steady, found off
+
+
+failures:
+    all_panel_fixtures_pass
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+error: test failed, to rerun pass `-p octoface --test panel_fixtures`

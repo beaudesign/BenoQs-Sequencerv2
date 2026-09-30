@@ -1,0 +1,12 @@
+# panel fixture: one press un-skips a skipped step and leaves it on
+# manual: p014
+# workflow: Page mode step toggle (skip)
+given step 2 7 on
+given step 2 7 skip
+expect led step(2,7) = red steady
+at 0 ms click step(2,7)
+expect command SetStep track=2 step=6 attr=Skip value=0
+expect commands 1
+expect engine step 2 7 skip = false
+expect engine step 2 7 active = true
+expect led step(2,7) = green steady

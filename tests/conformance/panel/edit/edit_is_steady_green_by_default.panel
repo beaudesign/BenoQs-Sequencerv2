@@ -1,0 +1,4 @@
+# panel fixture: EDIT lights steady green by default in Page mode
+# manual: p068
+# workflow: EDIT cycle
+expect led mode.edit = green steady

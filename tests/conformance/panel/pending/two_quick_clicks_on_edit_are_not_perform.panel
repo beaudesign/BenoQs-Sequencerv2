@@ -1,0 +1,6 @@
+# panel fixture: two quick clicks on EDIT are a double-click, not perform
+# manual: p068
+# workflow: EDIT cycle
+# pending: p068 says press EDIT twice, 'and not double-click', and gives no interval that separates the two.
+# question: Q24
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

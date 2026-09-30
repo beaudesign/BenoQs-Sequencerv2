@@ -1,0 +1,12 @@
+# panel fixture: Program keeps the changes and leaves PLAY mode
+# manual: p066
+# workflow: PLAY mode
+at 0 ms click mode.play
+at 1000 ms click step(3,5)
+expect engine step 3 5 active = true
+at 2000 ms click keys.program
+expect intent SnapshotKeep
+expect intents 1
+expect commands 0
+expect engine step 3 5 active = true
+expect led mode.play = green steady

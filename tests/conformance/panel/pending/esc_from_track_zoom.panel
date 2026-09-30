@@ -1,0 +1,6 @@
+# panel fixture: ESC from Track zoom
+# manual: p042, p067
+# workflow: ESC
+# pending: p042 names ZOM as the way out of Track zoom and is silent about ESC; p015 and p057 name ESC for Step mode and the direction map.
+# question: Q07
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

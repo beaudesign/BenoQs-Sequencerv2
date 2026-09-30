@@ -1,0 +1,10 @@
+# panel fixture: a matrix key turns an on step off
+# manual: p068, p018
+# workflow: Page mode step toggle
+given step 3 5 on
+expect led step(3,5) = green steady
+at 0 ms click step(3,5)
+expect command SetStep track=3 step=4 attr=Active value=0
+expect commands 1
+expect engine step 3 5 active = false
+expect led step(3,5) = off

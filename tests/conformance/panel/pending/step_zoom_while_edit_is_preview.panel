@@ -1,0 +1,6 @@
+# panel fixture: hold Step Mode and press a key while EDIT is in preview or perform
+# manual: p013, p068
+# workflow: Step zoom
+# pending: p013 describes the zoom gesture in Page view and p068 says matrix presses play a step in preview; it does not say which wins.
+# question: Q34
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

@@ -1,0 +1,10 @@
+# panel fixture: in EDIT preview a matrix key plays the step and sets nothing
+# manual: p068
+# workflow: EDIT preview
+at 0 ms click mode.edit
+at 1000 ms click step(3,5)
+expect commands 0
+expect intent Audition track=3 step=4
+expect intents 1
+expect engine step 3 5 active = false
+expect led step(3,5) = off

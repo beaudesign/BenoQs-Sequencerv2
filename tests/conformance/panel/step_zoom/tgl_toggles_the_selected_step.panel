@@ -1,0 +1,15 @@
+# panel fixture: TGL toggles the selected step in Step zoom
+# manual: p014
+# workflow: Step zoom, step toggle
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms click mutator.tgl
+expect command SetStep track=3 step=4 attr=Active value=1
+expect commands 1
+expect engine step 3 5 active = true
+expect led step(0,5) = green flash
+at 2000 ms click mutator.tgl
+expect command SetStep track=3 step=4 attr=Active value=0
+expect engine step 3 5 active = false
+expect led step(0,5) = red flash

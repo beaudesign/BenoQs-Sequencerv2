@@ -1,0 +1,7 @@
+# panel fixture: the ZOM key is lit red in Step zoom
+# manual: p014
+# workflow: Step zoom
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+expect led mutator.zom = red steady

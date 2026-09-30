@@ -1,0 +1,11 @@
+# panel fixture: in EDIT perform a matrix key sets nothing and sends no MIDI
+# manual: p069
+# workflow: EDIT perform
+at 0 ms click mode.edit
+at 1000 ms click mode.edit
+expect led mode.edit = green flash
+at 2000 ms click step(3,5)
+expect commands 0
+expect intents 0
+expect engine step 3 5 active = false
+expect led step(3,5) = off

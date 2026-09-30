@@ -6,7 +6,7 @@
 | Spec revision | r2 (the owner approved a release plan and a re-read of the specs, and nothing else) |
 | Plan revision | 2. Revision 1 was read by a session that had not written it; section 11 lists what that review found and where each finding went |
 | Tier | **High** (`AGENTS.md`: clock and host-sync rewrite). Needs both specs, a pull request and this release plan |
-| Status | **Plan for sign-off. No O4 code exists, and none will be written until the owner approves this plan.** Nothing in `crates/` changes in this pull request |
+| Status | **Approved with all defaults in r3 (2026-09-30)**, recorded in `specs/SPEC-0001/README.md`. Step 1 and PR 4a may be built. **PR 4b waits for the owner's answer on D0.** The text below is as written for sign-off; where it says "if you approve", it now means this. Nothing in `crates/` changed in the pull request that carried the plan |
 | Written by | Metronome, from measurements of the engine at `c1e04c1` (the last engine change in PR #11). Programs and outputs are in `handoffs/evidence/o4-baseline/` and `handoffs/evidence/o4-*.txt` |
 | Asks of the owner | Section 0. Seven decisions, D0 to D6, each with a default |
 

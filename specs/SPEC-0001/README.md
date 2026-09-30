@@ -87,7 +87,7 @@ factory layer that carries this spec.
 | WENGE-0001 | O1 Flush sounding notes on stop and reset (pilot) | Medium | F0 | Merged to `main` with PR 5 (#9) |
 | WENGE-0002 | O2 Stop the backlog burst on Play after idle | Medium | F0 | Merged to `main` with PR 5 (#9) |
 | WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | Merged to `main` with PR 5 (#9) |
-| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan (revision 2) on `main` since #13. **Approved in r3 with all defaults** (2026-09-30). Step 1 (null host and guard tests G1 to G5, no engine change): built, PR #14. **PR 4a (integer step accumulators, R1): built**, medium tier, PR #15 (see the series table). **4b waits for the owner's D0 answer**; 4b and 4c need the D3 ADR (the Conductor's). |
+| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan (revision 2) on `main` since #13. **Approved in r3 with all defaults** (2026-09-30). Step 1 (null host and guard tests G1 to G5, no engine change): built, PR #14. **PR 4a (integer step accumulators, R1): built**, medium tier, PR #16 (see the series table). **4b waits for the owner's D0 answer**; 4b and 4c need the D3 ADR (the Conductor's). |
 | WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | Merged to `main` with PR 5 (#9) |
 | WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Approved in r2. Built as PR 7 (#11), merged into `metronome/queue-headroom`, not yet on `main`. Test plan first (`o6-test-plan.md`, section 10 records where the build differed). |
 | WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | Merged to `main` (PR 5, #9). Live `midir` mode not done (Q6). |
@@ -115,12 +115,12 @@ owner merges, in order. Nothing merges on the strength of an agent's own status 
 | 8 | #12, merged into `metronome/command-ring` | `conductor/o4-release-plan` | WENGE-0004 (plan only, no code) | PR 7 |
 | 9 | #13, merged into `main` on 2026-09-30 | `conductor/land-stack` | records; lands PRs 6 to 8 on `main` | `main` |
 | 10 | #14, open | `metronome/o4-guards` | WENGE-0004 step 1: the null host and guards G1 to G5, no engine change | `main` |
-| 11 | #15, open | `metronome/o4-step-accumulators` | WENGE-0004 PR 4a: integer step accumulators | `main`; contains #14's two commits, so it merges cleanly after #14 and shows only its own change once #14 is in |
+| 11 | #16, open | `metronome/o4-step-accumulators` | WENGE-0004 PR 4a: integer step accumulators | `main`; contains #14's two commits, so it merges cleanly after #14 and shows only its own change once #14 is in |
 
 **Since then (2026-09-30).** #13 was merged, so `main` holds PRs 1 to 8 and the record above is
-history. The last two rows (#14 and #15) are both based on `main`, not on each other, so
-**there is no branch to delete between them**: #15 carries #14's two commits, and merging #14
-first leaves #15 showing only 4a.
+history. The last two rows (#14 and #16) are both based on `main`, not on each other, so
+**there is no branch to delete between them**: #16 carries #14's two commits, and merging #14
+first leaves #16 showing only 4a.
 
 **What happened to the stack.** The owner merged #5 to #8 in order, but the branches were not
 deleted after each merge, so GitHub did not retarget the next pull request to `main`. #6, #7

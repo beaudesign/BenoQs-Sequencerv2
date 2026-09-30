@@ -119,7 +119,7 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
 - **O4 (integer tick clock and host lock) plan approved with all defaults in r3 (2026-09-30):**
   build as PRs 4a, 4b, 4c in order. **Built and open for review:** step 1 (#14: the null host and
   guards G1 to G5, no engine change; worst G1 deviation 0.995 samples; ten breakages of the clock each
-  caught) and **PR 4a (#15: integer step accumulators, medium tier)**: 49 of 159 multipliers fired a step
+  caught) and **PR 4a (#16: integer step accumulators, medium tier)**: 49 of 159 multipliers fired a step
   one tick late, now none, at any tick count; goldens byte-identical. Latent: no host can set a
   multiplier yet. **4b and 4c are not started:** 4b waits for the owner's answer on D0, both for the D3
   ADR (the Conductor's). **D0 is a finding: the engine counts 192 ticks per quarter note and the manual
@@ -130,7 +130,7 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   owner). The stacked branches (`conductor/octorun`, `metronome/queue-headroom`,
   `metronome/command-ring`, `conductor/o4-release-plan`, `conductor/land-stack`,
   `conductor/factory-layer`, `referee/ratchet`, `metronome/transport-safety`,
-  `metronome/timing-and-emission`) can be deleted. #14 and #15 are both based on `main`: no stack.
+  `metronome/timing-and-emission`) can be deleted. #14 and #16 are both based on `main`: no stack.
 - **Owner-only:** branch protection and required Code Owner review (make the `verify` check
   required); the `jsonschema` dev-dependency (about 100 lockfile entries).
 - **Known limits:** the 256-events-per-call cap binds above about 4,096 samples on dense
@@ -140,7 +140,7 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   times too short against the manual (D0, `WENGE-0012`)**; legato (manual p.16) and live `midir`
   output are not done.
 
-**Next three steps:** (1) the owner reviews #14 and #15 and answers D0; (2) Scribe, Referee and Conductor work through `journal/metronome/requests/` (docs 02 and
+**Next three steps:** (1) the owner reviews #14 and #16 and answers D0; (2) Scribe, Referee and Conductor work through `journal/metronome/requests/` (docs 02 and
 03, the loom gate and an ARM soak, the `AGENTS.md` crate table, the `verify:timing` gate calling
 `g1_*`); (3) 4b does not start before D0, and if D0 says fix the tick, `WENGE-0012` gets a spec first;
 the D3 ADR before 4b or 4c merges.

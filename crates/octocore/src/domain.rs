@@ -797,6 +797,14 @@ pub enum Mode {
     Step,
 }
 
+impl Mode {
+    pub const ALL: [Mode; 4] = [Mode::Grid, Mode::Page, Mode::Track, Mode::Step];
+
+    pub fn from_u8(i: u8) -> Option<Mode> {
+        Mode::ALL.get(i as usize).copied()
+    }
+}
+
 /// The whole instrument state. Every level from `Bank` down to `Step` is a plain
 /// fixed-size `Copy` type — deliberately, since `Page` (~6KB) is what gets copied
 /// once per tick as the engine's per-tick snapshot (see `engine.rs`), and that copy

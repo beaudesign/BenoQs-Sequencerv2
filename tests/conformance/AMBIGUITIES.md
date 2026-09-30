@@ -448,3 +448,20 @@ about 4,096 samples can reach this. A tempo outside 1 to 999 BPM, or a sample ra
 **Fixture:** `engine::tests::a_full_output_buffer_defers_events_instead_of_dropping_them`,
 `engine::tests::an_unusable_tempo_does_not_wedge_the_clock`,
 `octoffi::tests::a_small_caller_buffer_delays_events_and_never_drops_them`.
+
+## who owns the transport: `RenderContext::playing` or the commands
+
+**Manual reference:** none. The hardware has one transport; this engine has two ways in.
+**Observed, not changed:** `Engine::render` starts with `if ctx.playing != self.running { set_running(ctx.playing) }`.
+`Command::Play`, `Continue`, `Stop` and `HostTransport { playing }` also call `set_running`,
+whether they arrive through `handle_command` or, since SPEC-0001 O6, through the command
+ring (which is drained just before). So a `Play` command is undone in the same call if the
+host's `playing` flag says false, and a `Stop` is undone if it says true. A host that passes
+`playing: engine.is_running()` gets the commands' behaviour; a host that passes its own
+transport state gets its own. `Stop`'s flush of sounding notes and its CC 123 happen either
+way, because they hang off the change of state.
+**Why it is left:** which of the two should win is O4's question (`HostTransport` with
+`ppqn_pos` and `bpm` is still only read for `playing`). The ring did not create the question,
+and it delivers commands in order and before any tick, so the answer will not depend on it.
+**Fixture:** none yet. `tests/link.rs::c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_command`
+shows the two paths agree.

@@ -10,6 +10,10 @@
 #ifndef OCTOFFI_H
 #define OCTOFFI_H
 
+// 1 was this header before the command ring and the snapshot; 2 adds them. Nothing that 1
+// declared has changed. octocore_abi_version() returns the number the library was built with.
+#define OCTOFFI_ABI_VERSION 2
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -19,6 +23,40 @@ extern "C" {
 #endif
 
 typedef struct OctoEngine OctoEngine; // opaque
+
+// --- Attribute numbers, shared by the setters below and by the SetTrack / SetStep commands ---
+typedef enum {
+    OCTO_TRACK_PITCH = 0,
+    OCTO_TRACK_VELOCITY,
+    OCTO_TRACK_LENGTH_FACTOR,
+    OCTO_TRACK_START_FACTOR,
+    OCTO_TRACK_DIRECTION_RAW,
+    OCTO_TRACK_ROTATION,
+    OCTO_TRACK_AMOUNT,
+    OCTO_TRACK_GROOVE,
+    OCTO_TRACK_MIDI_CHANNEL,
+    OCTO_TRACK_MUTED,
+    OCTO_TRACK_SOLOED,
+    OCTO_TRACK_PAUSED,
+    OCTO_TRACK_RECORD_ARMED,
+    OCTO_TRACK_IS_FEEDER,
+    OCTO_TRACK_IS_LISTENER,
+} OctoTrackAttr;
+
+typedef enum {
+    OCTO_STEP_ACTIVE = 0,
+    OCTO_STEP_SKIP,
+    OCTO_STEP_PITCH_OFFSET,
+    OCTO_STEP_VELOCITY_OFFSET,
+    OCTO_STEP_LENGTH_TICKS,
+    OCTO_STEP_LENGTH_MULTIPLIER,
+    OCTO_STEP_START_OFFSET,
+    OCTO_STEP_AMOUNT,
+    OCTO_STEP_STRUM,
+    OCTO_STEP_HYPERSTEP,
+    OCTO_STEP_PHRASE,
+    OCTO_STEP_PHRASE_POS,
+} OctoStepAttr;
 
 // --- Command, mirrors octocore::types::Command (#[repr(C)]) ---
 // A Rust `#[repr(C)]` enum with data is a C-ABI-compatible tagged union: a
@@ -36,6 +74,8 @@ typedef enum {
     OCTO_CMD_SET_MODE,
     OCTO_CMD_HOST_TRANSPORT,
     OCTO_CMD_LOAD_STATE,
+    OCTO_CMD_SET_TRACK, // added with SPEC-0001 O6; earlier tags unchanged. Sizeof(OctoCommand) stays 24.
+    OCTO_CMD_SET_STEP,  // added with SPEC-0001 O6
 } OctoCommandTag;
 
 typedef struct {
@@ -48,6 +88,8 @@ typedef struct {
         struct { uint8_t mode; } set_mode; // 0=Grid 1=Page 2=Track 3=Step
         struct { uint64_t ppqn_pos; float bpm; bool playing; } host_transport;
         struct { uint64_t handle; } load_state;
+        struct { uint8_t track; OctoTrackAttr attr; int32_t value; } set_track;                // active page; track < 10
+        struct { uint8_t track; uint8_t step; OctoStepAttr attr; int32_t value; } set_step;   // active page; track < 10, step < 16
     };
 } OctoCommand;
 
@@ -103,39 +145,6 @@ int32_t octocore_engine_diagnostics(const OctoEngine *engine, OctoDiagnostics *o
 // lib.rs's module comment on why this doesn't need panel.truth.json.
 // track is always < 10, step < 16 (octocore::domain::TRACK_COUNT/STEP_COUNT).
 
-typedef enum {
-    OCTO_TRACK_PITCH = 0,
-    OCTO_TRACK_VELOCITY,
-    OCTO_TRACK_LENGTH_FACTOR,
-    OCTO_TRACK_START_FACTOR,
-    OCTO_TRACK_DIRECTION_RAW,
-    OCTO_TRACK_ROTATION,
-    OCTO_TRACK_AMOUNT,
-    OCTO_TRACK_GROOVE,
-    OCTO_TRACK_MIDI_CHANNEL,
-    OCTO_TRACK_MUTED,
-    OCTO_TRACK_SOLOED,
-    OCTO_TRACK_PAUSED,
-    OCTO_TRACK_RECORD_ARMED,
-    OCTO_TRACK_IS_FEEDER,
-    OCTO_TRACK_IS_LISTENER,
-} OctoTrackAttr;
-
-typedef enum {
-    OCTO_STEP_ACTIVE = 0,
-    OCTO_STEP_SKIP,
-    OCTO_STEP_PITCH_OFFSET,
-    OCTO_STEP_VELOCITY_OFFSET,
-    OCTO_STEP_LENGTH_TICKS,
-    OCTO_STEP_LENGTH_MULTIPLIER,
-    OCTO_STEP_START_OFFSET,
-    OCTO_STEP_AMOUNT,
-    OCTO_STEP_STRUM,
-    OCTO_STEP_HYPERSTEP,
-    OCTO_STEP_PHRASE,
-    OCTO_STEP_PHRASE_POS,
-} OctoStepAttr;
-
 // All setters return false (a no-op) for an out-of-range track/step index
 // rather than crashing. All getters return 0 in that case too, which is
 // indistinguishable from a real 0 — validate track < 10 / step < 16
@@ -144,6 +153,74 @@ bool octocore_track_set_i32(OctoEngine *engine, uint8_t track, OctoTrackAttr att
 int32_t octocore_track_get_i32(const OctoEngine *engine, uint8_t track, OctoTrackAttr attr);
 bool octocore_step_set_i32(OctoEngine *engine, uint8_t track, uint8_t step, OctoStepAttr attr, int32_t value);
 int32_t octocore_step_get_i32(const OctoEngine *engine, uint8_t track, uint8_t step, OctoStepAttr attr);
+
+// --- Link: the command ring and the snapshot (SPEC-0001 O6) ---
+// The engine is single-threaded. Only the audio thread calls octocore_engine_render, and the
+// grid setters above are for offline use, never while a render can run. Everything a host
+// does from another thread goes through the two ends below: an OctoSender for the main thread
+// (commands in) and an OctoReader for the render thread (snapshots out). Each end belongs to
+// one thread at a time. Both are wait-free, and neither allocates after open_link. They keep
+// the shared buffers alive by reference count, so they stay safe to use after the engine is
+// freed.
+
+typedef struct OctoSender OctoSender; // opaque
+typedef struct OctoReader OctoReader; // opaque
+
+uint32_t octocore_abi_version(void);
+
+typedef struct {
+    uint64_t pushed;  // commands pushed
+    uint64_t dropped; // overwritten before the engine took them, or not a command
+    uint64_t applied; // taken and applied by the engine
+} OctoLinkStats;
+
+// Once per engine. 0 on success and *sender, *reader are set. -1 null engine, -2 null out
+// pointer, -3 already open (nothing is written). Allocates: call at setup.
+int32_t octocore_engine_open_link(OctoEngine *engine, OctoSender **sender, OctoReader **reader);
+
+// Wait-free. If the ring (1024 commands) is full, the oldest is overwritten and counted as
+// dropped. Applied by the next render, in order, at most 256 per render, before any tick.
+// false only for a null sender. A tag outside OctoCommandTag is undefined behaviour.
+bool octocore_sender_push(OctoSender *sender, OctoCommand cmd);
+
+// 0, or -1 for a null sender, -2 for a null out.
+int32_t octocore_sender_stats(const OctoSender *sender, OctoLinkStats *out);
+
+// The snapshot, as the engine publishes it at the end of every render. LED and encoder fields
+// are zero until panel.truth.json exists to say which control is which.
+#define OCTO_MAX_CONTROLS 512
+#define OCTO_ENCODER_COUNT 20
+#define OCTO_TRACK_COUNT 10
+
+typedef struct { float r, g, b; } OctoLedColor;
+typedef struct { OctoLedColor color; float target; } OctoLed;
+typedef struct { float angle_radians; int32_t detent_index; } OctoEncoderState;
+typedef struct { uint8_t step_index; uint8_t track_index; } OctoPlayheadState;
+typedef struct { bool playing; uint64_t tick; } OctoTransportState;
+typedef struct { uint8_t bank; uint8_t page; } OctoActiveRefs;
+
+typedef struct {
+    uint64_t generation; // number of renders published; 0 before the first
+    OctoLed leds[OCTO_MAX_CONTROLS];
+    OctoEncoderState encoders[OCTO_ENCODER_COUNT];
+    OctoPlayheadState playheads[OCTO_TRACK_COUNT];
+    OctoTransportState transport;
+    uint8_t mode; // 0=Grid 1=Page 2=Track 3=Step
+    OctoActiveRefs active;
+} OctoSnapshot;
+// The snapshot leads the sound: the engine steps up to 12 ticks ahead of the audio before it
+// publishes, so transport.tick and the playheads are about 13 ticks ahead of what is playing.
+// A display that must line up with the sound has to delay by that many ticks.
+
+// Takes the newest published snapshot if there is one newer than the last claim, and returns
+// a pointer to the reader's copy. With nothing new it returns the last one (all zero, generation 0,
+// before the first publish): compare generation. The pointer is the same on every call and stays
+// valid until octocore_reader_free; its contents change only inside this function. NULL for a
+// null reader.
+const OctoSnapshot *octocore_reader_claim(OctoReader *reader);
+
+void octocore_sender_free(OctoSender *sender);
+void octocore_reader_free(OctoReader *reader);
 
 #ifdef __cplusplus
 }

@@ -83,16 +83,21 @@ against it (decision 5).
   `archive/native-panel/contracts/`, beside the two documents that moved there in P1. Git keeps
   the history. The motion schema's replacement is not a schema: the LED flash and the few state
   changes the web panel has are in `docs/05-design-system.md` section 3 and are tested there.
-- In `verification.report.schema.json`, in the `findings` section only:
-  - `dimension` (an enum of seven photoreal rubric terms) is removed;
-  - `workflow` (a string, the workflow's id in the digests or its fixture path) and `control` (a
-    string, an `id` from `controls.json`) are added, both optional, because `docs/07` section 4
+- In `verification.report.schema.json`:
+  - in `findings`, `dimension` (an enum of seven photoreal rubric terms) is removed;
+  - `workflow` (a string, the workflow's number in the digests or its fixture path) and `control`
+    (a string, an `id` from `controls.json`) are added, both optional, because `docs/07` section 4
     rule 2 says a finding "names the workflow or control it is about";
   - the `source` enum loses `perceptual_pass` and `blind_comparison` and gains `hardware_check`,
-    the demonstration on real gear that ends each wave.
-- The report's `perceptual` and `blind_comparison` objects are removed. Nothing writes them
-  (`xtask/src/report.rs` does not emit them), both describe judging a photograph, and
-  `docs/07` section 4 says the pass they served is retired.
+    the demonstration on real gear that ends each wave;
+  - the description of `converted_to` swaps its photoreal example (a specular lobe width) for a
+    panel one, and the description of `findings` stops naming the perceptual pass;
+  - the `blind_comparison` object is removed: nothing writes it (`xtask/src/report.rs` emits
+    neither it nor `perceptual`), it describes judging a photograph, and `docs/07` section 5 says it is retired;
+  - the `perceptual` object becomes `triage`, keeping only `conversion_ratio`. The rule it
+    serves is alive (`docs/07` section 4: below 40% the observations are producing vibes), but it
+    has nothing to do with a perceptual pass. The rubric version, the anchor set and the 1 to 5
+    scores go with the pass.
 - The schema's version string stays `verification.report/1`. The removed properties were
   optional and never emitted, so no report that exists becomes invalid.
 

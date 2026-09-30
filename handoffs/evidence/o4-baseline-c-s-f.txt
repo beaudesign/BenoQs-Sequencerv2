@@ -1,0 +1,66 @@
+# O4 baseline parts C, S and F. Program: o4-baseline/baseline_more.rs
+(C) 60 to 120 BPM ramp over 4 s, then 120 BPM constant to 16 s. Lateness in ms of every 20th note (buffer 256):
+   note   0 ideal   0.06 s  late   0.40 ms
+   note  20 ideal   1.14 s  late  13.19 ms
+   note  40 ideal   2.04 s  late  18.61 ms
+   note  60 ideal   2.82 s  late  21.44 ms
+   note  80 ideal   3.51 s  late  23.10 ms
+   note 100 ideal   4.15 s  late  23.92 ms
+   note 120 ideal   4.78 s  late  23.92 ms
+   note 140 ideal   5.40 s  late  23.92 ms
+   note 160 ideal   6.03 s  late  23.92 ms
+   note 180 ideal   6.65 s  late  23.92 ms
+   note 200 ideal   7.28 s  late  23.92 ms
+   note 220 ideal   7.90 s  late  23.92 ms
+   note 240 ideal   8.53 s  late  23.92 ms
+   note 260 ideal   9.15 s  late  23.92 ms
+   note 280 ideal   9.78 s  late  23.92 ms
+   note 300 ideal  10.40 s  late  23.92 ms
+   note 320 ideal  11.03 s  late  23.92 ms
+   note 340 ideal  11.65 s  late  23.92 ms
+   note 360 ideal  12.28 s  late  23.92 ms
+   note 380 ideal  12.90 s  late  23.92 ms
+   note 400 ideal  13.53 s  late  23.92 ms
+   note 420 ideal  14.15 s  late  23.92 ms
+   note 440 ideal  14.78 s  late  23.92 ms
+   note 460 ideal  15.40 s  late  23.92 ms
+(S) 60 to 180 BPM ramp, buffer 256, the host reports the tempo of `shift` ms LATER than the buffer start:
+   shift    0 ms: last note 25.63 ms late
+   shift   10 ms: last note 18.91 ms late
+   shift   20 ms: last note 12.25 ms late
+   shift   25 ms: last note 8.91 ms late
+   shift   30 ms: last note 5.56 ms late
+   shift   40 ms: last note -1.14 ms late
+(F) f32 accumulator: when does the k-th step fire, against the exact tick ceil(k * step), over 691200 ticks
+   49 of 159 multipliers ever fire a step on a different tick from exact arithmetic; the worst error is 1 tick(s)
+   x9/1: error range 0..1 ticks, 172791 steps on a wrong tick out of the run
+   x10/1: error range 0..1 ticks, 115195 steps on a wrong tick out of the run
+   x9/2: error range 0..1 ticks, 86395 steps on a wrong tick out of the run
+   x5/1: error range 0..1 ticks, 57597 steps on a wrong tick out of the run
+   x11/1: error range 0..1 ticks, 57597 steps on a wrong tick out of the run
+   x9/4: error range 0..1 ticks, 43197 steps on a wrong tick out of the run
+   x15/4: error range 0..1 ticks, 43195 steps on a wrong tick out of the run
+   x14/3: error range 0..1 ticks, 38399 steps on a wrong tick out of the run
+   multipliers whose worst error is 1 tick: 49, 2 ticks: 0, 3 or more: 0
+(F) f32 accumulator: when does the k-th step fire, against the exact tick ceil(k * step), over 10000000 ticks
+   80 of 159 multipliers ever fire a step on a different tick from exact arithmetic; the worst error is 1 tick(s)
+   x9/1: error range 0..1 ticks, 2499991 steps on a wrong tick out of the run
+   x10/1: error range 0..1 ticks, 2494463 steps on a wrong tick out of the run
+   x11/1: error range 0..1 ticks, 2260145 steps on a wrong tick out of the run
+   x14/3: error range 0..1 ticks, 1835362 steps on a wrong tick out of the run
+   x9/2: error range 0..1 ticks, 1249995 steps on a wrong tick out of the run
+   x5/1: error range 0..1 ticks, 1247231 steps on a wrong tick out of the run
+   x10/3: error range 0..1 ticks, 1037515 steps on a wrong tick out of the run
+   x13/3: error range -1..0 ticks, 940683 steps on a wrong tick out of the run
+   multipliers whose worst error is 1 tick: 80, 2 ticks: 0, 3 or more: 0
+(F) f32 accumulator: when does the k-th step fire, against the exact tick ceil(k * step), over 10^8 ticks
+   87 of 159 multipliers ever fire a step on a different tick from exact arithmetic; the worst error is 9 tick(s)
+   x16/15: error range -9..0 ticks, 8233531 steps on a wrong tick out of the run
+   x14/3: error range 0..8 ticks, 36791728 steps on a wrong tick out of the run
+   x7/3: error range 0..8 ticks, 18395863 steps on a wrong tick out of the run
+   x7/6: error range 0..8 ticks, 9197932 steps on a wrong tick out of the run
+   x9/13: error range -8..0 ticks, 5244945 steps on a wrong tick out of the run
+   x7/12: error range 0..8 ticks, 4598965 steps on a wrong tick out of the run
+   x8/15: error range -8..0 ticks, 4051230 steps on a wrong tick out of the run
+   x4/15: error range -8..0 ticks, 1960079 steps on a wrong tick out of the run
+   multipliers whose worst error is 1 tick: 12, 2 ticks: 8, 3 or more: 67

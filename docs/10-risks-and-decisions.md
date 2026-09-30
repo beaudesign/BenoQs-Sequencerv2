@@ -31,16 +31,15 @@ manual, not calibrated photography (SPEC-0002 F2).
 
 ### R4. Timing under a host
 **Probability: medium. Damage: high.**
-*(check after ADR-0006: the host is now a browser, see SPEC-0002 `tech.md` §3 and spikes S1 and S3)*
-A sequencer that is sample-accurate in isolation can still drift or jitter inside a
-host with a variable buffer size, or when the host's transport is itself being
-resampled.
+A sequencer that is sample-accurate in isolation can still be loose in a browser: Web MIDI
+timestamps are a promise the browser keeps to a limit nobody has measured yet, a background
+tab is throttled, and an incoming MIDI clock jitters.
 
-*Trigger:* loopback jitter σ above 200 µs in Live at any buffer size.
-*Response:* this is a solved problem but not a trivial one. Implement the standard
-approach (map host PPQN to a monotonic sample timeline with a PLL, run the core on
-the sample timeline, never on the callback boundary) and test at 64, 128, 256, 512,
-and 1024 samples plus a deliberately variable-buffer stress test.
+*Trigger:* note-on jitter, measured at the receiver, above the limit the owner sets from spike
+S1 (criterion A3), or clock follow drifting beyond the limit set from spike S3 (A4).
+*Response:* spike S1 first, before any timing promise (`specs/SPEC-0002/tech.md` §3 and §8);
+a lookahead setting; a documented limit; and for clock follow, a small pure estimator of tempo
+and phase, tested on a simulated jittery clock at several tempi.
 *Owner:* Metronome.
 
 ### R5. Frame budget on the full panel
@@ -92,7 +91,8 @@ Each becomes an ADR. Listed with the deadline phase, because an open decision pa
 deadline is a blocker wearing a disguise.
 
 D1 and D4 to D7 were dropped by ADR-0006 and their numbers are not reused. D2 changed meaning
-(below).
+(below). These D-numbers are this document's own: SPEC-0002 has a different list of decisions D1
+to D9 in `specs/SPEC-0002/README.md`.
 
 | # | Decision | Deadline | Owner |
 |---|---|---|---|
@@ -100,7 +100,7 @@ D1 and D4 to D7 were dropped by ADR-0006 and their numbers are not reused. D2 ch
 | **D3** | Plugin wrapper: JUCE, or hand-rolled VST3 + AU | Closed by ADR-0006: no plugin formats in v1 | Metronome |
 | **D8** | Naming and trademark posture (see R8) | Before the first public deployment | Conductor |
 | **D9** | Whether to ship Push integration in 2.0 or 2.1 *(check after ADR-0006: not in SPEC-0002; reopens only by a new spec)* | Not scheduled | Metronome |
-| **D10** | Persistence format: bespoke binary, or a widely-readable container *(check after ADR-0006: SPEC-0002 `tech.md` §7 proposes versioned JSON)* | Before the first save format ships (P3) | Metronome |
+| **D10** | Persistence format: bespoke binary, or a widely-readable container (SPEC-0002 `tech.md` §7 proposes versioned JSON; the owner confirms) | Before the first save format ships (P3) | Metronome |
 
 ---
 

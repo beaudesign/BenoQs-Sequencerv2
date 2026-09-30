@@ -78,7 +78,7 @@ shipped. Each maps to an automated gate in [Verification](docs/07-verification.m
 which gate is still to be built.
 
 **N1. The controls are an inventory, not a drawing.**
-Every control's id, kind, position, engraved label and manual page come from
+Every control's id, kind, zone, the manual's own name for it and its logical position come from
 `contracts/controls.json` (planned, P2). No hardcoded pixel coordinates in the app.
 Gate: `verify:arch` (not built yet).
 
@@ -115,10 +115,6 @@ Where v2 and the CE v5.30 reference manual disagree about what a control does, t
 wins, and the discrepancy is logged as a fixture in `tests/conformance/`. Where the manual
 is silent or contradicts itself, the fixture is `pending` with the ambiguity written next
 to it. Gate: `verify:conformance`.
-
-**N9. The scope stays put.**
-The live tree does not describe the product this repo used to be aimed at. Gate:
-`verify:scope`, from `harness/scope-banned.txt` (ADR-0006).
 
 ---
 
@@ -235,12 +231,13 @@ agent-hours add up instead of cancel out.
 The product ships when all of the following are simultaneously true on `main`. The
 measurable form of each is in `specs/SPEC-0002/product.md` section 9.
 
-1. `just verify` is green, and the assertion count has only grown since the baseline of the
-   day ADR-0006 landed.
+1. `just verify` is green, with at least 400 assertions in the harness (304 on the day
+   ADR-0006 landed), and the count has only grown since.
 2. Conformance: every fixture for every workflow in scope passes, and each cites its manual
    page (A1).
 3. Determinism: the WebAssembly engine plays every golden pattern byte for byte like the
-   native one, in the browser as well as in Node (A2).
+   native one, in the browser as well as in Node (A2). Today the Node smoke test plays three
+   of the five.
 4. Timing: note-on jitter from browser to instrument, and clock follow against Live, are
    within the numbers the owner sets from spikes S1 and S3 (A3, A4). The old 120 microsecond
    figure was for a plugin inside Live and does not apply.

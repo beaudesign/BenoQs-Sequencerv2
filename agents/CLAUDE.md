@@ -37,11 +37,11 @@ Tightening is free. Loosening needs an ADR with a reason and an expiry date. If 
 blocks you, either the gate is wrong or the work is wrong. Both are worth knowing.
 Neither is fixed by changing the number.
 
-**4. Using a gradient where a flat fill belongs.**
-A gradient standing in for a material is what made v1 look generated. The panel is a
-control surface, not a picture of metal: flat fills, hairlines, one neutral palette. See
-`docs/00-north-star.md §2`. The `slop` gate will catch it once it is built, and you should
-catch it first.
+**4. Using a gradient where a material belongs.**
+A gradient standing in for a material is what made v1 look generated. Materials in the
+panel are restrained (SPEC-0002 D3): a plain fill or a hairline says what it is, a ramp
+pretending to be a reflection does not. See `docs/00-north-star.md §2`. The `slop` gate will
+catch it once it is built, and you should catch it first.
 
 **5. Authoring an easing curve.**
 Motion in the panel is state: an LED is off, on or flashing at the manual's rate, and a
@@ -53,11 +53,11 @@ need to move, it is a state change, with its number in a contract. See
 There is no accent colour in this product. The only saturated colour is emitted by an
 LED. Emphasis is made with contrast, weight, and space.
 
-**7. Loading the manual PDF or reference photography into context.**
-They are huge and already distilled: the manual into `specs/SPEC-0002/sources/` and the
-fixtures that cite it by page. If you want to read a page, what you actually want is a
-fact that belongs in a fixture. Add the fixture. `just manual <topic>` returns the page
-you need.
+**7. Loading reference photography into context.**
+It is huge, and under D3 the panel is not measured from it: the layout comes from a control
+inventory built from the manual (`contracts/controls.json`, planned). If you want to look at a
+plate, what you actually want is a fact that belongs in that inventory or in a fixture. Add
+it. `just manual <topic>` returns the manual pages you need.
 
 **8. Committing a big change.**
 Commit every 30 minutes of work. Put the gate numbers in the message. See

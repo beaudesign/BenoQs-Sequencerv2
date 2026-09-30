@@ -7,16 +7,24 @@
 //!
 //! Matching, so that a test can pin it:
 //! - case-insensitive;
-//! - whole words: the characters on either side of a match must not be letters or digits.
-//!   An underscore, a slash, a colon or a hyphen is a boundary, so `octo_x_room` style
-//!   identifiers and paths are caught. The last word may carry a plural `s`, so a banned
-//!   phrase and its plural are one phrase;
-//! - words separated by any run of whitespace, including a line break, match a phrase written
-//!   with single spaces. A phrase split by comment leaders (`///`) is not found;
+//! - every run of characters that are not letters or digits (spaces, line breaks, hyphens,
+//!   underscores, slashes, dots, comment marks) is one separator. So `flux_capacitor`,
+//!   `flux-capacitor`, a slug and a phrase split over two comment lines are all the phrase, and a
+//!   phrase in the list is written with any separators and normalised the same way;
+//! - whole words: a match must start and end at a separator or at the edge of the text. The
+//!   last word may carry a plural `s`, so a banned phrase and its plural are one phrase;
 //! - the path is scanned as well as the content, so an empty file cannot bring a name back.
 //!
-//! The banned list can grow freely. Removing a phrase from it is a loosening and needs an ADR:
-//! `MIN_BANNED` is the floor the gate holds the list to.
+//! What it does not do: it matches phrases, not ideas, and a name with no separator at all
+//! (`FluxCapacitor`) is one word and gets through. Review still applies.
+//!
+//! Failures that are not hits: a file that is not UTF-8 text and does not have a known binary
+//! extension (a Latin-1 or UTF-16 paste would otherwise pass unread); a tracked symlink whose
+//! target is allow-listed or outside the tree; a missing list file.
+//!
+//! The banned list can grow freely. Removing or changing a phrase is a loosening and needs an
+//! ADR: `MIN_BANNED` is a floor on the count, and a test pins each phrase of D9 by fingerprint.
+//! The allow-list is pinned by a test too.
 
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -41,7 +49,7 @@ pub struct Scan {
     pub hits: Vec<Hit>,
     pub files_scanned: usize,
     pub files_allowed: usize,
-    /// Not valid UTF-8, so not searched. Reported, never silent.
+    /// Not text and not searched: a known binary type (a picture, a font). Counted, never silent.
     pub files_not_text: usize,
     /// Listed by git but gone or a symlink (the target is scanned under its own path).
     pub files_skipped: usize,
@@ -70,19 +78,54 @@ pub fn parse_allow(text: &str) -> Vec<String> {
     parse_lines(text, false)
 }
 
-fn parse_lines(text: &str, lowercase: bool) -> Vec<String> {
+fn parse_lines(text: &str, phrases: bool) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for raw in text.lines() {
         let line = raw.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        let line = if lowercase { line.to_lowercase() } else { line.to_string() };
+        let line = if phrases { normalise(line).0 } else { line.to_string() };
+        if line.is_empty() {
+            continue;
+        }
         if !out.contains(&line) {
             out.push(line);
         }
     }
     out
+}
+
+/// Lowercase, and every run of characters that are not letters or digits becomes one space, with
+/// none at either end. Also returns the 1-based line of each byte of the result, so that a hit
+/// is reported at the line where its first word starts.
+fn normalise(text: &str) -> (String, Vec<usize>) {
+    let mut norm = String::with_capacity(text.len());
+    let mut line_of: Vec<usize> = Vec::with_capacity(text.len());
+    let mut line = 1usize;
+    let mut pending_space = false;
+    for ch in text.chars() {
+        if !is_word_char(ch) {
+            if ch == '\n' {
+                line += 1;
+            }
+            // A separator is written only once a word follows, so there is none at the ends.
+            pending_space = !norm.is_empty();
+            continue;
+        }
+        if pending_space {
+            norm.push(' ');
+            line_of.push(line);
+            pending_space = false;
+        }
+        for lower in ch.to_lowercase() {
+            norm.push(lower);
+            for _ in 0..lower.len_utf8() {
+                line_of.push(line);
+            }
+        }
+    }
+    (norm, line_of)
 }
 
 /// An entry ending in `/` allows a directory and everything below it. Any other entry allows
@@ -97,32 +140,7 @@ fn is_word_char(c: char) -> bool {
 
 /// Every banned phrase in `text`, with the 1-based line it starts on, in order of position.
 pub fn find(text: &str, banned: &[String]) -> Vec<(usize, String)> {
-    // Lowercase, and turn every run of whitespace into one space, remembering the line of
-    // each byte so that a phrase split across a line break is reported once, where it starts.
-    let mut norm = String::with_capacity(text.len());
-    let mut line_of: Vec<usize> = Vec::with_capacity(text.len());
-    let mut line = 1usize;
-    let mut last_was_space = false;
-    for ch in text.chars() {
-        if ch.is_whitespace() {
-            if !last_was_space {
-                norm.push(' ');
-                line_of.push(line);
-                last_was_space = true;
-            }
-            if ch == '\n' {
-                line += 1;
-            }
-            continue;
-        }
-        last_was_space = false;
-        for lower in ch.to_lowercase() {
-            norm.push(lower);
-            for _ in 0..lower.len_utf8() {
-                line_of.push(line);
-            }
-        }
-    }
+    let (norm, line_of) = normalise(text);
 
     let mut found: Vec<(usize, usize, String)> = Vec::new();
     for phrase in banned {
@@ -141,6 +159,21 @@ pub fn find(text: &str, banned: &[String]) -> Vec<(usize, String)> {
     }
     found.sort();
     found.into_iter().map(|(_, line, phrase)| (line, phrase)).collect()
+}
+
+/// File types that are not text. A file with any other extension that is not UTF-8 fails the
+/// scan. The list only grows with the Referee's sign-off; it exists so that a picture or a font
+/// in `apps/web` does not fail the gate, and so that a `.md` in the wrong encoding does.
+const BINARY_EXTENSIONS: &[&str] = &[
+    "png", "jpg", "jpeg", "gif", "webp", "avif", "ico", "pdf", "woff", "woff2", "ttf", "otf", "wasm",
+    "zip", "gz", "mid", "midi", "mp3", "wav", "ogg", "mp4", "webm",
+];
+
+fn has_binary_extension(path: &str) -> bool {
+    match path.rsplit_once('.') {
+        Some((_, ext)) => BINARY_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()),
+        None => false,
+    }
 }
 
 /// Scan the given repo-relative paths. `read` returns the file's bytes, or `None` when the
@@ -164,9 +197,20 @@ pub fn scan_files(
             scan.files_skipped += 1;
             continue;
         };
-        let Ok(text) = String::from_utf8(bytes) else {
-            scan.files_not_text += 1;
-            continue;
+        let text = match String::from_utf8(bytes) {
+            Ok(text) => text,
+            Err(_) if has_binary_extension(path) => {
+                scan.files_not_text += 1;
+                continue;
+            }
+            Err(_) => {
+                // Text in another encoding (a Latin-1 or UTF-16 paste) would pass unread.
+                scan.problems.push(format!(
+                    "{path}: not valid UTF-8 text and not a known binary type, so it cannot be searched. \
+                     Convert it to UTF-8 (or, for a new binary type, add its extension to BINARY_EXTENSIONS in xtask/src/scope.rs, which needs the Referee)"
+                ));
+                continue;
+            }
         };
         scan.files_scanned += 1;
         for (line, phrase) in find(&text, banned) {
@@ -174,6 +218,45 @@ pub fn scan_files(
         }
     }
     scan
+}
+
+/// Where a link at `path` (repo-relative) points, as a repo-relative path with `.` and `..`
+/// resolved, or `None` when the target is absolute or leaves the tree.
+fn resolve_link(path: &str, target: &str) -> Option<String> {
+    if target.starts_with('/') {
+        return None;
+    }
+    let mut parts: Vec<&str> = path.split('/').collect();
+    parts.pop(); // the link's own name: the target is relative to its directory
+    for comp in target.split('/') {
+        match comp {
+            "" | "." => {}
+            ".." => {
+                parts.pop()?;
+            }
+            c => parts.push(c),
+        }
+    }
+    Some(parts.join("/"))
+}
+
+/// Why a tracked symlink is a problem, or `None`. A link is scanned as nothing, and its target is
+/// scanned under its own path, which is only enough when that path is not on the allow-list.
+/// Otherwise a link from a live directory to history would let a banned phrase into the live
+/// tree without being read.
+pub fn link_problem(path: &str, target: &str, allow: &[String]) -> Option<String> {
+    if is_allowed(path, allow) {
+        return None; // the link is history itself
+    }
+    let Some(resolved) = resolve_link(path, target) else {
+        return Some(format!("{path}: a symlink to '{target}', which is absolute or outside the tree, so it cannot be searched"));
+    };
+    if is_allowed(&resolved, allow) || is_allowed(&format!("{resolved}/"), allow) {
+        return Some(format!(
+            "{path}: a symlink to '{resolved}', which is on the allow-list, so its content would sit in the live tree unread"
+        ));
+    }
+    None
 }
 
 /// Tracked files plus files git would track (not ignored), so a new file is scanned before
@@ -230,6 +313,13 @@ pub fn scan_repo(root: &Path) -> Scan {
         std::fs::read(full).ok()
     };
     let mut scan = scan_files(&paths, &allow, &banned, &read);
+    for p in &paths {
+        if let Ok(target) = std::fs::read_link(root.join(p)) {
+            if let Some(why) = link_problem(p, &target.to_string_lossy(), &allow) {
+                scan.problems.push(why);
+            }
+        }
+    }
     scan.problems.extend(problems);
     scan.duration_s = start.elapsed().as_secs_f64();
     scan
@@ -318,10 +408,12 @@ mod tests {
 
     #[test]
     fn a_file_that_is_not_text_is_counted_and_not_silently_passed() {
-        let map: BTreeMap<String, Vec<u8>> = [("plate.jpg".to_string(), vec![0xff, 0xd8, 0xff, 0xe0])].into();
+        let jpeg = vec![0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, b'J', b'F', b'I', b'F', 0x00];
+        let map: BTreeMap<String, Vec<u8>> = [("plate.jpg".to_string(), jpeg)].into();
         let s = scan_files(&["plate.jpg".to_string()], &[], &banned(), &|p| map.get(p).cloned());
         assert_eq!(s.files_not_text, 1);
         assert_eq!(s.files_scanned, 0);
+        assert!(s.problems.is_empty(), "a picture is not a problem: {:?}", s.problems);
     }
 
     #[test]
@@ -367,5 +459,105 @@ mod tests {
         // specs/SPEC-0001/ and specs/SPEC-0002/ because the allow-list had been lowercased.
         assert!(is_allowed("specs/SPEC-0002/README.md", &allow));
         assert!(is_allowed("specs/SPEC-0001/findings.md", &allow));
+    }
+    #[test]
+    fn punctuation_between_the_words_of_a_phrase_still_matches() {
+        // The review of P1 found `flux_capacitor`, `flux-capacitor` and a slug got through.
+        let s = scan(
+            &[("a.md", "flux_capacitor\nflux-capacitor\nflux.capacitor\nflux/capacitor\nfluxcapacitor\n")],
+            &[],
+        );
+        let lines: Vec<usize> = s.hits.iter().map(|h| h.line).collect();
+        assert_eq!(lines, [1, 2, 3, 4], "no separator at all is one word, not the phrase");
+        let s = scan(&[("a.md", "pub fn x() {\n    // flux\n    /// capacitor\n}")], &[]);
+        assert_eq!(s.hits.len(), 1, "comment marks between the words do not hide a phrase");
+        let s = scan(&[("docs/flux-capacitor.md", "")], &[]);
+        assert_eq!(s.hits.len(), 1, "a slug in a path is caught");
+    }
+
+    #[test]
+    fn a_phrase_from_the_list_is_normalised_like_the_text() {
+        // Two spaces, a hyphen and capitals in the list must not make an entry that matches nothing.
+        let l = parse_phrases("Flux  Capacitor\nflux-capacitor\n--\nwarp\n");
+        assert_eq!(l, ["flux capacitor", "warp"]);
+    }
+
+    #[test]
+    fn a_file_in_the_wrong_encoding_fails_the_scan_and_a_binary_file_does_not() {
+        let mut map: BTreeMap<String, Vec<u8>> = BTreeMap::new();
+        // Latin-1: a stray 0xE9. UTF-16 with a byte order mark: what a Windows shell writes.
+        map.insert("docs/latin1.md".into(), b"the flux capacitor caf\xe9".to_vec());
+        let mut utf16 = vec![0xff, 0xfe];
+        for c in "flux capacitor".encode_utf16() {
+            utf16.extend_from_slice(&c.to_le_bytes());
+        }
+        map.insert("docs/utf16.md".into(), utf16);
+        map.insert("web/font.woff2".into(), vec![0x77, 0x4f, 0x46, 0x32, 0x00, 0xff]);
+        let paths: Vec<String> = map.keys().cloned().collect();
+        let s = scan_files(&paths, &[], &banned(), &|p| map.get(p).cloned());
+        assert_eq!(s.problems.len(), 2, "{:?}", s.problems);
+        assert!(s.problems.iter().any(|p| p.contains("docs/latin1.md")));
+        assert!(s.problems.iter().any(|p| p.contains("docs/utf16.md")));
+        assert_eq!(s.files_not_text, 1, "the font is a known binary type");
+        // On the allow-list, a file in any encoding is history and is not read.
+        let s = scan_files(&paths, &["docs/".to_string()], &banned(), &|p| map.get(p).cloned());
+        assert!(s.problems.is_empty());
+    }
+
+    #[test]
+    fn a_link_to_allow_listed_content_from_outside_the_allow_list_is_a_problem() {
+        let allow = parse_allow("journal/\nadr/\n");
+        // The only link in the tree today: CLAUDE.md to agents/CLAUDE.md. Fine.
+        assert_eq!(link_problem("CLAUDE.md", "agents/CLAUDE.md", &allow), None);
+        assert_eq!(link_problem("docs/x.md", "../journal/a.md", &allow).is_some(), true);
+        assert_eq!(link_problem("docs/x.md", "../adr", &allow).is_some(), true, "a directory link too");
+        assert_eq!(link_problem("docs/x.md", "../../outside.md", &allow).is_some(), true, "out of the tree");
+        assert_eq!(link_problem("docs/x.md", "/etc/passwd", &allow).is_some(), true, "absolute");
+        // A link that already sits in history is history.
+        assert_eq!(link_problem("journal/x.md", "a.md", &allow), None);
+    }
+
+    #[test]
+    fn the_real_banned_list_holds_the_seventeen_of_d9() {
+        // The count alone could be met by swapping a phrase for nonsense (the review of P1 did
+        // exactly that). Each of the seventeen is pinned by a fingerprint of its normal form, so
+        // this file does not spell the words the gate keeps out. Adding phrases needs nothing
+        // here; dropping or changing one fails this test, and that needs an ADR (CLAUDE.md rule 3).
+        fn fnv(s: &str) -> u64 {
+            let mut h: u64 = 0xcbf29ce484222325;
+            for b in s.bytes() {
+                h ^= b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
+            h
+        }
+        const D9: [u64; 17] = [
+            0x4c70ed641534a375, 0x7ddd558af1749b90, 0x4bb13e8f6fac7e8d, 0x4c41199a73712503,
+            0x15251ecc66245ad8, 0xc147dbe881147cfb, 0x757a178effb00029, 0x5bb5dec2f4ab98e1,
+            0x7f50f31f5f344ce4, 0x8cfd4eb82c16bd4d, 0x2f88f4de8bf93883, 0x6806b52ffe1dbb7f,
+            0x1f7639805f9a4e4c, 0xe2f4638d85b24def, 0x0c7d882148c56ce9, 0xc9eb501f7561419d,
+            0xaec40dc12894e10a,
+        ];
+        let root = crate::root();
+        let banned = parse_phrases(&std::fs::read_to_string(root.join("harness/scope-banned.txt")).unwrap());
+        let have: Vec<u64> = banned.iter().map(|p| fnv(p)).collect();
+        for want in D9 {
+            assert!(have.contains(&want), "a phrase of D9 (fingerprint {want:#018x}) is missing from harness/scope-banned.txt");
+        }
+    }
+
+    #[test]
+    fn the_real_allow_list_is_the_pinned_set() {
+        // Widening the allow-list widens the gate. It is pinned here so that it cannot happen
+        // in one line of a text file: the change shows in this test, and needs the Referee.
+        let root = crate::root();
+        let allow = parse_allow(&std::fs::read_to_string(root.join("harness/scope-allow.txt")).unwrap());
+        assert_eq!(
+            allow,
+            [
+                "adr/", "handoffs/", "journal/", "specs/SPEC-0001/", "specs/SPEC-0002/", "archive/",
+                "reference/", "harness/baseline.txt", "harness/scope-banned.txt", "harness/scope-allow.txt",
+            ]
+        );
     }
 }

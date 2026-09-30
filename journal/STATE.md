@@ -156,7 +156,7 @@ Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all
   path, `docs/06` (`docs/01` and `docs/04` moved to `archive/native-panel/`), the gates `acoustics`,
   `geometry`, `color`, `frames`, `motion`; adds the `scope` gate; rewrites `SPEC.md`,
   `agents/CLAUDE.md` (rules 4 to 7), the roles and the docs. Ten `octoroom` tests left the baseline
-  by `--remove ... --adr ADR-0006`; assertions 313 -> 303 -> 304 (293 tests, 11 fixtures).
+  by `--remove ... --adr ADR-0006`; assertions 313 -> 303 -> 310 (299 tests, 11 fixtures).
 - **Open finding:** `BANK_COUNT` is 10 in `octocore`, while the manual reads as 9 banks of 16
   pages (`specs/SPEC-0002/product.md`). Not changed here; a Metronome question for P2.
 - **"World model" here means two things.** The factory's shared state (this file, `just report`)

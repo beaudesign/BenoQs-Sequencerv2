@@ -216,18 +216,21 @@ pub struct Snapshot {
 pub struct Led { pub color: LedColor, pub target: f32 }
 ```
 
-Note `target`, not `value`. The core publishes the LED's *commanded* state. The
-renderer runs the rise/decay simulation itself at frame rate, because LED physics is
-a display concern and running it at 192 PPQN would alias badly against a 120 Hz
-display. This split matters: the core says "on", the renderer says how "on" looks
-4.2 ms later.
+Note `target`, not `value`. The core publishes the LED's *commanded* state, and the
+panel draws it. The web panel has no rise-and-decay simulation (ADR-0006): an LED is off,
+on or flashing, so the page draws the commanded state and times the flash itself. The
+split still matters: the core says what the LED means, and the page decides how the
+browser shows it.
 
 ---
 
 ## 7. Timing requirements
 
 Stricter than the visual budget, because a musician forgives a dropped frame and does
-not forgive a late note.
+not forgive a late note. **The numbers in this table were set for a plugin inside a host.** The null-host measurement
+below still applies to the engine on its own. For a browser sending MIDI to an instrument the
+jitter figures are not decided: spike S1 measures them and the owner sets criterion A3 from the
+result (`specs/SPEC-0002/product.md` section 9).
 
 | Metric | Target | Gate |
 |---|---|---|

@@ -25,7 +25,7 @@ cannot be built yet reports `not_implemented`, never a pass.
 - `just verify` runs in under 4 minutes and reports every gate.
 - `verify:determinism` passes: two runs byte-identical.
 - The report renders and shows the assertion count as a line.
-- Eight worktrees exist and one commit has gone through the merge queue.
+- A worktree exists for each role and one commit has gone through the merge queue.
 
 **Kill criteria:** if determinism cannot be achieved, stop. Everything downstream
 depends on it and there is no version of this project that works without it.

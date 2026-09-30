@@ -6,6 +6,12 @@ This is deliberately short. The panel is a control surface whose look is decided
 hardware's layout and the manual's names, and the only colour in it is a lit LED
 (SPEC-0002 D3, `SPEC.md` N2 and N6). The Curator's authority is over what may *not* be added.
 
+**Status: proposed.** D3 approved "a faithful layout, restrained materials, LEDs as the only
+colour". Everything below that goes further (the strip around the panel, the radius rule, the
+focus ring, the contrast mode, the motion note, the slop rules S15 and S16) is the Conductor's
+reading of D3, written in P1 so that the old rules could be removed without leaving a hole. The
+Curator and the owner ratify or change it with the UI sketch that comes with P3.
+
 ---
 
 ## 1. The panel and the page around it
@@ -95,17 +101,17 @@ mode. Rules are added, never removed.
 |---|---|---|
 | S1 | No `linear-gradient`, `radial-gradient`, `conic-gradient`, or SVG gradient element in the app | N2. A gradient is not a material. |
 | S2 | No colour literal outside `design.tokens.json` | N6. Colour has one source. |
-| S3 | No `border-radius` other than `50%` on the round controls | §2.3 |
 | S4 | No `box-shadow` and no `drop-shadow` filter | Depth is not painted. |
 | S5 | No all-caps or letter-spaced label styles in the strip | E4 |
 | S6 | No `→`, `·`-joined meta strings, or `01 / 02 / 03` numbered eyebrows | template chrome |
 | S7 | No monospace face used for non-code content | template chrome |
 | S8 | No `#0B0B0B`, `#111111`, `#F4F1EA`, `#D97757` or values within ΔE 3 of them | the AI-design cluster |
 | S9 | No easing keyword (`ease-in-out`, `cubic-bezier(…)`) anywhere | §3, N3 |
-| S10 | No CSS `transition`, `animation` or `@keyframes` other than the LED flash | §3, N3 |
 | S11 | No `Google Sans`, `Inter`, `SF Pro` as the app's face | E4, defaults |
 | S12 | No hardcoded pixel coordinate in the panel code | N1 |
-| S13 | No idle or looping animation on the panel | P3 |
+| S14 | No idle or looping animation on the panel | P3 |
+| S15 | No `border-radius` other than `50%` on the round controls | §2.3 |
+| S16 | No CSS `transition`, `animation` or `@keyframes` other than the LED flash | §3, N3 |
 
 S8 needs a note. `#F4F1EA` is flagged because it is the centroid of generated warm-cream
 backgrounds. If the neutral palette lands within ΔE 3 of it, the lint fires, and the correct
@@ -113,9 +119,9 @@ response is a suppression comment that states the reason. The point of the rule 
 the colour is forbidden; it is that arriving there deliberately must be distinguishable from
 arriving there by default.
 
-**Retired with the photoreal panel (ADR-0006).** The rule that limited radii to the five
-measured ones, the rule that every animation be registered in the motion registry, and the
-scan for magic numbers in shaders. Their numbers are not reused.
+**Retired with the photoreal panel (ADR-0006): S3** (radii limited to the five measured ones),
+**S10** (every animation registered in the motion registry) and **S13** (magic numbers in
+shaders). Their numbers are not reused; the web panel's own rules are S15 and S16.
 
 ---
 

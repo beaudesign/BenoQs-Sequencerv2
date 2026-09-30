@@ -1,7 +1,7 @@
 # Role Briefs
 
 A role is a hat, not a person. One agent may wear several sequentially, never two at
-once. The constraint is the value: it is what makes eight-way parallelism safe.
+once. The constraint is the value: it is what makes parallel work safe.
 
 Each brief states what you own, what you must never do, what you read first, and how
 you know you are succeeding.
@@ -27,7 +27,7 @@ changes stop being scrutinised and the whole model degrades.
 - Enforces phase gates. Refuses fan-out until the phase before it has exited (`docs/09`).
 - Owns R8 (trademark) and D8 (naming). Address in week one.
 
-**Succeeding when:** eight agents are working in parallel with zero merge conflicts,
+**Succeeding when:** the roles are working in parallel with zero merge conflicts,
 and every one of them can state what they are doing without asking anyone.
 
 ---

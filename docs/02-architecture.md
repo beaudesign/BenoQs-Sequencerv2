@@ -36,7 +36,9 @@ MIDI output (P3), MIDI in, clock and the Ableton guide (P4), the workflow waves 
 **Why Rust:** no garbage collector, so no unbounded pause on the audio thread, and one
 implementation. The same source builds to WebAssembly for the page and to native code for the
 conformance suite and `octorun`; `just wasm-smoke` plays the golden patterns through the
-WebAssembly build and checks the event log against the native hashes, byte for byte.
+WebAssembly build and checks the event log against the native hashes, byte for byte. Today it
+plays three of the five: `phrases` and `mcc_and_transport` need more than the frozen C
+interface offers, and close with the `wasm-bindgen` route in P3.
 
 **Browsers.** Chrome, Edge and Opera; Firefox best effort; Safari and iOS run the UI without
 MIDI, which they lack (SPEC-0002 D4).
@@ -136,7 +138,7 @@ One source of truth: `octocore::Grid`. Everything else is a projection.
 
 ```
 Grid
-├── banks: [Bank; 10]
+├── banks: [Bank; 10]                       (the manual reads as nine; open finding, see STATE.md)
 │   └── Bank { pages: [Page; 16] }
 │       └── Page { tracks: [Track; 10], scale, pitch_offset, velocity_factor, mute_pattern[10], … }
 │           └── Track { steps: [Step; 16], vel pit len sta pos dir amt grv mcc mch, chain, mute, solo, … }
@@ -186,7 +188,8 @@ into a MIDI timestamp (`specs/SPEC-0002/tech.md` section 3). Each `process()` ca
 frames and returns events with audio-clock times. The page converts audio time to page time with
 `AudioContext.getOutputTimestamp()` and sends each event with `MIDIOutput.send(data, timestamp)`
 at least a lookahead `L` early; `L` is a tunable, default 30 ms, set by spike S1. On Stop it
-calls `MIDIOutput.clear()` for anything queued and unsent, then sends ALL NOTES OFF.
+calls `MIDIOutput.clear()` for anything queued and unsent (whether Chrome implements it is
+checked in spike S1), then sends ALL NOTES OFF.
 
 `L` and the engine's own lookahead add, and are reported together. The engine steps up to 12
 ticks ahead of the audio (`MAX_EARLY_TICKS`) and applies an edit at the start of the next

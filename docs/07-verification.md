@@ -86,8 +86,9 @@ allocation and lock assertions on the audio thread.
 ### `verify:conformance`
 All fixtures in `tests/conformance/`. **Gate: 100%.** No expected failures, no skips.
 A fixture that cannot pass is either wrong (fix it) or describes unimplemented
-behaviour (move it to `tests/conformance/pending/`, which is tracked and reported but
-does not gate). From P2 the gate also runs the panel fixtures (criterion A1): a timed
+behaviour (move it to `tests/conformance/pending/`. Today the gate skips that directory and
+does not report it; P2 makes a pending fixture count in the ratchet as a known gap, and
+reports it). From P2 the gate also runs the panel fixtures (criterion A1): a timed
 list of button and encoder events in, an expected LED frame and engine state out.
 
 ### `verify:a11y`
@@ -118,21 +119,27 @@ The gate scans every file git tracks or would track, and fails when a phrase fro
 `harness/scope-banned.txt` appears outside the places listed in
 `harness/scope-allow.txt`. Acceptance criterion A9.
 
-- **Matching.** Case-insensitive, whole words: a letter or digit beside a match stops
-  it, a slash, colon, hyphen or underscore does not. The last word of a phrase may take
-  a plural `s`. Any run of whitespace, a line break included, joins the words of a
-  phrase. The path is scanned as well as the content, so an empty file cannot bring a
-  name back. It matches phrases, not ideas: a synonym gets through, and review still
-  applies. The bare word "room" is ordinary English and is not banned.
+- **Matching.** Case-insensitive, whole words. Every run of characters that are not letters or
+  digits (spaces, line breaks, hyphens, underscores, slashes, dots, comment marks) counts as one
+  space, in the text and in the list, so `flux_capacitor`, `flux-capacitor` and a phrase split over
+  two comment lines are all the phrase `flux capacitor`. The last word may take a plural `s`. The
+  path is scanned as well as the content, so an empty file cannot bring a name back. It matches
+  phrases, not ideas: a synonym gets through, and so does a name with no separator at all
+  (`FluxCapacitor`), so review still applies. The bare word "room" is ordinary English and is not
+  banned.
+- **Not searchable is a failure.** A file that is not UTF-8 and does not have a known binary
+  extension (a Latin-1 or UTF-16 paste) fails the scan, because it would otherwise pass unread. So
+  does a tracked symlink whose target is on the allow-list or outside the tree.
 - **Allow-list.** History keeps its words: `adr/`, `handoffs/`, `journal/`,
   `specs/SPEC-0001/`, `specs/SPEC-0002/`, `archive/`, `reference/`, and three files in
   `harness/` (the baseline and the two lists). An entry ending in a slash allows a
   directory; any other entry allows exactly that file. A new entry widens the gate and
   needs the Referee and a reason in the pull request.
-- **Floor.** The banned list can grow freely. Removing a phrase loosens the gate, so it
-  needs an ADR with a reason and an expiry date (`CLAUDE.md` rule 3), and `MIN_BANNED`
-  in `xtask/src/scope.rs` is lowered in the same change. The gate also fails when it
-  scanned fewer than `MIN_FILES_SCANNED` files, or when a list file is missing.
+- **Floor.** The banned list can grow freely. Removing or changing one of the seventeen of
+  SPEC-0002 D9 loosens the gate, so it needs an ADR with a reason and an expiry date (`CLAUDE.md`
+  rule 3); a test pins each of the seventeen by fingerprint, and another pins the allow-list. The
+  gate also fails when it scanned fewer than `MIN_FILES_SCANNED` files, or when a list file is
+  missing.
 
 ---
 

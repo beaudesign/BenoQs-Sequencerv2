@@ -142,7 +142,7 @@ int32_t octocore_engine_diagnostics(const OctoEngine *engine, OctoDiagnostics *o
 
 // --- Grid-mutation surface ---
 // Logical (track, step) addressing, not a physical panel ControlId — see
-// lib.rs's module comment on why this doesn't need panel.truth.json.
+// lib.rs's module comment on why this doesn't need the control inventory.
 // track is always < 10, step < 16 (octocore::domain::TRACK_COUNT/STEP_COUNT).
 
 // All setters return false (a no-op) for an out-of-range track/step index
@@ -187,7 +187,7 @@ bool octocore_sender_push(OctoSender *sender, OctoCommand cmd);
 int32_t octocore_sender_stats(const OctoSender *sender, OctoLinkStats *out);
 
 // The snapshot, as the engine publishes it at the end of every render. LED and encoder fields
-// are zero until panel.truth.json exists to say which control is which.
+// are zero until the control inventory (`contracts/controls.json`, planned) exists to say which control is which.
 #define OCTO_MAX_CONTROLS 512
 #define OCTO_ENCODER_COUNT 20
 #define OCTO_TRACK_COUNT 10

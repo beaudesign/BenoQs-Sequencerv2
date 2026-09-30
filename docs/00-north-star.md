@@ -5,6 +5,11 @@
 The product is a web sequencer (`adr/0006-web-sequencer-supersedes-the-rooms-scope.md`,
 `specs/SPEC-0002/`). This document says what the panel must be, and why v1 failed at it.
 
+**Status of section 3: proposed.** SPEC-0002 D3 approved "a faithful layout, restrained
+materials, LEDs as the only colour". Section 3 is the Conductor's reading of that, written in P1
+so that the old rules could be removed without leaving a hole. The Curator and the owner
+ratify or change it with the UI sketch that comes with P3.
+
 ---
 
 ## 1. The object we are working from
@@ -72,7 +77,7 @@ Google Sans, a 28px top bar, 7px uppercase letter-spaced status text, a hairline
 copied from a dashboard. None of these are on the hardware. They are the vocabulary of a 2024
 web dashboard applied to a 2009 German instrument, and every one of them is a tell.
 
-The corrective is stated as N1 to N9 in `SPEC.md`. This document exists so that the corrective
+The corrective is stated as N1 to N8 in `SPEC.md`. This document exists so that the corrective
 is understood rather than merely obeyed.
 
 ---

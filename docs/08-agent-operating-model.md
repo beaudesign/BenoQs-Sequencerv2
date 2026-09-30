@@ -37,7 +37,7 @@ value of the role system is that it constrains what you are allowed to touch.
 | Role | Owns | Primary artefact |
 |---|---|---|
 | **Conductor** | `contracts/`, `adr/`, `justfile`, `crates/octoffi/` (frozen), roadmap, merge queue | decisions |
-| **Panelwright** | `reference/`, `crates/octoface/` and `contracts/controls.json` (both planned, P2) | the panel controller and its control inventory |
+| **Panelwright** | `reference/`, `crates/octoface/` (planned, P2); drafts `contracts/controls.json` (planned, P2), which the Conductor changes by ADR | the panel controller and its control inventory |
 | **Forge** | `apps/web/` (planned, P3) | the web app |
 | **Metronome** | `crates/octocore/`, `tests/conformance/`, `hosts/m4l/` (the Tier 2 Ableton spike), the timing path | the sequencer |
 | **Curator** | the visual rules (LED colour roles, the one neutral palette), `docs/05` | taste, made explicit |

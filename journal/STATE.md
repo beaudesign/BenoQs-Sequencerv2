@@ -72,7 +72,7 @@ waves are in `docs/09-roadmap.md`, the task lifecycle in `AGENTS.md`.
 - Brownian (dir 4) has a 400-seed statistical fixture for the 2/3 forward
   split.
 - The tests and fixtures that must keep passing are listed in `harness/baseline.txt`
-  (337 tests and 48 fixtures after P2b: 385 assertions; 11 fixtures are the engine's, 37 are panel fixtures).
+  (342 tests and 48 fixtures after P2b: 390 assertions; 11 fixtures are the engine's, 37 are panel fixtures).
   `cargo xtask verify` refuses a run that lost any.
 - **Still open, logged with citations:** generic VEL/PIT-style scaling
   table (p.53-55); attribute-map-factor step events (p.34-37); genuine
@@ -161,15 +161,17 @@ Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all
   `n`; the photoreal and motion schemas are retired; `findings` in the report schema is corrected;
   panel fixtures are `.panel` files beside the engine's; `octoface` has no runtime dependencies.
   **P2b (built, in review; carries P2a's commits, so merge #22 first)** adds: `contracts/controls.json`
-  (244 controls, each cited to manual pages; what the manual leaves open is `pending` or in `open`,
+  (247 controls, each cited to manual pages; what the manual leaves open is `pending` or in `open`,
   never guessed) and its schema; `crates/octoface` (the panel controller: `input` gives engine
   commands and intents, `leds` gives a 512-slot LED frame); 37 asserting panel fixtures for the five
-  workflows (Page mode step toggle, Step zoom, ESC, the EDIT cycle, the PLAY LED) and 11 pending ones
+  workflows (Page mode step toggle, Step zoom, ESC, the EDIT cycle, the PLAY LED) and 15 pending ones
   for what the manual does not settle; the `conformance` gate change (requires the panel test binary,
-  counts `.panel` files, reports pending ones, fails a pending file without its headers). Red first in
-  every step; 27 of 27 controller mutants and 12 of 12 gate mutants are caught. AGENTS.md puts
+  counts `.panel` files, reports pending ones, fails a pending file without its headers and a `.panel` file
+  outside `tests/conformance/panel/`). Red first in every step; 27 of 27 controller mutants and 15 of 15 gate
+  mutants are caught. An independent review (approve with changes) found twenty things; each was checked
+  against the manual and fixed or answered (`journal/panelwright/2026-09-30.md`). AGENTS.md puts
   `contracts/**` in the High tier, so P2 is High, not the Medium the README gave it.
-- **Questions for someone with an Octopus:** Q21 to Q35 in `tests/conformance/panel/QUESTIONS.md`, plus
+- **Questions for someone with an Octopus:** Q21 to Q38 in `tests/conformance/panel/QUESTIONS.md`, plus
   the twenty in `specs/SPEC-0002/findings.md` section 6. Each has a pending fixture or a `pending` marker.
 - **Open finding:** `BANK_COUNT` is 10 in `octocore`, while the manual reads as 9 banks of 16
   pages (`specs/SPEC-0002/product.md`). Not changed here; a Metronome question for P2.

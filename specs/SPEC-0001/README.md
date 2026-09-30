@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0001 |
-| Revision | r2 (r0 as published on 2026-09-29; r1 adds the open-question resolutions; r2 records the second approval, below) |
+| Revision | r3 (r0 as published on 2026-09-29; r1 adds the open-question resolutions; r2 records the second approval; r3 records the approval of the O4 plan, below) |
 | Audited commit | `6ef921f` |
-| Stage | Product spec and tech spec approved. F0 and F1 implemented and merged (on `main` with PR 5, #9; PR 6 onward is on `main` once the landing PR `conductor/land-stack` merges). O6 built (r2). O4 approved for a release plan only (r2): the plan is written and merged, and **merging it is not approval to build**. |
-| Risk tier | Medium overall. O4 is high: its release plan is written for sign-off (decisions D0 to D6 are unanswered), and no O4 code exists or may be written until the owner approves that plan. |
+| Stage | Product spec and tech spec approved. F0 and F1 implemented and merged (on `main` with PR 5, #9; PR 6 onward is on `main` once the landing PR `conductor/land-stack` merges). O6 built (r2). O4 approved for a release plan only (r2): the plan was written and merged, and **merging it was not approval to build**. **r3 (2026-09-30) approves the plan with all defaults**, with one hold: 4b waits for the owner's answer on D0. |
+| Risk tier | Medium overall. O4 is high: its release plan is approved (r3) with all defaults. Step 1 (guards and the null host) and PR 4a may be built; PR 4b may not start until the owner answers D0, and no O4 PR merges on an agent's word. |
 | Owner and approver | `@beaudesign` |
 | Original write-up | Private artifact published 2026-09-29, not a source of truth. This directory is. |
 
@@ -43,6 +43,24 @@ options offered. The record of what r2 covers:
 Anything the owner did not pick in r2 is still not approved, however close it sits to
 something that was.
 
+**r3, 2026-09-30, 10:51.** The owner sent "Continue with the plan". That does not say which plan,
+and the O4 plan is high tier, so the agent asked, offering three options: approve the O4 plan
+with all defaults; start the UI spec; or record the defaults and stop. The owner picked
+**"Approve O4 plan, all defaults"**. The record of what r3 covers:
+
+| Item | What is approved | What is not |
+|---|---|---|
+| D1, the plan (`o4-release-plan.md`, revision 2) | Build it as three pull requests (4a, 4b, 4c), in the order of section 5 of the plan, each its own PR and each reverted alone. Step 1 first: the null host and the guard tests G1 to G5, shown passing on the current engine and committed alone | Merging. The agent never merges. A loopback test in Live 12 on the owner's machine is still a release condition the agent cannot meet |
+| D0, the tick length | The default: **do not change the engine's tick in O4.** `WENGE-0012` stays a triage record | **The owner has not decided D0.** The plan asks for that decision before 4b, so **4b does not start until the owner answers D0.** Fixing the tick, or recording why the engine is right, is a separate decision |
+| D2 | Drop the PLL from `octocore` | A PLL anywhere else |
+| D3 | The default: accept the weaker ramp criterion in section 3 of the plan. That is the request for an ADR (reason and expiry, proposed in the plan), which the Conductor writes | 4b and 4c do not merge without the ADR. `product.md` A4 is not amended until it exists |
+| D4 | Edge-triggered transport (the last change wins) | Any other rule |
+| D5 | Locate, loop wrap and a frozen position release sounding notes and leave step positions alone | Chase on locate |
+| D6 | Three pull requests | One large pull request |
+| Design system and DSP (Q1) | Nothing | Everything. The owner said the spec and the sketch come later, together |
+
+Anything the owner did not pick in r3 is still not approved.
+
 ## Open questions and how they stand
 
 The owner did not answer Q1 to Q6 one by one. Where the spec named a default, the
@@ -69,7 +87,7 @@ factory layer that carries this spec.
 | WENGE-0001 | O1 Flush sounding notes on stop and reset (pilot) | Medium | F0 | Merged to `main` with PR 5 (#9) |
 | WENGE-0002 | O2 Stop the backlog burst on Play after idle | Medium | F0 | Merged to `main` with PR 5 (#9) |
 | WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | Merged to `main` with PR 5 (#9) |
-| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan (revision 2) merged into `metronome/command-ring` (#12), not yet on `main`. **Not approved**: D0 to D6 are unanswered. No code, and none until the owner approves it. |
+| WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Release plan (revision 2) merged into `metronome/command-ring` (#12), not yet on `main`. **Approved in r3 with all defaults** (2026-09-30). Step 1 (null host and guard tests) and PR 4a next. **4b waits for the owner's D0 answer.** No O4 code yet. |
 | WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | Merged to `main` with PR 5 (#9) |
 | WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Approved in r2. Built as PR 7 (#11), merged into `metronome/queue-headroom`, not yet on `main`. Test plan first (`o6-test-plan.md`, section 10 records where the build differed). |
 | WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | Merged to `main` (PR 5, #9). Live `midir` mode not done (Q6). |

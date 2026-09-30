@@ -1,0 +1,103 @@
+O4 guards on the parent commit: every guard passes on the engine as it is, before any O4 code (SPEC-0001, WENGE-0004, step 1).
+Captured 2026-09-30T10:29Z on branch metronome/o4-guards, parent commit 5a33831 plus the review fix to the guard (the mean fence); the last engine change is c1e04c1.
+
+$ git diff --stat $(git merge-base origin/main HEAD) -- crates/octocore/src crates/octorun/src   (must be empty: no engine or runner change since the branch point, 42b44f3)
+(empty)
+(Against the tip of main the diff is not empty: the owner merged #15 after the branch point, which un-exports two helpers in crates/octocore/src/scale.rs and touches nothing in the engine or the clock. The check is against the branch point for that reason.)
+
+== G1  constant-tempo timing, 4 (tempo, rate) pairs x 6 buffer sizes + 20 random-size sequences; the measured deviation of every run. Fences: max <= 1.05 samples, sigma <= 0.3, mean in -0.6 to +0.05
+$ cargo test -p octocore --test o4_guards -- --nocapture --test-threads=1
+g1-120bpm-48000hz-buffer1024: 320 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-120bpm-48000hz-buffer4096: 322 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-120bpm-48000hz-buffer480: 320 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-120bpm-48000hz-buffer64: 320 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-120bpm-48000hz-buffer7: 320 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-133bpm-44100hz-buffer1024: 355 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.487
+g1-133bpm-44100hz-buffer1: 106 notes, max 0.961 samples (21.8 us), sigma 0.289 samples (6.6 us), mean -0.483
+g1-133bpm-44100hz-buffer4096: 355 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.487
+g1-133bpm-44100hz-buffer480: 354 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.486
+g1-133bpm-44100hz-buffer64: 354 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.486
+g1-133bpm-44100hz-buffer7: 354 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.486
+g1-200bpm-96000hz-buffer1024: 533 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-200bpm-96000hz-buffer1: 160 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-200bpm-96000hz-buffer4096: 534 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-200bpm-96000hz-buffer480: 533 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-200bpm-96000hz-buffer64: 533 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-200bpm-96000hz-buffer7: 533 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-97.3bpm-48000hz-buffer1024: 259 notes, max 0.995 samples (20.7 us), sigma 0.286 samples (6.0 us), mean -0.501
+g1-97.3bpm-48000hz-buffer1: 77 notes, max 0.986 samples (20.5 us), sigma 0.288 samples (6.0 us), mean -0.494
+g1-97.3bpm-48000hz-buffer4096: 261 notes, max 0.995 samples (20.7 us), sigma 0.285 samples (5.9 us), mean -0.501
+g1-97.3bpm-48000hz-buffer480: 259 notes, max 0.995 samples (20.7 us), sigma 0.286 samples (6.0 us), mean -0.501
+g1-97.3bpm-48000hz-buffer64: 259 notes, max 0.995 samples (20.7 us), sigma 0.286 samples (6.0 us), mean -0.501
+g1-97.3bpm-48000hz-buffer7: 259 notes, max 0.995 samples (20.7 us), sigma 0.286 samples (6.0 us), mean -0.501
+g1-random-seed9001: 322 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-random-seed9002: 321 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-random-seed9003: 322 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-random-seed9004: 321 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-random-seed9010: 354 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.486
+g1-random-seed9011: 354 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.486
+g1-random-seed9012: 355 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.487
+g1-random-seed9013: 355 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.487
+g1-random-seed9014: 357 notes, max 0.961 samples (21.8 us), sigma 0.288 samples (6.5 us), mean -0.487
+g1-random-seed9020: 261 notes, max 0.995 samples (20.7 us), sigma 0.285 samples (5.9 us), mean -0.501
+g1-random-seed9021: 259 notes, max 0.995 samples (20.7 us), sigma 0.286 samples (6.0 us), mean -0.501
+g1-random-seed9022: 259 notes, max 0.995 samples (20.7 us), sigma 0.286 samples (6.0 us), mean -0.501
+g1-random-seed9023: 260 notes, max 0.995 samples (20.7 us), sigma 0.286 samples (6.0 us), mean -0.501
+g1-random-seed9024: 259 notes, max 0.995 samples (20.7 us), sigma 0.286 samples (6.0 us), mean -0.501
+g1-random-seed9030: 533 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-random-seed9031: 535 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-random-seed9032: 535 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-random-seed9033: 533 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+g1-random-seed9034: 533 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+test g1_constant_tempo_timing_holds_for_random_buffer_sequences ... g1-random-seed9000: 320 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+test g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size ... g1-120bpm-48000hz-buffer1: 96 notes, max 0.000 samples (0.0 us), sigma 0.000 samples (0.0 us), mean +0.000
+test nh1_the_analytic_curves_integrate_and_invert ... ok
+test nh2_the_constant_curve_uses_the_f32_tempo_the_engine_sees ... ok
+test nh3_a_trace_replays_to_the_same_events ... ok
+test nh4_the_host_reports_the_tempo_at_the_start_of_each_buffer ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+
+== G2  golden event streams
+$ cargo test -p octorun --test golden
+test chords_and_strums ... ok
+test effector ... ok
+test every_example_has_a_golden_file_and_the_other_way_round ... ok
+test hello ... ok
+test mcc_and_transport ... ok
+test a_pattern_gives_identical_bytes_every_time ... ok
+test no_golden_pattern_overflows_the_queue_or_runs_late ... ok
+test phrases ... ok
+test the_seed_matters ... ok
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+== G3  buffer-size invariance (the four named tests are among the 17 of invariants.rs)
+$ cargo test -p octocore --test invariants
+test a_bad_tempo_costs_nothing_once_the_tempo_is_sane ... ok
+test a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times ... ok
+test absurd_tempos_and_sample_rates_cannot_hang_render ... ok
+test different_seeds_make_different_scenarios ... ok
+test a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full ... ok
+test event_order_does_not_depend_on_the_hosts_buffer_size ... ok
+test event_times_survive_a_host_that_changes_its_buffer_size_on_every_call ... ok
+test every_note_on_has_a_velocity_of_at_least_1_however_quiet_the_pattern ... ok
+test first_buffer_after_idle_equals_a_fresh_engines_first_buffer ... ok
+test overload_is_counted_and_refuses_whole_notes_never_half ... ok
+test play_command_after_idle_does_not_replay_the_backlog ... ok
+test reset_flushes_sounding_notes ... ok
+test same_seed_replays_the_same_stream ... ok
+test stop_at_any_point_leaves_no_note_sounding ... ok
+test stop_command_between_renders_flushes_on_the_next_render ... ok
+test event_times_do_not_depend_on_the_hosts_buffer_size ... ok
+test stop_play_cycles_never_leak_notes_and_stopped_means_silent ... ok
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.37s
+
+== G4  no allocation in render (with a link: e4; without one: g4)
+$ cargo test -p octoffi -- e4_ g4_
+test tests::g4_render_without_a_link_allocates_nothing ... ok
+test tests::e4_render_push_and_claim_allocate_nothing ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.06s
+
+== G5  conformance fixtures
+$ cargo test -p octocore --test conformance
+test all_conformance_fixtures_pass ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s

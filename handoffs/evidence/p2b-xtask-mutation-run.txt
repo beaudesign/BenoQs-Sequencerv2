@@ -1,0 +1,16 @@
+# P2b xtask mutation run: 12 hand-made breakages of the conformance gate's panel rules and of the pending scan.
+# Two survived the first time (a failed runner reported as passed; the malformed metric loosened to Gte 0)
+# and one did not compile; tests pin the first two now and the third was rewritten. All 12 are caught.
+
+CAUGHT panel files not counted on disk 3
+CAUGHT runner failing counts as passed 1
+CAUGHT runner missing tolerated 1
+CAUGHT pending problems ignored 1
+CAUGHT malformed metric loosened 1
+CAUGHT walker drops .panel 1
+CAUGHT every dir is pending 2
+CAUGHT question format loosened 1
+CAUGHT page format loosened 1
+CAUGHT script lines allowed 2
+CAUGHT empty pending sentence allowed 1
+CAUGHT any extension is a fixture 1

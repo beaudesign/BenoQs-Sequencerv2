@@ -715,6 +715,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         let g = eval_panel(&format!("{}\n{bad}", full_run()), &on_disk, &Pending::default());
         assert_eq!(conformance_of(&g).status, Status::Fail);
         assert!(conformance_of(&g).failures.iter().any(|f| f.subject == "panel_fixtures::all_panel_fixtures_pass"), "{:?}", conformance_of(&g).failures);
+        assert_eq!(metric(conformance_of(&g), "conformance.panel_runner_passed"), 0.0, "a failed runner is not a passed runner");
+        assert!(!conformance_of(&g).metrics.iter().find(|m| m.key == "conformance.panel_runner_passed").unwrap().passes());
     }
 
     #[test]
@@ -740,6 +742,8 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         let f = conformance_of(&g).failures.iter().find(|f| f.subject == A_PENDING).expect("the file is named");
         assert!(f.detail.contains("question"), "{f:?}");
         assert_eq!(metric(conformance_of(&g), "conformance.pending_fixtures_malformed"), 1.0);
+        let m = conformance_of(&g).metrics.iter().find(|m| m.key == "conformance.pending_fixtures_malformed").unwrap();
+        assert!(!m.passes(), "the metric itself fails, not only the failure list: {m:?}");
     }
 
     #[test]

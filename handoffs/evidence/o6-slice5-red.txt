@@ -1,0 +1,26 @@
+# O6 slice 5 (C interface for the link) - RED, against stubs
+# stubs: the header is the one from 9e4860b; octocore_engine_open_link returns -3, push false, stats -1, claim null, abi_version 1; tests are final
+# command: cargo test -p octoffi --no-fail-fast
+running 18 tests
+test tests::a_pattern_programmed_entirely_through_ffi_actually_plays ... ok
+test tests::diagnostics_are_readable_and_null_safe ... ok
+test tests::a_small_caller_buffer_delays_events_and_never_drops_them ... ok
+test tests::f1_a_c_compiler_agrees_with_rust_about_every_size_and_offset_in_the_header ... FAILED
+test tests::f1_the_header_declares_the_link_surface_in_the_order_the_snapshot_is_laid_out ... FAILED
+test tests::f2_null_and_repeated_calls_are_refused_without_harm ... FAILED
+test tests::f3_a_pattern_can_be_edited_played_and_watched_through_the_c_functions_alone ... FAILED
+test tests::e4_render_push_and_claim_allocate_nothing ... FAILED
+test tests::f4_every_declaration_the_header_had_before_the_link_is_still_there ... ok
+test tests::f5_the_abi_version_is_the_same_in_the_header_the_constant_and_the_function ... FAILED
+test tests::f6_the_ends_outlive_the_engine_without_a_crash ... FAILED
+test tests::new_command_variants_match_the_layout_in_the_c_header ... ok
+test tests::new_event_variants_match_the_layout_in_the_c_header ... ok
+test tests::new_free_roundtrip_is_safe ... ok
+test tests::out_of_range_indices_are_a_no_op_not_a_crash ... ok
+test tests::render_fills_caller_buffer ... ok
+test tests::the_header_lists_the_event_tags_and_diagnostic_fields_in_the_rust_order ... ok
+test tests::track_and_step_set_get_round_trip ... ok
+test result: FAILED. 11 passed; 7 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+error: test failed, to rerun pass `-p octoffi --lib`
+error: 1 target failed:
+# note: f4 (nothing the old header declared is missing) and new_command_variants_match_... (pins the Rust-side bytes of types that are final) pass on the stubs by design. The C compiler rejected the old header as expected; its errors are omitted here.

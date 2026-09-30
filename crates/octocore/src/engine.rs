@@ -132,7 +132,10 @@ impl RawEvent {
     }
 }
 
-const QUEUE_CAP: usize = 512;
+/// Events the engine can hold between scheduling and emission. A heavy but ordinary pattern
+/// (every step a strummed 6-note chord at 240 BPM) peaks near 430; the overload scene fills
+/// it. Public so a test or a host can compare `Diagnostics::queue_high_water` with it.
+pub const QUEUE_CAP: usize = 1024;
 
 /// The furthest a note can start ahead of the tick that fires it, in ticks. It is the most
 /// negative entry of `tables::STA_TABLE` (Track STA 16, Step STA -5: "-12", CE v5.30
@@ -232,10 +235,13 @@ pub struct Diagnostics {
     /// Notes (or CCs) refused because the event queue was full. A note is refused whole,
     /// never as a lone NoteOn.
     pub queue_overflows: u32,
-    /// The most events the queue has held at once. `QUEUE_CAP` is 512.
+    /// The most events the queue has held at once. `QUEUE_CAP` is 1,024.
     pub queue_high_water: u32,
     /// Times an event that was due had to wait for a later render because the caller's
-    /// buffer was full. An event held over two renders counts twice.
+    /// buffer was full. It is counted once per internal chunk of up to `RENDER_CHUNK`
+    /// samples that the event waits through, so one large render can count the same waiting
+    /// event several times. Read it as "nonzero means the caller's buffer was too small",
+    /// not as a number of events.
     pub deferred_events: u32,
     /// Events emitted after their time, at sample 0 of the buffer, because they were
     /// deferred or scheduled in the past.
@@ -384,6 +390,8 @@ pub struct Engine {
     /// What fired *this tick*, cleared and refilled every `step_all_tracks` call.
     pub last_tick_fires: FireLog,
     diag: Diagnostics,
+    /// The command ring and snapshot buffer, once `open_link` has made them.
+    link: Option<Box<crate::link::EngineLink>>,
 }
 
 impl Engine {
@@ -410,7 +418,61 @@ impl Engine {
             measure_deferred: [None; TRACK_COUNT],
             last_tick_fires: FireLog::default(),
             diag: Diagnostics::default(),
+            link: None,
         }
+    }
+
+    /// Makes the command ring and the snapshot buffer, and returns their outer ends: the
+    /// sender for the main thread and the reader for the render thread. Once only. `None`
+    /// if the link is already open. An engine that never opens a link behaves exactly as
+    /// before (SPEC-0001 O6, D8). Allocates: call it at init, not on the audio thread.
+    pub fn open_link(&mut self) -> Option<(crate::link::CommandSender, crate::link::SnapshotReader)> {
+        if self.link.is_some() {
+            return None;
+        }
+        let (link, sender, reader) = crate::link::EngineLink::open();
+        self.link = Some(Box::new(link));
+        Some((sender, reader))
+    }
+
+    /// Ticks the engine has stepped since `new` or the last `reset`, including the ones it
+    /// stepped ahead of the audio (`MAX_EARLY_TICKS`).
+    pub fn tick(&self) -> u64 {
+        self.global_tick
+    }
+
+    /// Fills `into` with what the engine knows about itself, except the generation. LEDs and
+    /// encoders are left as they are: there is no control map without `panel.truth.json`.
+    pub fn snapshot(&self, into: &mut crate::types::Snapshot) {
+        use crate::types::{ActiveRefs, PlayheadState, TransportState};
+        into.transport = TransportState { playing: self.running, tick: self.global_tick };
+        into.mode = self.grid.mode;
+        into.active = ActiveRefs { bank: self.grid.active_page.bank, page: self.grid.active_page.page };
+        for (i, p) in into.playheads.iter_mut().enumerate() {
+            *p = PlayheadState { step_index: self.track_rt[i].pos, track_index: i as u8 };
+        }
+    }
+
+    /// Applies the commands waiting in the link's ring, oldest first, at most
+    /// `MAX_COMMANDS_PER_RENDER` of them. Words that do not decode are counted as dropped.
+    fn apply_link_commands(&mut self) {
+        let Some(mut link) = self.link.take() else { return };
+        for _ in 0..crate::link::MAX_COMMANDS_PER_RENDER {
+            let Some(words) = link.rx.pop() else { break };
+            match crate::types::Command::from_words(words) {
+                Some(cmd) => self.handle_command(cmd),
+                None => link.rx.reject(),
+            }
+        }
+        self.link = Some(link);
+    }
+
+    /// Publishes the engine's state to the link's snapshot buffer.
+    fn publish_link_snapshot(&mut self) {
+        let Some(mut link) = self.link.take() else { return };
+        self.snapshot(link.next_scratch());
+        link.publish();
+        self.link = Some(link);
     }
 
     pub fn diagnostics(&self) -> Diagnostics {
@@ -480,6 +542,12 @@ impl Engine {
             }
             Command::SetMode { mode } => self.grid.mode = mode,
             Command::HostTransport { playing, .. } => self.set_running(playing),
+            Command::SetTrack { track, attr, value } => {
+                self.grid.set_track_attr(track, attr, value);
+            }
+            Command::SetStep { track, step, attr, value } => {
+                self.grid.set_step_attr(track, step, attr, value);
+            }
             Command::ButtonDown { .. } | Command::ButtonUp { .. } | Command::EncoderTurn { .. } | Command::LoadState { .. } => {}
         }
     }
@@ -652,7 +720,17 @@ impl Engine {
     /// rendering buffer-by-buffer should clear it between calls. Events that do not fit in
     /// `out` stay queued and go out first in the next call; nothing is dropped for lack of
     /// room in `out`.
+    ///
+    /// With a link open (`open_link`), the commands waiting in its ring are applied first,
+    /// before any tick of this call, and a snapshot is published last. Without one, this is
+    /// exactly `render_core`.
     pub fn render(&mut self, ctx: &RenderContext, out: &mut EventBuffer) {
+        self.apply_link_commands();
+        self.render_core(ctx, out);
+        self.publish_link_snapshot();
+    }
+
+    fn render_core(&mut self, ctx: &RenderContext, out: &mut EventBuffer) {
         if ctx.playing != self.running {
             self.set_running(ctx.playing);
         }

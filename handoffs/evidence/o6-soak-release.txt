@@ -1,0 +1,12 @@
+# O6 soak in a release build, including the deep ignored tests
+# command: cargo test --release -p octocore --test soak -- --include-ignored
+# machine: 2 cores, shared with a loom mutation run at the time
+test s1_ring_keeps_order_and_accounts_for_every_command_when_the_consumer_keeps_up ... ok            (2,000,000 commands, ring of 1024)
+test s1_ring_overflows_cleanly_when_the_consumer_is_far_slower ... ok                                 (2,000,000 commands, ring of 64, dropped > 0 asserted)
+test s1_deep_ring_soak_100_million ... ok                                                             (100,000,000 commands at two consumer speeds)
+test s2_snapshot_buffer_never_shows_a_torn_slot_across_millions_of_publishes ... ok                   (10,000,000 publishes of 16 words in release)
+test s3_real_snapshot_is_never_torn_across_tens_of_thousands_of_publishes ... ok                      (200,000 publishes of the real 8,408-byte snapshot in release)
+test s2_deep_snapshot_soak_100_million ... ok                                                         (100,000,000 small publishes, 2,000,000 real snapshots)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.68s
+# Every claimed command or snapshot was intact, sequence numbers and generations only ever increased, received + dropped == pushed
+# for the ring, and the last publish was always the last thing the reader saw.

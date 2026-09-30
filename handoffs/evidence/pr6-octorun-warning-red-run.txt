@@ -1,0 +1,8 @@
+== octorun CLI overload test with the warning removed (the parent behaviour: the runner said nothing) ==
+test a_pattern_that_overloads_the_engine_says_so_on_stderr_and_a_clean_one_does_not ... FAILED
+thread 'a_pattern_that_overloads_the_engine_says_so_on_stderr_and_a_clean_one_does_not' (16128) panicked at crates/octorun/tests/cli.rs:74:5:
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+== with the warning ==
+test a_pattern_that_overloads_the_engine_says_so_on_stderr_and_a_clean_one_does_not ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s

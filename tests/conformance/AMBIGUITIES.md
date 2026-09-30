@@ -418,6 +418,16 @@ effect on ticks that have not been stepped yet, so up to 12 ticks (one step, 31 
 later than without lookahead. A Stop can leave up to 12 ticks of pattern position already
 consumed, so Play after Stop resumes up to one step further on. Neither affects the notes
 that were already sent, and Stop still silences everything.
+**Also chosen knowingly (review finding 16):** the ticks stepped ahead are timed with the
+tempo in force when they are stepped. If the host slows the tempo inside that lookahead, a
+note already scheduled with the old tempo keeps its old time. After a tempo decrease with an
+extreme STA offset a note can be clamped to the start of the buffer and counted in
+`Diagnostics::late_events`. Not fixed. A constant tempo, which is what a host reports between
+tempo changes, is exact to one sample (the whole-sample rounding). **Amended in the O4 plan:**
+after a tempo ramp or jump the offset does not recover (a 60 to 120 BPM ramp leaves every later
+note 23.9 ms late; `handoffs/evidence/o4-baseline-c-s-f.txt`), and at tempos where samples
+per tick is not a binary fraction (110 BPM) some ticks land one sample early
+(`handoffs/evidence/o4-golden-floor.txt`). See `specs/SPEC-0001/o4-release-plan.md` section 1.
 **Alternative:** rewind the position on Stop, or delay all output by 12 ticks and report it as
 latency (its cost changes with tempo). Neither is done.
 **Fixture:** `tests/invariants.rs::event_times_do_not_depend_on_the_hosts_buffer_size`,
@@ -442,3 +452,57 @@ about 4,096 samples can reach this. A tempo outside 1 to 999 BPM, or a sample ra
 **Fixture:** `engine::tests::a_full_output_buffer_defers_events_instead_of_dropping_them`,
 `engine::tests::an_unusable_tempo_does_not_wedge_the_clock`,
 `octoffi::tests::a_small_caller_buffer_delays_events_and_never_drops_them`.
+
+## who owns the transport: `RenderContext::playing` or the commands
+
+**Manual reference:** none. The hardware has one transport; this engine has two ways in.
+**Observed, not changed:** `Engine::render` starts with `if ctx.playing != self.running { set_running(ctx.playing) }`.
+`Command::Play`, `Continue`, `Stop` and `HostTransport { playing }` also call `set_running`,
+whether they arrive through `handle_command` or, since SPEC-0001 O6, through the command
+ring (which is drained just before). So a `Play` command is undone in the same call if the
+host's `playing` flag says false, and a `Stop` is undone if it says true. A host that passes
+`playing: engine.is_running()` gets the commands' behaviour; a host that passes its own
+transport state gets its own. `Stop`'s flush of sounding notes and its CC 123 happen either
+way, because they hang off the change of state.
+**Why it is left:** which of the two should win is O4's question (`HostTransport` with
+`ppqn_pos` and `bpm` is still only read for `playing`). The ring did not create the question,
+and it delivers commands in order and before any tick, so the answer will not depend on it.
+**Fixture:** none yet. `tests/link.rs::c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_command`
+shows the two paths agree.
+
+## tick resolution: 192 ticks per quarter note or per whole note
+
+**Manual reference:** CE v5.30 p.15 ("Each Green increment corresponds to 1/192 of a note and
+each Red value corresponds to 12/192 = 1/16 of a note"), p.16 ("The natural maximum length of a
+step is one full note - 192/192"), p.67 ("A measure is 16 steps at x1 speed").
+**Ambiguity:** the manual never says "PPQN" or "quarter note". 12/192 = 1/16 fixes 192 ticks as
+one note, a whole note, so a step at default length is a 1/16 note, and a 16-step measure at
+x1 is one whole note. The manual does not say what unit the tempo counts, but beats per minute
+in quarter notes is the only ordinary reading.
+**Readings considered:** A) 192 ticks per whole note, 48 per quarter: a step at 120 BPM lasts
+125 ms and 16 steps last 2 s. B) 192 ticks per quarter note (what the code has,
+`TICKS_PER_QUARTER` in `domain.rs`, "192 PPQN" in `docs/02` §5, `docs/03` lines 18, 43 and
+220, `AGENTS.md`, `SPEC.md`): a step at 120 BPM lasts 31.25 ms and 16 steps last 0.5 s.
+**Chosen:** none. **Observed, not changed:** the engine implements B, and `docs/03` line 43
+says both "PPQN 192" and "12 ticks = 1/16", which are only compatible under A. The engine is
+untouched because every golden hash, every millisecond figure and the 12-tick lookahead depend
+on it. Triaged as `WENGE-0012` (`handoffs/WENGE-0012.ndjson`); the owner decides (D0 in
+`specs/SPEC-0001/o4-release-plan.md`). A real Octopus settles it: at 120 BPM, does a 16-step
+pattern at x1 with default step lengths take 2 s or 0.5 s?
+**Fixture:** none yet. A test that plays 16 steps at 120 BPM and asserts the length belongs to
+`WENGE-0012` once the owner has decided.
+
+## locate, loop and a frozen host position
+
+**Manual reference:** CE v5.30 pp.93 and 94 (external clock). Nothing on locating to a
+position, looping, or a host whose position stops.
+**Ambiguity:** what the sequencer should do when the position it is following jumps, wraps or
+freezes. The engine does not read a position today (`HostTransport.ppqn_pos` is ignored).
+**Readings considered:** A) release every sounding note at the jump and leave each track's
+step position where it is. B) "chase": step silently from the start to the new position, so
+patterns land where a linear play would put them (random and effector state depend on history,
+so it cannot be exact). For a position that stops advancing while the host says "playing": A)
+flush once, then play nothing until it moves; B) treat it as free-running.
+**Chosen (proposed in the O4 plan, not implemented):** A in both cases. Nothing in the engine
+changes until the owner approves the plan (D5).
+**Fixture:** none yet. R8, R11 and R12 in `specs/SPEC-0001/o4-release-plan.md` section 4.

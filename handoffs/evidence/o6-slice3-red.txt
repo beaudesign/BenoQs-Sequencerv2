@@ -1,0 +1,24 @@
+# O6 slice 3 (snapshot buffer and Snapshot words) - RED, against stubs
+# stubs: triple.rs publish/claim do nothing; snapshot.rs is unimplemented!(); tests are final
+# command: cargo test -p octocore --no-fail-fast --lib --test soak -- triple:: snapshot:: s2_ s3_
+     Running unittests src/lib.rs (target/debug/deps/octocore-f9a7c8ae71b43653)
+running 8 tests
+test snapshot::tests::t5_snapshot_round_trips_bit_for_bit_including_nan_payloads ... FAILED
+test snapshot::tests::t5_a_word_that_is_not_a_mode_is_refused_and_leaves_the_output_alone ... FAILED
+test snapshot::tests::t6_snapshot_layout_is_pinned_for_the_c_header ... ok
+test snapshot::tests::t6_zeroed_snapshot_is_all_zero_words ... FAILED
+test triple::tests::t1_reader_gets_the_newest_publish_and_a_second_claim_reports_nothing_new ... FAILED
+test triple::tests::t2_claim_before_any_publish_returns_the_zeroed_initial_slot ... ok
+test triple::tests::t3_a_thousand_publishes_with_no_reader_never_block_and_the_reader_sees_the_last ... FAILED
+test triple::tests::t4_claims_never_go_backwards_and_report_new_exactly_when_something_was_published ... FAILED
+test result: FAILED. 2 passed; 6 failed; 0 ignored; 0 measured; 116 filtered out; finished in 0.08s
+error: test failed, to rerun pass `-p octocore --lib`
+     Running tests/soak.rs (target/debug/deps/soak-045b3724128813b9)
+running 3 tests
+test s2_deep_snapshot_soak_100_million ... ignored, deep soak, run by hand
+test s3_real_snapshot_is_never_torn_across_two_hundred_thousand_publishes ... FAILED
+test s2_snapshot_buffer_never_shows_a_torn_slot_across_ten_million_publishes ... FAILED
+test result: FAILED. 0 passed; 2 failed; 1 ignored; 0 measured; 3 filtered out; finished in 1.03s
+error: test failed, to rerun pass `-p octocore --test soak`
+error: 2 targets failed:
+# note: T2 (initial slot is zero) and t6_snapshot_layout (pins the existing layout) pass on the stubs by design.

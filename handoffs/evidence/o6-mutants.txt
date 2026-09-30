@@ -1,0 +1,28 @@
+# O6: mutation check of the loom tests. Each mutant is a deliberate one-line breakage of the ring or the snapshot
+# buffer, applied to a scratch copy of octocore (never to the repo). A mutant the loom tests do not fail on means
+# the tests do not protect that line. Script: crates/octocore/loom/mutants.py (M1 to M8 defined there).
+# Command: python3 crates/octocore/loom/mutants.py      (about 30 minutes on 2 shared cores; needs network for the first build)
+#
+# Run 1: the whole script, on the final code. Result, verbatim:
+control  the unmodified crate passes the loom tests
+M1  caught by l1_ring_never_returns_a_torn_or_reordered_command_while_the_producer_laps_it (producer never marks a slot as being written)
+M2  caught by l1_ring_never_returns_a_torn_or_reordered_command_while_the_producer_laps_it (consumer skips the second stamp check)
+M3  caught by l1_ring_never_returns_a_torn_or_reordered_command_while_the_producer_laps_it (producer publishes head before the payload)
+M4  caught by l1_ring_never_returns_a_torn_or_reordered_command_while_the_producer_laps_it (payload words are read Relaxed instead of Acquire)
+M5  caught by l3_snapshot_buffer_never_shows_a_torn_pair_and_ends_on_the_last_publish (writer stores into the middle instead of swapping, so it never learns a free slot)
+M6  caught by a loom test (reader claims without checking the dirty bit)
+M7  caught by l3_snapshot_buffer_never_shows_a_torn_pair_and_ends_on_the_last_publish (the writer's swap is Relaxed, so the words are not published)
+M8  survived, as expected (EQUIVALENT: the final stamp store is Relaxed (expected to survive))
+#
+# Note on M6 in run 1: the runner printed "caught by a loom test" without a test name, because a loom failure inside a
+# destructor aborts the whole test process (SIGABRT) and cargo then lists no test. I changed the runner to name the
+# filter that was running, and reran M6 alone:
+M6  caught by l3_* (the test process aborted) (reader claims without checking the dirty bit)
+exit 0
+#
+# Reading: M1 to M7 are caught (7 of 7). M8 (the final stamp store made Relaxed) survives, and that is correct: the
+# head store that follows is Release, so it already orders the payload and the stamp; the mutant changes nothing any
+# reader can observe. It is kept, marked EQUIVALENT in the script, so that a future change that makes it matter shows
+# up as a failure instead of being forgotten. My first draft of this list had M8 as a real breakage; the loom run
+# showed it was not, and the record of that is in o6-test-plan.md section 10.
+# The script exits 0 only if every non-equivalent mutant is caught and the control passes.

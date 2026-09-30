@@ -25,7 +25,9 @@ The engine changed and these statements are now false or incomplete:
    Pitch Bend whose 14-bit value is the step's MCC value shifted left 7 (64 is centre 8192),
    and a channel-pressure track sends Channel Pressure (p.46, p.91). Source of truth for the
    choices: `tests/conformance/AMBIGUITIES.md`.
-4. `docs/02-architecture.md` lines 216 and 220 say position is integer ticks with no float
-   accumulation, and that the core applies commands on the next tick. Today the engine
-   accumulates a float and applies commands with the lookahead above. These lines describe
-   what O4 (`WENGE-0004`, not approved) would build. Mark them as target design.
+4. `docs/02-architecture.md` lines 216 and 220 were already out of date before this work
+   (review finding 17). Line 216 says random draws happen in "track index ascending" order,
+   and the engine steps tracks 9 down to 0, as the manual's effector note says. Line 220 says
+   there is no floating-point accumulation for musical position, and the engine still
+   accumulates a float clock. The second is what O4 (`WENGE-0004`, not approved) would build,
+   so mark it as target design. The first is a plain correction.

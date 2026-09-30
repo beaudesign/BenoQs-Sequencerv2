@@ -1,0 +1,21 @@
+# O6: mutation check of the engine hooks, the snapshot publishing and the attribute setters (added after the independent
+# review of PR #11 found that the slice-4 red runs only showed the tests failing on a stub that returned None, and that one
+# test, C6, could not fail at all). Script: crates/octocore/loom/link_mutants.py. Each mutant is a one-line breakage applied
+# to a scratch copy of octocore; `cargo test --lib --test link --test attrs` must fail on every one.
+# Command: python3 crates/octocore/loom/link_mutants.py      (about 4 minutes)
+# Result, verbatim:
+control  the unmodified crate passes
+LM1  caught by c3_edits_through_the_ring_sound_exactly_like_the_same_edits_made_directly, c4_commands_in_the_first_drain_take_effect_before_the_first_tick_is_stepped, c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_command (commands are applied after the render they arrive for, not before)
+LM2  caught by c5_a_render_applies_at_most_the_limit_and_the_next_render_carries_on (one command more than the per-render limit is applied)
+LM3  caught by c7_words_that_are_not_a_command_are_counted_as_dropped_and_never_applied (an undecodable word is not counted as dropped)
+LM4  caught by e1_the_generation_is_the_number_of_renders, e2_the_published_snapshot_is_what_the_engine_says_about_itself (the snapshot is never published)
+LM5  caught by e2_the_published_snapshot_is_what_the_engine_says_about_itself (the snapshot is published before the render, so it is one render stale)
+LM6  caught by e2_the_published_snapshot_is_what_the_engine_says_about_itself (the snapshot reports the opposite transport state)
+LM7  caught by e2_the_published_snapshot_is_what_the_engine_says_about_itself (the snapshot reports tick 0)
+LM8  caught by e2_the_published_snapshot_is_what_the_engine_says_about_itself (the snapshot reports the wrong active page)
+LM9  caught by c2_out_of_range_track_or_step_changes_nothing_and_does_not_panic (a track index of exactly TRACK_COUNT is accepted)
+LM10  caught by c2_out_of_range_track_or_step_changes_nothing_and_does_not_panic (a step index of exactly STEP_COUNT is accepted)
+LM11  caught by c1_commands_and_setters_agree_for_every_attribute_and_value, c1_track_attribute_clamping_matches_the_ffi_table_from_9e4860b (pitch is not clamped)
+LM12  caught by c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_command (the command Stop does not stop the engine)
+# Reading: 12 of 12 caught. LM12 (Stop does not stop the engine) is caught by C6 as rewritten: the old C6 rendered its next
+# buffer with playing=false, so the host flag stopped the engine and the Stop command was never needed.

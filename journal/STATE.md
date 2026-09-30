@@ -118,19 +118,23 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   (needs an ARM soak).
 - **O4 (integer tick clock and host lock) plan approved with all defaults in r3 (2026-09-30):**
   build as PRs 4a, 4b, 4c in order. **Built and open for review:** step 1 (#14: the null host and
-  guards G1 to G5, no engine change; worst G1 deviation 0.995 samples; ten breakages of the clock each
-  caught) and **PR 4a (#16: integer step accumulators, medium tier)**: 49 of 159 multipliers fired a step
-  one tick late, now none, at any tick count; goldens byte-identical. Latent: no host can set a
-  multiplier yet. **4b and 4c are not started:** 4b waits for the owner's answer on D0, both for the D3
-  ADR (the Conductor's). **D0 is a finding: the engine counts 192 ticks per quarter note and the manual
-  192 per whole note, so steps play four times too fast.** Engine tick untouched in O4; `WENGE-0012` is
-  the triage record.
+  guards G1 to G5, no engine change; worst G1 deviation 0.995 samples; eleven breakages of the clock
+  each caught, G1 fencing the mean as well) and **PR 4a (#16: integer step accumulators, medium tier)**: 49 of 159 multipliers fired
+  a step one tick late, now none, at any tick count and through changes of multiplier; goldens
+  byte-identical. Latent: no host can set a multiplier yet. An independent review of #14 and #16 found
+  that the first 4a version drifted late on chained tracks (0.26 %); fixed by carrying the phase
+  exactly. **4b and 4c are not started:** 4b waits for the owner's answer on D0, and both wait for the
+  D3 ADR (the Conductor's). **D0 is a finding: the engine counts 192 ticks per quarter note and the
+  manual 192 per whole note, so steps play four times too fast.** Engine tick untouched in O4;
+  `WENGE-0012` is the triage record.
 - **Not approved, not started:** the design-system and DSP track (Q1, unanswered).
 - **Merge state on 2026-09-30:** `main` holds PRs 1 to 8 (#13, the landing PR, was merged by the
-  owner). The stacked branches (`conductor/octorun`, `metronome/queue-headroom`,
+  owner) and #15, the owner's prune of two unused public helpers in `scale.rs` (no overlap with #14 or
+  #16; the evidence checks "no engine change" against the branch point for that reason). The stacked branches (`conductor/octorun`, `metronome/queue-headroom`,
   `metronome/command-ring`, `conductor/o4-release-plan`, `conductor/land-stack`,
   `conductor/factory-layer`, `referee/ratchet`, `metronome/transport-safety`,
-  `metronome/timing-and-emission`) can be deleted. #14 and #16 are both based on `main`: no stack.
+  `metronome/timing-and-emission`) can be deleted. #14 and #16 are both based on `main`, not on each
+  other (#16 carries #14's commits): there is no stack to trap.
 - **Owner-only:** branch protection and required Code Owner review (make the `verify` check
   required); the `jsonschema` dev-dependency (about 100 lockfile entries).
 - **Known limits:** the 256-events-per-call cap binds above about 4,096 samples on dense

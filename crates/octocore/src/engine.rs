@@ -1876,6 +1876,43 @@ mod tests {
         assert_eq!(at, vec![192, 384, 576]);
     }
 
+    /// SPEC-0001 O4, PR 4a. Linking and unlinking a hyperstep changes a track's step length in the
+    /// middle of a step (192 ticks while linked, its multiplier's otherwise). The phase is carried
+    /// across both changes exactly: at x7/3 (a step of 36/7 ticks) linked at tick 700 and unlinked
+    /// at tick 1,000, every tick agrees with an exact reference. An independent review found the
+    /// round-down version fired on tick 317 after the unlink where the exact answer is 316.
+    #[test]
+    fn a_hyperstep_link_and_unlink_carry_the_step_phase_exactly() {
+        use crate::steps::{ExactClock, StepRate};
+        let mut engine = Engine::new(1);
+        {
+            let page = engine.grid.active_page_mut();
+            page.tracks[9].steps[0].active = true;
+            page.tracks[5].multiplier_num = 7;
+            page.tracks[5].multiplier_den = 3;
+            for step in page.tracks[5].steps.iter_mut() {
+                step.active = true;
+            }
+        }
+        let mut exact = ExactClock::new();
+        let mut checked_fires = 0;
+        for tick in 1..=2_000u32 {
+            if tick == 701 {
+                engine.hyperstep_link(9, 0, 5);
+            }
+            if tick == 1_001 {
+                engine.hyperstep_unlink(5);
+            }
+            engine.step_once_for_test();
+            let fired = engine.last_tick_fires.as_slice().iter().any(|f| f.track == 5);
+            let linked = (701..1_001).contains(&tick);
+            let rate = if linked { StepRate::fixed(192) } else { StepRate::from_multiplier(7, 3, DEFAULT_STEP_TICKS) };
+            assert_eq!(fired, exact.tick(rate), "tick {tick}, linked {linked}");
+            checked_fires += fired as u32;
+        }
+        assert!(checked_fires > 300, "{checked_fires} steps is too few to test anything");
+    }
+
     /// Ref: CE v5.30 p.31: "the hypedtrack will assume both the pitch and the
     /// velocity values of the hyperstep... Changes to the hyperstep PIT and
     /// VEL will influence the hypedtrack in real-time" — read live from the

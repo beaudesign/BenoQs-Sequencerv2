@@ -113,7 +113,7 @@ test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; 
 error: test failed, to rerun pass `-p octocore --test o4_steps`
 
 == Part 2. The accumulator's own tests (src/steps.rs) on a stub that keeps the parent's f32 rule behind the new API
-The stub is the parent commit's arithmetic verbatim (accum += 1; fire if accum + 1e-6 >= step_ticks; accum -= step_ticks) in a scratch copy; the tests are the ones in this commit.
+The stub is the parent commit's arithmetic verbatim (accum += 1; fire if accum + 1e-6 >= step_ticks; accum -= step_ticks) in a scratch copy; the tests are those of the first 4a commit (6e7da4f). The independent review then replaced R1e and added R1f and others (see the journal); those are checked by the mutation run instead (o4-4a-mutants.txt), not by this stub.
 
 $ cargo test -p octocore --lib steps   (in the scratch copy)
 test steps::tests::a_change_from_times_one_to_times_three_after_five_ticks ... ok
@@ -129,3 +129,16 @@ test steps::tests::r1d_the_159_reduced_multipliers_up_to_16_stay_exact_for_a_mil
 test result: FAILED. 5 passed; 5 failed; 1 ignored; 0 measured; 124 filtered out; finished in 0.08s
 
 Five fail (R1a, R1b, R1c, R1d, R1e), five pass. Those that pass are the edge cases the f32 rule already got right (a step of a tick or less, a zero denominator, a fixed 192-tick step, the hand case at x1 to x3), which is what a guard is.
+
+== Part 3. Added after the independent review: the chain test on the parent engine
+
+A chain (head track 9, member track 8) that takes a different multiplier every 16 steps. The exact reference carries the phase in ticks as a reduced fraction and shares no code with the engine.
+The f32 engine is also wrong here, one tick late from step 15 (tick 37 instead of 36 at x5 then x1); the first 4a clock was worse in a different way (it drifted 0.26 % over 200,000 ticks, 73 steps short). See journal/metronome/2026-09-29.md.
+
+$ cargo test -p octocore --test o4_steps   (on the parent commit's engine, with the new test file)
+test r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact ... FAILED
+test r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields ... FAILED
+test r1_the_rule_by_hand_at_nine_times ... ok
+test r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16 ... FAILED
+assertion `left == right` failed: x5/1 then x1/1: 13890 steps fired, 13890 expected; first difference at step 15 (tick Some(37) instead of Some(36))
+test result: FAILED. 1 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.32s

@@ -23,6 +23,7 @@
 use crate::domain::*;
 use crate::rng::Rng;
 use crate::scale;
+use crate::steps::{StepClock, StepRate};
 use crate::tables;
 use crate::types::{Event, MAX_EVENTS_PER_TICK};
 
@@ -54,7 +55,8 @@ struct ChainRuntime {
 
 #[derive(Clone, Copy, Debug)]
 struct TrackRuntime {
-    accum: f32,
+    /// Where the track is within its current step: an exact integer phase (`steps.rs`).
+    step: StepClock,
     pos: u8,
     ping_dir: i8,
     chain: ChainRuntime,
@@ -84,7 +86,7 @@ struct TrackRuntime {
 impl Default for TrackRuntime {
     fn default() -> Self {
         TrackRuntime {
-            accum: 0.0,
+            step: StepClock::new(),
             pos: 0,
             ping_dir: 1,
             chain: ChainRuntime { member_idx: 0, seg_pos: 0, ping_dir: 1 },
@@ -902,20 +904,16 @@ impl Engine {
         // normal per-multiplier length while linked. The source track's own
         // Track LEN scaling this further (p.31-32) is a confirmed-but-not-yet-
         // transcribed refinement — see AMBIGUITIES.md.
-        let step_ticks = if hyperstep_link.is_some() {
-            192.0
+        let rate = if hyperstep_link.is_some() {
+            StepRate::fixed(192)
         } else {
-            let mult = base_track.multiplier().max(1e-6);
-            (DEFAULT_STEP_TICKS as f32 / mult).max(1.0)
+            StepRate::from_multiplier(base_track.multiplier_num, base_track.multiplier_den, DEFAULT_STEP_TICKS)
         };
 
-        {
-            let rt = &mut self.track_rt[ti as usize];
-            rt.accum += 1.0;
-            if rt.accum + 1e-6 < step_ticks {
-                return;
-            }
-            rt.accum -= step_ticks;
+        // SPEC-0001 O4, PR 4a: the phase is an integer, so the k-th step starts on tick
+        // `ceil(k * step)` for every multiplier, at any tick count (`steps.rs`).
+        if !self.track_rt[ti as usize].step.tick(rate) {
+            return;
         }
 
         let raw_index = if is_chain_head { self.track_rt[ti as usize].chain.seg_pos } else { self.track_rt[ti as usize].pos };
@@ -1854,6 +1852,28 @@ mod tests {
         }
         let fired_at_192 = engine.last_tick_fires.as_slice().iter().any(|f| f.track == 5);
         assert!(fired_at_192, "should fire at tick 192 (12 + 180)");
+    }
+
+    /// SPEC-0001 O4, PR 4a. The step of a hyperstep-linked track is exactly 192 ticks: it fires on
+    /// ticks 192, 384 and 576 (counted from 1) and on no other. The test above cannot tell a
+    /// 96-tick step from a 192-tick one (96 divides 192); a mutation check found that.
+    #[test]
+    fn hyperstep_linked_track_fires_on_exactly_ticks_192_384_and_576() {
+        let mut engine = Engine::new(1);
+        engine.grid.active_page_mut().tracks[9].steps[0].active = true;
+        // Every step of the linked track on, so each 192-tick step has something to fire.
+        for step in engine.grid.active_page_mut().tracks[5].steps.iter_mut() {
+            step.active = true;
+        }
+        engine.hyperstep_link(9, 0, 5);
+        let mut at = Vec::new();
+        for tick in 1..=600u32 {
+            engine.step_once_for_test();
+            if engine.last_tick_fires.as_slice().iter().any(|f| f.track == 5) {
+                at.push(tick);
+            }
+        }
+        assert_eq!(at, vec![192, 384, 576]);
     }
 
     /// Ref: CE v5.30 p.31: "the hypedtrack will assume both the pitch and the

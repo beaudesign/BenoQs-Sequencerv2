@@ -26,9 +26,10 @@ use octocore::domain::{DEFAULT_STEP_TICKS, TICKS_PER_QUARTER};
 use octocore::types::StepAttr;
 use octocore::Engine;
 
-/// The first note of a pattern sounds this many ticks after Play, not on the first tick.
-/// Observed on `c1e04c1` and not explained (journal 2026-09-29); the guard pins it so that O4
-/// cannot move it without being noticed.
+/// The first note of a pattern sounds this many ticks after Play, not on the first tick: a
+/// track's step phase starts at 0 and a step of 12 ticks starts on the 12th tick, which is tick
+/// index 11 (`tests/conformance/AMBIGUITIES.md`, "the first note after Play"). The guard pins it
+/// so that O4 cannot move it without being noticed.
 const FIRST_NOTE_TICK: u64 = DEFAULT_STEP_TICKS as u64 - 1;
 
 /// One track, every step on: a note every `DEFAULT_STEP_TICKS`.

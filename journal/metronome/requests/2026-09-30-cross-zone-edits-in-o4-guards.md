@@ -17,5 +17,17 @@ here is a contract.
 missing (`docs/07`, listed `not_implemented`). It runs in about a second in debug. If you agree,
 the gate can call it directly; I have not touched `harness/` or the gate list.
 
-Not touched: `contracts/`, `harness/required-gates.txt`, `xtask/`, `.github/`, `docs/`,
-`crates/octocore/src/`.
+Not touched (step 1 and 4a): `contracts/`, `harness/required-gates.txt`, `xtask/`, `.github/`, `docs/`.
+Step 1 also left `crates/octocore/src/` alone; 4a changes it (Metronome's zone).
+
+## PR 4a (integer step accumulators)
+
+Everything in 4a is inside Metronome's zone (`crates/octocore/src/steps.rs`, `engine.rs`, the
+tests, `tests/conformance/AMBIGUITIES.md`) except:
+
+| File | Zone | What changed |
+|---|---|---|
+| `harness/baseline.txt` | Referee | `cargo xtask baseline`: 13 tests added, none removed. |
+| `handoffs/`, `specs/SPEC-0001/README.md` | Conductor | The task record, the evidence, the PR series table. |
+
+Filed separately: `2026-09-30-docs-02-step-clock.md` (Scribe).

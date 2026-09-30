@@ -141,7 +141,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         baseline.fixtures.insert("tests/conformance/x.fixture".into());
         let mut base = baseline.clone();
         base.tests.insert("octocore::quoted \"name\"".into());
-        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline: &baseline, base: Some(&base), adr_exists: &|_| false, scope: &crate::scope::Scan::clean() };
+        let inputs = Inputs { run: &run, fixtures: &fixtures, pending_panel: &crate::panel::Pending::default(), baseline: &baseline, base: Some(&base), adr_exists: &|_| false, scope: &crate::scope::Scan::clean() };
         let (gates, assertions) = evaluate(&inputs);
         Report {
             commit: "6ef921f".into(),

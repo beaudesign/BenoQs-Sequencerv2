@@ -13,6 +13,7 @@ mod baseline;
 mod cargo_out;
 mod gates;
 mod json;
+mod panel;
 mod report;
 mod scope;
 
@@ -261,6 +262,7 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
         None => None,
     };
     let fixtures = conformance_fixtures(root);
+    let pending_panel = panel::scan_pending(root);
     let start = Instant::now();
     let run = run_tests(root, o.release)?;
     let adr = |id: &str| adr_exists(root, id);
@@ -268,6 +270,7 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
     let inputs = Inputs {
         run: &run,
         fixtures: &fixtures,
+        pending_panel: &pending_panel,
         baseline: &baseline,
         base: base.as_ref(),
         adr_exists: &adr,
@@ -467,9 +470,18 @@ mod tests {
     #[test]
     fn fixtures_exclude_pending_and_use_forward_slashes() {
         let f = conformance_fixtures(&root());
-        assert!(f.iter().all(|p| p.starts_with("tests/conformance/") && p.ends_with(".fixture")));
+        assert!(f.iter().all(|p| p.starts_with("tests/conformance/") && (p.ends_with(".fixture") || p.ends_with(".panel"))));
         assert!(f.iter().all(|p| !p.contains("/pending/")));
+        assert!(f.iter().all(|p| !p.contains('\\')));
         assert!(!f.is_empty());
+    }
+
+    #[test]
+    fn panel_fixtures_count_as_fixtures_and_pending_ones_do_not() {
+        let f = conformance_fixtures(&root());
+        assert!(f.iter().any(|p| p.ends_with(".fixture")), "the engine fixtures are still counted");
+        assert!(f.iter().any(|p| p.starts_with("tests/conformance/panel/") && p.ends_with(".panel")), "the panel fixtures are counted");
+        assert!(f.iter().all(|p| !p.starts_with("tests/conformance/panel/pending/")));
     }
 
     #[test]

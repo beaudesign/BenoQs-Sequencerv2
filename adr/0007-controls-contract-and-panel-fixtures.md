@@ -42,7 +42,7 @@ P2b adds `contracts/controls.json` and `contracts/controls.schema.json` (JSON Sc
 | `zone` | One of the zones in the file's `zones` list: matrix, selector column, mutator column, MIX, EDIT, circle (outer and inner), chord block, transport, mode, and any the manual adds |
 | `name` | The manual's own name for the control, as printed. A control the manual does not name carries the manual's description and is marked `unnamed` |
 | `at` | A position in the zone's own grid, as **integers in the manual's numbers** (matrix columns are steps 1 to 16; matrix rows are 0 to 9, row 0 at the bottom). No millimetres, no pixels |
-| `led` | Whether the control has an LED |
+| `led` | `true` when the manual gives the control an LED. Absent when it does not say; absent never means that there is none |
 | `cite` | The manual pages, `["p013", "p014"]`. At least one. A control cited to no page is not in the file |
 | `pending` | Present when the manual does not settle a detail of a control that does exist (its position, whether it has a push, what its LED shows). It names the question by number (see below) and gives no guessed value |
 
@@ -120,7 +120,8 @@ time source. So:
   supports.
 - `xtask` (the Referee's, a tightening): the `conformance` gate counts `.panel` files as
   fixtures, requires the `panel_fixtures` test binary to have run and to pass, and reports the
-  number of pending fixtures as a metric. A pending file with no header fails the gate. The
+  number of pending fixtures as a metric. A pending file with no header fails the gate. A `.panel` file
+  outside `tests/conformance/panel/` is not counted, because the runner does not read it, and fails the gate. The
   ratchet baseline's kinds do not change. A panel fixture that passes is recorded under `fixture`
   by `cargo xtask baseline` like any other, and a pending one is reported, not floored.
   Making pending a baseline kind is a later decision.

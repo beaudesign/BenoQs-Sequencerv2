@@ -2,7 +2,11 @@
 
 **Codename:** `WENGE`
 **Supersedes:** `beaudesign/BenoQs-Sequencer` (archive, do not merge)
-**Status:** Ratified. Section changes require an ADR.
+**Status:** Ratified. Section changes require an ADR. **Superseded in part by ADR-0006 and
+`specs/SPEC-0002/` (2026-09-30):** the product is now a web sequencer. Sections 1, 3 (D2 to D4 and
+the plugin bullets), 4, 5 (the `octoroom` and `OctoShell` entries) and 7 (items 2 to 4, 7 and 8)
+describe the rooms product and no longer apply. N5, N7 and N8 stand. The sections are rewritten
+in the pull request that removes the rooms scope (P1).
 **Reference hardware:** genoQs Machines Octopus, CE OS v5.30, Stuttgart 2009.
 
 ---

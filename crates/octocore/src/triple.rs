@@ -59,12 +59,8 @@ pub fn triple_buffer(words: usize) -> (Writer, Reader) {
 }
 
 impl Writer {
-    pub fn words(&self) -> usize {
-        self.shared.words
-    }
-
-    /// Writes `data` (which must be `words()` long) into the slot the writer owns, then
-    /// publishes it. Never waits.
+    /// Writes `data` (which must match the buffer word count / `shared.words`) into the
+    /// slot the writer owns, then publishes it. Never waits.
     pub fn publish(&mut self, data: &[u32]) {
         assert_eq!(data.len(), self.shared.words, "publish: wrong slot length");
         let slot = &self.shared.slots[self.back as usize];
@@ -83,10 +79,6 @@ impl Writer {
 }
 
 impl Reader {
-    pub fn words(&self) -> usize {
-        self.shared.words
-    }
-
     /// Takes the newest published slot if there is one newer than the last claim. Returns
     /// whether it did. Never waits.
     pub fn claim(&mut self) -> bool {
@@ -98,8 +90,8 @@ impl Reader {
         true
     }
 
-    /// Copies the claimed slot into `out` (which must be `words()` long). Before the first
-    /// claim that is the initial all-zero slot.
+    /// Copies the claimed slot into `out` (which must match the buffer word count /
+    /// `shared.words`). Before the first claim that is the initial all-zero slot.
     pub fn read(&self, out: &mut [u32]) {
         assert_eq!(out.len(), self.shared.words, "read: wrong slot length");
         let slot = &self.shared.slots[self.front as usize];

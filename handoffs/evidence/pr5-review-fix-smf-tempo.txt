@@ -1,0 +1,20 @@
+== octorun smf tempo test with the guard disabled (equivalent to the parent commit fb73e98) ==
+test smf::tests::a_stream_with_no_events_is_a_valid_file_with_only_the_tempo_track ... ok
+test smf::tests::header_tempo_and_one_note_are_laid_out_as_the_spec_says ... ok
+test smf::tests::one_beat_at_120_bpm_is_960_ticks_and_a_tempo_change_bends_the_map ... ok
+test smf::tests::port_2_gets_its_own_track_with_port_prefix_1_and_bend_and_pressure_are_encoded ... ok
+test smf::tests::refuses_what_it_cannot_represent ... ok
+test smf::tests::variable_length_quantities_match_the_spec_examples ... ok
+test smf::tests::a_tempo_too_slow_for_a_three_byte_tempo_meta_is_refused_not_truncated ... FAILED
+thread 'smf::tests::a_tempo_too_slow_for_a_three_byte_tempo_meta_is_refused_not_truncated' (12696) panicked at crates/octorun/src/smf.rs:240:61:
+called `Result::unwrap_err()` on an `Ok` value: [77, 84, 104, 100, 0, 0, 0, 6, 0, 1, 0, 1, 3, 192, 77, 84, 114, 107, 0, 0, 0, 22, 0, 255, 3, 7, 111, 99, 116, 111, 114, 117, 110, 0, 255, 81, 3, 147, 135, 0, 0, 255, 47, 0]
+   2: core::result::unwrap_failed
+   3: core::result::Result<T,E>::unwrap_err
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.10s
+
+== after the fix ==
+test smf::tests::a_stream_with_no_events_is_a_valid_file_with_only_the_tempo_track ... ok
+test smf::tests::a_tempo_too_slow_for_a_three_byte_tempo_meta_is_refused_not_truncated ... ok
+test smf::tests::header_tempo_and_one_note_are_laid_out_as_the_spec_says ... ok
+test smf::tests::one_beat_at_120_bpm_is_960_ticks_and_a_tempo_change_bends_the_map ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s

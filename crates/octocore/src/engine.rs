@@ -105,6 +105,9 @@ impl Default for TrackRuntime {
 struct Scheduled {
     due_sample: f64,
     event: RawEvent,
+    /// The queue's sort key: (whole sample the event lands in, `RawEvent::rank`, creation
+    /// number). See `Engine::queue`.
+    order: (i64, u8, u64),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -112,13 +115,56 @@ enum RawEvent {
     NoteOn { port: u8, ch: u8, note: u8, vel: u8 },
     NoteOff { port: u8, ch: u8, note: u8 },
     Cc { port: u8, ch: u8, cc: u8, val: u8 },
+    PitchBend { port: u8, ch: u8, value: u16 },
+    ChannelPressure { port: u8, ch: u8, value: u8 },
+}
+
+impl RawEvent {
+    /// Order of events that land in the same sample: releases first, then controllers, then
+    /// new notes. A note that ends where the same pitch starts again must release before it
+    /// strikes, and a controller change should reach the receiver before the note it shapes.
+    fn rank(&self) -> u8 {
+        match self {
+            RawEvent::NoteOff { .. } => 0,
+            RawEvent::Cc { .. } | RawEvent::PitchBend { .. } | RawEvent::ChannelPressure { .. } => 1,
+            RawEvent::NoteOn { .. } => 2,
+        }
+    }
 }
 
 const QUEUE_CAP: usize = 512;
 
+/// The furthest a note can start ahead of the tick that fires it, in ticks. It is the most
+/// negative entry of `tables::STA_TABLE` (Track STA 16, Step STA -5: "-12", CE v5.30
+/// p.45); shuffle, strum and phrase offsets only ever push a note later. `render` steps
+/// every tick this far before the tick's time, so a note pulled early is still in the
+/// future when it is scheduled. A unit test checks this value against the tables, so
+/// editing a table without editing this constant fails the build.
+pub const MAX_EARLY_TICKS: u32 = 12;
+
+/// How many NoteOns each note has had without a matching NoteOff, as the receiver sees it:
+/// `[port - 1][channel - 1][note]`. 2 x 16 x 128 bytes is 4 KB with no allocation.
+/// Updated only when an event is actually handed to the caller, never when it is merely
+/// scheduled, so it is exactly what a synth on the other end would be holding.
+type SoundingTable = [[[u8; 128]; 16]; 2];
+
+/// The `SoundingTable` index for a note, or `None` for a port, channel or note outside the
+/// MIDI ranges (ports are 1 and 2, channels 1 to 16, notes 0 to 127). Such an event is
+/// still emitted; it just is not tracked, so a bad value can never index out of bounds.
+fn sounding_slot(port: u8, ch: u8, note: u8) -> Option<(usize, usize, usize)> {
+    if (1..=2).contains(&port) && (1..=16).contains(&ch) && note < 128 {
+        Some(((port - 1) as usize, (ch - 1) as usize, note as usize))
+    } else {
+        None
+    }
+}
+
 pub struct EventBuffer {
     events: [Event; MAX_EVENTS_PER_TICK],
     count: usize,
+    /// How many events this buffer accepts: `MAX_EVENTS_PER_TICK`, or less when the caller
+    /// has less room (see `with_limit`).
+    limit: usize,
 }
 
 impl Default for EventBuffer {
@@ -132,7 +178,16 @@ impl EventBuffer {
         EventBuffer {
             events: [Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }; MAX_EVENTS_PER_TICK],
             count: 0,
+            limit: MAX_EVENTS_PER_TICK,
         }
+    }
+
+    /// A buffer that takes at most `limit` events (and never more than
+    /// `MAX_EVENTS_PER_TICK`). The engine treats a full buffer as "not now": whatever does not
+    /// fit is emitted by the next `render`, so a host with a small buffer of its own delays
+    /// events and loses none.
+    pub fn with_limit(limit: usize) -> Self {
+        EventBuffer { limit: limit.min(MAX_EVENTS_PER_TICK), ..Self::new() }
     }
 
     pub fn as_slice(&self) -> &[Event] {
@@ -143,10 +198,20 @@ impl EventBuffer {
         self.count = 0;
     }
 
-    fn push(&mut self, e: Event) {
-        if self.count < MAX_EVENTS_PER_TICK {
+    /// Room left in this buffer.
+    pub fn remaining(&self) -> usize {
+        self.limit.saturating_sub(self.count)
+    }
+
+    /// Appends `e`. Returns `false`, and does not add it, when the buffer is full. Callers
+    /// keep the event and offer it again on the next render.
+    fn push(&mut self, e: Event) -> bool {
+        if self.count < self.limit {
             self.events[self.count] = e;
             self.count += 1;
+            true
+        } else {
+            false
         }
     }
 }
@@ -156,6 +221,52 @@ pub struct RenderContext {
     pub buffer_len: u32,
     pub bpm: f32,
     pub playing: bool,
+}
+
+/// Counters for things the engine used to do silently. All are cumulative since
+/// `Engine::new`, read with `Engine::diagnostics`. A host that shows a health light watches
+/// for them to change. None of them is an error the engine cannot continue from.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Diagnostics {
+    /// Notes (or CCs) refused because the event queue was full. A note is refused whole,
+    /// never as a lone NoteOn.
+    pub queue_overflows: u32,
+    /// The most events the queue has held at once. `QUEUE_CAP` is 512.
+    pub queue_high_water: u32,
+    /// Times an event that was due had to wait for a later render because the caller's
+    /// buffer was full. An event held over two renders counts twice.
+    pub deferred_events: u32,
+    /// Events emitted after their time, at sample 0 of the buffer, because they were
+    /// deferred or scheduled in the past.
+    pub late_events: u32,
+    /// Renders with the transport running but a tempo or sample rate the engine cannot use
+    /// (zero, negative, NaN, infinite, or outside `MIN_BPM..=MAX_BPM` / `MIN_SAMPLE_RATE..=MAX_SAMPLE_RATE`). No tick runs then.
+    pub unusable_tempo_renders: u32,
+}
+
+/// The tempos the engine follows. Hosts report 0 before playback starts, and a stray NaN or
+/// infinity from a broken plugin must not stop the clock or hang the audio thread (an
+/// infinite tempo means zero samples per tick, which is an endless loop).
+pub const MIN_BPM: f32 = 1.0;
+pub const MAX_BPM: f32 = 999.0;
+/// The sample rates the engine follows. Together with the tempo range this bounds the ticks
+/// one buffer can contain (about 1,700 for 4,096 samples at the extremes).
+pub const MIN_SAMPLE_RATE: f32 = 8_000.0;
+pub const MAX_SAMPLE_RATE: f32 = 768_000.0;
+
+/// Longest stretch `render` handles in one go. The queue then only ever holds one chunk's
+/// worth of notes plus the lookahead, however big the host's buffer is.
+const RENDER_CHUNK: u32 = 1024;
+
+fn samples_per_tick(sample_rate: f32, bpm: f32) -> Option<f64> {
+    let rate_ok = sample_rate.is_finite() && (MIN_SAMPLE_RATE..=MAX_SAMPLE_RATE).contains(&sample_rate);
+    let tempo_ok = bpm.is_finite() && (MIN_BPM..=MAX_BPM).contains(&bpm);
+    if rate_ok && tempo_ok {
+        Some(sample_rate as f64 * 60.0 / (bpm as f64 * TICKS_PER_QUARTER as f64))
+    } else {
+        None
+    }
 }
 
 /// Everything about a fired note that still needs `&mut self` (rng draws for
@@ -228,8 +339,23 @@ pub struct Engine {
     /// Absolute sample time elapsed so far.
     sample_clock: f64,
     track_rt: [TrackRuntime; TRACK_COUNT],
+    /// Scheduled events as a binary min-heap on `Scheduled::order`: the earliest sample
+    /// first, then NoteOffs before controllers before NoteOns, then first scheduled first.
+    /// That key is total, so the order events leave in never depends on the host's buffer
+    /// size or on how many events came out before (SPEC-0001 O10).
     queue: [Option<Scheduled>; QUEUE_CAP],
     queue_len: usize,
+    /// Creation number of the next scheduled event, the last part of the sort key.
+    next_seq: u64,
+    /// Notes currently on in the receivers. See `SoundingTable`.
+    sounding: SoundingTable,
+    /// Set by Stop and Reset. The next `render` turns off everything in `sounding` before it
+    /// does anything else. Stays set across renders if the output buffer fills up, so a
+    /// flush of more notes than one buffer holds still completes.
+    flush_pending: bool,
+    /// Channels that still owe a CC 123 (bit `c` of entry `p` is port `p + 1`, channel
+    /// `c + 1`), sent once the NoteOffs are out.
+    flush_cc: [u16; 2],
     /// Step events, already resolved to a single target and a primitive
     /// action, applied to live state at the start of the *next* tick.
     ///
@@ -257,6 +383,7 @@ pub struct Engine {
     measure_deferred: [Option<DeferredAction>; TRACK_COUNT],
     /// What fired *this tick*, cleared and refilled every `step_all_tracks` call.
     pub last_tick_fires: FireLog,
+    diag: Diagnostics,
 }
 
 impl Engine {
@@ -275,10 +402,19 @@ impl Engine {
             track_rt: [TrackRuntime::default(); TRACK_COUNT],
             queue: [None; QUEUE_CAP],
             queue_len: 0,
+            next_seq: 0,
+            sounding: [[[0; 128]; 16]; 2],
+            flush_pending: false,
+            flush_cc: [0; 2],
             deferred_actions: [None; TRACK_COUNT],
             measure_deferred: [None; TRACK_COUNT],
             last_tick_fires: FireLog::default(),
+            diag: Diagnostics::default(),
         }
+    }
+
+    pub fn diagnostics(&self) -> Diagnostics {
+        self.diag
     }
 
     /// Test/fixture seam: run exactly one 192-PPQN tick, ignoring real-time
@@ -289,6 +425,12 @@ impl Engine {
     }
 
     pub fn set_running(&mut self, running: bool) {
+        if !self.running && running {
+            // Play starts from now. While stopped, `render` advances `sample_clock` but no
+            // ticks run, so `next_tick_due` still points at the moment the transport
+            // stopped. Left alone, Play would replay every idle tick in one call.
+            self.next_tick_due = self.sample_clock;
+        }
         if self.running && !running {
             self.all_notes_off_now();
             // Ref: CE v5.30 p.40: "DIR will default to the Track attribute
@@ -317,7 +459,18 @@ impl Engine {
         use crate::types::Command;
         match cmd {
             Command::Play | Command::Continue => self.set_running(true),
-            Command::Stop => self.set_running(false),
+            Command::Stop => {
+                // Ref: CE v5.30 p.94, "ALL NOTES OFF message": Stop pressed while the
+                // sequencer is not running sends CC 123 on each of the 32 MIDI channels.
+                // (The manual says "when defined as MIDI master or slave"; this engine has
+                // no such setting, so the condition is treated as always true. See
+                // AMBIGUITIES.md "stop with sounding notes".)
+                if !self.running {
+                    self.flush_pending = true;
+                    self.flush_cc = [u16::MAX; 2];
+                }
+                self.set_running(false);
+            }
             Command::Reset => self.reset(),
             Command::SetActivePage { bank, page } => {
                 self.grid.active_page = ActivePage {
@@ -333,6 +486,9 @@ impl Engine {
 
     pub fn reset(&mut self) {
         self.running = false;
+        // The queue below is cleared, so the NoteOffs it held are gone. The sounding table is
+        // kept on purpose: the next render turns those notes off.
+        self.flush_pending = true;
         self.global_tick = 0;
         self.next_tick_due = 0.0;
         self.sample_clock = 0.0;
@@ -345,68 +501,240 @@ impl Engine {
 
     fn schedule(&mut self, due_sample: f64, event: RawEvent) {
         if self.queue_len < QUEUE_CAP {
-            self.queue[self.queue_len] = Some(Scheduled { due_sample, event });
-            self.queue_len += 1;
+            let order = (due_sample.floor() as i64, event.rank(), self.next_seq);
+            self.next_seq += 1;
+            self.heap_push(Scheduled { due_sample, event, order });
+            self.diag.queue_high_water = self.diag.queue_high_water.max(self.queue_len as u32);
+        } else {
+            // Never reallocates on the audio path. QUEUE_CAP is sized well above "full
+            // density" (docs §7), and this counter says when it was not.
+            self.diag.queue_overflows = self.diag.queue_overflows.saturating_add(1);
         }
-        // A full queue silently drops the event rather than reallocating —
-        // QUEUE_CAP is sized well above "full density" (docs §7).
     }
 
-    /// CC 123 (all notes off) — matches `_allNotesOff` in the archived v1 engine,
-    /// minus its dead `held`-map bookkeeping (never populated anywhere in v1).
+    fn order_at(&self, i: usize) -> (i64, u8, u64) {
+        self.queue[i].map_or((i64::MAX, u8::MAX, u64::MAX), |s| s.order)
+    }
+
+    fn heap_push(&mut self, s: Scheduled) {
+        let mut i = self.queue_len;
+        self.queue[i] = Some(s);
+        self.queue_len += 1;
+        while i > 0 {
+            let parent = (i - 1) / 2;
+            if self.order_at(i) < self.order_at(parent) {
+                self.queue.swap(i, parent);
+                i = parent;
+            } else {
+                break;
+            }
+        }
+    }
+
+    /// Removes and returns the earliest event.
+    fn heap_pop(&mut self) -> Option<Scheduled> {
+        if self.queue_len == 0 {
+            return None;
+        }
+        let top = self.queue[0].take();
+        self.queue_len -= 1;
+        if self.queue_len > 0 {
+            self.queue[0] = self.queue[self.queue_len].take();
+            let mut i = 0;
+            loop {
+                let (l, r) = (2 * i + 1, 2 * i + 2);
+                let mut smallest = i;
+                if l < self.queue_len && self.order_at(l) < self.order_at(smallest) {
+                    smallest = l;
+                }
+                if r < self.queue_len && self.order_at(r) < self.order_at(smallest) {
+                    smallest = r;
+                }
+                if smallest == i {
+                    break;
+                }
+                self.queue.swap(i, smallest);
+                i = smallest;
+            }
+        }
+        top
+    }
+
+    /// Queues a note: its NoteOn at `on` and its NoteOff at `off`, both or neither. Room for
+    /// the NoteOn alone would leave a note sounding until the next Stop, so a queue with one
+    /// free slot refuses the whole note (and counts it).
+    fn schedule_note(&mut self, on: f64, off: f64, port: u8, ch: u8, note: u8, vel: u8) {
+        if self.queue_len + 2 > QUEUE_CAP {
+            self.diag.queue_overflows = self.diag.queue_overflows.saturating_add(1);
+            return;
+        }
+        self.schedule(on, RawEvent::NoteOn { port, ch, note, vel });
+        self.schedule(off, RawEvent::NoteOff { port, ch, note });
+    }
+
+    /// Drops everything still scheduled and asks the next `render` to turn off every note
+    /// that is sounding (a NoteOff per NoteOn still owed, then CC 123 on each channel that
+    /// had one). Until SPEC-0001 O1 this only cleared the queue, so a note whose NoteOff was
+    /// still queued stayed on in the receiver forever.
     fn all_notes_off_now(&mut self) {
         self.queue = [None; QUEUE_CAP];
         self.queue_len = 0;
+        self.flush_pending = true;
+    }
+
+    /// Number of distinct (port, channel, note) the receivers are holding on right now.
+    /// A diagnostic for tests and the future snapshot; it scans 4 KB, so keep it off the
+    /// per-sample path.
+    pub fn sounding_count(&self) -> usize {
+        self.sounding.iter().flatten().flatten().filter(|n| **n > 0).count()
+    }
+
+    fn track_emitted(&mut self, e: RawEvent) {
+        match e {
+            RawEvent::NoteOn { port, ch, note, .. } => {
+                if let Some((p, c, n)) = sounding_slot(port, ch, note) {
+                    self.sounding[p][c][n] = self.sounding[p][c][n].saturating_add(1);
+                }
+            }
+            RawEvent::NoteOff { port, ch, note } => {
+                if let Some((p, c, n)) = sounding_slot(port, ch, note) {
+                    self.sounding[p][c][n] = self.sounding[p][c][n].saturating_sub(1);
+                }
+            }
+            RawEvent::Cc { .. } | RawEvent::PitchBend { .. } | RawEvent::ChannelPressure { .. } => {}
+        }
+    }
+
+    /// Emits the flush requested by `all_notes_off_now`, `reset` or a Stop while stopped, at
+    /// sample 0 of this buffer. If the buffer fills, it returns with `flush_pending` still
+    /// set and the table still holding what is left, so the next render carries on. (If the
+    /// transport restarts before then, notes the new run has started are flushed too. That
+    /// needs more than one buffer's worth of sounding notes, and it can only cut a note
+    /// short, never leave one on.)
+    fn emit_pending_flush(&mut self, out: &mut EventBuffer) {
+        if !self.flush_pending {
+            return;
+        }
+        for p in 0..2 {
+            for c in 0..16 {
+                for n in 0..128 {
+                    // One NoteOff per NoteOn still owed. A pitch retriggered while it was
+                    // sounding is held twice by a receiver that stacks voices, and a single
+                    // NoteOff would release only one of them.
+                    while self.sounding[p][c][n] > 0 {
+                        let off = Event::NoteOff { port: p as u8 + 1, ch: c as u8 + 1, note: n as u8, at_sample: 0 };
+                        if !out.push(off) {
+                            return;
+                        }
+                        self.sounding[p][c][n] -= 1;
+                        self.flush_cc[p] |= 1 << c;
+                    }
+                }
+            }
+        }
+        for p in 0..2 {
+            for c in 0..16 {
+                if self.flush_cc[p] & (1 << c) == 0 {
+                    continue;
+                }
+                let cc = Event::Cc { port: p as u8 + 1, ch: c as u8 + 1, cc: 123, val: 0, at_sample: 0 };
+                if !out.push(cc) {
+                    return;
+                }
+                self.flush_cc[p] &= !(1 << c);
+            }
+        }
+        self.flush_pending = false;
     }
 
     /// Advance the engine by exactly `ctx.buffer_len` samples, appending any events
     /// due in that window to `out`. `out` is not cleared by this call — callers
-    /// rendering buffer-by-buffer should clear it between calls.
+    /// rendering buffer-by-buffer should clear it between calls. Events that do not fit in
+    /// `out` stay queued and go out first in the next call; nothing is dropped for lack of
+    /// room in `out`.
     pub fn render(&mut self, ctx: &RenderContext, out: &mut EventBuffer) {
         if ctx.playing != self.running {
             self.set_running(ctx.playing);
         }
+        self.emit_pending_flush(out);
 
         let buffer_start = self.sample_clock;
-        let buffer_end = buffer_start + ctx.buffer_len as f64;
-        let samples_per_tick = if ctx.bpm > 0.0 {
-            (ctx.sample_rate as f64) * 60.0 / (ctx.bpm as f64 * TICKS_PER_QUARTER as f64)
-        } else {
-            f64::INFINITY
-        };
-
-        if self.running {
-            while self.next_tick_due < buffer_end {
-                let at = self.next_tick_due;
-                self.step_all_tracks(at, samples_per_tick);
-                self.next_tick_due += samples_per_tick;
-            }
+        let spt = samples_per_tick(ctx.sample_rate, ctx.bpm);
+        if self.running && spt.is_none() {
+            self.diag.unusable_tempo_renders = self.diag.unusable_tempo_renders.saturating_add(1);
         }
 
-        loop {
-            let mut earliest: Option<(usize, f64)> = None;
-            for i in 0..self.queue_len {
-                if let Some(s) = self.queue[i] {
-                    if s.due_sample < buffer_end && earliest.map_or(true, |(_, t)| s.due_sample < t) {
-                        earliest = Some((i, s.due_sample));
+        // Work through the buffer in chunks, stepping ticks and then draining events for
+        // each. A big host buffer then never piles a whole buffer's notes into the queue.
+        let mut done = 0u32;
+        while done < ctx.buffer_len {
+            done += (ctx.buffer_len - done).min(RENDER_CHUNK);
+            let chunk_end = buffer_start + done as f64;
+
+            if self.running {
+                match spt {
+                    Some(spt) => {
+                        // Step ticks up to `MAX_EARLY_TICKS` past the chunk's end. A tick that
+                        // is stepped only once its time has come can schedule a note before
+                        // the start of the chunk being rendered, and such a note used to be
+                        // clamped to the buffer's first sample: late by an amount that
+                        // depended on where the host's buffer boundary fell (SPEC-0001 O3).
+                        // Stepped this far ahead, every note is still in the future when it
+                        // is scheduled, so its time depends only on the pattern and the tempo.
+                        let horizon = chunk_end + MAX_EARLY_TICKS as f64 * spt;
+                        while self.next_tick_due < horizon {
+                            let at = self.next_tick_due;
+                            self.step_all_tracks(at, spt);
+                            self.next_tick_due += spt;
+                        }
+                    }
+                    None => {
+                        // No usable tempo: no ticks, and no backlog to replay once one comes
+                        // back. Notes already queued still run to their NoteOffs.
+                        if self.next_tick_due < chunk_end {
+                            self.next_tick_due = chunk_end;
+                        }
                     }
                 }
             }
-            let Some((idx, _)) = earliest else { break };
-            let scheduled = self.queue[idx].take().unwrap();
-            self.queue_len -= 1;
-            self.queue[idx] = self.queue[self.queue_len].take();
 
-            let at_sample = (scheduled.due_sample - buffer_start).max(0.0) as u32;
-            let at_sample = at_sample.min(ctx.buffer_len.saturating_sub(1));
-            out.push(match scheduled.event {
+            self.drain_due(chunk_end, buffer_start, ctx.buffer_len, out);
+        }
+
+        self.sample_clock = buffer_start + ctx.buffer_len as f64;
+    }
+
+    /// Moves every queued event due before `until` into `out`, earliest first. When `out` is
+    /// full the rest stay queued for the next render and are counted in `Diagnostics`.
+    fn drain_due(&mut self, until: f64, buffer_start: f64, buffer_len: u32, out: &mut EventBuffer) {
+        while self.queue_len > 0 {
+            let Some(top) = self.queue[0] else { break };
+            if top.due_sample >= until {
+                break;
+            }
+            if out.remaining() == 0 {
+                let waiting = self.queue[..self.queue_len].iter().flatten().filter(|s| s.due_sample < until).count();
+                self.diag.deferred_events = self.diag.deferred_events.saturating_add(waiting as u32);
+                break;
+            }
+            self.heap_pop();
+
+            if top.due_sample < buffer_start {
+                self.diag.late_events = self.diag.late_events.saturating_add(1);
+            }
+            let at_sample = (top.due_sample - buffer_start).max(0.0) as u32;
+            let at_sample = at_sample.min(buffer_len.saturating_sub(1));
+            let emitted = match top.event {
                 RawEvent::NoteOn { port, ch, note, vel } => Event::NoteOn { port, ch, note, vel, at_sample },
                 RawEvent::NoteOff { port, ch, note } => Event::NoteOff { port, ch, note, at_sample },
                 RawEvent::Cc { port, ch, cc, val } => Event::Cc { port, ch, cc, val, at_sample },
-            });
+                RawEvent::PitchBend { port, ch, value } => Event::PitchBend { port, ch, value, at_sample },
+                RawEvent::ChannelPressure { port, ch, value } => Event::ChannelPressure { port, ch, value, at_sample },
+            };
+            if out.push(emitted) {
+                self.track_emitted(top.event);
+            }
         }
-
-        self.sample_clock = buffer_end;
     }
 
     /// One 192-PPQN tick across every track, descending index order (see module
@@ -753,20 +1081,23 @@ impl Engine {
         }
         let level = strum.unsigned_abs();
 
-        if level > 0 && note_count == 1 {
+        // Ref: CE v5.30 p.40, Step Event Consideration 1: "If the Velocity is 0 then the note
+        // is not transmitted." So a note that scales down to velocity 0 sends neither a
+        // NoteOn (which every receiver reads as a NoteOff) nor a NoteOff.
+        if final_vel == 0 {
+            // The step still fires: controllers and the effector below are unaffected.
+        } else if level > 0 && note_count == 1 {
             let pitch = played[0];
             for k in 1..=7u8 {
                 let off = tables::strum_offset_ticks(level, k) as i32;
                 let due = tick_due_sample + (on_tick_offset + off) as f64 * samples_per_tick;
-                self.schedule(due, RawEvent::NoteOn { port, ch, note: pitch, vel: final_vel });
-                self.schedule(due + final_len_ticks as f64 * samples_per_tick, RawEvent::NoteOff { port, ch, note: pitch });
+                self.schedule_note(due, due + final_len_ticks as f64 * samples_per_tick, port, ch, pitch, final_vel);
             }
         } else {
             for (pi, &pitch) in played.iter().enumerate() {
                 let off = tables::strum_offset_ticks(level, (pi + 1) as u8) as i32;
                 let due = tick_due_sample + (on_tick_offset + off) as f64 * samples_per_tick;
-                self.schedule(due, RawEvent::NoteOn { port, ch, note: pitch, vel: final_vel });
-                self.schedule(due + final_len_ticks as f64 * samples_per_tick, RawEvent::NoteOff { port, ch, note: pitch });
+                self.schedule_note(due, due + final_len_ticks as f64 * samples_per_tick, port, ch, pitch, final_vel);
             }
         }
 
@@ -806,20 +1137,25 @@ impl Engine {
                     let extra_start = on_tick_offset + tables::scale_phrase_sta(note.start_ticks, step.phrase_pos) as i32;
                     self.last_tick_fires.push(NoteFire { track: ti, pitch: extra_pit, velocity: extra_vel });
                     let due = tick_due_sample + extra_start as f64 * samples_per_tick;
-                    self.schedule(due, RawEvent::NoteOn { port, ch, note: extra_pit, vel: extra_vel });
-                    self.schedule(due + extra_len as f64 * samples_per_tick, RawEvent::NoteOff { port, ch, note: extra_pit });
+                    if extra_vel > 0 {
+                        self.schedule_note(due, due + extra_len as f64 * samples_per_tick, port, ch, extra_pit, extra_vel);
+                    }
                 }
             }
         }
 
         if let Some(step_mcc) = step.mcc_value {
             let due = tick_due_sample + on_tick_offset as f64 * samples_per_tick;
-            if let Mcc::Cc(cc) = base_track.mcc {
-                self.schedule(due, RawEvent::Cc { port, ch, cc, val: clamp_midi(step_mcc as i32) });
+            let v = clamp_midi(step_mcc as i32);
+            // Ref: CE v5.30 p.46 and p.91. The bender and channel pressure flags make the
+            // track send those messages "according to the MCC values stored in that track's
+            // steps". The editor holds only the top 7 bits of a bend value, the rest clear.
+            match base_track.mcc {
+                Mcc::Cc(cc) => self.schedule(due, RawEvent::Cc { port, ch, cc, val: v }),
+                Mcc::Bend => self.schedule(due, RawEvent::PitchBend { port, ch, value: (v as u16) << 7 }),
+                Mcc::Pressure => self.schedule(due, RawEvent::ChannelPressure { port, ch, value: v }),
+                Mcc::None => {}
             }
-            // Bend/pressure need a dedicated MIDI message type; `Event` has no
-            // pitch-bend/poly-pressure variant yet, so those are left unemitted
-            // rather than mis-encoded as a bogus CC number.
         }
     }
 
@@ -1903,5 +2239,506 @@ mod tests {
             forward > 230 && backward > 80,
             "expected ~2/3 forward over 400 seeds, got forward={forward} backward={backward}"
         );
+    }
+
+    // ---- SPEC-0001 O1 / O2: transport safety (WENGE-0001, WENGE-0002) ----
+
+    fn ctx(playing: bool, buffer_len: u32) -> RenderContext {
+        RenderContext { sample_rate: 48_000.0, buffer_len, bpm: 120.0, playing }
+    }
+
+    /// Track 0, one long step (LEN 100 ticks = 12,500 samples at 120 BPM), so its NoteOff is
+    /// still queued after the NoteOn goes out. Shorter than the 24,000-sample loop, so the
+    /// note ends before the pattern starts it again.
+    fn engine_with_one_long_note() -> Engine {
+        let mut e = Engine::new(1);
+        let step = &mut e.grid.active_page_mut().tracks[0].steps[0];
+        step.active = true;
+        step.length_ticks = 100;
+        e
+    }
+
+    #[test]
+    fn sounding_table_follows_emitted_events_not_scheduled_ones() {
+        let mut e = engine_with_one_long_note();
+        let mut out = EventBuffer::new();
+        // Nothing has been handed to the caller yet: scheduled is not sounding.
+        assert_eq!(e.sounding_count(), 0);
+        for _ in 0..4 {
+            out.clear();
+            e.render(&ctx(true, 512), &mut out);
+        }
+        assert_eq!(e.sounding_count(), 1, "the NoteOn went out, the NoteOff is still queued");
+        for _ in 0..36 {
+            out.clear();
+            e.render(&ctx(true, 512), &mut out);
+        }
+        assert_eq!(e.sounding_count(), 0, "the NoteOff went out too");
+    }
+
+    #[test]
+    fn retriggered_pitch_gets_one_noteoff_per_noteon_on_stop() {
+        let mut e = Engine::new(1);
+        let t = &mut e.grid.active_page_mut().tracks[0];
+        for s in 0..STEP_COUNT {
+            t.steps[s].active = true;
+            t.steps[s].length_ticks = 192; // each step starts the same pitch again while the last still rings
+        }
+        let tally = |out: &EventBuffer| {
+            let on = out.as_slice().iter().filter(|ev| matches!(ev, Event::NoteOn { .. })).count();
+            let off = out.as_slice().iter().filter(|ev| matches!(ev, Event::NoteOff { .. })).count();
+            (on, off)
+        };
+        let mut out = EventBuffer::new();
+        let (mut on, mut off) = (0, 0);
+        for _ in 0..40 {
+            out.clear();
+            e.render(&ctx(true, 512), &mut out);
+            let (a, b) = tally(&out);
+            on += a;
+            off += b;
+        }
+        assert!(on - off >= 2, "the pitch must be sounding more than once for this test to mean anything");
+        out.clear();
+        e.render(&ctx(false, 512), &mut out);
+        let (a, b) = tally(&out);
+        on += a;
+        off += b;
+        assert_eq!(on, off);
+        assert_eq!(e.sounding_count(), 0);
+    }
+
+    #[test]
+    fn a_flush_larger_than_one_buffer_finishes_over_the_next_renders() {
+        let mut e = Engine::new(1);
+        // 320 distinct notes on 16 channels of port 1: more than the 256 one buffer holds.
+        for c in 0..16 {
+            for n in 0..20 {
+                e.sounding[0][c][n] = 1;
+            }
+        }
+        e.flush_pending = true;
+        let mut out = EventBuffer::new();
+        e.render(&ctx(false, 64), &mut out);
+        assert_eq!(out.as_slice().len(), MAX_EVENTS_PER_TICK);
+        assert!(out.as_slice().iter().all(|ev| matches!(ev, Event::NoteOff { at_sample: 0, .. })));
+        assert!(e.flush_pending, "more to do");
+
+        out.clear();
+        e.render(&ctx(false, 64), &mut out);
+        let offs = out.as_slice().iter().filter(|ev| matches!(ev, Event::NoteOff { .. })).count();
+        let ccs = out.as_slice().iter().filter(|ev| matches!(ev, Event::Cc { cc: 123, .. })).count();
+        assert_eq!((offs, ccs), (320 - MAX_EVENTS_PER_TICK, 16));
+        assert_eq!(e.sounding_count(), 0);
+        assert!(!e.flush_pending);
+
+        out.clear();
+        e.render(&ctx(false, 64), &mut out);
+        assert!(out.as_slice().is_empty(), "the flush is done, a stopped engine is silent");
+    }
+
+    #[test]
+    fn flush_waits_for_room_when_the_caller_passes_a_nearly_full_buffer() {
+        let mut e = Engine::new(1);
+        e.sounding[1][3][60] = 1;
+        e.flush_pending = true;
+        let mut out = EventBuffer::new();
+        while out.remaining() > 0 {
+            out.push(Event::Cc { port: 1, ch: 1, cc: 1, val: 0, at_sample: 0 });
+        }
+        e.render(&ctx(false, 64), &mut out);
+        assert_eq!(out.as_slice().len(), MAX_EVENTS_PER_TICK, "nothing was added or dropped");
+        assert_eq!(e.sounding_count(), 1, "the note is still owed a NoteOff");
+        out.clear();
+        e.render(&ctx(false, 64), &mut out);
+        assert_eq!(out.as_slice().len(), 2, "NoteOff then CC 123");
+        assert_eq!(e.sounding_count(), 0);
+    }
+
+    #[test]
+    fn out_of_range_port_channel_or_note_is_never_tracked_and_never_panics() {
+        assert_eq!(sounding_slot(1, 1, 0), Some((0, 0, 0)));
+        assert_eq!(sounding_slot(2, 16, 127), Some((1, 15, 127)));
+        for (p, c, n) in [(0, 1, 60), (3, 1, 60), (1, 0, 60), (1, 17, 60), (1, 1, 128), (255, 255, 255)] {
+            assert_eq!(sounding_slot(p, c, n), None, "({p}, {c}, {n})");
+        }
+        let mut e = Engine::new(1);
+        e.track_emitted(RawEvent::NoteOn { port: 9, ch: 99, note: 200, vel: 1 });
+        e.track_emitted(RawEvent::NoteOff { port: 9, ch: 99, note: 200 });
+        assert_eq!(e.sounding_count(), 0);
+    }
+
+    #[test]
+    fn noteoff_without_a_noteon_never_underflows_the_table() {
+        let mut e = Engine::new(1);
+        e.track_emitted(RawEvent::NoteOff { port: 1, ch: 1, note: 60 });
+        assert_eq!(e.sounding_count(), 0);
+        for _ in 0..300 {
+            e.track_emitted(RawEvent::NoteOn { port: 1, ch: 1, note: 60, vel: 1 });
+        }
+        assert_eq!(e.sounding[0][0][60], 255, "saturates instead of wrapping");
+    }
+
+    #[test]
+    fn play_resyncs_the_tick_clock_to_the_current_sample() {
+        let mut e = Engine::new(1);
+        let mut out = EventBuffer::new();
+        for _ in 0..1000 {
+            e.render(&ctx(false, 512), &mut out);
+        }
+        assert_eq!(e.sample_clock, 512_000.0);
+        e.set_running(true);
+        assert_eq!(e.next_tick_due, e.sample_clock);
+        // Already running: a second set_running(true) must not move the clock again.
+        e.next_tick_due += 7.0;
+        e.set_running(true);
+        assert_eq!(e.next_tick_due, e.sample_clock + 7.0);
+    }
+
+    #[test]
+    fn stop_while_stopped_asks_for_cc_123_on_all_32_channels_but_a_running_stop_does_not() {
+        let mut e = Engine::new(1);
+        e.handle_command(crate::types::Command::Stop);
+        assert!(e.flush_pending);
+        assert_eq!(e.flush_cc, [u16::MAX; 2]);
+
+        let mut running = Engine::new(1);
+        running.handle_command(crate::types::Command::Play);
+        running.handle_command(crate::types::Command::Stop);
+        assert_eq!(running.flush_cc, [0; 2], "a first Stop sends CC 123 only where a note was sounding");
+    }
+
+    #[test]
+    fn host_transport_stop_while_stopped_is_not_a_button_press() {
+        let mut e = Engine::new(1);
+        e.handle_command(crate::types::Command::HostTransport { ppqn_pos: 0, bpm: 120.0, playing: false });
+        assert!(!e.flush_pending, "a host repeating 'not playing' every buffer must not panic the receivers");
+    }
+    /// `MAX_EARLY_TICKS` must cover the earliest any note can start, or `render` schedules
+    /// it in the past again. Every input that moves a note earlier is enumerated here, so a
+    /// table edit that lengthens the reach fails this test instead of quietly reintroducing
+    /// SPEC-0001 O3.
+    #[test]
+    fn max_early_ticks_covers_every_table_and_is_tight() {
+        let mut earliest = 0i32;
+        for track_sta in 0..=16u8 {
+            for step_offset in -5..=5i32 {
+                earliest = earliest.min(tables::scale_sta_ticks(track_sta, step_offset));
+            }
+        }
+        assert_eq!(earliest, -(MAX_EARLY_TICKS as i32), "the constant is exactly the STA table's reach");
+
+        // Everything else is unsigned by type, so it can only push a note later. The
+        // signatures are the guard: if one turns signed this stops compiling.
+        let _: u32 = tables::strum_offset_ticks(9, 8);
+        let _: u16 = tables::scale_phrase_sta(u8::MAX, 1);
+        let _: fn(u8, &mut Rng) -> u32 = tables::grv_delay_ticks;
+    }
+
+    // ------------------------------------------------------------------ WENGE-0005
+
+    fn count_kinds(events: &[Event]) -> (usize, usize) {
+        let ons = events.iter().filter(|e| matches!(e, Event::NoteOn { .. })).count();
+        let offs = events.iter().filter(|e| matches!(e, Event::NoteOff { .. })).count();
+        (ons, offs)
+    }
+
+    /// SPEC-0001 O5. When more events fall due than the caller's buffer holds, the rest
+    /// wait for the next render. Before, they were dropped: a dropped NoteOff is a note
+    /// that never ends.
+    #[test]
+    fn a_full_output_buffer_defers_events_instead_of_dropping_them() {
+        let mut e = Engine::new(1);
+        for ch in 1..=2u8 {
+            for note in 0..100u8 {
+                e.schedule(10.0, RawEvent::NoteOn { port: 1, ch, note, vel: 100 });
+                e.schedule(20.0, RawEvent::NoteOff { port: 1, ch, note });
+            }
+        }
+        let mut first = EventBuffer::new();
+        e.render(&ctx(false, 64), &mut first);
+        assert_eq!(first.as_slice().len(), MAX_EVENTS_PER_TICK, "the buffer is full");
+
+        let mut second = EventBuffer::new();
+        e.render(&ctx(false, 64), &mut second);
+        assert!(
+            second.as_slice().iter().all(|ev| matches!(ev, Event::NoteOff { at_sample: 0, .. })),
+            "deferred events come out first, as late as possible-early: sample 0"
+        );
+        let mut all = first.as_slice().to_vec();
+        all.extend_from_slice(second.as_slice());
+        assert_eq!(count_kinds(&all), (200, 200), "400 events went in, 400 came out");
+        assert_eq!(e.sounding_count(), 0);
+        let d = e.diagnostics();
+        assert_eq!(d.deferred_events, 400 - MAX_EVENTS_PER_TICK as u32, "the health counter saw it");
+        assert_eq!(d.late_events, 400 - MAX_EVENTS_PER_TICK as u32, "and they went out late");
+        assert_eq!(d.queue_overflows, 0);
+    }
+
+    /// A note is one NoteOn and one NoteOff. A queue with room for only one of them takes
+    /// neither. Before, the NoteOn went in and the NoteOff was dropped: a stuck note.
+    #[test]
+    fn a_full_queue_refuses_a_note_as_a_pair_never_half() {
+        let mut e = Engine::new(1);
+        for i in 0..(QUEUE_CAP - 1) {
+            e.schedule(1.0e9, RawEvent::Cc { port: 1, ch: 1, cc: 1, val: (i % 128) as u8 });
+        }
+        assert_eq!(e.queue_len, QUEUE_CAP - 1);
+        e.grid.active_page_mut().tracks[0].steps[0].active = true;
+        for _ in 0..DEFAULT_STEP_TICKS {
+            e.step_once_for_test(); // the step fires on the twelfth tick
+        }
+
+        let queued: Vec<RawEvent> = e.queue[..e.queue_len].iter().flatten().map(|s| s.event).collect();
+        let ons = queued.iter().filter(|r| matches!(r, RawEvent::NoteOn { .. })).count();
+        let offs = queued.iter().filter(|r| matches!(r, RawEvent::NoteOff { .. })).count();
+        assert_eq!(ons, offs, "a NoteOn was queued without its NoteOff");
+        assert_eq!(e.diagnostics().queue_overflows, 1, "the refused note is counted");
+        assert_eq!(e.diagnostics().queue_high_water, (QUEUE_CAP - 1) as u32);
+    }
+
+    /// A host that reports tempo 0 (several do before playback starts), NaN or a negative
+    /// number must not break the clock. Before, one such buffer set the next tick time to
+    /// infinity, so the engine never ticked again, and queued events with a NaN time.
+    #[test]
+    fn an_unusable_tempo_does_not_wedge_the_clock() {
+        for bad in [0.0f32, f32::NAN, -5.0] {
+            let mut e = Engine::new(1);
+            e.grid.active_page_mut().tracks[0].steps[0].active = true;
+            let mut out = EventBuffer::new();
+            for _ in 0..4 {
+                out.clear();
+                let c = RenderContext { sample_rate: 48_000.0, buffer_len: 512, bpm: bad, playing: true };
+                e.render(&c, &mut out);
+            }
+            assert!(e.queue[..e.queue_len].iter().flatten().all(|s| s.due_sample.is_finite()), "bpm {bad}: a NaN time is queued");
+            let mut all = Vec::new();
+            for _ in 0..40 {
+                out.clear();
+                e.render(&ctx(true, 512), &mut out);
+                all.extend_from_slice(out.as_slice());
+            }
+            assert!(count_kinds(&all).0 > 0, "bpm {bad}: the engine never played again once the tempo was sane");
+            assert_eq!(e.diagnostics().unusable_tempo_renders, 4, "bpm {bad}: only the four unusable renders are counted");
+        }
+    }
+
+    #[test]
+    fn a_stopped_transport_with_a_bad_tempo_is_not_a_problem() {
+        let mut e = Engine::new(1);
+        let mut out = EventBuffer::new();
+        let c = RenderContext { sample_rate: 48_000.0, buffer_len: 512, bpm: 0.0, playing: false };
+        for _ in 0..4 {
+            e.render(&c, &mut out);
+        }
+        assert_eq!(e.diagnostics(), Diagnostics::default(), "nothing is running, so nothing is wrong");
+    }
+
+    #[test]
+    fn a_render_longer_than_a_chunk_is_split_without_changing_the_result() {
+        // The same 3 seconds as one call of 144,000 samples and as calls of 480.
+        let run = |len: u32| {
+            let mut e = Engine::new(4);
+            for t in 0..3 {
+                for st in [0usize, 4, 8, 12] {
+                    e.grid.active_page_mut().tracks[t].steps[st].active = true;
+                }
+            }
+            let mut all = Vec::new();
+            let mut done = 0u32;
+            while done < 144_000 {
+                let mut out = EventBuffer::with_limit(MAX_EVENTS_PER_TICK);
+                e.render(&RenderContext { sample_rate: 48_000.0, buffer_len: len, bpm: 100.0, playing: true }, &mut out);
+                for ev in out.as_slice() {
+                    let (at, rest) = match *ev {
+                        Event::NoteOn { port, ch, note, vel, at_sample } => (at_sample, (1, port, ch, note, vel)),
+                        Event::NoteOff { port, ch, note, at_sample } => (at_sample, (2, port, ch, note, 0)),
+                        Event::Cc { port, ch, cc, val, at_sample } => (at_sample, (3, port, ch, cc, val)),
+                        Event::PitchBend { port, ch, value, at_sample } => (at_sample, (4, port, ch, 0, (value >> 7) as u8)),
+                        Event::ChannelPressure { port, ch, value, at_sample } => (at_sample, (5, port, ch, 0, value)),
+                    };
+                    all.push((done + at, rest));
+                }
+                done += len;
+            }
+            all.sort();
+            (all, e.diagnostics().queue_high_water)
+        };
+        let (small, small_hw) = run(480);
+        let (huge, huge_hw) = run(144_000);
+        assert!(small.len() > 20);
+        // The huge buffer holds 100+ events here, under the 256 a call takes, so it is the same.
+        assert_eq!(huge, small);
+        assert!(huge_hw < 60, "chunking keeps the queue small even for a 3 s buffer: {huge_hw}, small {small_hw}");
+    }
+
+    // ------------------------------------------------------------------ WENGE-0010
+
+    fn render_all(e: &mut Engine, len: u32) -> Vec<Event> {
+        let mut out = EventBuffer::new();
+        e.render(&ctx(false, len), &mut out);
+        out.as_slice().to_vec()
+    }
+
+    /// Events that share a sample go out in a fixed order: NoteOffs, then controllers, then
+    /// NoteOns. A note that ends where the same pitch begins again must release before it
+    /// strikes, or the receiver ends up silent. The NoteOn here is due a fraction of a
+    /// sample before the NoteOff, so ordering by the raw time gets it wrong.
+    #[test]
+    fn events_in_one_sample_go_off_then_controller_then_on() {
+        let mut e = Engine::new(1);
+        e.schedule(100.3, RawEvent::NoteOn { port: 1, ch: 1, note: 60, vel: 90 });
+        e.schedule(100.5, RawEvent::Cc { port: 1, ch: 1, cc: 74, val: 5 });
+        e.schedule(100.7, RawEvent::NoteOff { port: 1, ch: 1, note: 60 });
+        let got = render_all(&mut e, 512);
+        assert_eq!(
+            got,
+            vec![
+                Event::NoteOff { port: 1, ch: 1, note: 60, at_sample: 100 },
+                Event::Cc { port: 1, ch: 1, cc: 74, val: 5, at_sample: 100 },
+                Event::NoteOn { port: 1, ch: 1, note: 60, vel: 90, at_sample: 100 },
+            ]
+        );
+    }
+
+    /// Ties are broken by the order events were scheduled in, always. Before, removal from
+    /// the queue swapped the last entry into the gap, so the order of equal-time events
+    /// depended on how many had been emitted before them.
+    #[test]
+    fn equal_events_keep_the_order_they_were_scheduled_in() {
+        let mut e = Engine::new(1);
+        for val in 0..6u8 {
+            e.schedule(200.0, RawEvent::Cc { port: 1, ch: 1, cc: 1, val });
+        }
+        let vals: Vec<u8> = render_all(&mut e, 512)
+            .iter()
+            .map(|ev| match ev {
+                Event::Cc { val, .. } => *val,
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        assert_eq!(vals, vec![0, 1, 2, 3, 4, 5]);
+    }
+
+    /// CE v5.30 p.40, Step Event Consideration 1: "If the Velocity is 0 then the note is not
+    /// transmitted." A NoteOn with velocity 0 is a NoteOff to every MIDI receiver, so the
+    /// note must not be sent at all, and its NoteOff must not be either.
+    #[test]
+    fn a_note_with_velocity_zero_is_not_transmitted() {
+        let mut e = Engine::new(1);
+        let t = &mut e.grid.active_page_mut().tracks[0];
+        t.velocity = 0;
+        t.steps[0].active = true;
+        let mut all = Vec::new();
+        for _ in 0..60 {
+            let mut out = EventBuffer::new();
+            e.render(&ctx(true, 512), &mut out);
+            all.extend_from_slice(out.as_slice());
+        }
+        assert_eq!(count_kinds(&all), (0, 0), "{all:?}");
+    }
+
+    /// The page's velocity factor scales the note (`vel * factor / 8`), so a quiet track at
+    /// the lowest factor rounds to 0 and is not transmitted, where it used to send NoteOn
+    /// velocity 0.
+    #[test]
+    fn velocity_scaled_down_to_zero_is_not_transmitted_and_1_is_the_quietest_note() {
+        for (base, factor, transmitted) in [(7u8, 1u8, false), (8, 1, true), (1, 8, true), (0, 8, false)] {
+            let mut e = Engine::new(1);
+            e.grid.active_page_mut().velocity_factor = factor;
+            let t = &mut e.grid.active_page_mut().tracks[0];
+            t.velocity = base;
+            t.steps[0].active = true;
+            let mut all = Vec::new();
+            for _ in 0..60 {
+                let mut out = EventBuffer::new();
+                e.render(&ctx(true, 512), &mut out);
+                all.extend_from_slice(out.as_slice());
+            }
+            let ons: Vec<u8> = all
+                .iter()
+                .filter_map(|ev| if let Event::NoteOn { vel, .. } = ev { Some(*vel) } else { None })
+                .collect();
+            assert_eq!(!ons.is_empty(), transmitted, "velocity {base} x {factor}/8: {ons:?}");
+            assert!(ons.iter().all(|v| *v >= 1));
+        }
+    }
+
+    fn play_events(e: &mut Engine, buffers: usize) -> Vec<Event> {
+        let mut all = Vec::new();
+        for _ in 0..buffers {
+            let mut out = EventBuffer::new();
+            e.render(&ctx(true, 512), &mut out);
+            all.extend_from_slice(out.as_slice());
+        }
+        all
+    }
+
+    /// CE v5.30 p.46 and p.91: a bender track sends pitch bend from its steps' MCC values,
+    /// which the editor holds as the top 7 bits of the 14-bit value.
+    #[test]
+    fn a_bender_track_sends_pitch_bend_with_the_step_value_in_the_top_7_bits() {
+        for (mcc, value) in [(0u8, 0u16), (1, 128), (64, 8192), (127, 16256)] {
+            let mut e = Engine::new(1);
+            let t = &mut e.grid.active_page_mut().tracks[0];
+            t.mcc = Mcc::Bend;
+            t.steps[0].active = true;
+            t.steps[0].mcc_value = Some(mcc);
+            let bends: Vec<u16> = play_events(&mut e, 40)
+                .iter()
+                .filter_map(|ev| if let Event::PitchBend { port: 1, ch: 1, value, .. } = ev { Some(*value) } else { None })
+                .collect();
+            assert_eq!(bends, vec![value], "MCC {mcc}");
+        }
+    }
+
+    #[test]
+    fn a_pressure_track_sends_channel_pressure_and_a_none_track_sends_nothing_extra() {
+        let mut e = Engine::new(1);
+        let t = &mut e.grid.active_page_mut().tracks[0];
+        t.mcc = Mcc::Pressure;
+        t.steps[0].active = true;
+        t.steps[0].mcc_value = Some(100);
+        let got = play_events(&mut e, 40);
+        assert!(got.iter().any(|ev| matches!(ev, Event::ChannelPressure { port: 1, ch: 1, value: 100, .. })), "{got:?}");
+
+        let mut e = Engine::new(1);
+        let t = &mut e.grid.active_page_mut().tracks[0];
+        t.mcc = Mcc::None;
+        t.steps[0].active = true;
+        t.steps[0].mcc_value = Some(100);
+        let got = play_events(&mut e, 40);
+        assert!(got.iter().all(|ev| matches!(ev, Event::NoteOn { .. } | Event::NoteOff { .. })), "{got:?}");
+    }
+
+    /// The bend a step sends reaches the receiver before the note it shapes, even though
+    /// both are due at the same instant.
+    #[test]
+    fn a_controller_is_sent_before_the_note_it_belongs_to() {
+        let mut e = Engine::new(1);
+        let t = &mut e.grid.active_page_mut().tracks[0];
+        t.mcc = Mcc::Bend;
+        t.steps[0].active = true;
+        t.steps[0].mcc_value = Some(64);
+        let got = play_events(&mut e, 40);
+        let bend = got.iter().position(|ev| matches!(ev, Event::PitchBend { .. })).expect("a bend");
+        let on = got.iter().position(|ev| matches!(ev, Event::NoteOn { .. })).expect("a note");
+        assert!(bend < on, "{got:?}");
+    }
+
+    /// A step's phrase extras follow the same rule as the step's own note.
+    #[test]
+    fn a_phrase_extra_that_reaches_velocity_zero_is_not_transmitted() {
+        let mut e = Engine::new(1);
+        e.grid.phrases = crate::phrases::factory_phrases();
+        let t = &mut e.grid.active_page_mut().tracks[0];
+        t.velocity = 3;
+        t.steps[0].active = true;
+        t.steps[0].phrase = Some(1);
+        let mut all = play_events(&mut e, 60);
+        all.retain(|ev| matches!(ev, Event::NoteOn { .. } | Event::NoteOff { .. }));
+        let (ons, offs) = count_kinds(&all);
+        assert_eq!(ons, offs, "every note sent has its NoteOff: {all:?}");
+        assert!(all.iter().all(|ev| !matches!(ev, Event::NoteOn { vel: 0, .. })), "{all:?}");
     }
 }

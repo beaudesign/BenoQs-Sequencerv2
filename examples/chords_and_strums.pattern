@@ -1,0 +1,25 @@
+# Strums (a single note spread over seven, up and down), start offsets that pull notes
+# before their tick (the lookahead case), and a long note that Stop has to release.
+seed 7
+bpm 96
+track 0 mch 1
+track 0 step 0 active 1
+track 0 step 0 strum 5
+track 0 step 8 active 1
+track 0 step 8 strum -7
+track 1 mch 2
+track 1 step all active 1
+track 1 step all len 6
+track 1 step 3 sta -5
+track 1 step 7 sta +5
+track 1 step 11 sta -3
+track 2 mch 3
+track 2 step 0 active 1
+track 2 step 0 len 192
+track 2 step 0 lenmul 4
+play
+render 6 s buffer=64
+stop
+render 1 s buffer=64
+expect event on
+expect balance

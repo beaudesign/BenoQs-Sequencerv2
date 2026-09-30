@@ -1,0 +1,16 @@
+== invariants on parent engine ==
+test different_seeds_make_different_scenarios ... ok
+test first_buffer_after_idle_equals_a_fresh_engines_first_buffer ... FAILED
+test play_command_after_idle_does_not_replay_the_backlog ... FAILED
+test same_seed_replays_the_same_stream ... ok
+test reset_flushes_sounding_notes ... FAILED
+test stop_at_any_point_leaves_no_note_sounding ... FAILED
+test stop_command_between_renders_flushes_on_the_next_render ... FAILED
+test stop_play_cycles_never_leak_notes_and_stopped_means_silent ... FAILED
+test result: FAILED. 2 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+
+== conformance on parent engine ==
+transport/stop_while_stopped_sends_all_notes_off.fixture: line 10: `expect event cc cc=123 count=32`: expected 32 matching event(s), found 0. events: [
+transport/stop_flushes_sounding_notes.fixture: line 22: `expect event off port=1 ch=1 count=1 at=2048`: expected 1 matching event(s), found 0. events: [1375:NoteOn { port: 2, ch: 4, note: 62, vel: 100, at_sample: 351 }, 1375:NoteOn { port: 1, ch: 1, note: 69, vel: 100, at
+transport/reset_flushes_sounding_notes.fixture: line 14: `expect event off port=1 ch=1 count=1 at=2048`: expected 1 matching event(s), found 0. events: [1375:NoteOn { port: 1, ch: 1, note: 69, vel: 100, at_sample: 351 }
+transport/play_after_idle_has_no_backlog_burst.fixture: line 13: `expect event on count=0..1`: expected 0 to 1 matching event(s), found 128. events: [480256:NoteOn { port: 1, ch: 1, note: 69, vel: 100, at_sample: 0 }, 480256:NoteOff { port: 1, ch: 1, note: 69, at_sample

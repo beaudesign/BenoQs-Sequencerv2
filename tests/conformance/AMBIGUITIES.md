@@ -312,3 +312,133 @@ exists yet at all — this needs one added before the table itself matters.
 `::len_scaling_interpolates_between_breakpoints`,
 `::sta_scaling_matches_manual_note_row_14_doubles`,
 `::sta_scaling_row_0_is_always_zero`.
+
+## stop with sounding notes
+
+**Manual reference:** CE v5.30 p.94 ("ALL NOTES OFF message"); p.16 (legato mode).
+**Ambiguity:** The manual says what a *second* Stop does: "When the sequencer is not
+running but is defined as MIDI master or slave ... pressing the Stop button will send out
+an ALL NOTES OFF message (controller 123) on each of the 32 MIDI channels." It does not
+say what the first Stop does to a note that is still sounding, or what Reset does.
+**Readings considered:** A) Stop sends a NoteOff for every sounding note, then CC 123 on
+the channels that had one. B) Stop leaves sounding notes alone, and the player presses Stop
+again to send the p.94 panic.
+**Chosen:** A. A plugin cannot ask a person to press Stop twice when the host stops the
+transport, and leaving a note on in the receiver is the worse failure. B stays reachable:
+a Stop pressed while already stopped sends CC 123 on all 32 channels, as p.94 says. The
+"master or slave" condition is treated as always true, because the engine has no clock-role
+setting; under a host it is effectively a slave. A Stop is a `Command::Stop`. A host that
+reports "not playing" on every buffer (`HostTransport`, or `RenderContext::playing`) is not
+a button press and does not send the panic. Reset follows the same rule as the first Stop.
+One NoteOff is sent per NoteOn still owed, so a pitch retriggered while it rang is released
+in a receiver that stacks voices.
+**Still open:** whether hardware sends anything on the first Stop. Needs a real Octopus.
+**Also found while reading p.16 (not changed here):** the minimum step length is "legato
+mode - i.e. no note off MIDI signal will be played for this step". The engine does not do
+this: every step schedules a NoteOff, and LEN is clamped to at least 1 tick. When legato is
+implemented, Stop must still flush those notes, which the sounding table already covers.
+**Fixture:** `transport/stop_flushes_sounding_notes.fixture`,
+`transport/reset_flushes_sounding_notes.fixture`,
+`transport/stop_while_stopped_sends_all_notes_off.fixture`,
+`tests/invariants.rs::stop_at_any_point_leaves_no_note_sounding` and its siblings,
+`engine::tests::retriggered_pitch_gets_one_noteoff_per_noteon_on_stop`.
+
+## Play after idle time
+
+**Manual reference:** none. The manual does not describe the host's idle rendering.
+**Ambiguity:** none in the manual. The engine is driven per buffer, and while stopped it
+still advances its sample clock. Play must start ticking from the current sample, not from
+where the transport stopped.
+**Chosen:** on the stopped-to-running transition `next_tick_due` is set to the current
+sample. Position (POS) and track state are untouched, as p.40 and p.66 describe.
+**Fixture:** `transport/play_after_idle_has_no_backlog_burst.fixture`,
+`tests/invariants.rs::first_buffer_after_idle_equals_a_fresh_engines_first_buffer`.
+
+## velocity 0
+
+**Manual reference:** CE v5.30 p.40, Step Event Consideration 1: "If the Velocity is 0 then
+the note is not transmitted."
+**Ambiguity:** the manual says it under Step Events and does not say which velocity it means:
+the track's, the step's, or the final value after the page velocity factor (`vel * factor / 8`)
+and the effector. It also does not say what a phrase extra at 0 does.
+**Readings considered:** A) the final velocity of each note. B) only the track's base velocity.
+**Chosen:** A, applied to every note separately: the step's own notes and each phrase extra. A
+note at 0 sends neither a NoteOn (which every receiver reads as a NoteOff) nor a NoteOff. The
+step still fires: its controller value and the effector's feed are unaffected. The lowest
+velocity that sounds is 1. The manual's own rule and the review checklist ("every NoteOn has
+velocity at least 1") agree.
+**Fixture:** `velocity/zero_velocity_is_not_transmitted.fixture`,
+`tests/invariants.rs::every_note_on_has_a_velocity_of_at_least_1_however_quiet_the_pattern`,
+`engine::tests::velocity_scaled_down_to_zero_is_not_transmitted_and_1_is_the_quietest_note`.
+
+## MCC bender and channel pressure
+
+**Manual reference:** CE v5.30 p.46 (BENDER and CHANNEL PRESSURE flags), p.91 (bend data).
+**Ambiguity:** p.46 says the track sends those messages "according to the MCC values stored in
+that track's steps", and p.91 says a bend has 14 bits but the editor works on "the most
+significant 7 bits of the value" and clearing the map clears "the least significant 7 bits".
+It does not give the mapping from a step value to the message.
+**Readings considered:** A) `value = step << 7`: the low 7 bits are the cleared ones. 64 is
+exactly the centre (8192) and 127 sends 16256. B) `value = step * 16383 / 127`: 127 reaches
+the top of the range but 64 sends 8257, off centre.
+**Chosen:** A. It is what p.91 describes, and an unset-looking bend must not detune a track.
+The engine sends `Event::PitchBend { value }` (0..=16383) and `Event::ChannelPressure { value }`
+(0..=127) at the step's start time, ahead of the note it belongs to.
+**Still open:** Stop does not recentre a bend that is still applied, and does not send CC 121
+(reset controllers). The manual is silent. A receiver keeps a bend until the next one.
+**Fixture:** `mcc/bender_sends_pitch_bend_from_the_top_7_bits.fixture`,
+`mcc/channel_pressure_sends_the_step_value.fixture`,
+`mcc/controller_track_still_sends_a_cc.fixture`.
+
+## retriggering a pitch that is still sounding
+
+**Manual reference:** none.
+**Ambiguity:** when a step starts a pitch whose previous NoteOff has not been sent yet (a long
+step, chords that share a pitch across tracks on one channel), the manual does not say whether
+the sequencer sends a NoteOff first.
+**Readings considered:** A) overlap: both NoteOns go out, each keeps its own NoteOff. A
+receiver that stacks voices plays two, a monophonic one retriggers. B) the sequencer sends a
+NoteOff before the second NoteOn.
+**Chosen:** A, unchanged from before this spec. The engine adds two guarantees that do not
+depend on the choice: events in the same sample go out NoteOff, then controller, then NoteOn
+(so a note that ends where the same pitch begins releases before it strikes), and Stop sends
+one NoteOff per NoteOn still owed (`stop with sounding notes`).
+**Owner decision wanted:** B would need a rule for which NoteOff the receiver now sees twice.
+**Fixture:** `engine::tests::events_in_one_sample_go_off_then_controller_then_on`,
+`engine::tests::retriggered_pitch_gets_one_noteoff_per_noteon_on_stop`.
+
+## lookahead, Stop and commands
+
+**Manual reference:** CE v5.30 p.44-45 (a step's STA can pull a note up to 12/192 early).
+**Ambiguity:** none in the manual. A note pulled early can only be sent on time if the engine
+has already stepped the tick that fires it, so `render` steps ticks up to `MAX_EARLY_TICKS`
+(12, the STA table's reach) ahead of the buffer's end.
+**Consequences, chosen knowingly:** a command that reaches the engine between renders takes
+effect on ticks that have not been stepped yet, so up to 12 ticks (one step, 31 ms at 120 BPM)
+later than without lookahead. A Stop can leave up to 12 ticks of pattern position already
+consumed, so Play after Stop resumes up to one step further on. Neither affects the notes
+that were already sent, and Stop still silences everything.
+**Alternative:** rewind the position on Stop, or delay all output by 12 ticks and report it as
+latency (its cost changes with tempo). Neither is done.
+**Fixture:** `tests/invariants.rs::event_times_do_not_depend_on_the_hosts_buffer_size`,
+`engine::tests::max_early_ticks_covers_every_table_and_is_tight`.
+
+## the first note after Play
+
+**Manual reference:** none found.
+**Observed, not changed:** a step fires when its tick counter reaches the step length, and the
+counter starts at 0 on Play, so the first note of a pattern is sent 11 ticks after Play, not
+on it. Later steps are on the grid. No reading in the manual says which is right. Part of
+SPEC-0001 O4 (clock and host sync), which is not approved yet.
+
+## events per render call and unusable tempos
+
+**Manual reference:** none. Engine limits, not musical behaviour.
+**Chosen:** one call holds at most `MAX_EVENTS_PER_TICK` (256) events, or fewer if the FFI
+caller passes a smaller capacity. Events that do not fit wait for the next call and go out
+late, at sample 0, counted in `Diagnostics::deferred_events`. Dense patterns in buffers above
+about 4,096 samples can reach this. A tempo outside 1 to 999 BPM, or a sample rate outside
+8,000 to 768,000 Hz, runs no tick and is counted in `Diagnostics::unusable_tempo_renders`.
+**Fixture:** `engine::tests::a_full_output_buffer_defers_events_instead_of_dropping_them`,
+`engine::tests::an_unusable_tempo_does_not_wedge_the_clock`,
+`octoffi::tests::a_small_caller_buffer_delays_events_and_never_drops_them`.

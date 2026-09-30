@@ -1,0 +1,94 @@
+# Runs the gates on every pull request and on pushes to main.
+#
+# `just verify` is a thin wrapper over `cargo xtask verify`, so CI calls xtask directly
+# and needs no `just` install. The run fails if any gate fails, if any gate listed in
+# harness/required-gates.txt is not `pass`, or if a test or fixture in
+# harness/baseline.txt disappeared (compared against the base branch as well, so editing
+# the baseline cannot hide a deletion).
+#
+# Pull requests to any branch are covered on purpose: the SPEC-0001 series is stacked.
+# Owned by the Referee. Changing this file is medium tier (AGENTS.md).
+
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The ratchet compares harness/baseline.txt against the base ref.
+          fetch-depth: 0
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+          cargo --version
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      - name: Verify (pull request)
+        if: github.event_name == 'pull_request'
+        env:
+          WENGE_ROLE: ci
+        run: cargo xtask verify --base "origin/${{ github.base_ref }}"
+
+      - name: Verify (push to main)
+        if: github.event_name == 'push'
+        env:
+          WENGE_ROLE: ci
+        run: |
+          before="${{ github.event.before }}"
+          if ! git cat-file -e "${before}^{commit}" 2>/dev/null; then
+            before="HEAD~1"   # new branch or force push: fall back to the parent commit
+          fi
+          cargo xtask verify --base "$before"
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-report
+          path: |
+            harness/report/latest.json
+            harness/report/cargo-test.log
+          if-no-files-found: warn
+
+  # SPEC-0001 O7: the engine compiled to WebAssembly plays the example patterns and the event
+  # log is byte-identical to the native golden hashes. Node is preinstalled on the runner.
+  wasm-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust with the wasm target
+        run: |
+          rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+          rustup default stable
+      - name: Build octoffi for wasm32 and run the smoke test
+        run: |
+          cargo build --release -p octoffi --target wasm32-unknown-unknown
+          node --version
+          node harness/wasm/smoke.mjs

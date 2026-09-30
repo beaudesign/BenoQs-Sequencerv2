@@ -55,10 +55,10 @@ pub struct OctoRenderParams {
 /// Renders exactly `params.buffer_len` samples and writes up to
 /// `out_capacity` emitted `Event`s into `out_events` (caller-owned buffer),
 /// writing the actual count into `*out_count`. Returns 0 on success, a negative
-/// code on a null/invalid argument. If more events fired than `out_capacity`
-/// can hold, the extras are silently dropped this call — same "full density is
-/// sized for" contract as `octocore::engine::MAX_EVENTS_PER_TICK` internally, not
-/// a new gap introduced at this boundary.
+/// code on a null/invalid argument. If more events are due than `out_capacity`
+/// can hold, the extras are kept and come out first in the next call (late, at
+/// sample 0), never dropped; `octocore_engine_diagnostics` counts how often that
+/// happened. Capacity beyond `MAX_EVENTS_PER_TICK` (256) is not used.
 ///
 /// # Safety
 /// `engine` must be a live pointer from `octocore_engine_new`. `out_events` must
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn octocore_engine_render(
         bpm: params.bpm,
         playing: params.playing,
     };
-    let mut buf = octocore::engine::EventBuffer::new();
+    let mut buf = octocore::engine::EventBuffer::with_limit(out_capacity);
     engine.render(&ctx, &mut buf);
 
     let events = buf.as_slice();
@@ -91,6 +91,20 @@ pub unsafe extern "C" fn octocore_engine_render(
     let dst = std::slice::from_raw_parts_mut(out_events, n);
     dst.copy_from_slice(&events[..n]);
     *out_count = n;
+    0
+}
+
+/// Copies the engine's health counters to `*out`. Returns 0 on success, -1 for a null
+/// engine, -2 for a null `out`. The counters are cumulative since `octocore_engine_new`.
+///
+/// # Safety
+/// `engine` must be a live pointer from `octocore_engine_new`. `out` must point to one
+/// valid, writable `Diagnostics`.
+#[no_mangle]
+pub unsafe extern "C" fn octocore_engine_diagnostics(engine: *const Engine, out: *mut octocore::Diagnostics) -> i32 {
+    let Some(engine) = engine.as_ref() else { return -1 };
+    let Some(out) = out.as_mut() else { return -2 };
+    *out = engine.diagnostics();
     0
 }
 
@@ -378,5 +392,113 @@ mod tests {
 
             octocore_engine_free(e);
         }
+    }
+
+    /// SPEC-0001 O5. `out_capacity` is the caller's room per call. Events that do not fit are
+    /// carried to the next call. Before, the extras were dropped at this boundary, and a
+    /// dropped NoteOff is a note that never ends.
+    #[test]
+    fn a_small_caller_buffer_delays_events_and_never_drops_them() {
+        // (absolute sample, event without its buffer-relative position), for `buffers`
+        // renders of 512 samples with a caller buffer of `capacity` events.
+        fn run(capacity: usize, buffers: usize) -> Vec<(u64, [u8; 4])> {
+            let e = octocore_engine_new(7);
+            let mut all = Vec::new();
+            unsafe {
+                for t in 0..10u8 {
+                    for st in 0..16u8 {
+                        assert!(octocore_step_set_i32(e, t, st, OctoStepAttr::Active, 1));
+                    }
+                }
+                octocore_engine_handle_command(e, Command::Play);
+                let mut events = vec![Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }; capacity];
+                for b in 0..buffers {
+                    let params = OctoRenderParams { sample_rate: 48_000.0, buffer_len: 512, bpm: 120.0, playing: true };
+                    let mut count = 0usize;
+                    assert_eq!(octocore_engine_render(e, params, events.as_mut_ptr(), events.len(), &mut count), 0);
+                    for ev in &events[..count] {
+                        let (at, key) = match *ev {
+                            Event::NoteOn { port, ch, note, at_sample, .. } => (at_sample, [1, port, ch, note]),
+                            Event::NoteOff { port, ch, note, at_sample } => (at_sample, [2, port, ch, note]),
+                            Event::Cc { port, ch, cc, at_sample, .. } => (at_sample, [3, port, ch, cc]),
+                            Event::PitchBend { port, ch, at_sample, .. } => (at_sample, [4, port, ch, 0]),
+                            Event::ChannelPressure { port, ch, at_sample, .. } => (at_sample, [5, port, ch, 0]),
+                        };
+                        all.push((b as u64 * 512 + at as u64, key));
+                    }
+                }
+                octocore_engine_free(e);
+            }
+            all
+        }
+
+        let buffers = 600;
+        let reference = run(256, buffers);
+        let small = run(8, buffers);
+        assert!(reference.len() > 400, "the scenario must produce plenty of events, got {}", reference.len());
+
+        // Whatever the small run has not delivered by the end is still queued behind the
+        // caller's small buffer, so it can only be among the last events of the reference.
+        let mut remaining: Vec<(u64, [u8; 4])> = small.iter().map(|(_, k)| (0, *k)).collect();
+        let mut missing = Vec::new();
+        for (t, k) in &reference {
+            match remaining.iter().position(|(_, rk)| rk == k) {
+                Some(i) => {
+                    remaining.swap_remove(i);
+                }
+                None => missing.push(*t),
+            }
+        }
+        let cutoff = (buffers as u64 - 24) * 512;
+        let early: Vec<u64> = missing.iter().copied().filter(|t| *t < cutoff).collect();
+        assert!(early.is_empty(), "{} events were dropped, first at sample {:?}", early.len(), early.first());
+    }
+
+    #[test]
+    fn diagnostics_are_readable_and_null_safe() {
+        let e = octocore_engine_new(1);
+        unsafe {
+            let mut d = octocore::Diagnostics { queue_overflows: 9, ..Default::default() };
+            assert_eq!(octocore_engine_diagnostics(e, &mut d), 0);
+            assert_eq!(d, octocore::Diagnostics::default());
+            assert_eq!(octocore_engine_diagnostics(std::ptr::null(), &mut d), -1);
+            assert_eq!(octocore_engine_diagnostics(e, std::ptr::null_mut()), -2);
+
+            // A tempo of 0 with the transport running is counted, and the engine survives it.
+            octocore_engine_handle_command(e, Command::Play);
+            let params = OctoRenderParams { sample_rate: 48_000.0, buffer_len: 512, bpm: 0.0, playing: true };
+            let mut events = [Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }; 8];
+            let mut count = 0usize;
+            assert_eq!(octocore_engine_render(e, params, events.as_mut_ptr(), events.len(), &mut count), 0);
+            assert_eq!(octocore_engine_diagnostics(e, &mut d), 0);
+            assert_eq!(d.unusable_tempo_renders, 1);
+            octocore_engine_free(e);
+        }
+    }
+
+    /// `octoffi.h` is written by hand, so the bytes of the new events are pinned here: tag
+    /// values, and where each field sits in the 12-byte `Event`. Little-endian layouts, which
+    /// is every platform this ships on. Only bytes that hold data are read, never padding.
+    #[cfg(target_endian = "little")]
+    #[test]
+    fn new_event_variants_match_the_layout_in_the_c_header() {
+        assert_eq!(std::mem::size_of::<Event>(), 12, "adding variants must not grow Event");
+        fn bytes(e: &Event, at: &[usize]) -> Vec<u8> {
+            let base = e as *const Event as *const u8;
+            // SAFETY: `at` lists offsets of initialised bytes inside the 12 bytes of `*e`.
+            at.iter().map(|i| unsafe { *base.add(*i) }).collect()
+        }
+        // Tag at 0..4.
+        let tag = |e: &Event| bytes(e, &[0, 1, 2, 3]);
+        let bend = Event::PitchBend { port: 2, ch: 9, value: 0x1234, at_sample: 0xAABB_CCDD };
+        let pressure = Event::ChannelPressure { port: 1, ch: 16, value: 100, at_sample: 0x0102_0304 };
+        assert_eq!(tag(&Event::NoteOn { port: 0, ch: 0, note: 0, vel: 0, at_sample: 0 }), [0, 0, 0, 0]);
+        assert_eq!(tag(&Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }), [2, 0, 0, 0]);
+        assert_eq!(tag(&bend), [3, 0, 0, 0], "OCTO_EVT_PITCH_BEND = 3");
+        assert_eq!(tag(&pressure), [4, 0, 0, 0], "OCTO_EVT_CHANNEL_PRESSURE = 4");
+        // struct { uint8_t port, ch; uint16_t value; uint32_t at_sample; }
+        assert_eq!(bytes(&bend, &[4, 5, 6, 7, 8, 9, 10, 11]), [2, 9, 0x34, 0x12, 0xDD, 0xCC, 0xBB, 0xAA]);
+        // struct { uint8_t port, ch, value; uint32_t at_sample; }
+        assert_eq!(bytes(&pressure, &[4, 5, 6, 8, 9, 10, 11]), [1, 16, 100, 4, 3, 2, 1]);
     }
 }

@@ -1,0 +1,18 @@
+# hello: the smallest pattern that plays. One track, four steps, a rising line.
+# Run it:  just run examples/hello
+seed 1
+bpm 120
+track 0 mch 1
+track 0 step 0 active 1
+track 0 step 4 active 1
+track 0 step 8 active 1
+track 0 step 12 active 1
+track 0 step 4 pit +4
+track 0 step 8 pit +7
+track 0 step 12 pit +12
+play
+render 4 s buffer=64
+stop
+render 1 s buffer=64
+expect event on
+expect balance

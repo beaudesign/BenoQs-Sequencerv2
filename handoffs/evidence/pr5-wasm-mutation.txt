@@ -1,0 +1,8 @@
+MISMATCH hello: wasm 8691cdb08ddd1451d060fa91a8495a0da09c2f9bbd186cc438eb49adb0dbfe78
+                 native 0691cdb08ddd1451d060fa91a8495a0da09c2f9bbd186cc438eb49adb0dbfe78
+ok       chords_and_strums: 600 events, identical to the native golden (7 ms in wasm)
+ok       effector: 563 events, identical to the native golden (11 ms in wasm)
+skipped  phrases: `phrase 0 note 0 pit +4` needs more than the FFI offers
+skipped  mcc_and_transport: `track 0 mcc bend` needs more than the FFI offers
+3 pattern(s) compared, 1 failed
+exit=1

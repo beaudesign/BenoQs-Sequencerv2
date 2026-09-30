@@ -1,0 +1,14 @@
+# WENGE-0002 / SPEC-0001 A2. A host that renders while stopped must not make Play replay
+# the idle time as a burst of ticks. Ten seconds idle, then one 512-sample buffer: only
+# the ticks that fit in that buffer may run (512 / 125 samples per tick is 4 ticks), so at
+# most one note can start. On 6ef921f this buffer held 256 events (the cap).
+seed 1
+bpm 120
+page.tracks 0 enabled
+track 0 step all active 1
+render 10 s buffer=512
+expect event on absent
+play
+render 1 buffers buffer=512
+expect event on count=0..1
+expect event off count=0..1

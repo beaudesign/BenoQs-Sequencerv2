@@ -1,0 +1,15 @@
+== xtask gate determinism, before and after the review fix (finding 2) ==
+Run from the repository root. `verify` requires the determinism gate, so
+`xtask gate determinism` has to run it too.
+
+before (parent commit fb73e98):
+  $ cargo xtask gate determinism
+  determinism: not yet implemented, owned by referee, see docs/07-verification.md
+  exit=42
+
+after:
+  $ cargo xtask gate determinism
+  determinism.golden_tests_passed             8 gte 5
+  determinism.golden_tests_failed             0 eq  0
+  determinism: pass
+  exit=0

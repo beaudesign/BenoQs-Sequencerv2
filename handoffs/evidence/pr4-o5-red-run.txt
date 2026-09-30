@@ -1,0 +1,28 @@
+test engine::tests::a_full_queue_refuses_a_note_as_a_pair_never_half ... FAILED
+test engine::tests::a_full_output_buffer_defers_events_instead_of_dropping_them ... FAILED
+test engine::tests::an_unusable_tempo_does_not_wedge_the_clock ... FAILED
+thread 'engine::tests::a_full_queue_refuses_a_note_as_a_pair_never_half' (14335) panicked at crates/octocore/src/engine.rs:2301:9:
+assertion `left == right` failed: a NoteOn was queued without its NoteOff
+  left: 1
+ right: 0
+thread 'engine::tests::a_full_output_buffer_defers_events_instead_of_dropping_them' (14334) panicked at crates/octocore/src/engine.rs:2280:9:
+assertion `left == right` failed: 400 events went in, 400 came out
+  left: (200, 56)
+ right: (200, 200)
+thread 'engine::tests::an_unusable_tempo_does_not_wedge_the_clock' (14336) panicked at crates/octocore/src/engine.rs:2325:13:
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 85 filtered out; finished in 0.07s
+error: test failed, to rerun pass `-p octocore --lib`
+error[E0382]: use of moved value: `params`
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `octoffi` (lib test) due to 1 previous error
+test tests::a_small_caller_buffer_delays_events_and_never_drops_them ... FAILED
+thread 'tests::a_small_caller_buffer_delays_events_and_never_drops_them' (14440) panicked at crates/octoffi/src/lib.rs:438:9:
+2334 events were dropped, first at sample Some(2875)
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.08s
+error: test failed, to rerun pass `-p octoffi --lib`
+test a_bad_tempo_costs_nothing_once_the_tempo_is_sane ... FAILED
+thread 'a_bad_tempo_costs_nothing_once_the_tempo_is_sane' (15165) panicked at crates/octocore/tests/invariants.rs:326:5:
+the engine never played again
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.08s
+--- hang probe (exit 124 = timed out)
+exit=124

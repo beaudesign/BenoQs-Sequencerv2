@@ -33,6 +33,12 @@ pub enum Event {
     NoteOn { port: u8, ch: u8, note: u8, vel: u8, at_sample: u32 },
     NoteOff { port: u8, ch: u8, note: u8, at_sample: u32 },
     Cc { port: u8, ch: u8, cc: u8, val: u8, at_sample: u32 },
+    /// Pitch bend, 14 bits: 0 to 16383 with 8192 the centre (no bend). The step editor works on
+    /// the top 7 bits only (CE v5.30 p.91), so the engine sends `value = step MCC << 7`, and
+    /// an MCC of 64 is centre. Added after `Cc`, so the tags of the events above do not change.
+    PitchBend { port: u8, ch: u8, value: u16, at_sample: u32 },
+    /// Channel pressure (aftertouch), 0 to 127.
+    ChannelPressure { port: u8, ch: u8, value: u8, at_sample: u32 },
 }
 
 /// Maximum events emitted by a single `Engine::tick_samples` call. Sized for "full

@@ -1,0 +1,20 @@
+# WENGE-0010 / SPEC-0001 O10, and the review checklist rule "every NoteOn has velocity at
+# least 1". Ref: CE v5.30 p.40, Step Event Consideration 1: "If the Velocity is 0 then the
+# note is not transmitted." A MIDI NoteOn with velocity 0 is a NoteOff to every receiver, so
+# neither a NoteOn nor a NoteOff is sent. The lowest velocity that sounds is 1.
+seed 1
+bpm 120
+page.tracks 0,1 enabled
+track 0 vel 0
+track 1 vel 1
+track 0 mch 1
+track 1 mch 2
+play
+# One bar is 24,000 samples at 120 BPM, and the step fires on tick 12 (sample 1375), so 20
+# buffers of 512 hold exactly one firing.
+render 20 buffers buffer=512
+expect event on ch=1 absent
+expect event off ch=1 absent
+expect event on ch=2 vel=1 count=1
+expect event on vel=0 absent
+expect balance

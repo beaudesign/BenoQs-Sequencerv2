@@ -52,27 +52,28 @@ factory layer that carries this spec.
 
 | Task | Opportunity | Tier | Phase | Status |
 |---|---|---|---|---|
-| WENGE-0000 | Factory layer: `AGENTS.md`, ADR-0004, this spec, CODEOWNERS, handoffs | Medium | F0 | In review |
-| WENGE-0001 | O1 Flush sounding notes on stop and reset (pilot) | Medium | F0 | Planned |
-| WENGE-0002 | O2 Stop the backlog burst on Play after idle | Medium | F0 | Planned |
-| WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | Planned |
+| WENGE-0000 | Factory layer: `AGENTS.md`, ADR-0004, this spec, CODEOWNERS, handoffs | Medium | F0 | In review (PR 1) |
+| WENGE-0001 | O1 Flush sounding notes on stop and reset (pilot) | Medium | F0 | In review (PR 3) |
+| WENGE-0002 | O2 Stop the backlog burst on Play after idle | Medium | F0 | In review (PR 3) |
+| WENGE-0003 | O3 Timing independent of buffer size | Medium | F1 | In review (PR 4) |
 | WENGE-0004 | O4 Integer tick clock and host lock | High | F2 | Not approved |
-| WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | Planned |
+| WENGE-0005 | O5 Count dropped events, never drop a NoteOff | Medium | F1 | In review (PR 4) |
 | WENGE-0006 | O6 Command ring and snapshot | Medium | F2 | Not approved |
-| WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | Planned |
-| WENGE-0008 | O8 Real gates: tri-state verify, CI, CODEOWNERS, ratchet | Medium | F0 | Planned |
-| WENGE-0009 | O9 Fixture DSL v2 and metamorphic invariants | Low | F0 and ongoing | Planned |
-| WENGE-0010 | O10 Emission details and doc drift | Medium | F1 | Planned |
+| WENGE-0007 | O7 Headless runner, golden streams, WASM demo | Medium | F1 | In review (PR 5). Live `midir` mode not done (Q6). |
+| WENGE-0008 | O8 Real gates: tri-state verify, CI, CODEOWNERS, ratchet | Medium | F0 | In review (PR 2) |
+| WENGE-0009 | O9 Fixture DSL v2 and metamorphic invariants | Low | F0 and ongoing | Started (PR 3: DSL v2, transport invariants. PR 4: DSL v3 `vel`, `mcc`, `bend`, `pressure`, and buffer-size, order and velocity invariants) |
+| WENGE-0010 | O10 Emission details and doc drift | Medium | F1 | In review (PR 4). Doc drift was fixed in PR 1. |
 
 ## Pull request series
 
-Stacked, each independently reviewable. The owner merges. Nothing merges on the
-strength of an agent's own status message.
+A linear stack: each branch is based on the one above it, so each pull request shows
+only its own change and the ratchet from the earlier PR protects the later ones. The
+owner merges, in order. Nothing merges on the strength of an agent's own status message.
 
 | PR | Branch | Tasks | Base |
 |---|---|---|---|
 | 1 | `conductor/factory-layer` | WENGE-0000 | `main` |
-| 2 | `referee/ratchet` | WENGE-0008 | `main` |
+| 2 | `referee/ratchet` | WENGE-0008 | PR 1 |
 | 3 | `metronome/transport-safety` | WENGE-0001, 0002, 0009 | PR 2 |
 | 4 | `metronome/timing-and-emission` | WENGE-0003, 0005, 0010 | PR 3 |
 | 5 | `conductor/octorun` | WENGE-0007 | PR 4 |

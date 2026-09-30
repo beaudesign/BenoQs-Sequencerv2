@@ -1,0 +1,34 @@
+test engine::tests::equal_events_keep_the_order_they_were_scheduled_in ... FAILED
+test engine::tests::a_note_with_velocity_zero_is_not_transmitted ... FAILED
+test engine::tests::events_in_one_sample_go_off_then_controller_then_on ... FAILED
+test engine::tests::velocity_scaled_down_to_zero_is_not_transmitted_and_1_is_the_quietest_note ... FAILED
+thread 'engine::tests::equal_events_keep_the_order_they_were_scheduled_in' (15860) panicked at crates/octocore/src/engine.rs:2538:9:
+assertion `left == right` failed
+  left: [0, 5, 4, 3, 2, 1]
+ right: [0, 1, 2, 3, 4, 5]
+thread 'engine::tests::a_note_with_velocity_zero_is_not_transmitted' (15859) panicked at crates/octocore/src/engine.rs:2556:9:
+assertion `left == right` failed: [NoteOn { port: 1, ch: 1, note: 69, vel: 0, at_sample: 351 }, NoteOff { port: 1, ch: 1, note: 69, at_sample: 315 }, NoteOn { port: 1, ch: 1, note: 69, vel: 0, at_sample: 287 }, NoteOff { port: 1, ch: 1, note: 69, at_sample: 251 }]
+  left: (2, 2)
+ right: (0, 0)
+thread 'engine::tests::events_in_one_sample_go_off_then_controller_then_on' (15861) panicked at crates/octocore/src/engine.rs:2512:9:
+assertion `left == right` failed
+  left: [NoteOn { port: 1, ch: 1, note: 60, vel: 90, at_sample: 100 }, Cc { port: 1, ch: 1, cc: 74, val: 5, at_sample: 100 }, NoteOff { port: 1, ch: 1, note: 60, at_sample: 100 }]
+ right: [NoteOff { port: 1, ch: 1, note: 60, at_sample: 100 }, Cc { port: 1, ch: 1, cc: 74, val: 5, at_sample: 100 }, NoteOn { port: 1, ch: 1, note: 60, vel: 90, at_sample: 100 }]
+thread 'engine::tests::velocity_scaled_down_to_zero_is_not_transmitted_and_1_is_the_quietest_note' (15862) panicked at crates/octocore/src/engine.rs:2580:13:
+assertion `left == right` failed: velocity 7 x 1/8: [0, 0]
+  left: true
+ right: false
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 90 filtered out; finished in 0.07s
+error: test failed, to rerun pass `-p octocore --lib`
+test event_order_does_not_depend_on_the_hosts_buffer_size ... FAILED
+test every_note_on_has_a_velocity_of_at_least_1_however_quiet_the_pattern ... FAILED
+thread 'event_order_does_not_depend_on_the_hosts_buffer_size' (15933) panicked at crates/octocore/tests/invariants.rs:380:13:
+assertion `left == right` failed: seed 0, buffer 7
+thread 'every_note_on_has_a_velocity_of_at_least_1_however_quiet_the_pattern' (15934) panicked at crates/octocore/tests/invariants.rs:362:5:
+NoteOn with velocity 0 in 95 of 96 seeds, first: Some("seed 0 sample 882")
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.19s
+error: test failed, to rerun pass `-p octocore --test invariants`
+PROBE parent events for a bender track with MCC 64: ["NoteOn", "NoteOff"]
+thread 'probe_bender_track_on_the_parent_commit' (17006) panicked at crates/octocore/tests/bend_probe.rs:19:5:
+a bender track sent no bend message and no controller: ["NoteOn", "NoteOff"]
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s

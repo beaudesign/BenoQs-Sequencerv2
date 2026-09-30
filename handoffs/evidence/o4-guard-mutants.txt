@@ -1,0 +1,47 @@
+O4 guard mutation check: ten one-line breakages of the clock and emission, each in a scratch copy of the workspace (SPEC-0001, WENGE-0004, step 1).
+Run 2026-09-30T09:06Z on parent commit 35d7d14 with the guard tests of this commit. Script: handoffs/evidence/o4-guards/guard_mutants.py
+Result: 10 of 10 caught by at least one guard; G1 alone catches 7 (OM1 to OM5, OM8, OM9); G3 and G2 catch the two G1 is designed not to see (OM6, OM7); G4 catches OM10.
+Two predictions in the script were wrong and are corrected in it: OM3 (f32 accumulator) was expected to survive a 10 s guard and G1 caught it; OM6 (stepping ticks only when due) was expected to be visible to G1 and is not, because at a constant tempo the times are the same.
+
+control (the unmodified workspace; every family must pass, or no mutant result means anything)
+  G1  pass
+  G3  pass
+  G2  pass
+  G4  pass
+  G5  pass
+  U   pass
+OM1  CAUGHT by G1, G2: a tick's start is rounded to a whole sample before the next is added (drift, no carry)
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G2: chords_and_strums, effector, mcc_and_transport, phrases
+OM2  CAUGHT by G1, G2: samples per tick is rounded to a whole number
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G2: chords_and_strums, effector, mcc_and_transport, phrases
+OM3  CAUGHT by G1, G2: the tick accumulator is an f32 (the precision the plan measured at 1 tick out in 30 minutes)
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G2: mcc_and_transport, phrases
+      note: predicted to survive (drift over minutes, not the 10 s a guard can afford); G1 caught it, so G1 is more sensitive than expected. R1 and R2 of PR 4a still own the 30-minute case
+OM4  CAUGHT by G1, G3, G2 (unit tests too): every event is placed at the first sample of its buffer
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G3: a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times, event_order_does_not_depend_on_the_hosts_buffer_size, event_times_do_not_depend_on_the_hosts_buffer_size, event_times_survive_a_host_that_changes_its_buffer_size_on_every_call
+      G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
+OM5  CAUGHT by G1, G3, G2 (unit tests too): every event is one sample late
+      G1: g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G3: a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times, event_order_does_not_depend_on_the_hosts_buffer_size, event_times_do_not_depend_on_the_hosts_buffer_size, event_times_survive_a_host_that_changes_its_buffer_size_on_every_call
+      G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
+OM6  CAUGHT by G3, G2: ticks are stepped only when due, not ahead of the buffer (the behaviour before O3)
+      G3: a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times, event_order_does_not_depend_on_the_hosts_buffer_size, event_times_do_not_depend_on_the_hosts_buffer_size, event_times_survive_a_host_that_changes_its_buffer_size_on_every_call
+      G2: chords_and_strums, mcc_and_transport, no_golden_pattern_overflows_the_queue_or_runs_late
+      note: G1 does not see this: at a constant tempo, stepping only when due gives the same times. Buffer-size dependence is G3's job, and G3 sees it
+OM7  CAUGHT by G3, G2 (unit tests too): Play starts one sample after now
+      G3: a_bad_tempo_costs_nothing_once_the_tempo_is_sane
+      G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
+      note: G1 does not see a one-sample (about 20 us) offset, by design: it is inside the 1.05-sample fence, which is for drift and spread. G3 and G2 do see it
+OM8  CAUGHT by G1, G3, G2 (unit tests too): Play starts one whole tick late
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G3: a_bad_tempo_costs_nothing_once_the_tempo_is_sane
+      G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
+OM9  CAUGHT by G1, G2 (unit tests too): the tempo used is 0.1% fast
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
+OM10  CAUGHT by G4: one allocation on the render path
+      G4: tests::e4_render_push_and_claim_allocate_nothing, tests::g4_render_without_a_link_allocates_nothing

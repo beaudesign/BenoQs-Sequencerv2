@@ -116,10 +116,14 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   snapshot out, `SetTrack` and `SetStep`, additive C interface (ABI 2), no `unsafe` in
   `octocore`. Loom models plus mutation scripts; two `AcqRel` orderings are reasoned, not tested
   (needs an ARM soak).
-- **O4 (integer tick clock and host lock) approved for a release plan only:** PR #12, revision 2,
-  merged (not approval to build), no code, decisions D0 to D6 still unanswered. **D0 is a finding: the engine counts 192 ticks per
-  quarter note and the manual 192 per whole note, so steps play four times too fast.** Engine
-  untouched; `WENGE-0012` is the triage record. Nothing for O4 is built until the owner approves.
+- **O4 (integer tick clock and host lock) plan approved with all defaults in r3 (2026-09-30):**
+  build as PRs 4a, 4b, 4c in order. **Step 1 is done on `metronome/o4-guards`:** the null host and
+  guards G1 to G5 pass on the unchanged engine (worst G1 deviation 0.995 samples), and ten breakages
+  of the clock are each caught (`handoffs/evidence/o4-guard-mutants.txt`). Nothing under
+  `crates/octocore/src` changed. **4a (integer step accumulators) may be built; 4b and 4c wait:**
+  4b for the owner's answer on D0, both for the D3 ADR (the Conductor's). **D0 is a finding: the
+  engine counts 192 ticks per quarter note and the manual 192 per whole note, so steps play four
+  times too fast.** Engine untouched in O4; `WENGE-0012` is the triage record.
 - **Not approved, not started:** the design-system and DSP track (Q1, unanswered).
 - **Merge state on 2026-09-30:** `main` holds PRs 1 to 5 (#5, then #9, which carried #6 to #8).
   #10, #11 and #12 were merged into their stacked base branches, not `main`, because the
@@ -137,8 +141,9 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
 
 **Next three steps:** (1) owner merges the landing PR (`conductor/land-stack`) so `main` holds PRs 6
 to 8, and answers D0 and D1; (2) Scribe, Referee and Conductor work through `journal/metronome/requests/` (docs 02 and
-03, the loom gate and an ARM soak, the `AGENTS.md` crate table); (3) if O4 is approved, the guard
-tests and the null host first, then 4a; if D0 says fix the tick, `WENGE-0012` gets a spec before 4b.
+03, the loom gate and an ARM soak, the `AGENTS.md` crate table, the `verify:timing` gate calling
+`g1_*`); (3) PR 4a, red first (R1, integer step accumulators); 4b does not start before D0, and if D0
+says fix the tick, `WENGE-0012` gets a spec first.
 
 ## Fan-out
 

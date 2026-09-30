@@ -50,6 +50,12 @@ test link::e1_the_generation_is_the_number_of_renders
 test link::e2_the_published_snapshot_is_what_the_engine_says_about_itself
 test link::e3_an_engine_with_a_link_and_one_without_produce_the_same_events
 test link::the_link_can_be_opened_once
+test o4_guards::g1_constant_tempo_timing_holds_for_random_buffer_sequences
+test o4_guards::g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+test o4_guards::nh1_the_analytic_curves_integrate_and_invert
+test o4_guards::nh2_the_constant_curve_uses_the_f32_tempo_the_engine_sees
+test o4_guards::nh3_a_trace_replays_to_the_same_events
+test o4_guards::nh4_the_host_reports_the_tempo_at_the_start_of_each_buffer
 test octocore::domain::tests::flatten_merges_two_tracks_into_lowest_index
 test octocore::domain::tests::flatten_requires_at_least_two_tracks
 test octocore::domain::tests::flatten_resets_phrase_unless_track_groove_matches
@@ -186,6 +192,7 @@ test octoffi::tests::f3_a_pattern_can_be_edited_played_and_watched_through_the_c
 test octoffi::tests::f4_every_declaration_the_header_had_before_the_link_is_still_there
 test octoffi::tests::f5_the_abi_version_is_the_same_in_the_header_the_constant_and_the_function
 test octoffi::tests::f6_the_ends_outlive_the_engine_without_a_crash
+test octoffi::tests::g4_render_without_a_link_allocates_nothing
 test octoffi::tests::new_command_variants_match_the_layout_in_the_c_header
 test octoffi::tests::new_event_variants_match_the_layout_in_the_c_header
 test octoffi::tests::new_free_roundtrip_is_safe

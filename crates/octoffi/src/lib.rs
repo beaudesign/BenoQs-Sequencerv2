@@ -1046,4 +1046,40 @@ mod tests {
             octocore_engine_free(e);
         }
     }
+
+    /// G4 of the O4 release plan (WENGE-0004): the same guarantee as E4 for the path with **no
+    /// link**, the one a plain C host takes, and with the tempo changing on every call, which is
+    /// what the O4 clock will do most of its work on. Written on the parent commit, before any
+    /// O4 code: it passes there and must keep passing in 4a, 4b and 4c.
+    #[test]
+    fn g4_render_without_a_link_allocates_nothing() {
+        use octocore::types::StepAttr;
+        unsafe {
+            let e = octocore_engine_new(5);
+            for track in 0..10u8 {
+                octocore_step_set_i32(e, track, 0, StepAttr::Active, 1);
+                octocore_step_set_i32(e, track, 4, StepAttr::Active, 1);
+                octocore_step_set_i32(e, track, 9, StepAttr::Active, 1);
+            }
+            let mut events = [Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }; 64];
+            let mut count = 0usize;
+            // One warm-up pass, so anything that allocates once on first use is not counted.
+            octocore_engine_render(e, PARAMS, events.as_mut_ptr(), events.len(), &mut count);
+
+            let before = allocations();
+            let mut notes = 0usize;
+            for k in 0..2000u32 {
+                // A tempo that moves every call (60 to 180 and back), and a transport that stops
+                // and starts, so the tempo, Play and Stop paths all run under the counter.
+                let bpm = 60.0 + (k % 240) as f32 * 0.5;
+                let playing = k % 97 < 90;
+                let params = OctoRenderParams { bpm, playing, ..PARAMS };
+                assert_eq!(octocore_engine_render(e, params, events.as_mut_ptr(), events.len(), &mut count), 0);
+                notes += events[..count].iter().filter(|ev| matches!(ev, Event::NoteOn { .. })).count();
+            }
+            assert_eq!(allocations() - before, 0, "render must not allocate, with or without a link");
+            assert!(notes > 100, "{notes} notes: a run that plays nothing proves nothing");
+            octocore_engine_free(e);
+        }
+    }
 }

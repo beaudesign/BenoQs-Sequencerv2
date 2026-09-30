@@ -1,0 +1,144 @@
+PR 4a red run: the engine tests of R1 failing on the unchanged engine (parent 5a33831, last engine change c1e04c1). SPEC-0001, WENGE-0004.
+The test file is crates/octocore/tests/o4_steps.rs. "Fires on the wrong tick" means a NoteOn sounds 125 samples (one tick at 120 BPM, 48 kHz) after the exact tick ceil(k*12*den/num).
+
+$ RUST_BACKTRACE=0 cargo test -p octocore --test o4_steps
+     Running tests/o4_steps.rs (target/debug/deps/o4_steps-e5837ab4a2c05835)
+
+running 3 tests
+test r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields ... FAILED
+test r1_the_rule_by_hand_at_nine_times ... ok
+test r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16 ... FAILED
+
+failures:
+
+---- r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields stdout ----
+
+thread 'r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields' (24611) panicked at crates/octocore/tests/o4_steps.rs:141:5:
+32 of 169 multipliers fire a step on the wrong tick:
+x17/2: 4249 steps fired, 4250 expected
+x7/3: 1166 steps fired, 1166 expected
+x17/3: 2833 steps fired, 2833 expected
+x13/7: 928 steps fired, 928 expected
+x7/12: 291 steps fired, 291 expected
+x17/12: 708 steps fired, 708 expected
+x100/12: 4166 steps fired, 4166 expected
+x127/12: 5291 steps fired, 5291 expected
+x17/13: 653 steps fired, 653 expected
+x100/13: 3846 steps fired, 3846 expected
+x7/16: 218 steps fired, 218 expected
+x13/16: 406 steps fired, 406 expected
+x17/16: 531 steps fired, 531 expected
+x100/16: 3124 steps fired, 3125 expected
+x7/100: 34 steps fired, 35 expected
+x13/100: 64 steps fired, 65 expected
+x127/100: 634 steps fired, 635 expected
+x254/100: 1269 steps fired, 1270 expected
+x255/100: 1274 steps fired, 1275 expected
+x17/127: 66 steps fired, 66 expected
+x100/127: 393 steps fired, 393 expected
+x200/127: 787 steps fired, 787 expected
+x7/200: 17 steps fired, 17 expected
+x13/200: 32 steps fired, 32 expected
+x127/200: 317 steps fired, 317 expected
+x254/200: 634 steps fired, 635 expected
+x255/200: 637 steps fired, 637 expected
+x17/254: 33 steps fired, 33 expected
+x100/254: 196 steps fired, 196 expected
+x200/254: 393 steps fired, 393 expected
+x100/255: 196 steps fired, 196 expected
+x200/255: 392 steps fired, 392 expected
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16 stdout ----
+
+thread 'r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16' (24610) panicked at crates/octocore/tests/o4_steps.rs:119:5:
+49 of 159 multipliers fire a step on the wrong tick:
+x5/1: 8333 steps fired, 8333 expected; first difference at step 15 (tick Some(37) instead of Some(36))
+x9/1: 14999 steps fired, 15000 expected; first difference at step 27 (tick Some(37) instead of Some(36))
+x10/1: 16666 steps fired, 16666 expected; first difference at step 25 (tick Some(31) instead of Some(30))
+x11/1: 18333 steps fired, 18333 expected; first difference at step 33 (tick Some(37) instead of Some(36))
+x5/2: 4166 steps fired, 4166 expected; first difference at step 10 (tick Some(49) instead of Some(48))
+x9/2: 7499 steps fired, 7500 expected; first difference at step 15 (tick Some(41) instead of Some(40))
+x11/2: 9166 steps fired, 9166 expected; first difference at step 22 (tick Some(49) instead of Some(48))
+x5/3: 2777 steps fired, 2777 expected; first difference at step 5 (tick Some(37) instead of Some(36))
+x7/3: 3888 steps fired, 3888 expected; first difference at step 7 (tick Some(37) instead of Some(36))
+x10/3: 5555 steps fired, 5555 expected; first difference at step 10 (tick Some(37) instead of Some(36))
+x14/3: 7777 steps fired, 7777 expected; first difference at step 7 (tick Some(19) instead of Some(18))
+x5/4: 2083 steps fired, 2083 expected; first difference at step 5 (tick Some(49) instead of Some(48))
+x7/4: 2916 steps fired, 2916 expected; first difference at step 21 (tick Some(145) instead of Some(144))
+x9/4: 3749 steps fired, 3750 expected; first difference at step 9 (tick Some(49) instead of Some(48))
+x11/4: 4583 steps fired, 4583 expected; first difference at step 11 (tick Some(49) instead of Some(48))
+x13/4: 5416 steps fired, 5416 expected; first difference at step 26 (tick Some(97) instead of Some(96))
+x15/4: 6249 steps fired, 6250 expected; first difference at step 25 (tick Some(81) instead of Some(80))
+x9/5: 2999 steps fired, 3000 expected; first difference at step 6 (tick Some(41) instead of Some(40))
+x11/5: 3666 steps fired, 3666 expected; first difference at step 33 (tick Some(181) instead of Some(180))
+x5/6: 1388 steps fired, 1388 expected; first difference at step 5 (tick Some(73) instead of Some(72))
+x7/6: 1944 steps fired, 1944 expected; first difference at step 7 (tick Some(73) instead of Some(72))
+x11/7: 2619 steps fired, 2619 expected; first difference at step 11 (tick Some(85) instead of Some(84))
+x13/7: 3095 steps fired, 3095 expected; first difference at step 13 (tick Some(85) instead of Some(84))
+x15/7: 3571 steps fired, 3571 expected; first difference at step 5 (tick Some(29) instead of Some(28))
+x5/8: 1041 steps fired, 1041 expected; first difference at step 5 (tick Some(97) instead of Some(96))
+x7/8: 1458 steps fired, 1458 expected; first difference at step 14 (tick Some(193) instead of Some(192))
+x9/8: 1874 steps fired, 1875 expected; first difference at step 6 (tick Some(65) instead of Some(64))
+x11/8: 2291 steps fired, 2291 expected; first difference at step 11 (tick Some(97) instead of Some(96))
+x15/8: 3124 steps fired, 3125 expected; first difference at step 15 (tick Some(97) instead of Some(96))
+x11/9: 2037 steps fired, 2037 expected; first difference at step 11 (tick Some(109) instead of Some(108))
+x13/9: 2407 steps fired, 2407 expected; first difference at step 13 (tick Some(109) instead of Some(108))
+x9/10: 1499 steps fired, 1500 expected; first difference at step 3 (tick Some(41) instead of Some(40))
+x11/10: 1833 steps fired, 1833 expected; first difference at step 22 (tick Some(241) instead of Some(240))
+x7/11: 1060 steps fired, 1060 expected; first difference at step 7 (tick Some(133) instead of Some(132))
+x9/11: 1363 steps fired, 1363 expected; first difference at step 6 (tick Some(89) instead of Some(88))
+x13/11: 1969 steps fired, 1969 expected; first difference at step 13 (tick Some(133) instead of Some(132))
+x14/11: 2121 steps fired, 2121 expected; first difference at step 7 (tick Some(67) instead of Some(66))
+x15/11: 2272 steps fired, 2272 expected; first difference at step 10 (tick Some(89) instead of Some(88))
+x5/12: 694 steps fired, 694 expected; first difference at step 5 (tick Some(145) instead of Some(144))
+x7/12: 972 steps fired, 972 expected; first difference at step 7 (tick Some(145) instead of Some(144))
+x11/14: 1309 steps fired, 1309 expected; first difference at step 11 (tick Some(169) instead of Some(168))
+x13/14: 1547 steps fired, 1547 expected; first difference at step 13 (tick Some(169) instead of Some(168))
+x15/14: 1785 steps fired, 1785 expected; first difference at step 5 (tick Some(57) instead of Some(56))
+x5/16: 520 steps fired, 520 expected; first difference at step 5 (tick Some(193) instead of Some(192))
+x7/16: 729 steps fired, 729 expected; first difference at step 14 (tick Some(385) instead of Some(384))
+x9/16: 937 steps fired, 937 expected; first difference at step 6 (tick Some(129) instead of Some(128))
+x11/16: 1145 steps fired, 1145 expected; first difference at step 11 (tick Some(193) instead of Some(192))
+x13/16: 1354 steps fired, 1354 expected; first difference at step 26 (tick Some(385) instead of Some(384))
+x15/16: 1562 steps fired, 1562 expected; first difference at step 10 (tick Some(129) instead of Some(128))
+
+
+failures:
+    r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16
+    r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.60s
+
+error: test failed, to rerun pass `-p octocore --test o4_steps`
+
+== Part 2. The accumulator's own tests (src/steps.rs) on a stub that keeps the parent's f32 rule behind the new API
+The stub is the parent commit's arithmetic verbatim (accum += 1; fire if accum + 1e-6 >= step_ticks; accum -= step_ticks) in a scratch copy; the tests are those of the first 4a commit (6e7da4f). The independent review then replaced R1e and added R1f and others (see the journal); those are checked by the mutation run instead (o4-4a-mutants.txt), not by this stub.
+
+$ cargo test -p octocore --lib steps   (in the scratch copy)
+test steps::tests::a_change_from_times_one_to_times_three_after_five_ticks ... ok
+test steps::tests::a_fixed_step_fires_every_that_many_ticks ... ok
+test steps::tests::a_step_of_a_tick_or_less_fires_on_every_tick_and_keeps_the_phase ... ok
+test steps::tests::r1a_every_u8_pair_fires_on_the_exact_tick ... FAILED
+test steps::tests::r1b_the_phase_is_bounded_and_equals_n_times_num_mod_the_step ... FAILED
+test steps::tests::r1d_soak_the_159_reduced_multipliers_up_to_16_stay_exact_for_ten_million_ticks ... ignored, 10^7 ticks for 159 multipliers: seconds in release, minutes in debug
+test steps::tests::r1c_a_clock_far_from_tick_zero_still_fires_on_the_exact_tick ... FAILED
+test steps::tests::r1e_a_multiplier_change_loses_less_than_one_unit_of_phase ... FAILED
+test steps::tests::zero_denominator_is_times_one_and_zero_numerator_never_fires ... ok
+test steps::tests::r1d_the_159_reduced_multipliers_up_to_16_stay_exact_for_a_million_ticks ... FAILED
+test result: FAILED. 5 passed; 5 failed; 1 ignored; 0 measured; 124 filtered out; finished in 0.08s
+
+Five fail (R1a, R1b, R1c, R1d, R1e), five pass. Those that pass are the edge cases the f32 rule already got right (a step of a tick or less, a zero denominator, a fixed 192-tick step, the hand case at x1 to x3), which is what a guard is.
+
+== Part 3. Added after the independent review: the chain test on the parent engine
+
+A chain (head track 9, member track 8) that takes a different multiplier every 16 steps. The exact reference carries the phase in ticks as a reduced fraction and shares no code with the engine.
+The f32 engine is also wrong here, one tick late from step 15 (tick 37 instead of 36 at x5 then x1); the first 4a clock was worse in a different way (it drifted 0.26 % over 200,000 ticks, 73 steps short). See journal/metronome/2026-09-29.md.
+
+$ cargo test -p octocore --test o4_steps   (on the parent commit's engine, with the new test file)
+test r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact ... FAILED
+test r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields ... FAILED
+test r1_the_rule_by_hand_at_nine_times ... ok
+test r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16 ... FAILED
+assertion `left == right` failed: x5/1 then x1/1: 13890 steps fired, 13890 expected; first difference at step 15 (tick Some(37) instead of Some(36))
+test result: FAILED. 1 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.32s

@@ -1,0 +1,72 @@
+PR 4a mutation check: eighteen one-line breakages of the integer step clock (steps.rs) and of the way the engine uses it, each in a scratch copy (SPEC-0001, WENGE-0004).
+Run 2026-09-30T10:17Z on the working tree of branch metronome/o4-step-accumulators, after the fix for the independent review. Script: handoffs/evidence/o4-guards/steps_mutants.py
+Result: 17 of 18 caught. SM8 survives and is equivalent (at num == den the general path and the every-tick path agree for every input; argued in the script).
+History, so the numbers are not read as a first attempt: the first run of this script (against the first 4a clock, before the review) caught 13 of 14 and found a hole in an existing hyperstep test (SM12: a 96-tick step survived; engine::tests::hyperstep_linked_track_fires_on_exactly_ticks_192_384_and_576 was added). The independent review then found that clock drifted on chained tracks; the fix, the new tests and this run followed. SM5 is that first clock (always round the carried phase down); SM17 and SM18 came from the review.
+Families: S = steps::tests, E = tests/o4_steps.rs through the engine, G = o4_guards + invariants + octorun golden, U = every octocore unit test.
+
+control (the unmodified workspace; every family must pass, or no mutant result means anything)
+  S  -p octocore --lib steps::: pass
+  E  -p octocore --test o4_steps: pass
+  G  -p octocore --test o4_guards --test invariants: pass
+  G  -p octorun --test golden: pass
+  U  -p octocore --lib: pass
+SM1  CAUGHT by E, G, S, U: a step starts when the phase exceeds the step, not when it reaches it (`>=` becomes `>`)
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact, r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16, r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields, r1_the_rule_by_hand_at_nine_times
+      G: chords_and_strums, effector, g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size, and 3 more
+      S: a_change_from_times_one_to_times_three_after_five_ticks, a_fixed_step_fires_every_that_many_ticks, a_step_of_a_tick_or_less_fires_on_every_tick_and_keeps_the_phase, r1a_every_u8_pair_fires_on_the_exact_tick, and 5 more
+      U: a_change_from_times_one_to_times_three_after_five_ticks, a_fixed_step_fires_every_that_many_ticks, a_step_of_a_tick_or_less_fires_on_every_tick_and_keeps_the_phase, engine::tests::a_full_queue_refuses_a_note_as_a_pair_never_half, and 30 more
+SM2  CAUGHT by E, G, S, U: the step is not subtracted when it starts (the phase grows for ever)
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact, r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16, r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields, r1_the_rule_by_hand_at_nine_times
+      G: a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full, a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times, chords_and_strums, effector, and 11 more
+      S: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_from_times_one_to_times_three_after_five_ticks, a_fixed_step_fires_every_that_many_ticks, a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, and 6 more
+      U: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_from_times_one_to_times_three_after_five_ticks, a_fixed_step_fires_every_that_many_ticks, a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, and 21 more
+SM3  CAUGHT by E, S, U: the whole step is discarded when it starts (`phase = 0`), losing the remainder
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact, r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16, r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields, r1_the_rule_by_hand_at_nine_times
+      S: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_from_times_one_to_times_three_after_five_ticks, a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, r1a_every_u8_pair_fires_on_the_exact_tick, and 4 more
+      U: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_from_times_one_to_times_three_after_five_ticks, a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, engine::tests::a_hyperstep_link_and_unlink_carry_the_step_phase_exactly, and 5 more
+SM4  CAUGHT by E, S, U: the phase advances by one unit, not by `num`
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact, r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16, r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields, r1_the_rule_by_hand_at_nine_times
+      S: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_from_times_one_to_times_three_after_five_ticks, r1a_every_u8_pair_fires_on_the_exact_tick, r1b_the_phase_is_bounded_and_equals_n_times_num_mod_the_step, and 3 more
+      U: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_from_times_one_to_times_three_after_five_ticks, engine::tests::a_hyperstep_link_and_unlink_carry_the_step_phase_exactly, r1a_every_u8_pair_fires_on_the_exact_tick, and 4 more
+SM5  CAUGHT by E, S, U: a change of multiplier always rounds the phase down to the new numerator's unit (the first 4a version, 0.26 % short on a x5/x1 chain)
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact
+      S: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_of_multiplier_uses_the_smallest_unit_that_holds_the_phase, a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, r1e_a_multiplier_change_keeps_the_point_in_the_step_exactly, and 1 more
+      U: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_of_multiplier_uses_the_smallest_unit_that_holds_the_phase, a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, engine::tests::a_hyperstep_link_and_unlink_carry_the_step_phase_exactly, and 2 more
+SM6  CAUGHT by E, S, U: a change of multiplier drops the phase
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact
+      S: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_from_times_one_to_times_three_after_five_ticks, a_change_of_multiplier_uses_the_smallest_unit_that_holds_the_phase, a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, and 3 more
+      U: a_chain_of_x5_and_x1_fires_27781_steps_in_200000_ticks, a_change_from_times_one_to_times_three_after_five_ticks, a_change_of_multiplier_uses_the_smallest_unit_that_holds_the_phase, a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, and 4 more
+SM7  CAUGHT by E, S, U: a change of multiplier keeps the phase number and ignores the unit change
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact
+      S: a_change_from_times_one_to_times_three_after_five_ticks, a_change_of_multiplier_uses_the_smallest_unit_that_holds_the_phase, a_step_of_a_tick_or_less_fires_on_every_tick_and_keeps_the_phase, r1e_a_multiplier_change_keeps_the_point_in_the_step_exactly, and 1 more
+      U: a_change_from_times_one_to_times_three_after_five_ticks, a_change_of_multiplier_uses_the_smallest_unit_that_holds_the_phase, a_step_of_a_tick_or_less_fires_on_every_tick_and_keeps_the_phase, r1e_a_multiplier_change_keeps_the_point_in_the_step_exactly, and 1 more
+SM8  SURVIVED (equivalent: see EQUIVALENT in the script) by nothing: a step of exactly one tick is not treated as every-tick (`>=` becomes `>`)
+SM9  CAUGHT by S, U: a zero denominator is read as x2, not x1
+      S: zero_denominator_is_times_one_and_zero_numerator_freezes_the_phase
+      U: zero_denominator_is_times_one_and_zero_numerator_freezes_the_phase
+SM10  CAUGHT by S, U: a zero numerator fires like x1
+      S: zero_denominator_is_times_one_and_zero_numerator_freezes_the_phase
+      U: zero_denominator_is_times_one_and_zero_numerator_freezes_the_phase
+SM11  CAUGHT by S, U: the phase of a track at the step-of-a-tick-or-less state is reset each tick
+      S: a_step_of_a_tick_or_less_fires_on_every_tick_and_keeps_the_phase, r1f_a_clock_whose_multiplier_keeps_changing_agrees_with_the_exact_reference
+      U: a_step_of_a_tick_or_less_fires_on_every_tick_and_keeps_the_phase, r1f_a_clock_whose_multiplier_keeps_changing_agrees_with_the_exact_reference
+SM12  CAUGHT by U: the engine gives a hyperstep-linked track a 96-tick step
+      U: engine::tests::a_hyperstep_link_and_unlink_carry_the_step_phase_exactly, engine::tests::hyperstep_linked_track_fires_every_192_ticks_not_12, engine::tests::hyperstep_linked_track_fires_on_exactly_ticks_192_384_and_576
+SM13  CAUGHT by E, G, U: the engine reads the numerator and denominator the wrong way round
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact, r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16, r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields, r1_the_rule_by_hand_at_nine_times
+      G: overload_is_counted_and_refuses_whole_notes_never_half
+      U: engine::tests::a_hyperstep_link_and_unlink_carry_the_step_phase_exactly
+SM14  CAUGHT by E, U: the engine ignores the multiplier
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact, r1_every_step_fires_on_the_exact_tick_for_the_159_reduced_multipliers_up_to_16, r1_every_step_fires_on_the_exact_tick_for_the_extremes_of_the_u8_fields, r1_the_rule_by_hand_at_nine_times
+      U: engine::tests::a_hyperstep_link_and_unlink_carry_the_step_phase_exactly
+SM15  CAUGHT by S, U: a zero numerator keeps counting instead of freezing the phase (the f32 code's burst on the way out)
+      S: zero_denominator_is_times_one_and_zero_numerator_freezes_the_phase
+      U: zero_denominator_is_times_one_and_zero_numerator_freezes_the_phase
+SM16  CAUGHT by S, U: the bound on the unit is removed (the unit grows without limit)
+      S: a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, the_fallback_rounds_down_by_less_than_one_unit
+      U: a_long_run_of_unrelated_multipliers_never_overflows_and_falls_back_to_rounding, the_fallback_rounds_down_by_less_than_one_unit
+SM17  CAUGHT by E: the engine reads the head's multiplier for a chain, not the playing member's
+      E: r1_a_chain_that_switches_multiplier_every_16_steps_stays_exact
+SM18  CAUGHT by S, U: the phase is not reduced before the unit is chosen (the unit is taken as it stands)
+      S: a_change_of_multiplier_uses_the_smallest_unit_that_holds_the_phase
+      U: a_change_of_multiplier_uses_the_smallest_unit_that_holds_the_phase

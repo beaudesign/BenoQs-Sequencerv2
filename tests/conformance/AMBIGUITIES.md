@@ -438,8 +438,10 @@ latency (its cost changes with tempo). Neither is done.
 **Manual reference:** none found.
 **Observed, not changed:** a step fires when its tick counter reaches the step length, and the
 counter starts at 0 on Play, so the first note of a pattern is sent 11 ticks after Play, not
-on it. Later steps are on the grid. No reading in the manual says which is right. Part of
-SPEC-0001 O4 (clock and host sync), which is not approved yet.
+on it. Later steps are on the grid. No reading in the manual says which is right. O4 keeps it:
+the integer step clock (`steps.rs`, PR 4a) starts at phase 0 too, and `tests/o4_steps.rs` and
+`tests/o4_guards.rs` pin it (the first step at x1 is on tick 12, counting from 1). Changing it is
+not part of O4; it would move every golden.
 
 ## events per render call and unusable tempos
 

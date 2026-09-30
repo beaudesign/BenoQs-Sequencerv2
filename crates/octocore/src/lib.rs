@@ -18,6 +18,7 @@ pub mod ring;
 pub mod rng;
 pub mod scale;
 pub mod snapshot;
+pub mod steps;
 pub mod sync;
 pub mod tables;
 pub mod triple;

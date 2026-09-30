@@ -1,0 +1,43 @@
+# Red run of the scope-gate tests added after the independent review of P1 (five tests fail, one existing
+# test kept its name and got a realistic JPEG header). Command: cargo test -p xtask scope. Output tail:
+
+   4: xtask::scope::tests::punctuation_between_the_words_of_a_phrase_still_matches
+             at ./src/scope.rs:386:9
+   5: xtask::scope::tests::punctuation_between_the_words_of_a_phrase_still_matches::{{closure}}
+             at ./src/scope.rs:379:65
+   6: core::ops::function::FnOnce::call_once
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/ops/function.rs:250:5
+   7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+---- scope::tests::the_real_banned_list_holds_the_seventeen_of_d9 stdout ----
+
+thread 'scope::tests::the_real_banned_list_holds_the_seventeen_of_d9' (26253) panicked at xtask/src/scope.rs:460:13:
+a phrase of D9 (fingerprint 0x8cfd4eb82c16bd4d) is missing from harness/scope-banned.txt
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/std/src/panicking.rs:689:5
+   1: core::panicking::panic_fmt
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/panicking.rs:80:14
+   2: xtask::scope::tests::the_real_banned_list_holds_the_seventeen_of_d9
+             at ./src/scope.rs:460:13
+   3: xtask::scope::tests::the_real_banned_list_holds_the_seventeen_of_d9::{{closure}}
+             at ./src/scope.rs:436:56
+   4: core::ops::function::FnOnce::call_once
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/ops/function.rs:250:5
+   5: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+
+failures:
+    scope::tests::a_file_in_the_wrong_encoding_fails_the_scan_and_a_binary_file_does_not
+    scope::tests::a_link_to_allow_listed_content_from_outside_the_allow_list_is_a_problem
+    scope::tests::a_phrase_from_the_list_is_normalised_like_the_text
+    scope::tests::punctuation_between_the_words_of_a_phrase_still_matches
+    scope::tests::the_real_banned_list_holds_the_seventeen_of_d9
+
+test result: FAILED. 18 passed; 5 failed; 0 ignored; 0 measured; 45 filtered out; finished in 0.10s
+
+error: test failed, to rerun pass `-p xtask --bin xtask`

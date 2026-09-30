@@ -1,0 +1,66 @@
+# The scope gate, red, on the tree it was written for (P1, WENGE-0013)
+
+Command: `cargo xtask verify --base origin/main` in a checkout of the P0 head 9a70afe plus the new gate
+(xtask/src/scope.rs, harness/scope-banned.txt, harness/scope-allow.txt), nothing removed yet.
+The gate is wired but not yet in harness/required-gates.txt; a failing gate fails the run anyway.
+
+## Gate table and result
+
+    gate          status            owner        required
+    geometry      not_implemented   panelwright  no
+    color         not_implemented   forge        no
+    frames        not_implemented   referee      no
+    motion        not_implemented   forge        no
+    timing        not_implemented   metronome    no
+    conformance   pass              metronome    yes
+    acoustics     not_implemented   sceneshaper  no
+    a11y          not_implemented   loom         no
+    arch          not_implemented   conductor    no
+    slop          not_implemented   curator      no
+    tokens        not_implemented   curator      no
+    regressions   pass              referee      yes
+    determinism   pass              referee      yes
+    persistence   not_implemented   conductor    no
+    scope         fail              referee      no
+    
+    FAILED scope:
+    3 pass, 1 fail, 11 not_implemented. assertions: 313 (baseline 297), 16 added
+    result: FAIL
+
+## Hits per file: 167 hits in 27 files
+
+     40  crates/octoroom/src/acoustics.rs
+     22  docs/06-shell-and-rooms.md
+     18  SPEC.md
+     10  docs/10-risks-and-decisions.md
+      8  agents/ROLES.md
+      8  crates/octoroom/README.md
+      8  docs/09-roadmap.md
+      7  docs/02-architecture.md
+      7  docs/08-agent-operating-model.md
+      4  AGENTS.md
+      4  crates/octoroom/Cargo.toml
+      4  crates/octoroom/src/geometry.rs
+      3  .github/CODEOWNERS
+      3  crates/octoroom/src/intent.rs
+      3  crates/octoroom/src/lib.rs
+      3  crates/octoroom/src/rng.rs
+      3  docs/04-render-engine.md
+      3  docs/07-verification.md
+      1  Cargo.lock
+      1  Cargo.toml
+      1  agents/CLAUDE.md
+      1  apps/OctoShell/.gitkeep
+      1  crates/octoffi/octoffi.h
+      1  crates/octoffi/src/lib.rs
+      1  docs/00-north-star.md
+      1  docs/05-design-system.md
+      1  xtask/src/gates.rs
+
+## A bug this run found in the gate itself
+
+The first run reported 218 hits, 51 of them under specs/SPEC-0001/ and specs/SPEC-0002/, both on the
+allow-list. The allow-list had been lowercased along with the phrases, so `specs/SPEC-0001/`
+no longer matched `specs/SPEC-0001/README.md`. Fixed with `parse_allow`, which keeps case, and
+pinned by `scope::tests::the_allow_list_keeps_the_case_of_a_path` and an assertion in
+`the_real_lists_meet_the_floor_and_the_allow_list_covers_its_own_files`.

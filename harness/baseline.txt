@@ -221,16 +221,6 @@ test octoffi::tests::out_of_range_indices_are_a_no_op_not_a_crash
 test octoffi::tests::render_fills_caller_buffer
 test octoffi::tests::the_header_lists_the_event_tags_and_diagnostic_fields_in_the_rust_order
 test octoffi::tests::track_and_step_set_get_round_trip
-test octoroom::acoustics::tests::eyring_matches_hand_computed_value
-test octoroom::acoustics::tests::higher_absorption_means_shorter_decay
-test octoroom::acoustics::tests::stairwell_3am_rt60_is_in_a_plausible_range
-test octoroom::acoustics::tests::zero_absorption_is_infinite
-test octoroom::geometry::tests::different_seeds_can_differ
-test octoroom::geometry::tests::mean_absorption_matches_uniform_material_input
-test octoroom::geometry::tests::same_seed_gives_identical_geometry
-test octoroom::geometry::tests::stairwell_3am_matches_the_contracts_own_numbers
-test octoroom::rng::tests::range_f32_stays_in_bounds
-test octoroom::rng::tests::same_seed_same_sequence
 test octorun::ndjson::tests::buffer_relative_positions_are_not_in_the_log
 test octorun::ndjson::tests::writes_a_header_then_one_line_per_event_in_a_fixed_shape
 test octorun::sha256::tests::a_million_a_is_right_and_every_padding_length_is_handled
@@ -274,6 +264,9 @@ test xtask::gates::tests::deleting_a_test_fails_regressions
 test xtask::gates::tests::every_schema_gate_is_listed_exactly_once
 test xtask::gates::tests::the_conformance_gate_fails_when_its_binary_disappears
 test xtask::gates::tests::the_determinism_gate_passes_on_five_golden_tests_and_fails_otherwise
+test xtask::gates::tests::the_scope_gate_fails_on_a_hit_and_passes_on_a_clean_scan
+test xtask::gates::tests::the_scope_gate_fails_when_it_scanned_almost_nothing_or_the_list_shrank
+test xtask::gates::tests::the_scope_gate_reports_a_missing_list_file_as_a_failure
 test xtask::gates::tests::the_wired_list_matches_what_evaluate_computes
 test xtask::json::tests::empty_containers_are_compact
 test xtask::json::tests::escapes_quotes_backslashes_and_control_chars
@@ -283,6 +276,26 @@ test xtask::report::tests::report_conforms_to_schema
 test xtask::report::tests::rfc3339_known_values
 test xtask::report::tests::the_sample_covers_pass_fail_and_not_implemented
 test xtask::report::tests::the_validator_actually_rejects_bad_reports
+test xtask::scope::tests::a_banned_word_in_a_path_fails_even_when_the_file_is_empty
+test xtask::scope::tests::a_file_containing_a_banned_phrase_fails
+test xtask::scope::tests::a_file_in_the_wrong_encoding_fails_the_scan_and_a_binary_file_does_not
+test xtask::scope::tests::a_file_that_is_not_text_is_counted_and_not_silently_passed
+test xtask::scope::tests::a_link_to_allow_listed_content_from_outside_the_allow_list_is_a_problem
+test xtask::scope::tests::a_missing_file_or_a_link_is_counted_as_skipped
+test xtask::scope::tests::a_phrase_from_the_list_is_normalised_like_the_text
+test xtask::scope::tests::a_phrase_split_across_a_line_break_is_reported_once_at_the_line_it_starts
+test xtask::scope::tests::a_prefix_entry_allows_the_directory_and_a_file_entry_allows_only_that_file
+test xtask::scope::tests::matching_ignores_case_and_repeats_count_each_time
+test xtask::scope::tests::punctuation_between_the_words_of_a_phrase_still_matches
+test xtask::scope::tests::the_allow_list_keeps_the_case_of_a_path
+test xtask::scope::tests::the_list_parser_drops_comments_blanks_and_repeats_and_lowercases
+test xtask::scope::tests::the_plural_of_the_last_word_is_the_same_phrase
+test xtask::scope::tests::the_real_allow_list_is_the_pinned_set
+test xtask::scope::tests::the_real_banned_list_holds_the_seventeen_of_d9
+test xtask::scope::tests::the_real_lists_meet_the_floor_and_the_allow_list_covers_its_own_files
+test xtask::scope::tests::the_same_file_under_an_allow_listed_prefix_passes
+test xtask::scope::tests::the_shared_project_state_name_and_the_concurrency_crate_are_not_banned
+test xtask::scope::tests::whole_words_only
 test xtask::tests::a_removal_needs_an_adr
 test xtask::tests::adr_ids_must_be_well_formed_and_exist
 test xtask::tests::every_required_gate_can_be_run_on_its_own
@@ -302,3 +315,13 @@ fixture tests/conformance/transport/reset_flushes_sounding_notes.fixture
 fixture tests/conformance/transport/stop_flushes_sounding_notes.fixture
 fixture tests/conformance/transport/stop_while_stopped_sends_all_notes_off.fixture
 fixture tests/conformance/velocity/zero_velocity_is_not_transmitted.fixture
+removed test octoroom::acoustics::tests::eyring_matches_hand_computed_value ADR-0006
+removed test octoroom::acoustics::tests::higher_absorption_means_shorter_decay ADR-0006
+removed test octoroom::acoustics::tests::stairwell_3am_rt60_is_in_a_plausible_range ADR-0006
+removed test octoroom::acoustics::tests::zero_absorption_is_infinite ADR-0006
+removed test octoroom::geometry::tests::different_seeds_can_differ ADR-0006
+removed test octoroom::geometry::tests::mean_absorption_matches_uniform_material_input ADR-0006
+removed test octoroom::geometry::tests::same_seed_gives_identical_geometry ADR-0006
+removed test octoroom::geometry::tests::stairwell_3am_matches_the_contracts_own_numbers ADR-0006
+removed test octoroom::rng::tests::range_f32_stays_in_bounds ADR-0006
+removed test octoroom::rng::tests::same_seed_same_sequence ADR-0006

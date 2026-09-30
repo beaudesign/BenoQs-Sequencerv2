@@ -17,8 +17,8 @@ just baseline                      # record new tests as the new floor (never dr
 ## What a run does
 
 1. Runs `cargo test --workspace --no-fail-fast` once and parses the result by test name.
-2. Evaluates every gate in `contracts/verification.report.schema.json`. Two gates exist
-   today (`conformance`, `regressions`, `determinism`). The other eleven report `not_implemented`.
+2. Evaluates every gate in `contracts/verification.report.schema.json`. Four gates exist
+   today (`conformance`, `regressions`, `determinism`, `scope`). The other six report `not_implemented`.
 3. Writes `harness/report/latest.json` (schema `verification.report/1`) and
    `harness/report/cargo-test.log`. Both are git-ignored. CI uploads them.
 4. Prints a table, then exits **0 only if** no gate failed **and** every gate listed in
@@ -60,5 +60,7 @@ in a list do not prove a test is meaningful.
 
 ## Files that do not exist yet
 
-`harness/capture/`, `harness/lint/`, `harness/measure/` hold only `.gitkeep`. Their gates
-are `not_implemented` until the renderer and the design tokens exist.
+Gates `slop`, `tokens`, `timing`, `a11y`, `arch` and `persistence` are `not_implemented`. The
+directories that were scaffolds for the photoreal panel (`harness/capture/`, `harness/lint/`,
+`harness/measure/`) are gone (ADR-0006); a gate that needs a directory creates it when it
+lands.

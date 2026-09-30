@@ -3,6 +3,7 @@
 //! ```text
 //! cargo xtask verify [--release] [--base <git-ref>]   run every gate, write the report
 //! cargo xtask gate <name> [--release] [--base <ref>]  run one gate (exit 42: not implemented)
+//!                                                     `gate scope` reads files only and takes a second
 //! cargo xtask baseline [--release] [--remove <test|fixture> <id> --adr ADR-NNNN]...
 //! ```
 //!
@@ -13,6 +14,7 @@ mod cargo_out;
 mod gates;
 mod json;
 mod report;
+mod scope;
 
 use std::collections::BTreeSet;
 use std::io::Read;
@@ -262,7 +264,15 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
     let start = Instant::now();
     let run = run_tests(root, o.release)?;
     let adr = |id: &str| adr_exists(root, id);
-    let inputs = Inputs { run: &run, fixtures: &fixtures, baseline: &baseline, base: base.as_ref(), adr_exists: &adr };
+    let scope_scan = scope::scan_repo(root);
+    let inputs = Inputs {
+        run: &run,
+        fixtures: &fixtures,
+        baseline: &baseline,
+        base: base.as_ref(),
+        adr_exists: &adr,
+        scope: &scope_scan,
+    };
     let (gates, assertions) = gates::evaluate(&inputs);
     Ok((Outcome { gates, assertions, duration_s: start.elapsed().as_secs_f64() }, baseline))
 }
@@ -343,8 +353,18 @@ fn gate(name: &str, o: &Opts) -> Result<ExitCode, String> {
         return Ok(ExitCode::from(EXIT_NOT_IMPLEMENTED));
     }
     let root = root();
-    let (outcome, _) = run_all(&root, o)?;
-    let g = outcome.gates.iter().find(|g| g.name == name).expect("gate is in the table");
+    let g = if name == "scope" {
+        // The scope gate reads files, not test output, so it runs alone in under a second.
+        let scan = scope::scan_repo(&root);
+        println!(
+            "scanned {} files; {} on the allow-list, {} not text, {} skipped (gone or links)",
+            scan.files_scanned, scan.files_allowed, scan.files_not_text, scan.files_skipped
+        );
+        gates::scope_gate(def, &scan)
+    } else {
+        let (outcome, _) = run_all(&root, o)?;
+        outcome.gates.iter().find(|g| g.name == name).expect("gate is in the table").clone()
+    };
     for m in &g.metrics {
         println!("{:<44}{} {:<3} {}", m.key, m.value, m.cmp.as_str(), m.threshold);
     }

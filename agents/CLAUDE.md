@@ -1,7 +1,9 @@
 # CLAUDE.md: Constitution
 
-You are working on **WENGE**, a pixel-exact reproduction of the genoQs Octopus MIDI
-sequencer that lives inside generated rehearsal rooms.
+You are working on **WENGE**, a faithful reproduction of the genoQs Octopus MIDI
+sequencer as a web app that plays live MIDI to external instruments and can be routed into
+Ableton Live. The product is specified in `specs/SPEC-0002/`, and `adr/0006` records the
+decision that made it so.
 
 Read this file completely before doing anything. It is short on purpose.
 
@@ -36,21 +38,26 @@ blocks you, either the gate is wrong or the work is wrong. Both are worth knowin
 Neither is fixed by changing the number.
 
 **4. Using a gradient where a material belongs.**
-The single reason v1 looked generated. Chrome is a mirror, not a ramp. See
-`docs/00-north-star.md §2`. The lint will catch it and you should catch it first.
+A gradient standing in for a material is what made v1 look generated. Materials in the
+panel are restrained (SPEC-0002 D3): a plain fill or a hairline says what it is, a ramp
+pretending to be a reflection does not. See `docs/00-north-star.md §2`. The `slop` gate will
+catch it once it is built, and you should catch it first.
 
 **5. Authoring an easing curve.**
-All motion is physical simulation with parameters in `contracts/motion.registry.json`.
-No `cubic-bezier`, no `ease-in-out`, anywhere. See `docs/04-render-engine.md §6`.
+Motion in the panel is state: an LED is off, on or flashing at the manual's rate, and a
+button is up or down. No `cubic-bezier`, no `ease-in-out`, anywhere. If something seems to
+need to move, it is a state change, with its number in a contract. See
+`docs/05-design-system.md`.
 
 **6. Introducing a colour.**
 There is no accent colour in this product. The only saturated colour is emitted by an
 LED. Emphasis is made with contrast, weight, and space.
 
 **7. Loading reference photography into context.**
-It is huge and it is already distilled into `panel.truth.json` and `materials.json`.
-If you want to look at a plate, what you actually want is a number that belongs in a
-contract. Add the number.
+It is huge, and under D3 the panel is not measured from it: the layout comes from a control
+inventory built from the manual (`contracts/controls.json`, planned). If you want to look at a
+plate, what you actually want is a fact that belongs in that inventory or in a fixture. Add
+it. `just manual <topic>` returns the manual pages you need.
 
 **8. Committing a big change.**
 Commit every 30 minutes of work. Put the gate numbers in the message. See
@@ -85,7 +92,6 @@ you are improving.
 ```
 just verify            # all gates, under 4 minutes. Run before every push.
 just verify-<zone>     # your zone only, under 1 minute. Run before every commit.
-just capture <scene>   # deterministic offline frames
 just report            # the shared world model, rendered
 just manual <topic>    # grep the Octopus reference manual, returns pages
 just journal <role>    # open today's entry
@@ -99,14 +105,12 @@ just journal <role>    # open today's entry
 |---|---|
 | The thesis and the non-negotiables | `SPEC.md` |
 | Task lifecycle, risk tiers, handoffs, review checklist | `AGENTS.md` |
-| Why v1 looked generated, and the design plan | `docs/00-north-star.md` |
-| Panel geometry, the truth file, measurement | `docs/01-panel-truth.md` |
-| Threading, modules, host strategy | `docs/02-architecture.md` |
+| The product, its decisions and the removal plan | `specs/SPEC-0002/` |
+| Why v1 looked generated, and the principles of the panel | `docs/00-north-star.md` |
+| Threading, modules, the web architecture | `docs/02-architecture.md` |
 | Octopus behaviour, timing, conformance | `docs/03-sequencer-core.md` |
-| Materials, shaders, motion physics | `docs/04-render-engine.md` |
-| Tokens, the slop lint, the rubric | `docs/05-design-system.md` |
-| Dropdown, rehearsal rooms, settings, the room contract | `docs/06-shell-and-rooms.md` |
-| Gates, capture, findings, the ratchet | `docs/07-verification.md` |
+| LED roles, the palette, the slop rules | `docs/05-design-system.md` |
+| Gates, findings, the ratchet | `docs/07-verification.md` |
 | Roles, worktrees, merges, commits, context | `docs/08-agent-operating-model.md` |
 | Phases and exit criteria | `docs/09-roadmap.md` |
 | Risks, open decisions, closed decisions | `docs/10-risks-and-decisions.md` |

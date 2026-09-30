@@ -2,11 +2,9 @@
 
 **Codename:** `WENGE`
 **Supersedes:** `beaudesign/BenoQs-Sequencer` (archive, do not merge)
-**Status:** Ratified. Section changes require an ADR. **Superseded in part by ADR-0006 and
-`specs/SPEC-0002/` (2026-09-30):** the product is now a web sequencer. Sections 1, 3 (D2 to D4 and
-the plugin bullets), 4, 5 (the `octoroom` and `OctoShell` entries) and 7 (items 2 to 4, 7 and 8)
-describe the rooms product and no longer apply. N5, N7 and N8 stand. The sections are rewritten
-in the pull request that removes the rooms scope (P1).
+**Status:** Ratified. Section changes require an ADR. Rewritten under
+`adr/0006-web-sequencer-supersedes-the-rooms-scope.md` and `specs/SPEC-0002/` (2026-09-30): the
+product is a web sequencer. The text it replaced is in git history.
 **Reference hardware:** genoQs Machines Octopus, CE OS v5.30, Stuttgart 2009.
 
 ---
@@ -14,24 +12,26 @@ in the pull request that removes the rooms scope (P1).
 ## 0. How to read this document
 
 This is the root. It states the thesis, the non-negotiables, and the map. Everything
-operational lives in `docs/`. Everything an agent needs to start work lives in
-`agents/`. Everything that must never drift lives in `contracts/`.
+operational lives in `docs/`. Everything an agent needs to start work lives in `agents/`.
+Everything that must never drift lives in `contracts/`. The product itself is specified in
+`specs/SPEC-0002/`, which wins over this file where the two disagree.
 
 Read in this order:
 
 | # | Document | Owner role | Read if you are |
 |---|---|---|---|
 | 00 | [North Star](docs/00-north-star.md) | Conductor | Everyone. Non-optional. |
-| 01 | [Panel Truth](docs/01-panel-truth.md) | Panelwright | Building or verifying the hardware surface |
 | 02 | [Architecture](docs/02-architecture.md) | Conductor | Writing any code at all |
 | 03 | [Sequencer Core](docs/03-sequencer-core.md) | Metronome | Touching timing, MIDI, or state |
-| 04 | [Render Engine](docs/04-render-engine.md) | Forge | Touching pixels |
 | 05 | [Design System](docs/05-design-system.md) | Curator | Making any visual decision |
-| 06 | [Shell and Rehearsal Rooms](docs/06-shell-and-rooms.md) | Loom | Building the shell (assigned: Fable) |
 | 07 | [Verification](docs/07-verification.md) | Referee | Everyone. Non-optional. |
 | 08 | [Agent Operating Model](docs/08-agent-operating-model.md) | Conductor | Everyone. Non-optional. |
 | 09 | [Roadmap](docs/09-roadmap.md) | Conductor | Planning or reporting |
 | 10 | [Risks and Decisions](docs/10-risks-and-decisions.md) | Conductor | Blocked, or about to make a big call |
+
+The numbers 01, 04 and 06 are not reused. The panel-measurement and render-engine documents
+(01 and 04) are kept for reference in `archive/native-panel/`; the shell document (06) is gone
+and is in git history.
 
 If a statement in `docs/` contradicts this file, this file wins, and the contradiction
 is a bug: file an ADR.
@@ -40,159 +40,130 @@ is a bug: file an ADR.
 
 ## 1. The thesis
 
-The Octopus is not a user interface. It is an object made of wenge, powder-coated
-aluminium, chrome, and light, sitting in a room, under a lamp.
+The Octopus is an interface, not an object to be admired. Its whole front is a matrix of
+buttons, two columns of encoders and a lot of LEDs, and one LED means different things in
+different modes. Someone who has learnt it does not want a different interface. What they
+want is the same one where they are: in a browser, playing real MIDI into real
+instruments.
 
-Every previous attempt to reproduce it (including v1 in this repo) failed for one
-reason: it drew a **picture of** the object instead of **simulating** the object.
-Chrome was `linear-gradient(165deg, #e4e0d8 0%, #c8c4bc 48%, #b0aca4 100%)`. But
-chrome has no colour of its own. Chrome is a mirror. What you see in a chrome
-ball-top encoder is the ceiling, the window, the person leaning over it. A gradient
-can never look like chrome, at any level of tuning, because a gradient is not
-what chrome is. That single category error is what people are reacting to when
-they say something looks like AI slop. It is not the gradient's fault. It is the
-fault of using a gradient where a reflection belongs.
+So the product is a **web sequencer**:
 
-So: **v2 does not style the panel. It renders the panel.** A real scene, a real
-light probe, real bidirectional reflectance, real colour management, real sub-pixel
-geometry derived from measurement rather than from eyeballing a photograph.
+- **The engine** is `octocore`, a Rust sequencer that behaves as the CE v5.30 reference
+  manual says, compiled to WebAssembly for the page and to native code for the tests.
+- **The panel controller** (`octoface`, planned) is the layer that is missing today. It
+  turns button and encoder events into engine commands and an LED frame, one manual
+  workflow at a time, each with a fixture cited to its page.
+- **The app** (`apps/web`, planned) draws the panel from a control inventory and talks Web
+  MIDI: two output ports, clock out, notes and clock in, program change.
+- **Ableton Live** is a client of the app, not its host. Tier 1 is a virtual MIDI port that
+  Live reads and writes (IAC Driver on macOS, loopMIDI on Windows). A Max for Live device
+  that shows the page in `jweb` is a spike, decided on evidence.
 
-And once you accept that the chrome must reflect a room, one question follows
-immediately, and it is the question that turns a faithful replica into a new
-instrument:
-
-> **Which room?**
-
-That question is the product.
-
-### The unifying mechanic
-
-**The rehearsal room you are in is the environment map on the instrument's chrome,
-and the impulse response on its output bus, and both come from the same generated
-geometry.**
-
-You describe a space. A concrete stairwell at three in the morning. A dead carpeted
-studio in a Berlin basement. A cathedral. A cardboard box. That description becomes
-one room model: geometry, materials, absorption coefficients, light. From that single
-model we derive, deterministically:
-
-- an **HDR light probe** that lights the panel and is mirrored in every chrome
-  encoder and every button dome,
-- an **impulse response**, computed by acoustic ray tracing over the same geometry
-  and the same material set, convolved onto the instrument's output,
-- an **ambient light temperature and level** that shifts the cream faceplate's
-  perceived colour and the LED bloom.
-
-Turn the room from a stairwell to a cathedral and you watch the reflections in the
-chrome lengthen and cool at the same moment you hear the decay open up. The visual
-and the acoustic are not two features that were coordinated by a designer. They are
-two projections of one physical model. Nobody has shipped that. It is buildable with
-established techniques (image-source method plus stochastic ray tracing for the
-acoustics, split-sum IBL for the render). We are going to build it.
-
-That mechanic is why the shell exists, why the dropdown exists, and why "rehearsal
-rooms" is the navigational spine rather than a page in a menu.
+Why v1 read as generated (`docs/00-north-star.md` §2) comes down to one thing: it drew a
+picture of the panel and put little behind it. v2 puts the behaviour first, and draws the
+panel as a faithful, restrained set of controls whose only colour is the colour of a lit LED.
 
 ### What this makes the product
 
-A 2009 German sequencer, reproduced to the micron, standing inside spaces you speak
-into existence, where the space is simultaneously how it looks and how it sounds.
+A 2009 German sequencer, reachable from any current Chrome or Edge tab, that plays and
+programs the way the manual says it does, and can be routed into Ableton Live or into
+hardware on the desk.
 
 ---
 
 ## 2. Non-negotiables
 
 These are the things that, if violated, mean we have failed regardless of what else
-shipped. Each maps to an automated gate in [Verification](docs/07-verification.md).
+shipped. Each maps to an automated gate in [Verification](docs/07-verification.md), or says
+which gate is still to be built.
 
-**N1. The panel is measured, not drawn.**
-All control positions come from `contracts/panel.truth.json`, a frozen vector model
-in millimetres, human-ratified once. No hardcoded pixel coordinates anywhere in the
-render path. Gate: `verify:geometry`.
+**N1. The controls are an inventory, not a drawing.**
+Every control's id, kind, zone, the manual's own name for it and its logical position come from
+`contracts/controls.json` (planned, P2). No hardcoded pixel coordinates in the app.
+Gate: `verify:arch` (not built yet).
 
-**N2. No material is a gradient.**
-Chrome, powder coat, wood, LED lens, and engraved fill are BRDF materials evaluated
-against a light probe. The token `linear-gradient` is banned in the panel render path
-and the lint fails the build on it. Gate: `verify:slop`.
+**N2. The only saturated colour is an LED's.**
+Red, green and orange, steady or flashing, and only as roles: the colourways in the manual
+change the hue, not the role. Everything else is one neutral palette. No gradient stands in
+for a material, no drop shadow fakes depth, no accent colour. Gate: `verify:slop` (not built
+yet).
 
-**N3. Motion is simulated, not eased.**
-Every moving thing has a physical model: encoders have rotational inertia and detent
-torque, buttons have travel in millimetres and a return spring, LEDs have rise and
-decay time constants. No animation in the instrument surface may be authored as a
-bezier keyword. Gate: `verify:motion`.
+**N3. Motion is state, not decoration.**
+An LED is off, on or flashing at the manual's rate; a button is up or down. Nothing else
+animates, and nothing animates on its own. No easing keyword and no `cubic-bezier` anywhere.
+Gate: `verify:slop` (not built yet).
 
-**N4. Frame integrity is absolute.**
-In an offline deterministic capture, static regions are bitwise identical between
-frames when nothing is animating, and no frame exceeds budget. Not "rarely exceeds".
-Zero. Gate: `verify:frames`.
+**N4.** Retired with the photoreal render (ADR-0006). It required static regions of a 120 Hz
+frame to be bitwise identical between frames. The number is not reused.
 
 **N5. Timing beats pixels.**
-If the renderer and the sequencer contend, the sequencer wins. Audio and MIDI threads
-never allocate, never lock, never wait on the GPU. A dropped frame is a bug. A late
-note is a catastrophe. Gate: `verify:timing`.
+If the page and the sequencer contend, the sequencer wins. The audio clock keeps time; the
+page does not. The audio thread never allocates, never locks, never waits on the UI or on
+MIDI. A dropped frame is a bug. A late note is a catastrophe. Gate: `verify:timing`.
 
-**N6. Colour is managed end to end.**
-Linear working space, Display P3 output, one tonemap, one place. Any code that writes
-an sRGB hex literal into a shader fails review. Gate: `verify:color`.
+**N6. Colour has one source.**
+The LED roles and the neutral palette in [Design System](docs/05-design-system.md). A colour
+literal anywhere else fails review. Gate: `verify:tokens` (not built yet).
 
 **N7. Every taste judgement becomes a test.**
-When a critique pass finds something ugly, the fix is not "make it nicer". The fix is
-a new deterministic assertion in the harness plus the change that satisfies it. The
-harness only grows. Gate: `verify:regressions` (assertion count is monotonic).
+When a review finds something wrong, the fix is not "make it nicer". The fix is a new
+deterministic assertion in the harness plus the change that satisfies it. The harness only
+grows. Gate: `verify:regressions` (assertion count is monotonic).
 
 **N8. The hardware's behaviour is the manual's behaviour.**
-Where v2 and the CE v5.30 reference manual disagree about what a control does, the
-manual wins, and the discrepancy is logged as a fixture in `tests/conformance/`.
-Gate: `verify:conformance`.
+Where v2 and the CE v5.30 reference manual disagree about what a control does, the manual
+wins, and the discrepancy is logged as a fixture in `tests/conformance/`. Where the manual
+is silent or contradicts itself, the fixture is `pending` with the ambiguity written next
+to it. Gate: `verify:conformance`.
 
 ---
 
 ## 3. What we are building, concretely
 
-Four deliverables, in dependency order.
+Deliverables, in dependency order. Phases and exit criteria are in
+[Roadmap](docs/09-roadmap.md); the design is in `specs/SPEC-0002/`.
 
-**D1. `octocore`** (Rust, no_std-friendly core)
-The sequencer. Ten tracks, sixteen steps, ten banks of sixteen pages, the full
-attribute model (VEL PIT LEN STA POS DIR AMT GRV MCC MCH), chains, hypersteps,
-phrases, the effector, directions, scales. Sample-accurate. Deterministic under a
-seed. Compiles to a native staticlib and to WASM. Zero allocation after init.
+**D1. `octocore`** (Rust, built)
+The sequencer. Ten tracks of sixteen steps, banks of sixteen pages, the full attribute
+model (VEL PIT LEN STA POS DIR AMT GRV MCC MCH), chains, hypersteps, phrases, the effector,
+directions, scales. Deterministic under a seed. Compiles to a native library and to
+WebAssembly. No allocation on the render path after init.
 
-**D2. `octopanel`** (Swift + Metal)
-The instrument surface. Renders `panel.truth.json` as a lit physical object at
-120 Hz with an IBL probe supplied by the current room. Handles input as physical
-actuation (press depth, encoder torque) rather than as click events.
+**D2. `octoface`** (Rust, planned, P2)
+The panel controller: buttons and encoders in, engine commands, an LED frame and the
+displays out. A pure state machine driven by a millisecond count the caller passes in. Each
+manual workflow becomes fixtures.
 
-**D3. `octoroom`** (Rust + Metal compute)
-The room system. Prompt to room model to (light probe, impulse response, ambient
-grade). Owns the acoustic ray tracer and the probe baker.
+**D3. `apps/web`** (TypeScript, planned, P3 and P4)
+A static page. Draws the matrix, the encoders and the LEDs from `contracts/controls.json`,
+runs the engine in an AudioWorklet, owns Web MIDI (outputs, inputs, clock) and the saved
+state. No backend, no account.
 
-**D4. `octoshell`** (Swift, assigned to Fable)
-The navigational layer: the room dropdown, the rehearsal rooms space, settings.
-Genie-influenced. The shell is thin by design and its job is to make the instrument
-and the room feel like one instrument, not two apps.
+**D4. Ableton routing** (documentation and a spike, P4)
+Tier 1: the virtual-port guide, tested against a real Live. Tier 2: `hosts/m4l`, a Max for
+Live `jweb` device, only if spike S4 shows it can work. No plugin formats.
 
-Plus two host wrappers:
-
-- **`octopus.vst3` / `octopus.component`** for Ableton Live 12 on macOS. Live supports
-  AU (v2 and v3 since 11.3) and VST3, and does not support CLAP. We ship VST3 and
-  AUv2 from one codebase.
-- **`Octopus.amxd`**, a thin Max for Live device that does transport sync, Link, and
-  MIDI routing only. It does not host the UI. v1's mistake was trying to render an
-  instrument inside a WebKit view inside Max. We are not repeating it.
+Supporting pieces that already exist: `crates/octorun` (headless runner, golden event
+streams), `crates/octoffi` (the C ABI the WebAssembly smoke test loads; frozen), and the
+harness and ratchet in `xtask/` and `harness/`.
 
 ---
 
 ## 4. What we are deliberately not doing
 
-Scope discipline is a design decision. Explicitly out for v2.0:
+Scope discipline is a design decision. Explicitly out for v1 (`specs/SPEC-0002/product.md`
+section 8):
 
-- Windows and Linux. macOS/Apple Silicon only. The renderer is Metal.
-- Sysex interchange with real Octopus or Nemo hardware. Designed for, shipped in 2.1.
-- Multiplayer or shared rooms.
-- Any generative audio model. The room system generates *geometry and materials*,
-  and physics generates the sound. This is a feature, not a limitation: it is
-  deterministic, auditable, and about four orders of magnitude cheaper.
+- Anything that generates a space, a scene or a sound with a model. The instrument is MIDI
+  only, and the tree is kept clean of the old scope by `verify:scope`.
+- A native app, Metal, Swift, VST3 or AU wrappers.
+- A built-in synth or any audio output.
+- SysEx exchange with real Octopus or Nemo hardware. The manual gives sizes and procedures
+  but not the byte layout.
+- Photo-exact geometry, calibrated materials, or a blind comparison against photographs.
+- Accounts, a backend, sharing, multiplayer.
 - Skinning, theming, or user-supplied panel layouts. There is one Octopus.
+- Safari and iOS MIDI. The browsers do not offer Web MIDI; the app loads and says so.
 
 ---
 
@@ -203,81 +174,78 @@ wenge/
 ├── SPEC.md                     ← you are here
 ├── CLAUDE.md                   → symlink to agents/CLAUDE.md
 ├── justfile                    ← every verb an agent needs
-├── contracts/                  ← frozen. Architect-only via ADR.
-│   ├── panel.truth.json        ← the hardware, in millimetres
-│   ├── panel.truth.schema.json
-│   ├── motion.registry.json    ← every animated quantity, declared
-│   ├── motion.registry.schema.json
-│   ├── materials.json          ← BRDF parameters per surface
-│   └── verification.report.schema.json
+├── contracts/                  ← frozen. Conductor-only via ADR.
+│   ├── verification.report.schema.json
+│   └── controls.json           ← planned, P2: the control inventory (by ADR)
 ├── crates/
 │   ├── octocore/               ← D1  (owner: Metronome)
-│   ├── octoroom/               ← D3  (owner: Sceneshaper)
-│   └── octoffi/                ← C ABI boundary
+│   ├── octoface/               ← D2  (planned, P2; owner: Panelwright)
+│   ├── octorun/                ← headless runner (owner: Conductor)
+│   └── octoffi/                ← C ABI boundary (frozen)
 ├── apps/
-│   ├── OctoPanel/              ← D2  (owner: Forge)
-│   ├── OctoShell/              ← D4  (owner: Loom / Fable)
-│   └── OctoStandalone/         ← host app that composes the above
+│   └── web/                    ← D3  (planned, P3; owner: Forge)
 ├── hosts/
-│   ├── vst3/  au/              ← plugin wrappers (owner: Metronome)
-│   └── m4l/                    ← Octopus.amxd bridge
-├── harness/                    ← D-∞  (owner: Referee)
-│   ├── capture/                ← deterministic frame capture
-│   ├── measure/                ← geometry, photometry, motion, frames
-│   ├── lint/                   ← the slop detector
-│   └── report/                 ← HTML + JSON reports
+│   └── m4l/                    ← D4, Tier 2 only (scaffold; owner: Metronome)
+├── xtask/  harness/            ← the gates, the ratchet, the report (owner: Referee)
 ├── reference/
-│   ├── manual/                 ← CE v5.30, page-indexed, text-extracted
-│   ├── plates/                 ← calibrated reference photography (git-lfs)
-│   └── NOTES.md                ← what each plate is good for
+│   ├── manual/                 ← CE v5.30, page-indexed
+│   ├── plates/                 ← reference photography (optional now)
+│   └── NOTES.md
 ├── tests/
 │   ├── conformance/            ← manual-derived behavioural fixtures
-│   └── golden/                 ← frozen render goldens (git-lfs)
+│   └── golden/  examples/      ← golden event streams
+├── specs/                      ← SPEC-0001 (engine plans), SPEC-0002 (the web product)
 ├── docs/                       ← this spec
+├── archive/                    ← retired documents, kept for reference
 ├── adr/                        ← architecture decision records
+├── handoffs/                   ← task handoff records
 └── journal/                    ← per-agent working logs (append-only)
 ```
+
+Whether a directory exists yet is in `journal/STATE.md`. A path marked planned is built by
+the phase named in the roadmap, not before.
 
 ---
 
 ## 6. The single most important paragraph in this document
 
-Most ambitious specs fail at the same place: they describe a beautiful destination and
-say nothing about how you would know, mechanically, at 3am, with no human awake,
-whether the last commit made things better or worse. That is the difference between a
-project that converges and one that oscillates forever while burning tokens.
+Most ambitious specs fail at the same place: they describe a good destination and say
+nothing about how you would know, mechanically, at 3am, with no human awake, whether the
+last commit made things better or worse. That is the difference between a project that
+converges and one that oscillates forever while burning tokens.
 
-So the centre of gravity of this specification is not the render engine and not the
-room generator. It is [Verification](docs/07-verification.md), and specifically the
-rule in **N7**: *every taste judgement becomes a test*. A model looking at a screenshot
-and saying "the chrome looks a bit plasticky" is worth nothing on its own, because it
-will say something different tomorrow. That same observation, converted into
-"specular lobe width at the 12mm encoder crown must fall between X and Y when lit by
-probe P", is worth everything, because it is true tomorrow and it fails loudly when
-someone breaks it.
+So the centre of gravity of this specification is [Verification](docs/07-verification.md),
+and specifically the rule in **N7**: *every taste judgement becomes a test*. A model looking
+at a screenshot and saying "the edit light looks wrong" is worth nothing on its own, because
+it will say something different tomorrow. That same observation, converted into "after one
+press of EDIT the LED frame shows EDIT orange and flashing (manual p068)", is worth
+everything, because it is true tomorrow and it fails loudly when someone breaks it.
 
 Build the ratchet before you build the thing. The ratchet is what makes a thousand
 agent-hours add up instead of cancel out.
 
 ---
 
-## 7. Definition of done for v2.0
+## 7. Definition of done for v1
 
-The build ships when all of the following are simultaneously true on `main`:
+The product ships when all of the following are simultaneously true on `main`. The
+measurable form of each is in `specs/SPEC-0002/product.md` section 9.
 
-1. `just verify` is green, with ≥ 400 assertions in the harness.
-2. Geometry: p95 control-centroid error ≤ 0.35 mm, max ≤ 0.80 mm against
-   `panel.truth.json`.
-3. Photometry: mean ΔE2000 ≤ 2.0, max ≤ 4.0 across the 14 named material patches.
-4. Frames: 10 000 consecutive frames at 120 Hz under the standard stress scene with
-   zero over-budget frames and zero static-region deltas.
-5. Timing: MIDI note-on jitter σ ≤ 120 µs and max ≤ 500 µs over a 30 minute run at
-   192 PPQN, measured against the host clock in Live 12.
-6. Conformance: 100% of the manual-derived fixtures pass.
-7. Rooms: five shipped rooms, each with a baked probe and a measured RT60 within
-   10% of the acoustic model's prediction.
-8. A blind panel of three people who have used the real hardware cannot pick the
-   render from a calibrated photograph at 100% zoom in a 2-alternative forced choice
-   above 60% accuracy.
+1. `just verify` is green, with at least 400 assertions in the harness (304 on the day
+   ADR-0006 landed), and the count has only grown since.
+2. Conformance: every fixture for every workflow in scope passes, and each cites its manual
+   page (A1).
+3. Determinism: the WebAssembly engine plays every golden pattern byte for byte like the
+   native one, in the browser as well as in Node (A2). Today the Node smoke test plays three
+   of the five.
+4. Timing: note-on jitter from browser to instrument, and clock follow against Live, are
+   within the numbers the owner sets from spikes S1 and S3 (A3, A4). The old 120 microsecond
+   figure was for a plugin inside Live and does not apply.
+5. Ableton: Live plays a Live instrument from a pattern and follows Live's transport over a
+   virtual port (A5).
+6. Hardware: one pattern plays a real synth on port 1 and a second device on port 2 at the
+   same time (A6).
+7. Browsers, keyboard and screen reader, scope, ratchet: A7 to A10.
 
-Item 8 is the real one. Items 1 through 7 exist to make item 8 reachable.
+Item 6 is the real one. The rest exist to make it reachable, and it is checked by ear on
+real gear.

@@ -2,10 +2,14 @@
 
 **Owner:** Conductor.
 
-Phases are gated by **exit criteria**, not by time. A phase ends when its criteria are
-met and not before. Each phase also has **kill criteria**: conditions under which we
-stop and rescope rather than push through. Naming the kill criteria in advance is what
-makes them usable, because in the moment nobody wants to be the one to say it.
+Phases and waves are gated by **exit criteria**, not by time. One ends when its criteria
+are met and not before. Each also has **kill criteria**: conditions under which we stop
+and rescope rather than push through. Naming the kill criteria in advance is what makes
+them usable, because in the moment nobody wants to be the one to say it.
+
+The product is the web sequencer of [ADR-0006](../adr/0006-web-sequencer-supersedes-the-rooms-scope.md)
+and `specs/SPEC-0002/`. The old Phases 1 to 5 (a photoreal vertical slice, the whole
+panel, the rooms, the shell, release) are replaced by the waves below.
 
 ---
 
@@ -13,160 +17,102 @@ makes them usable, because in the moment nobody wants to be the one to say it.
 
 Build the verification system before the thing it verifies.
 
-**Scope:** `harness/` end to end against a *deliberately crude* placeholder renderer
-(flat-shaded circles from the truth file). Deterministic capture. Every gate
-implemented and wired, even where the placeholder fails them. The report page. The
-`just` verbs. Worktrees, merge queue, journals, `STATE.md`.
+**Scope:** `harness/` end to end: deterministic replay of the engine, the gates, the
+report, the `just` verbs, worktrees, merge queue, journals, `STATE.md`. A gate that
+cannot be built yet reports `not_implemented`, never a pass.
 
 **Exit criteria**
 - `just verify` runs in under 4 minutes and reports every gate.
-- `verify:determinism` passes: two captures byte-identical.
-- The placeholder *fails* `verify:color` and `verify:motion` and *passes*
-  `verify:geometry`, proving the gates discriminate.
+- `verify:determinism` passes: two runs byte-identical.
 - The report renders and shows the assertion count as a line.
-- Eight worktrees exist and one commit has gone through the merge queue.
+- A worktree exists for each role and one commit has gone through the merge queue.
 
-**Kill criteria:** if determinism cannot be achieved on the target hardware, stop.
-Everything downstream depends on it and there is no version of this project that works
-without it.
-
----
-
-## Phase 1: The vertical slice
-
-The narrowest possible thing that is genuinely finished, at full quality.
-
-**Scope:** one track. Sixteen steps. One MIX encoder and one EDIT encoder. Transport.
-One room (`flat`, a neutral studio). Real MIDI out. Loads as VST3 in Live 12 and
-plays a synth.
-
-**Full quality means full quality.** Traced chrome, real materials, SDF engraving,
-physical motion, correct colour. This phase is not a prototype. It is a small,
-complete piece of the finished object.
-
-**Exit criteria**
-- All Phase 0 gates green on the slice.
-- Geometry p95 ≤ 0.35 mm on the controls present.
-- Colour mean ΔE ≤ 2.0 on the material patches present.
-- 120 Hz sustained, zero over-budget frames, input-to-photon ≤ 8 ms p95.
-- Notes reach Live with σ ≤ 120 µs.
-- First blind comparison run: **below 75% accuracy** (a weaker bar than the final
-  60%, because a single track gives fewer tells to notice).
-- Someone plays it for an hour and wants more of it.
-
-**Kill criteria:** if the blind comparison is above 90%, the material model is
-fundamentally wrong and no amount of breadth will fix it. Stop and re-approach the
-render technique before building anything else.
+**Kill criteria:** if determinism cannot be achieved, stop. Everything downstream
+depends on it and there is no version of this project that works without it.
 
 ---
 
-## Phase 2: The instrument
+## Done
 
-Widen the slice to the whole panel.
-
-**Scope:** all 160 matrix buttons, all 20 encoders, the full spiral cluster, all four
-modes, pages and banks, the complete attribute model, chains, phrases, chords,
-directions, the effector, scales, MCC. Push and generic MIDI controller mapping.
-AU wrapper alongside VST3. The M4L transport bridge.
-
-**Exit criteria**
-- ≥ 250 conformance fixtures, 100% passing.
-- Geometry and colour gates green across the full panel, including the spiral.
-- Stress scene (all tracks, maximum density) at 120 Hz with zero over-budget frames.
-- Worst-case tick ≤ 250 µs.
-- 30-minute timing run: zero missed ticks.
-- Blind comparison below 70%.
-- Assertion count ≥ 280.
-
-**Kill criteria:** if the spiral geometry cannot be recovered to tolerance from
-available plates and no better plates can be obtained, relax the tolerance by ADR and
-continue. This is a documented degradation, not a kill. The actual kill condition is
-frame budget: if the full panel cannot hold 120 Hz on an M-series laptop, the render
-technique needs rework before more features land.
+- **SPEC-0001, phases F0 and F1** (`specs/SPEC-0001/`; the item list is in `journal/STATE.md`).
+- **O4 steps 1 and 4a**: the null host with timing guards G1 to G5 (#14) and integer
+  step accumulators (#16).
+- **Open: D0**, the tick length (`WENGE-0012`). O4 step 4b waits for it. SPEC-0002 reframes
+  4b and 4c for the browser: the host is the audio clock and an incoming MIDI clock, not
+  a plugin host. O6 and `octoffi` are frozen, not deleted (SPEC-0002 D5).
 
 ---
 
-## Phase 3: The rooms
+## The SPEC-0002 series
 
-The mechanic that makes this a new instrument rather than a replica.
+Each is its own pull request. P2 to P5 wait for P0 and P1 to merge, so none is stacked.
 
-**Scope:** `octoroom` complete. Prompt to intent to geometry. Optical and acoustic
-bake. Five shipped rooms. The room dropdown with live probe preview. Convolution on
-the output bus. The grade.
-
-**Exit criteria**
-- `verify:acoustics` green: traced RT60 within 10% of Eyring on all five rooms.
-- Cold room bake under 2.5 s; cached room instant.
-- Probe preview on dropdown browse at full frame rate with no hitch.
-- Room transition: `verify:motion` green on `spring.world`, zero continuity spikes.
-- Five rooms that are genuinely different, judged by the blind panel as five
-  different spaces both visually and acoustically.
-- Assertion count ≥ 340.
-
-**Kill criteria:** if the acoustic tracer cannot hit the Eyring check, the physics is
-wrong and the sound will not convince anyone. Fix it before building the shell around
-it. If prompt-to-intent proves unreliable, ship authored rooms only and defer
-generation to 2.1: **the mechanic works with authored rooms**, and generation is an
-amplifier rather than a prerequisite. This is an important pressure valve.
+| PR | What | Tier |
+|---|---|---|
+| P0, P1 | ADR-0006, the `SPEC.md` banner, `STATE.md` (documents only); then the removals and the `verify:scope` gate, red first | High |
+| P2 | `contracts/controls.json` and the panel fixture format; the first five workflows red first (spike S5) | Medium |
+| P3 | `apps/web`: the WebAssembly engine, the 16 by 10 matrix and the LEDs, one Web MIDI output (spikes S1 and S2) | Medium |
+| P4 | MIDI: two ports, clock out and in, input, program change; the Tier 1 Ableton guide and test procedure (spike S3) | High (timing) |
+| P5 onward | The waves below | Medium |
 
 ---
 
-## Phase 4: The shell
+## Waves 1 to 5
 
-Fable's phase, though Loom work runs from Phase 3 onward.
+The contents of each wave are in `specs/SPEC-0002/product.md` §5, and the owner may
+reorder them. Each workflow in a wave is a fixture cited to its manual page (`tech.md` §4).
 
-**Scope:** the rehearsal rooms space. Settings. The full arrival-to-instrument
-transition. Onboarding for the room vocabulary. Persistence and project save.
+**Exit criteria, for every wave**
+- Every workflow in the wave's scope has a fixture, and they pass (criterion A1). Where
+  the manual is unclear, the fixture is `pending` with the ambiguity written next to it,
+  and closes by a hardware check or the owner's ruling, never by a guess.
+- A demonstration on real gear: a recorded run on named gear that uses what the wave added.
+- `just verify` is green and the assertion count has only grown (A10).
+- A threshold marked *set by spike* that the wave depends on was set by the owner before
+  the wave started (`product.md` §9).
 
-**Exit criteria**
-- All three surfaces complete, `verify:slop` and `verify:tokens` green.
-- `verify:a11y` green on all five rooms, including computed contrast.
-- Ten iteration cycles logged in `journal/loom/` with hypotheses and outcomes.
-- Findings conversion ratio ≥ 40% across those cycles.
-- Someone unfamiliar with the product reaches a room they made, and plays, without
-  instruction.
+| Wave | Name | Adds |
+|---|---|---|
+| 1 | Play | Page mode, Step zoom for VEL PIT LEN STA, the MIX and EDIT encoders, transport and tempo, two MIDI outputs, save and load in the browser |
+| 2 | Shape | Track zoom and the attribute maps, chords, phrases, hypersteps, scales, DIR, chains, the effector, step events |
+| 3 | Perform | Grid mode and Live, On-The-Measure, Grid-Track, page sets, clusters, follow, PLAY snapshot |
+| 4 | Record and sync | MIDI input and recording, keyboard transpose, force-to-scale, controller map learn, the "200" clock states, program change, ALL NOTES OFF |
+| 5 | System | Device View (start mode, port priority), the file formats, MIDI file export, factory reset |
 
-**Kill criteria:** none. If the shell is not good enough, iterate. It is the one part
-of the system that can be improved indefinitely without structural risk.
+Wave 1's demonstration is criterion A6: a pattern made on the panel plays a real synth on
+port 1 and a second device on port 2 at once.
 
----
-
-## Phase 5: Release
-
-**Scope:** signing, notarisation, installer, the manual, the demo Live set, the
-launch materials.
-
-**Exit criteria:** every item in [`SPEC.md §7`](../SPEC.md), including the final blind
-comparison below 60%.
+**Kill criteria** (proposed; the owner's to change). If spike S1 shows Web MIDI output too
+loose for the gear at any lookahead the owner will accept, stop and rescope before
+building further (`tech.md` §11). Tier 2 (Max for Live, spike S4) has none: it stands or
+falls alone, and Tier 1 does not depend on it.
 
 ---
 
 ## Sequencing notes
 
-**What must be serial.** Phase 0 before everything. Phase 1 before fan-out. The truth
-file's ratification before any geometry gate means anything.
+**What must be serial.** Phase 0 before everything. P0 and P1 before P2. Wave 1 before
+fan-out. `contracts/controls.json` (P2) before any panel fixture, because it gives
+`ControlId` its meaning (`tech.md` §4).
 
-**What can overlap.** Sceneshaper can begin the acoustic tracer during Phase 1, since
-it depends only on the room contract. Curator's type identification can run from
-Phase 0. Scribe's manual indexing should run in Phase 0 because everyone needs it.
-Metronome can port `octocore` during Phase 0 against the null host, because the core
-has no rendering dependency at all. This is the payoff of the module boundaries in
-[Architecture §3](02-architecture.md): four roles can start on day one.
+**What can overlap.** Each spike runs before the wave that needs it (`tech.md` §8): S5 in
+P2, S1 and S2 in P3, S3 in P4. The Scribe's correction of the manual index (the MIDI,
+load and save, and appendix chapters; `specs/SPEC-0002/findings.md` §4) is already
+requested and can run in parallel, because every panel fixture cites a page.
 
-**The rhythm.** Each phase ends with: a blind comparison, a findings triage, a
-threshold review (tighten what has become easy), and a pruning of `STATE.md`. Then
-re-fan.
+**The rhythm.** Each wave ends with: a findings triage, a threshold review (tighten what
+has become easy), a demonstration on real gear, and a pruning of `STATE.md`. Then re-fan.
 
 ---
 
 ## The one thing to protect
 
-Phase 1. There will be pressure to widen it, because a single track feels
-unimpressive and because the whole panel is more exciting to build. Resist it
-completely.
+Wave 1. There will be pressure to widen it, because Page mode alone feels unimpressive
+and because Grid and Perform are more exciting to build. Resist it completely.
 
-A finished single track proves the technique. An unfinished full panel proves
-nothing and costs ten times as much to diagnose, because when something looks wrong
-you will not know which of forty subsystems is responsible.
+A finished Page mode proves the panel controller, the WebAssembly engine and the MIDI
+path. An unfinished full panel proves nothing and costs ten times as much to diagnose,
+because when something plays wrong you will not know which of forty subsystems is
+responsible.
 
 Narrow and finished. Then wide.

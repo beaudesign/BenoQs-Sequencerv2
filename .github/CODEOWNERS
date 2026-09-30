@@ -29,26 +29,20 @@
 /tests/golden/**                 @beaudesign
 /xtask/**                        @beaudesign
 
-# Curator: lint and tokens.
-/harness/lint/**                 @beaudesign
+# Curator: the visual rules.
+/docs/05-design-system.md        @beaudesign
 
-# Panelwright: reference material and geometry measurement.
+# Panelwright: reference material, the panel controller and its control inventory.
 /reference/**                    @beaudesign
-/harness/measure/geometry/**     @beaudesign
+/crates/octoface/**              @beaudesign
 
 # Metronome: the sequencer core, hosts and conformance fixtures.
 /crates/octocore/**              @beaudesign
 /hosts/**                        @beaudesign
 /tests/conformance/**            @beaudesign
 
-# Sceneshaper: rooms.
-/crates/octoroom/**              @beaudesign
-
-# Forge: renderer.
-/apps/OctoPanel/**               @beaudesign
-
-# Loom: shell.
-/apps/OctoShell/**               @beaudesign
+# Forge: the web app.
+/apps/web/**                     @beaudesign
 
 # Scribe: documentation.
 /docs/**                         @beaudesign

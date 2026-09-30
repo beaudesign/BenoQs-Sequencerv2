@@ -1,0 +1,6 @@
+Note added after the independent review of P1.
+
+The red run in p1-scope-gate-red-run.txt (167 hits in 27 files) was taken at c304813, before the
+plural rule. The same tree, run with the final gate, reports 183 hits in 29 files: the plural rule
+found "rehearsal rooms" and similar. The separator rule (every run of non-alphanumerics is one
+space) came in the review fixes; its red run is p1-scope-review-fixes-red-run.txt.

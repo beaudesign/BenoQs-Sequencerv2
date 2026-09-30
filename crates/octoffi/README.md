@@ -15,7 +15,7 @@ against the built `liboctoffi.dylib`, not just Rust's own tests).
 The Grid-mutation surface addresses by logical (track, step) index, not a
 physical panel `ControlId` — programming a pattern doesn't need to know
 where a control lives on the panel, so this didn't actually need
-`panel.truth.json` to exist first (an earlier note here said otherwise; see
+the control inventory (`contracts/controls.json`, planned) to exist first (an earlier note here said otherwise; see
 `lib.rs`'s module comment on the surface for the reasoning). What still
 needs `ControlId` is *physical actuation* — `Command::ButtonDown/Up/
 EncoderTurn` remain no-ops, since there's no coordinate system yet to
@@ -38,7 +38,7 @@ thread and an `OctoReader` for the render thread. `octocore_sender_push` takes a
 waits. The engine applies up to 256 of them at the start of each render and publishes an
 `OctoSnapshot` at the end. `octocore_reader_claim` returns the newest one; compare
 `generation` to see whether it is new. LED and encoder fields are zero until
-`panel.truth.json` exists. `octocore_abi_version` and `OCTOFFI_ABI_VERSION` (now 2) say which
+the control inventory exists. `octocore_abi_version` and `OCTOFFI_ABI_VERSION` (now 2) say which
 header the library was built with.
 
 Header drift is checked two ways: `f4` keeps every line the header had before the link, and

@@ -1,7 +1,8 @@
 # STATE
 
 Capped at 200 lines. Conductor prunes rather than appends when it grows past
-that. Last pruned: 2026-09-29 (Phase and SPEC-0001 sections rewritten, again after O6 and the O4 plan; before that 2026-09-06, rewritten after the repo split — this is now
+that. Last pruned: 2026-09-30 (P1: the rooms scope and the native panel path removed; Phase, reference, octoroom and
+fan-out sections rewritten). Before that 2026-09-29, and 2026-09-06 after the repo split — this is now
 `BenoQs-Sequencerv2`, not a branch/PR against the original).
 
 ## This repo's origin (read this before anything else)
@@ -26,33 +27,29 @@ commit. Referenced in `agents/CLAUDE.md`'s "nine things" list.
 
 ## Phase
 
-**Phase 0 (the ratchet) — the ratchet exists, most gates do not.**
-`cargo xtask verify` runs 14 gates. Three are real and required: `conformance`,
-`regressions` (the name-based ratchet over `harness/baseline.txt`) and `determinism`
-(golden event streams from `octorun`). The other 11 report `not_implemented`, which is
-never a pass. Per `docs/09-roadmap.md`, Phase 0 exit criteria (`just verify` green under
-4 min, placeholder renderer discriminating gates, report rendering, eight worktrees through
-the merge queue) are **not met**: no renderer exists. The `verify` workflow (its `verify` and
-`wasm-smoke` jobs) has run on GitHub for every branch tip of the SPEC-0001 series and passed,
-but it is not yet a required check. Work with no rendering dependency (`octocore`, `octorun`, `octoroom`'s pure-Rust half)
-proceeds in parallel, as the roadmap's sequencing notes allow. See `AGENTS.md` for the task
-lifecycle and `specs/SPEC-0001/` for the current plan.
+**Phase 0 (the ratchet) — the ratchet exists, six of ten gates do not.**
+`cargo xtask verify` runs 10 gates. Four are real and required: `conformance`, `regressions`
+(the name-based ratchet over `harness/baseline.txt`), `determinism` (golden event streams from
+`octorun`) and `scope` (P1: the live tree may not describe the old rooms product; banned phrases in
+`harness/scope-banned.txt`, allow-list in `harness/scope-allow.txt`). The other six (`timing`,
+`a11y`, `arch`, `slop`, `tokens`, `persistence`) report `not_implemented`, which is never a pass.
+`geometry`, `color`, `frames`, `motion` and `acoustics` were removed with the photoreal path. The
+`verify` workflow has passed on every branch tip of the SPEC-0001 series but is not yet a required
+check (owner only). The product is a web sequencer (ADR-0006, `specs/SPEC-0002/`); phases and
+waves are in `docs/09-roadmap.md`, the task lifecycle in `AGENTS.md`.
 
-## Reference material: manual present, photography still one insufficient plate
+## Reference material: the manual is the source; photography is optional
 
-- `reference/manual/` has the real CE v5.30 manual, page-indexed
-  (`reference/manual/INDEX.md`, `just manual <topic>`), including a bundled
-  2007 tutorial series that resolved a design question (custom direction
-  multi-trigger timing) the main chapters didn't cover alone.
-- `reference/plates/web-frontal-01.jpg` — one uncalibrated frontal photo,
-  topology/count sanity-check use only (see `reference/plates/NOTES.md`).
-  Does **not** unblock `contracts/panel.truth.json` at any tolerance — still
-  need ≥3 calibrated plates per `docs/01-panel-truth.md` §3.1.
-- `contracts/panel.truth.json`, `motion.registry.json`, `materials.json`,
-  `room.schema.json` — still none exist. Deliberately not fabricated (N1/N2).
-- No renderer exists (`apps/OctoPanel` empty scaffold); Xcode (full) still
-  not installed here — Metal, signing, VST3/AU/octopanel/octoshell builds
-  remain out of reach in this dev environment.
+- `reference/manual/` has the real CE v5.30 manual, page-indexed (`reference/manual/INDEX.md`,
+  `just manual <topic>`), including a bundled 2007 tutorial series. The manual's MIDI and
+  appendix page numbers in the index are wrong (request to the Scribe filed).
+- `reference/plates/web-frontal-01.jpg` is one uncalibrated frontal photo. It no longer blocks
+  anything: the web panel takes its layout from a control inventory built from the manual
+  (`contracts/controls.json`, planned, P2), not from photographs. Request to the Panelwright to
+  reword `reference/NOTES.md` is filed.
+- `contracts/panel.truth.schema.json` and `motion.registry.schema.json` remain until P2, when
+  ADR authority to retire them is needed (ADR-0006 authorises no other contract change).
+  `apps/` has no scaffolds left; `apps/web` arrives with P3.
 
 ## `crates/octocore`: real, tested, manual-corrected, still growing
 
@@ -82,7 +79,7 @@ lifecycle and `specs/SPEC-0001/` for the current plan.
   sub-step CC interpolation. Sparse Red/Orange factory cells should be
   spot-checked against hardware.
 
-## `crates/octoffi`: thin C ABI wrapper + Grid-mutation surface
+## `crates/octoffi`: thin C ABI wrapper + Grid-mutation surface (frozen, SPEC-0002 D5)
 
 new/free/handle_command/render/is_running over an opaque `*mut Engine`,
 plus `octocore_track_{set,get}_i32` / `octocore_step_{set,get}_i32` (landed
@@ -92,15 +89,6 @@ events), `render` respects `out_capacity`, and `Event` has PitchBend and Channel
 Hand-maintained `octoffi.h` (no `cbindgen` here); a test now parses it. Phrase / phrase-note
 programming is not on this surface yet — step GRV can store an index, but
 the 48-slot phrase pool is still Rust-only.
-
-## `crates/octoroom`: new, pure-Rust parts of D3
-
-`RoomIntent` (hand-authored, no LLM available here), deterministic seeded
-geometry synthesis matching `docs/06-shell-and-rooms.md` §3's room contract
-shape, and the Eyring RT60 prediction §3 names as `verify:acoustics`'s
-self-check (cross-checked against a hand-computed value). 10 tests. The
-optical bake, acoustic ray-traced bake, and grade derivation all need Metal
-compute and aren't attempted — see `crates/octoroom/README.md`.
 
 ## SPEC-0001 (2026-09-29): make the sequencer run, make the factory enforce it
 
@@ -163,9 +151,14 @@ Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all
 - **Series:** P0 (ADR-0006, the `SPEC.md` banner, the approval record) and P1 (the `scope` gate
   red first, then the removals) are two pull requests. **P2 to P5 (`octoface`, `controls.json`,
   the web app, MIDI) do not start until P0 and P1 have merged.**
-- **Until P1 merges,** the tree still contains the rooms scope (`octoroom`, `docs/06`, the
-  Sceneshaper and Loom roles, the `acoustics` gate). It is not the product, and nothing new
-  builds on it.
+- **P0 is #20 (draft) and P1 is the branch `conductor/remove-rooms-scope`.** P1 contains P0's
+  commit, so merge #20 first. P1 removes `octoroom`, `apps/OctoShell`, the scaffolds of the native
+  path, `docs/06` (`docs/01` and `docs/04` moved to `archive/native-panel/`), the gates `acoustics`,
+  `geometry`, `color`, `frames`, `motion`; adds the `scope` gate; rewrites `SPEC.md`,
+  `agents/CLAUDE.md` (rules 4 to 7), the roles and the docs. Ten `octoroom` tests left the baseline
+  by `--remove ... --adr ADR-0006`; assertions 313 -> 303 -> 310 (299 tests, 11 fixtures).
+- **Open finding:** `BANK_COUNT` is 10 in `octocore`, while the manual reads as 9 banks of 16
+  pages (`specs/SPEC-0002/product.md`). Not changed here; a Metronome question for P2.
 - **"World model" here means two things.** The factory's shared state (this file, `just report`)
   keeps its name; the rooms project is what is removed.
 - **Request:** the Scribe fixes `reference/manual/INDEX.md` (MIDI is pages 93 and 94, not 109 to
@@ -178,8 +171,7 @@ the WASM engine and plays to one Web MIDI output, with spikes S1 and S2 recorded
 
 ## Fan-out
 
-What can proceed without Xcode or real photography: attribute-map-factor
-step events (p.34-37); `octoffi` phrase-pool accessors; deepening
-`octoroom` (more materials, real prompt-parsing once/if an LLM call
-becomes available). Everything touching the panel itself still depends
-on real calibrated photography.
+Nothing is live except P1 in review. After P0 and P1 merge: P2 (`contracts/controls.json` by ADR,
+the panel fixture format, `crates/octoface`, the first five workflows red first). What can proceed
+in the engine meanwhile: attribute-map-factor step events (p.34-37). D0 (the tick) blocks O4
+step 4b, and everything touching the panel waits for `controls.json`. `octoffi` is frozen.

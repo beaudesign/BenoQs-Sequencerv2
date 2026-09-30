@@ -15,7 +15,7 @@ The countermeasures are all versions of the same idea: make the interfaces narro
 frozen, and machine-checked, so that agents can work in genuine isolation and their
 work composes.
 
-1. **Contracts before code.** The four files in `contracts/` define every boundary.
+1. **Contracts before code.** The files in `contracts/` define every boundary.
    They are edited by the Conductor only, via ADR. Everyone else treats them as
    physics.
 2. **One zone, one owner.** Every path in the repo maps to exactly one role. Nobody
@@ -30,30 +30,28 @@ work composes.
 
 ## 2. Roles
 
-Nine. Each has a brief in `agents/ROLES.md`. A role is a *hat*, not a person: one
+Seven. Each has a brief in `agents/ROLES.md`. A role is a *hat*, not a person: one
 model instance may wear several hats sequentially, but never two at once, because the
 value of the role system is that it constrains what you are allowed to touch.
 
 | Role | Owns | Primary artefact |
 |---|---|---|
-| **Conductor** | `contracts/`, `adr/`, `justfile`, roadmap, merge queue | decisions |
-| **Panelwright** | `reference/`, `harness/measure/geometry/`, the truth file | `panel.truth.json` |
-| **Forge** | `apps/OctoPanel/` | the renderer |
-| **Metronome** | `crates/octocore/`, `hosts/` | the sequencer |
-| **Sceneshaper** | `crates/octoroom/` | rooms, probes, IRs |
-| **Loom** *(Fable)* | `apps/OctoShell/` | dropdown, rooms space, settings |
-| **Curator** | `contracts/design.tokens.json`, rubric, anchors, `harness/lint/` | taste, made explicit |
-| **Referee** | `harness/` (except measure/geometry), CI, thresholds | the ratchet |
+| **Conductor** | `contracts/`, `adr/`, `justfile`, `crates/octoffi/` (frozen), roadmap, merge queue | decisions |
+| **Panelwright** | `reference/`, `crates/octoface/` (planned, P2); drafts `contracts/controls.json` (planned, P2), which the Conductor changes by ADR | the panel controller and its control inventory |
+| **Forge** | `apps/web/` (planned, P3) | the web app |
+| **Metronome** | `crates/octocore/`, `tests/conformance/`, `hosts/m4l/` (the Tier 2 Ableton spike), the timing path | the sequencer |
+| **Curator** | the visual rules (LED colour roles, the one neutral palette), `docs/05` | taste, made explicit |
+| **Referee** | `harness/`, `xtask/`, CI, all thresholds, the `scope` and `a11y` gates | the ratchet |
 | **Scribe** | `docs/`, `README`, `CHANGELOG` | the record |
 
 Roles have a second axis, the stage a task is in (coordinator, spec, implementation,
 review, verification), plus risk tiers and handoff records. Those live in the root
-`AGENTS.md` (ADR-0004). The zone roles above are unchanged.
+`AGENTS.md` (ADR-0004).
 
 Two rules about roles:
 
 - **The Curator does not build and the Forge does not judge.** Separating the
-  producing role from the evaluating role is the reason the rubric means anything.
+  producing role from the evaluating role is the reason a judgement means anything.
   An agent that both makes and grades its own work converges on whatever it finds
   easy.
 - **The Referee owns thresholds and nobody else may change them.** Tightening is
@@ -71,18 +69,17 @@ Two rules about roles:
 /adr/**                  @conductor
 /justfile                @conductor
 /reference/**            @panelwright
-/harness/measure/geometry/** @panelwright
+/crates/octoface/**      @panelwright    # planned, P2
 /harness/**              @referee
-/harness/lint/**         @curator
+/xtask/**                @referee
 /crates/octocore/**      @metronome
-/crates/octoroom/**      @sceneshaper
 /crates/octoffi/**       @conductor
-/hosts/**                @metronome
-/apps/OctoPanel/**       @forge
-/apps/OctoShell/**       @loom
+/hosts/m4l/**            @metronome
+/apps/web/**             @forge          # planned, P3
 /tests/conformance/**    @metronome
 /tests/golden/**         @referee
 /docs/**                 @scribe
+/docs/05-design-system.md @curator
 /journal/<role>/**       @<role>
 ```
 
@@ -101,8 +98,8 @@ place and the Conductor moves it.
 Every agent works in its own git worktree off `main`:
 
 ```bash
-git worktree add ../wt-forge   -b forge/<slug>   main
-git worktree add ../wt-loom    -b loom/<slug>    main
+git worktree add ../wt-forge     -b forge/<slug>     main
+git worktree add ../wt-metronome -b metronome/<slug> main
 ```
 
 No agent ever has `main` checked out. This eliminates the entire class of accidents
@@ -110,32 +107,29 @@ where an agent commits to the wrong branch or stashes over another agent's work.
 
 ### What can run at once
 
-Phase-dependent. The Conductor publishes the current fan-out in `journal/STATE.md`.
-A representative Phase 2 fan-out:
+Wave-dependent. The Conductor publishes the current fan-out in `journal/STATE.md`.
+An illustrative fan-out, once `contracts/controls.json` is frozen:
 
 ```
-  ┌── Panelwright: spiral geometry adjudication          (independent)
-  ├── Forge:       chrome BRDF + reflection rays         (independent)
-  ├── Metronome:   directions 6+ port                    (independent)
-  ├── Sceneshaper: acoustic tracer, band splitting       (independent)
-  ├── Loom:        dropdown probe preview                (needs probe API: frozen)
-  ├── Curator:     type identification ADR               (independent)
-  ├── Referee:     verify:motion implementation          (needs registry: frozen)
-  └── Scribe:      manual page indexing                  (independent)
+  ┌── Panelwright: the next workflow fixtures for `octoface`          (independent)
+  ├── Forge:       the SVG panel, drawn from the inventory            (needs controls.json: frozen)
+  ├── Metronome:   the clock-follow estimator and its fixtures        (independent)
+  ├── Curator:     the LED colour roles                               (independent)
+  ├── Referee:     the `a11y` gate                                    (needs the control names: frozen)
+  └── Scribe:      manual index fixes (MIDI, load and save chapters)  (independent)
 ```
 
-Eight in parallel with zero contention, because every dependency runs through a frozen
+Six in parallel with zero contention, because every dependency runs through a frozen
 contract. When a contract needs to change mid-phase, the Conductor freezes the fan-out
-first, lands the ADR, then re-fans. Do not change a contract with eight agents live
-against it.
+first, lands the ADR, then re-fans. Do not change a contract with agents live against
+it.
 
 ### Where parallelism does not help
 
 Be honest about this. Some work is irreducibly serial and adding agents makes it
 worse:
 
-- **Truth file ratification.** One agent, one human, once.
-- **The first vertical slice.** Phase 1 is deliberately narrow and mostly serial. Fan
+- **The first vertical slice.** Wave 1 is deliberately narrow and mostly serial. Fan
   out after it lands, not before.
 - **Anything touching the FFI boundary.** One at a time.
 - **Threshold changes.** Serial by construction.
@@ -201,17 +195,16 @@ Refs: <ADR / finding / manual page>
 Example:
 
 ```
-forge: trace real reflection rays for encoder crowns
+metronome: flush sounding notes on Stop and Reset
 
-Prefiltered mips softened the crown specular into plastic at
-roughness 0.045. Crowns now shoot a real reflection ray with the
-probe cubemap as the miss shader. Domes keep the prefiltered path
-above 6 px/mm where the difference is sub-pixel.
+The engine keeps a 4 KB table of notes the receivers are holding.
+Stop and Reset now emit a NoteOff per NoteOn still owed, then CC 123
+on each channel that had one, at sample 0 of the next render.
 
-Verify: geometry p95 0.21mm (was 0.21mm), color mean dE 1.62
-        (was 2.41), frames 0 over budget, 4.9ms p95 (was 4.1ms)
-Journal: journal/forge/2026-09-14.md#crowns
-Refs: F-0214, docs/04-render-engine.md#2
+Verify: cargo xtask verify exit 0, octocore 84 unit + 8 invariants
+        + 1 conformance runner over 7 fixtures.
+Journal: journal/metronome/2026-09-29.md
+Refs: SPEC-0001 O1 (WENGE-0001), CE v5.30 p.94
 ```
 
 Putting the gate numbers in the commit message is unusual and worth the friction. It
@@ -239,7 +232,7 @@ For each merge request:
 The queue is strictly serial and that is fine, because `just verify` runs in under
 four minutes. This is why the four-minute budget in
 [Architecture §7](02-architecture.md) is a hard requirement: it is what makes serial
-merging viable at eight-way parallelism.
+merging viable with several agents working in parallel.
 
 ---
 
@@ -249,13 +242,11 @@ Agent sessions have finite context and this project has a large surface. Managin
 is an explicit responsibility, not an afterthought.
 
 **Never load into context:**
-- Reference photography. It is enormous and it is already distilled into
-  `panel.truth.json` and `materials.json`. Those files are the interface to the
-  images. If you find yourself wanting to look at a plate, what you actually want is
-  a number that should be in a contract, so add it.
+- Reference photography. It is large, and the web panel does not need it: the control
+  inventory comes from the manual (SPEC-0002 F2). If you find yourself wanting to look
+  at a plate, what you actually want is a fact that belongs in a contract, so add it.
 - The full 124-page manual. It is page-indexed in `reference/manual/`; load the
   section you need. `just manual <topic>` greps and returns the relevant pages.
-- Generated captures. Read the report's numbers, not the EXRs.
 - Other agents' zones.
 
 **Always load:**
@@ -295,10 +286,12 @@ creative director and the person the instrument is for.
 
 Reserve human attention for the three things only a human can do:
 
-1. **Ratify the truth file.** Once, carefully. [Panel Truth §3.3](01-panel-truth.md).
-2. **Choose the shell typeface.** From three rendered specimens at real size.
-3. **Judge the blind comparison.** [Verification §5](07-verification.md), at every
-   phase boundary.
+1. **Answer what only the hardware can.** The double-click interval, the flash rate
+   and the other open questions in SPEC-0002 `tech.md` §9 need a person with an
+   Octopus.
+2. **Decide what the owner has kept.** D0, the tick length (`WENGE-0012`), is one.
+3. **Judge the demonstration on real gear** that ends each wave (SPEC-0002
+   `product.md` §5).
 
 Everything else should reach them as a decision with the evidence already assembled,
 or not reach them at all. An agent that asks a human to choose between two options

@@ -5,8 +5,8 @@
 //! interface the whole multi-agent model depends on staying stable).
 //!
 //! Everything here is a thin, allocation-light wrapper: no logic lives in this
-//! crate, only pointer/lifetime bookkeeping and the C-callable entry points Swift
-//! (`octopanel`/`octoshell`) will eventually link against via `octoffi.h`
+//! crate, only pointer/lifetime bookkeeping and the C-callable entry points that the
+//! tests and the WebAssembly smoke test call through `octoffi.h` (frozen, SPEC-0002 D5)
 //! (hand-written alongside this file, not yet run through `cbindgen` — that's
 //! not installed in this dev environment; the header must be kept in sync by
 //! hand until it is).
@@ -20,7 +20,7 @@
 
 use octocore::{Command, Engine, Event};
 
-/// Opaque handle. Swift/C never sees the real `Engine` layout.
+/// Opaque handle. A C caller never sees the real `Engine` layout.
 #[no_mangle]
 pub extern "C" fn octocore_engine_new(seed: u64) -> *mut Engine {
     Box::into_raw(Box::new(Engine::new(seed)))
@@ -120,11 +120,11 @@ pub unsafe extern "C" fn octocore_engine_is_running(engine: *const Engine) -> bo
 
 // --- Grid-mutation surface ---
 //
-// This doesn't need panel.truth.json's ControlId scheme at all — that's for
+// This doesn't need the control inventory's ControlId scheme at all — that's for
 // *physical actuation* events (a button/encoder somewhere on the panel),
 // which this crate has no coordinate system for yet. Programming a pattern
 // is a purely logical operation (track N, step M, this attribute, this
-// value) that a test harness, a Swift data-entry UI, or anything else can
+// value) that a test harness, a data-entry UI, or anything else can
 // perform without knowing where a control lives on the panel. Everything
 // crosses as `i32`: it covers every field type here (`u8`/`i8`/`bool`)
 // without precision loss, and keeps the C surface to one setter/one getter

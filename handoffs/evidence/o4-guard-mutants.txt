@@ -1,7 +1,7 @@
-O4 guard mutation check: ten one-line breakages of the clock and emission, each in a scratch copy of the workspace (SPEC-0001, WENGE-0004, step 1).
-Run 2026-09-30T09:06Z on parent commit 35d7d14 with the guard tests of this commit. Script: handoffs/evidence/o4-guards/guard_mutants.py
-Result: 10 of 10 caught by at least one guard; G1 alone catches 7 (OM1 to OM5, OM8, OM9); G3 and G2 catch the two G1 is designed not to see (OM6, OM7); G4 catches OM10.
-Two predictions in the script were wrong and are corrected in it: OM3 (f32 accumulator) was expected to survive a 10 s guard and G1 caught it; OM6 (stepping ticks only when due) was expected to be visible to G1 and is not, because at a constant tempo the times are the same.
+O4 guard mutation check: eleven one-line breakages of the clock and emission, each in a scratch copy of the workspace (SPEC-0001, WENGE-0004, step 1).
+Run 2026-09-30T10:29Z on the guards branch (unchanged engine) with the guard tests of this commit, after the independent review. Script: handoffs/evidence/o4-guards/guard_mutants.py
+Result: 11 of 11 caught by at least one guard; G1 alone catches 9 (OM1 to OM5, OM7, OM8, OM9, OM12); G3 and G2 catch OM6 (stepping ticks only when due, which at a constant tempo gives the same times, so G1 cannot see it); G4 catches OM10.
+History: the first run of this script (before the review) had ten mutants and G1 caught 7. The independent review showed that G1 did not assert its mean, so a whole-sample shift (OM5, OM7) passed max and sigma and was caught only by accident; a mean fence (-0.6 to +0.05) was added and OM12 (one sample early) with it. Two predictions in the first script were wrong and are corrected in it: OM3 (an f32 accumulator, expected to survive a 10 s guard) is caught by G1, and OM6 is not visible to G1.
 
 control (the unmodified workspace; every family must pass, or no mutant result means anything)
   G1  pass
@@ -25,17 +25,24 @@ OM4  CAUGHT by G1, G3, G2 (unit tests too): every event is placed at the first s
       G3: a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times, event_order_does_not_depend_on_the_hosts_buffer_size, event_times_do_not_depend_on_the_hosts_buffer_size, event_times_survive_a_host_that_changes_its_buffer_size_on_every_call
       G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
 OM5  CAUGHT by G1, G3, G2 (unit tests too): every event is one sample late
-      G1: g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
       G3: a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times, event_order_does_not_depend_on_the_hosts_buffer_size, event_times_do_not_depend_on_the_hosts_buffer_size, event_times_survive_a_host_that_changes_its_buffer_size_on_every_call
       G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
+      note: before the mean fence was added to G1, its random-buffer test passed this and the fixed-buffer test caught it only by accident (sigma rose at buffers 7 and 64); the mean fence catches it in both
+OM12  CAUGHT by G1, G3, G2 (unit tests too): every event is one sample early (saturating at 0)
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
+      G3: a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times, event_order_does_not_depend_on_the_hosts_buffer_size, event_times_do_not_depend_on_the_hosts_buffer_size, event_times_survive_a_host_that_changes_its_buffer_size_on_every_call
+      G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
+      note: invisible to max and sigma at a whole-sample tick length (max 1.000, sigma 0.000); caught by the mean fence added after the independent review
 OM6  CAUGHT by G3, G2: ticks are stepped only when due, not ahead of the buffer (the behaviour before O3)
       G3: a_host_that_renders_one_sample_at_a_time_gets_the_same_event_times, event_order_does_not_depend_on_the_hosts_buffer_size, event_times_do_not_depend_on_the_hosts_buffer_size, event_times_survive_a_host_that_changes_its_buffer_size_on_every_call
       G2: chords_and_strums, mcc_and_transport, no_golden_pattern_overflows_the_queue_or_runs_late
       note: G1 does not see this: at a constant tempo, stepping only when due gives the same times. Buffer-size dependence is G3's job, and G3 sees it
-OM7  CAUGHT by G3, G2 (unit tests too): Play starts one sample after now
+OM7  CAUGHT by G1, G3, G2 (unit tests too): Play starts one sample after now
+      G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
       G3: a_bad_tempo_costs_nothing_once_the_tempo_is_sane
       G2: chords_and_strums, effector, hello, mcc_and_transport, and 1 more
-      note: G1 does not see a one-sample (about 20 us) offset, by design: it is inside the 1.05-sample fence, which is for drift and spread. G3 and G2 do see it
+      note: invisible to max and sigma (a whole-sample shift keeps both inside their fences); G1 now catches it through the mean fence added after the independent review, and G3 and G2 always did
 OM8  CAUGHT by G1, G3, G2 (unit tests too): Play starts one whole tick late
       G1: g1_constant_tempo_timing_holds_for_random_buffer_sequences, g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size
       G3: a_bad_tempo_costs_nothing_once_the_tempo_is_sane

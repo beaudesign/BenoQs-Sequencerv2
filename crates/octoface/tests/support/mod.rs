@@ -48,8 +48,10 @@ pub fn panel_files() -> (Vec<PathBuf>, Vec<PathBuf>) {
             }
         }
     }
+    let panel_root = repo_root().join("tests/conformance/panel");
     let mut all = Vec::new();
-    walk(&repo_root().join("tests/conformance/panel"), &mut all);
+    walk(&panel_root, &mut all);
     all.sort();
-    all.into_iter().partition(|p| !p.components().any(|c| c.as_os_str() == "pending"))
+    // `pending` is a directory below the panel root, not anywhere in the absolute path.
+    all.into_iter().partition(|p| !p.strip_prefix(&panel_root).unwrap_or(p).components().any(|c| c.as_os_str() == "pending"))
 }

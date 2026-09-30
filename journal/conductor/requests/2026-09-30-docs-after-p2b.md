@@ -19,4 +19,4 @@ These lines still call them planned:
 Facts to use, all in `tests/conformance/panel/QUESTIONS.md` and `adr/0007-…`: the numbering scheme
 (Q01 to Q20 are `findings.md` section 6, Q21 onward are in `QUESTIONS.md`), the fixture format, the gate's
 new metrics (`conformance.panel_runner_passed`, `conformance.pending_fixtures`,
-`conformance.pending_fixtures_malformed`), and the baseline (385 assertions after P2b).
+`conformance.panel_files_malformed`), and the baseline (385 assertions after P2b).

@@ -64,8 +64,9 @@ fn every_panel_fixture_is_cited_to_a_manual_page() {
 
 #[test]
 fn a_pending_fixture_names_its_ambiguity_and_question_and_asserts_nothing() {
+    // No assertion that the list is non-empty: closing the last open question empties it, and the
+    // walk is shown to work by the asserting fixtures below and by the runner.
     let (_, pending) = panel_files();
-    assert!(!pending.is_empty(), "the pending list is empty: is the walk broken?");
     let mut bad = Vec::new();
     for p in &pending {
         let text = std::fs::read_to_string(p).unwrap();

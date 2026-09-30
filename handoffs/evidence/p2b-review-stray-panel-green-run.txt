@@ -1,0 +1,22 @@
+# P2b review fix: green run and mutation run of the xtask change.
+# cargo test -p xtask: 89 run, 89 pass. 15 hand-made breakages of the panel rules, the pending scan, the stray-file rule
+# and the walker: all caught (the review fix added four: stray files tolerated, tutorial cites rejected, stray files counted,
+# and the walker rule for .panel).
+
+CAUGHT panel files not counted on disk 3
+CAUGHT runner failing counts as passed 1
+CAUGHT runner missing tolerated 1
+CAUGHT malformed metric loosened 1
+CAUGHT walker drops .panel 2
+CAUGHT every dir is pending 3
+CAUGHT question format loosened 1
+CAUGHT page format loosened 2
+CAUGHT script lines allowed 2
+CAUGHT empty pending sentence allowed 1
+CAUGHT any extension is a fixture 2
+CAUGHT stray panel files tolerated 2
+CAUGHT tutorial cites rejected 1
+CAUGHT stray panel files counted as fixtures 1
+CAUGHT pending problems ignored 1
+
+test result: ok. 89 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s

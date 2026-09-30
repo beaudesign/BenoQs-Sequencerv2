@@ -35,8 +35,10 @@ fn headers<'a>(text: &'a str, key: &str) -> Vec<&'a str> {
         .collect()
 }
 
+/// A manual page (`p013`) or a page of the bundled 2007 tutorials (`T05`).
 fn is_page(word: &str) -> bool {
-    word.len() == 4 && word.starts_with('p') && word[1..].bytes().all(|b| b.is_ascii_digit())
+    let digits = |w: &str| w.bytes().all(|b| b.is_ascii_digit());
+    (word.len() == 4 && word.starts_with('p') && digits(&word[1..])) || (word.len() == 3 && word.starts_with('T') && digits(&word[1..]))
 }
 
 fn is_question(word: &str) -> bool {
@@ -77,8 +79,18 @@ pub fn header_problems(text: &str) -> Vec<String> {
     out
 }
 
-/// Read every pending panel fixture under `<root>/tests/conformance`: a `.panel` file at any depth
-/// below a directory named `pending`. Paths are repo-relative with forward slashes, sorted.
+/// Where panel fixtures live, and the only place the runner (`crates/octoface/tests/panel_fixtures.rs`) reads.
+const PANEL_DIR: &str = "tests/conformance/panel/";
+
+/// Read every `.panel` file under `<root>/tests/conformance` that does not assert. Paths are
+/// repo-relative with forward slashes, sorted.
+///
+/// - Below a directory named `pending` inside `tests/conformance/panel/`: a pending fixture. It is listed
+///   in `pending` and its headers are checked.
+/// - Anywhere else outside `tests/conformance/panel/` (another directory, or the engine's own `pending/`):
+///   a problem. Nothing runs such a file, so counting it would be an assertion that never ran.
+/// - Elsewhere in `tests/conformance/panel/`: an asserting fixture. The walker in `main.rs` counts it and
+///   the runner runs it; there is nothing to say here.
 pub fn scan(root: &Path) -> PanelScan {
     fn walk(dir: &Path, in_pending: bool, root: &Path, out: &mut PanelScan) {
         let Ok(rd) = std::fs::read_dir(dir) else { return };
@@ -88,18 +100,22 @@ pub fn scan(root: &Path) -> PanelScan {
             if path.is_dir() {
                 let pending = in_pending || path.file_name().is_some_and(|n| n == "pending");
                 walk(&path, pending, root, out);
-            } else if in_pending && path.extension().is_some_and(|e| e == "panel") {
+            } else if path.extension().is_some_and(|e| e == "panel") {
                 let Ok(rel) = path.strip_prefix(root) else { continue };
                 let rel = rel.to_string_lossy().replace('\\', "/");
-                match std::fs::read_to_string(&path) {
-                    Ok(text) => {
-                        for p in header_problems(&text) {
-                            out.problems.push((rel.clone(), p));
+                if !rel.starts_with(PANEL_DIR) {
+                    out.problems.push((rel, format!("a panel fixture outside {PANEL_DIR} is run by nothing; move it there")));
+                } else if in_pending {
+                    match std::fs::read_to_string(&path) {
+                        Ok(text) => {
+                            for p in header_problems(&text) {
+                                out.problems.push((rel.clone(), p));
+                            }
                         }
+                        Err(e) => out.problems.push((rel.clone(), format!("unreadable: {e}"))),
                     }
-                    Err(e) => out.problems.push((rel.clone(), format!("unreadable: {e}"))),
+                    out.pending.push(rel);
                 }
-                out.pending.push(rel);
             }
         }
     }

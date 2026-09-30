@@ -23,7 +23,8 @@ just baseline                      # record new tests as the new floor (never dr
    any exist, the octoface `panel_fixtures` binary and its `all_panel_fixtures_pass` test must have run
    and passed. Fixtures in a `pending/` directory assert nothing; the gate reports how many there are
    (`conformance.pending_fixtures`, never floored) and fails one that lacks its `# pending:`, `# manual:`
-   or `# question:` header or holds script lines.
+   or `# question:` header or holds script lines. A `.panel` file outside `tests/conformance/panel/` is
+   not counted (the runner does not read it) and fails the gate (`conformance.panel_files_malformed`).
 3. Writes `harness/report/latest.json` (schema `verification.report/1`) and
    `harness/report/cargo-test.log`. Both are git-ignored. CI uploads them.
 4. Prints a table, then exits **0 only if** no gate failed **and** every gate listed in

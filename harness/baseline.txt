@@ -301,10 +301,14 @@ test xtask::json::tests::empty_containers_are_compact
 test xtask::json::tests::escapes_quotes_backslashes_and_control_chars
 test xtask::json::tests::nested_structure_is_indented_two_spaces
 test xtask::json::tests::non_finite_numbers_never_produce_invalid_json
+test xtask::panel::tests::a_panel_file_in_the_engine_pending_directory_is_a_problem_too
+test xtask::panel::tests::a_panel_file_in_the_panel_directory_is_not_a_problem_when_it_asserts
+test xtask::panel::tests::a_panel_file_outside_the_panel_directory_is_a_problem_because_nothing_runs_it
 test xtask::panel::tests::a_pending_fixture_that_asserts_is_a_problem
 test xtask::panel::tests::a_pending_fixture_with_its_three_headers_is_well_formed
 test xtask::panel::tests::an_empty_header_counts_as_missing
 test xtask::panel::tests::each_missing_header_is_named
+test xtask::panel::tests::the_manual_header_accepts_a_tutorial_page
 test xtask::panel::tests::the_manual_header_needs_a_page_number_and_the_question_a_q_number
 test xtask::panel::tests::the_scan_ignores_files_that_are_not_panel_fixtures_and_fixtures_that_are_not_pending
 test xtask::panel::tests::the_scan_reads_the_real_pending_directory_and_finds_it_clean
@@ -333,6 +337,7 @@ test xtask::scope::tests::the_real_lists_meet_the_floor_and_the_allow_list_cover
 test xtask::scope::tests::the_same_file_under_an_allow_listed_prefix_passes
 test xtask::scope::tests::the_shared_project_state_name_and_the_concurrency_crate_are_not_banned
 test xtask::scope::tests::whole_words_only
+test xtask::tests::a_panel_file_outside_the_panel_directory_is_not_counted_as_a_fixture
 test xtask::tests::a_removal_needs_an_adr
 test xtask::tests::adr_ids_must_be_well_formed_and_exist
 test xtask::tests::every_required_gate_can_be_run_on_its_own

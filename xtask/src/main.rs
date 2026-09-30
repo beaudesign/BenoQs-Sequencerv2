@@ -159,7 +159,13 @@ fn conformance_fixtures(root: &Path) -> BTreeSet<String> {
                 walk(&path, root, out);
             } else if path.extension().is_some_and(|e| e == "fixture" || e == "panel") {
                 if let Ok(rel) = path.strip_prefix(root) {
-                    out.insert(rel.to_string_lossy().replace('\\', "/"));
+                    let rel = rel.to_string_lossy().replace('\\', "/");
+                    // A `.panel` file counts only where the panel runner reads. A stray one is a
+                    // problem for `panel::scan`, not an assertion.
+                    if path.extension().is_some_and(|e| e == "panel") && !rel.starts_with("tests/conformance/panel/") {
+                        continue;
+                    }
+                    out.insert(rel);
                 }
             }
         }

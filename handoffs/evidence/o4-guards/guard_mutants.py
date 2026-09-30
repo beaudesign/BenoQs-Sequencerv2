@@ -58,7 +58,11 @@ MUTANTS = [
     ("OM5", ENGINE, "every event is one sample late",
      "let at_sample = (top.due_sample - buffer_start).max(0.0) as u32;",
      "let at_sample = (top.due_sample - buffer_start).max(0.0) as u32 + 1;",
-     True, ""),
+     True, "before the mean fence was added to G1, its random-buffer test passed this and the fixed-buffer test caught it only by accident (sigma rose at buffers 7 and 64); the mean fence catches it in both"),
+    ("OM12", ENGINE, "every event is one sample early (saturating at 0)",
+     "let at_sample = (top.due_sample - buffer_start).max(0.0) as u32;",
+     "let at_sample = ((top.due_sample - buffer_start).max(0.0) as u32).saturating_sub(1);",
+     True, "invisible to max and sigma at a whole-sample tick length (max 1.000, sigma 0.000); caught by the mean fence added after the independent review"),
     ("OM6", ENGINE, "ticks are stepped only when due, not ahead of the buffer (the behaviour before O3)",
      "let horizon = chunk_end + MAX_EARLY_TICKS as f64 * spt;",
      "let horizon = chunk_end;",
@@ -66,7 +70,7 @@ MUTANTS = [
     ("OM7", ENGINE, "Play starts one sample after now",
      "            self.next_tick_due = self.sample_clock;\n",
      "            self.next_tick_due = self.sample_clock + 1.0;\n",
-     False, "G1 does not see a one-sample (about 20 us) offset, by design: it is inside the 1.05-sample fence, which is for drift and spread. G3 and G2 do see it"),
+     True, "invisible to max and sigma (a whole-sample shift keeps both inside their fences); G1 now catches it through the mean fence added after the independent review, and G3 and G2 always did"),
     ("OM8", ENGINE, "Play starts one whole tick late",
      "            self.next_tick_due = self.sample_clock;\n",
      "            self.next_tick_due = self.sample_clock + 125.0;\n",
@@ -79,16 +83,10 @@ MUTANTS = [
      "    fn render_core(&mut self, ctx: &RenderContext, out: &mut EventBuffer) {\n",
      "    fn render_core(&mut self, ctx: &RenderContext, out: &mut EventBuffer) {\n        std::hint::black_box(Vec::<u8>::with_capacity(8));\n",
      True, ""),
-    ("OM11", ENGINE, "the tempo the engine follows is the one from the previous render call",
-     "        let spt = samples_per_tick(ctx.sample_rate, ctx.bpm);\n        if self.running && spt.is_none() {",
-     "        let spt = samples_per_tick(ctx.sample_rate, if self.next_tick_due == 0.0 { ctx.bpm } else { ctx.bpm });\n        if self.running && spt.is_none() {",
-     False, "placeholder replaced below"),
 ]
 
-# OM11 is dropped: a stale tempo needs state the engine does not keep, and at a constant tempo it is invisible to any
-# constant-tempo guard by definition. That is a ramp property, tested by R4 to R6 in PR 4b. It stays listed as a
-# documented non-target rather than a fake mutant.
-MUTANTS = [m for m in MUTANTS if m[0] != "OM11"]
+# Not a mutant: "the engine follows the tempo of the previous call". At a constant tempo it is invisible to
+# any constant-tempo guard by definition. That is a ramp property, tested by R4 to R6 in PR 4b.
 
 SKIP_DIRS = {"target", ".git", "reference"}
 

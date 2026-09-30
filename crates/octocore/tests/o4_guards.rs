@@ -71,13 +71,23 @@ fn check_constant_tempo(label: &str, host: &NullHost, bpm: f32, sample_rate: f32
     if us(dev.max_abs) > 500.0 {
         problems.push(format!("max {:.1} us is over the docs/03 target of 500 us", us(dev.max_abs)));
     }
-    // The tighter fence (plan section 3): today's engine sits at 1.02 samples and sigma 0.29,
-    // and a 500 us target is 24 samples, which could hide a real regression.
+    // The tighter fence (plan section 3): today's engine sits at 0.995 samples and sigma 0.289
+    // over these runs, and a 500 us target is 24 samples, which could hide a real regression.
+    // The pairs, lengths and seeds are fixed, so this is deterministic; a run of another length
+    // or tempo has to be measured again before it is held to 0.3 (for a short run the estimate of
+    // sigma is itself noisy: an independent review saw 0.324 from a correct engine at 3 s).
     if dev.max_abs > 1.05 {
         problems.push(format!("max {:.3} samples is over 1.05", dev.max_abs));
     }
     if dev.sigma > 0.3 {
         problems.push(format!("sigma {:.3} samples is over 0.3", dev.sigma));
+    }
+    // The mean: emitting whole samples by taking the floor puts every note 0 to 1 samples early,
+    // -0.5 on average where a tick is not a whole number of samples and 0 where it is. A shift of a
+    // whole sample in either direction moves the mean by 1 and leaves max and sigma inside their
+    // fences (an independent review showed max 1.000, sigma 0.000 for a +1 shift at 120 BPM).
+    if !(-0.6..=0.05).contains(&dev.mean) {
+        problems.push(format!("mean {:+.3} samples is outside -0.6 to +0.05", dev.mean));
     }
     if (d.late_events, d.queue_overflows, d.deferred_events, d.unusable_tempo_renders) != (0, 0, 0, 0) {
         problems.push(format!("the engine refused, deferred or delayed events: {d:?}"));

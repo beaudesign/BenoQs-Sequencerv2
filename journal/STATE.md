@@ -140,6 +140,32 @@ to 8, and answers D0 and D1; (2) Scribe, Referee and Conductor work through `jou
 03, the loom gate and an ARM soak, the `AGENTS.md` crate table); (3) if O4 is approved, the guard
 tests and the null host first, then 4a; if D0 says fix the tick, `WENGE-0012` gets a spec before 4b.
 
+## SPEC-0002 (2026-09-30, draft, not approved): a web sequencer, and the rooms removed
+
+The owner named the v5.30 release notes, reference manual and the "basic navigation" blog post as
+the feature and UI direction, said a "world model" (Genie-style rooms) project had slipped in, and
+asked for a plan to remove it and keep the product a web app with live MIDI, external instruments
+and Ableton. `specs/SPEC-0002/` is the draft (PR from `conductor/spec-0002-web-sequencer`).
+**Nothing is removed or built, and no contract, threshold or `SPEC.md` has changed.**
+
+- **Finding:** the engine has no front panel. Button and encoder commands are ignored and no LED
+  is written, so the manual's roughly 140 workflows exist nowhere. MIDI is output only. The WASM
+  build already exists (`just wasm-smoke`).
+- **Proposed:** `crates/octoface` (panel controller with fixtures per workflow), `contracts/
+  controls.json`, a static web app on Web MIDI, Ableton by virtual MIDI first and a Max for Live
+  spike second; a `verify:scope` gate so the rooms cannot return; waves 1 to 5.
+- **Owner decisions:** D1 to D9 in the README, defaults stated. Hardware questions: `tech.md`
+  section 9. D0 (tick length) is still open.
+- **"World model" here means two things.** The factory's shared state (this file, `just report`)
+  keeps its name; the rooms project is what would be removed.
+- **Request:** the Scribe fixes `reference/manual/INDEX.md` (MIDI is pages 93 and 94, not 109 to
+  112); `journal/conductor/requests/2026-09-30-fix-manual-index.md`.
+- **#14 and #16** are unaffected and can merge on their own merits. O4 4b waits for D0.
+
+**Next three steps:** (1) owner answers D1 to D9; (2) if approved, P0 (ADR-0006 and the `SPEC.md`
+banner, documents only) then P1 (the scope gate red first, then removals); (3) hardware answers
+before Wave 1 ends.
+
 ## Fan-out
 
 What can proceed without Xcode or real photography: attribute-map-factor

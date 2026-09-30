@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted. Supersedes ADR-0001.
+Accepted. Supersedes ADR-0001. Superseded in part by ADR-0006 (2026-09-30): the room product it
+adopted is removed; the lifecycle and the archive decision stand.
 
 ## Context
 

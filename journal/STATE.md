@@ -117,7 +117,7 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   `octocore`. Loom models plus mutation scripts; two `AcqRel` orderings are reasoned, not tested
   (needs an ARM soak).
 - **O4 (integer tick clock and host lock) plan approved with all defaults in r3 (2026-09-30):**
-  build as PRs 4a, 4b, 4c in order. **Built and open for review:** step 1 (#14: the null host and
+  build as PRs 4a, 4b, 4c in order. **Built and merged (2026-09-30):** step 1 (#14: the null host and
   guards G1 to G5, no engine change; worst G1 deviation 0.995 samples; eleven breakages of the clock
   each caught, G1 fencing the mean as well) and **PR 4a (#16: integer step accumulators, medium tier)**: 49 of 159 multipliers fired
   a step one tick late, now none, at any tick count and through changes of multiplier; goldens
@@ -133,8 +133,8 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   #16; the evidence checks "no engine change" against the branch point for that reason). The stacked branches (`conductor/octorun`, `metronome/queue-headroom`,
   `metronome/command-ring`, `conductor/o4-release-plan`, `conductor/land-stack`,
   `conductor/factory-layer`, `referee/ratchet`, `metronome/transport-safety`,
-  `metronome/timing-and-emission`) can be deleted. #14 and #16 are both based on `main`, not on each
-  other (#16 carries #14's commits): there is no stack to trap.
+  `metronome/timing-and-emission`) can be deleted. #14, #16, #17 (the SPEC-0002 draft), #18 (the babysit skill) and #19 (the owner's prune of
+  the triple-buffer accessors) have since merged into `main`.
 - **Owner-only:** branch protection and required Code Owner review (make the `verify` check
   required); the `jsonschema` dev-dependency (about 100 lockfile entries).
 - **Known limits:** the 256-events-per-call cap binds above about 4,096 samples on dense
@@ -144,36 +144,37 @@ Owner approved phases F0 and F1 ("Okay build the spec"). Full record in
   times too short against the manual (D0, `WENGE-0012`)**; legato (manual p.16) and live `midir`
   output are not done.
 
-**Next three steps:** (1) the owner reviews #14 and #16 and answers D0; (2) Scribe, Referee and Conductor work through `journal/metronome/requests/` (docs 02 and
+**Next three steps:** (1) the owner answers D0; (2) Scribe, Referee and Conductor work through `journal/metronome/requests/` (docs 02 and
 03, the loom gate and an ARM soak, the `AGENTS.md` crate table, the `verify:timing` gate calling
 `g1_*`); (3) 4b does not start before D0, and if D0 says fix the tick, `WENGE-0012` gets a spec first;
 the D3 ADR before 4b or 4c merges.
 
-## SPEC-0002 (2026-09-30, draft, not approved): a web sequencer, and the rooms removed
+## SPEC-0002 (2026-09-30, approved r1): a web sequencer, and the rooms scope removed
 
 The owner named the v5.30 release notes, reference manual and the "basic navigation" blog post as
 the feature and UI direction, said a "world model" (Genie-style rooms) project had slipped in, and
-asked for a plan to remove it and keep the product a web app with live MIDI, external instruments
-and Ableton. `specs/SPEC-0002/` is the draft (PR from `conductor/spec-0002-web-sequencer`).
-**Nothing is removed or built, and no contract, threshold or `SPEC.md` has changed.**
+asked to remove it and keep the product a web app with live MIDI, external instruments and
+Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all defaults apply**
+(record in `specs/SPEC-0002/README.md`; ADR-0006). D0, the tick length, is still open.
 
 - **Finding:** the engine has no front panel. Button and encoder commands are ignored and no LED
   is written, so the manual's roughly 140 workflows exist nowhere. MIDI is output only. The WASM
   build already exists (`just wasm-smoke`).
-- **Proposed:** `crates/octoface` (panel controller with fixtures per workflow), `contracts/
-  controls.json`, a static web app on Web MIDI, Ableton by virtual MIDI first and a Max for Live
-  spike second; a `verify:scope` gate so the rooms cannot return; waves 1 to 5.
-- **Owner decisions:** D1 to D9 in the README, defaults stated. Hardware questions: `tech.md`
-  section 9. D0 (tick length) is still open.
+- **Series:** P0 (ADR-0006, the `SPEC.md` banner, the approval record) and P1 (the `scope` gate
+  red first, then the removals) are two pull requests. **P2 to P5 (`octoface`, `controls.json`,
+  the web app, MIDI) do not start until P0 and P1 have merged.**
+- **Until P1 merges,** the tree still contains the rooms scope (`octoroom`, `docs/06`, the
+  Sceneshaper and Loom roles, the `acoustics` gate). It is not the product, and nothing new
+  builds on it.
 - **"World model" here means two things.** The factory's shared state (this file, `just report`)
-  keeps its name; the rooms project is what would be removed.
+  keeps its name; the rooms project is what is removed.
 - **Request:** the Scribe fixes `reference/manual/INDEX.md` (MIDI is pages 93 and 94, not 109 to
   112); `journal/conductor/requests/2026-09-30-fix-manual-index.md`.
-- **#14 and #16** are unaffected and can merge on their own merits. O4 4b waits for D0.
+- **Hardware questions** (`tech.md` section 9) need someone with an Octopus before Wave 1 ends.
 
-**Next three steps:** (1) owner answers D1 to D9; (2) if approved, P0 (ADR-0006 and the `SPEC.md`
-banner, documents only) then P1 (the scope gate red first, then removals); (3) hardware answers
-before Wave 1 ends.
+**Next three steps:** (1) the owner reviews and merges P0, then P1; (2) P2: `contracts/controls.json`
+and the panel fixture format, the first five workflows red first; (3) P3: the static web app loads
+the WASM engine and plays to one Web MIDI output, with spikes S1 and S2 recorded.
 
 ## Fan-out
 

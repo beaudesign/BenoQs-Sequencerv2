@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0002 |
-| Revision | r0, draft, 2026-09-30 |
-| Stage | **Draft for the owner. Not approved. Nothing has been removed, changed or built.** |
+| Revision | r1, approved with all defaults, 2026-09-30 15:06 (r0 was the draft) |
+| Stage | **Approved by the owner (see the approval record). P0 and P1 are the first two pull requests. Nothing has been removed or built until they merge.** |
 | Risk tier | High. It reverses closed decisions in `docs/10-risks-and-decisions.md` section 3 (native app, analytic ray tracing, VST3/AU) and supersedes most of `SPEC.md`. |
 | Owner and approver | `@beaudesign` |
 | Audited commit | `fcf1aec` (`main`) |
@@ -71,7 +71,7 @@ Details and evidence are in `findings.md`.
 
 ## Decisions for the owner
 
-Defaults apply if you say "approve, all defaults", as in SPEC-0001.
+Defaults apply if you say "approve, all defaults", as in SPEC-0001. **Answered in r1: all defaults apply** (approval record).
 
 | # | Decision | Default | Alternatives |
 |---|---|---|---|
@@ -87,8 +87,8 @@ Defaults apply if you say "approve, all defaults", as in SPEC-0001.
 
 ## Series after approval
 
-Each is its own pull request, tier and gate numbers stated in the commit. Nothing starts before
-the approval record below is filled in.
+Each is its own pull request, tier and gate numbers stated in the commit. The approval record
+below was filled in on 2026-09-30; the agent merges nothing.
 
 | PR | What | Tier |
 |---|---|---|
@@ -121,5 +121,25 @@ the approval record below is filled in.
 
 ## Approval record
 
-None yet. When the owner answers, record the date, the exact words, and what they approve and
-do not approve, as SPEC-0001 does. The agent merges nothing.
+**r1, 2026-09-30, 15:06 (Europe/Paris).** The owner had been asked to answer D1 to D9 or to say
+"approve, all defaults". The owner replied **"Approve"**. The agent reads that as the second
+option, because it answers that question and names no change to a default. Chat is not a
+source of truth, so the reading is written down here. If it is wrong, say so and this record is
+revised. The record of what r1 covers:
+
+| Item | What is approved | What is not |
+|---|---|---|
+| D1 the refocus | A web sequencer first; the rooms scope removed; `SPEC.md` superseded in part by ADR-0006 | Merging. The agent never merges |
+| D2 Ableton | Tier 1 (virtual MIDI port, Live's clock) first. Tier 2 (Max for Live, `jweb`) only as timing spike S4 | Tier 2 as a deliverable; Tier 3 |
+| D3 panel visuals | A faithful layout drawn in SVG or Canvas, LEDs as the only colour, no probe, no room | A photoreal WebGL panel |
+| D4 browsers | Chrome, Edge and Opera; Firefox best effort; Safari and iOS without MIDI | A native helper for Safari |
+| D5 `octoffi` and O6 | Frozen: no new work, the tests stay | Deleting them |
+| D6 crate name | `crates/octoface` | |
+| D7 tick length | Unchanged. **D0 is still open** and the owner has not decided it | Any change to the engine's tick. O4 step 4b still does not start until the owner answers D0 |
+| D8 the constitution | Rewrite `agents/CLAUDE.md` (which `CLAUDE.md` links to), the `AGENTS.md` crate table and the nine things, by the Conductor in the removal PR (P1) | Rewriting rules 1, 2, 3, 8 and 9 or the rule that matters most. They are process rules and stay word for word. Rules 4 to 7 (gradient, easing, colour, photography) are reworded to D3 |
+| D9 the scope gate | The banned list in `removal-plan.md` section 5 | A wider list without a revision |
+| Series | P0 (ADR-0006, banner, this record) and P1 (the scope gate red first, then the removals) as two pull requests | P2 to P5 are approved as a series but **do not start until P0 and P1 have merged**, so no pull request is stacked on another (the trap in `.claude/skills/babysit/SKILL.md`) |
+
+Anything the owner did not answer with this reply is still not approved. The spec's own open
+hardware questions (`tech.md` section 9) are not answered by an approval; they need a person with
+an Octopus.

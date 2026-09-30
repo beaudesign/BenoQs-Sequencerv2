@@ -47,9 +47,9 @@ waves are in `docs/09-roadmap.md`, the task lifecycle in `AGENTS.md`.
   anything: the web panel takes its layout from a control inventory built from the manual
   (`contracts/controls.json`, planned, P2), not from photographs. Request to the Panelwright to
   reword `reference/NOTES.md` is filed.
-- `contracts/panel.truth.schema.json` and `motion.registry.schema.json` remain until P2, when
-  ADR authority to retire them is needed (ADR-0006 authorises no other contract change).
-  `apps/` has no scaffolds left; `apps/web` arrives with P3.
+- `contracts/panel.truth.schema.json` and `motion.registry.schema.json` remain until ADR-0007
+  (P2a, in review) is merged; P2b then moves them to `archive/native-panel/contracts/` and adds
+  `controls.json`. `apps/` has no scaffolds left; `apps/web` arrives with P3.
 
 ## `crates/octocore`: real, tested, manual-corrected, still growing
 
@@ -148,15 +148,19 @@ Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all
 - **Finding:** the engine has no front panel. Button and encoder commands are ignored and no LED
   is written, so the manual's roughly 140 workflows exist nowhere. MIDI is output only. The WASM
   build already exists (`just wasm-smoke`).
-- **Series:** P0 (ADR-0006, the `SPEC.md` banner, the approval record) and P1 (the `scope` gate
-  red first, then the removals) are two pull requests. **P2 to P5 (`octoface`, `controls.json`,
-  the web app, MIDI) do not start until P0 and P1 have merged.**
-- **P0 is #20 (draft) and P1 is the branch `conductor/remove-rooms-scope`.** P1 contains P0's
-  commit, so merge #20 first. P1 removes `octoroom`, `apps/OctoShell`, the scaffolds of the native
-  path, `docs/06` (`docs/01` and `docs/04` moved to `archive/native-panel/`), the gates `acoustics`,
-  `geometry`, `color`, `frames`, `motion`; adds the `scope` gate; rewrites `SPEC.md`,
-  `agents/CLAUDE.md` (rules 4 to 7), the roles and the docs. Ten `octoroom` tests left the baseline
-  by `--remove ... --adr ADR-0006`; assertions 313 -> 303 -> 310 (299 tests, 11 fixtures).
+- **Series:** P0 (ADR-0006, the `SPEC.md` banner, the approval record: #20) and P1 (the `scope` gate
+  red first, then the removals: #21) are **merged** by the owner. P1 removed `octoroom`,
+  `apps/OctoShell`, the native-path scaffolds, `docs/06` (`docs/01` and `docs/04` moved to
+  `archive/native-panel/`), the gates `acoustics`, `geometry`, `color`, `frames`, `motion`; added
+  the `scope` gate; rewrote `SPEC.md`, `agents/CLAUDE.md` (rules 4 to 7), the roles and the docs.
+  Ten `octoroom` tests left the baseline by `--remove ... --adr ADR-0006`; assertions now 310
+  (299 tests, 11 fixtures).
+- **P2 is two pull requests, as P0 and P1 were.** P2a is ADR-0007 (branch `conductor/p2-controls-adr`,
+  documents only): `controls.json` is a contract and `ControlId` is its `n`; the photoreal and
+  motion schemas are retired; `findings` in the report schema is corrected; panel fixtures are
+  `.panel` files beside the engine's; `octoface` has no runtime dependencies. P2b (next) builds it
+  and contains P2a's commit, so merge P2a first. AGENTS.md puts `contracts/**` in the High tier, so
+  P2 is High, not the Medium the README gave it.
 - **Open finding:** `BANK_COUNT` is 10 in `octocore`, while the manual reads as 9 banks of 16
   pages (`specs/SPEC-0002/product.md`). Not changed here; a Metronome question for P2.
 - **"World model" here means two things.** The factory's shared state (this file, `just report`)
@@ -165,13 +169,15 @@ Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all
   112); `journal/conductor/requests/2026-09-30-fix-manual-index.md`.
 - **Hardware questions** (`tech.md` section 9) need someone with an Octopus before Wave 1 ends.
 
-**Next three steps:** (1) the owner reviews and merges P0, then P1; (2) P2: `contracts/controls.json`
-and the panel fixture format, the first five workflows red first; (3) P3: the static web app loads
-the WASM engine and plays to one Web MIDI output, with spikes S1 and S2 recorded.
+**Next three steps:** (1) the owner reviews and merges P2a (ADR-0007); (2) P2b: `controls.json` and
+its schema, `crates/octoface` and the first five workflows (Page mode step toggle, Step zoom, ESC,
+EDIT cycle, the PLAY LED) red first, with the panel fixture runner and the `conformance` gate
+counting pending fixtures; (3) P3: the static web app loads the WASM engine and plays to one Web MIDI
+output, with spikes S1 and S2 recorded.
 
 ## Fan-out
 
-Nothing is live except P1 in review. After P0 and P1 merge: P2 (`contracts/controls.json` by ADR,
-the panel fixture format, `crates/octoface`, the first five workflows red first). What can proceed
-in the engine meanwhile: attribute-map-factor step events (p.34-37). D0 (the tick) blocks O4
-step 4b, and everything touching the panel waits for `controls.json`. `octoffi` is frozen.
+Live: P2a (ADR-0007) in review, and P2b, which carries P2a's commit (merge P2a first). What can
+proceed in the engine meanwhile:
+attribute-map-factor step events (p.34-37). D0 (the tick) blocks O4 step 4b, and everything touching
+the panel waits for `controls.json`. `octoffi` is frozen.

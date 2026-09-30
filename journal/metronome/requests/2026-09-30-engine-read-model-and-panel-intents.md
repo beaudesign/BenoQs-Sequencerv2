@@ -29,11 +29,16 @@ if the hyped track's steps should show it too.
 If the engine gets these, the natural shape is `Command` variants, and the controller switches from
 `intents` to `commands` in one place. Nothing is urgent: P3 needs them only for PLAY mode and preview.
 
-## 3. A fact that disagrees
+## 3. Two facts that disagree
 
-The engine boots in `Mode::Grid` (`Engine::new`, `snapshot.rs`). The panel's first view is Page (p013,
+**Boot mode.** The engine boots in `Mode::Grid` (`Engine::new`, `snapshot.rs`). The panel's first view is Page (p013,
 p014). The controller sends `SetMode` on each transition, so the two disagree until the first one. Either the
 engine boots in `Page`, or the controller is told the engine's mode at start. Your call. Nothing asserts it yet.
+
+**Bank count.** `BANK_COUNT` is 10 in `domain.rs` (line 11). The manual's Grid is 9 banks (numbered 1 to 9,
+lettered A to I) of 16 pages, with row 0 as the control row (p079, p103; `specs/SPEC-0002/sources/`). This is
+the open finding already in `journal/STATE.md`. The controller does not depend on it; the panel has one
+selector per bank, so the number will matter in P3.
 
 ## 4. Stale comments
 

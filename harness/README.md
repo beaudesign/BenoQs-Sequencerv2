@@ -19,6 +19,11 @@ just baseline                      # record new tests as the new floor (never dr
 1. Runs `cargo test --workspace --no-fail-fast` once and parses the result by test name.
 2. Evaluates every gate in `contracts/verification.report.schema.json`. Four gates exist
    today (`conformance`, `regressions`, `determinism`, `scope`). The other six report `not_implemented`.
+   `conformance` also covers the panel fixtures (`tests/conformance/panel/**/*.panel`, ADR-0007): when
+   any exist, the octoface `panel_fixtures` binary and its `all_panel_fixtures_pass` test must have run
+   and passed. Fixtures in a `pending/` directory assert nothing; the gate reports how many there are
+   (`conformance.pending_fixtures`, never floored) and fails one that lacks its `# pending:`, `# manual:`
+   or `# question:` header or holds script lines.
 3. Writes `harness/report/latest.json` (schema `verification.report/1`) and
    `harness/report/cargo-test.log`. Both are git-ignored. CI uploads them.
 4. Prints a table, then exits **0 only if** no gate failed **and** every gate listed in

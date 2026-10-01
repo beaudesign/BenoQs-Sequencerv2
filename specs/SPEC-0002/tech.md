@@ -68,8 +68,10 @@ side turns that into a MIDI timestamp:
 3. It sends each event with `MIDIOutput.send(data, timestamp)`, at least a lookahead `L` early,
    so the timestamp is in the future. A timestamp of zero or in the past means "now", and
    several sends with one timestamp keep their order [W3C].
-4. On Stop it calls `MIDIOutput.clear()` to drop anything queued but not yet sent, then sends
-   ALL NOTES OFF [W3C, p094].
+4. On Stop it sends the engine's flush (a Note Off for each sounding note, and ALL NOTES OFF) [p094],
+   stamped after anything already queued. It does not call `MIDIOutput.clear()`: Chromium has none, and
+   where it exists it drops Note Offs that were already counted as sent. Changed by ADR-0008
+   amendment 1 (2026-10-01); the first approved text called `clear()` here.
 
 `L` is a tunable, default 30 ms, set by spike S1. It costs command latency, as the engine's
 existing 12-tick lookahead does; the two add and must be reported together.

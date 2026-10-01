@@ -185,4 +185,39 @@ carried P2a's. Merge in order. The agent merges none of them.
 
 ## Amendments
 
-None yet.
+### Amendment 1 (2026-10-01, Conductor, found in P3b): Stop does not call `MIDIOutput.clear()`
+
+Decision 5 kept the scheme in `specs/SPEC-0002/tech.md` section 3, whose step 4 says that on Stop the
+page calls `MIDIOutput.clear()` and then sends ALL NOTES OFF. P3b's property test for observable E3
+(after Stop the receiver holds no note) failed that scheme in 6 of 8 generated cases, for two reasons:
+
+1. **`clear()` leaves notes on.** It drops everything queued and not yet sent, including Note Offs the
+   engine has already counted as sent. The engine's flush then covers only the notes it still thinks
+   are sounding, so those notes stay on at a receiver that does not honour CC 123 (ALL NOTES OFF).
+   The trace is in `handoffs/evidence/p3b-ts-red-run.txt` (seed 1148: two Note Offs queued 17 ms
+   ahead are cleared, two notes stay on).
+2. **Chromium does not implement it.** In Chromium 141 `MIDIOutput.prototype` has `send` and nothing
+   else (`handoffs/evidence/p3-browser-probe/midioutput-probe.txt`). The step could not run in the
+   browser the product targets first.
+
+What replaces it, in `apps/web/src/midi-out.ts`:
+
+- `clear()` is never called.
+- Timestamps given to one output never go backwards (within a 50 ms window, beyond which the clocks
+  are taken to have jumped and the new time is believed). The page re-reads the audio-to-page clock
+  map for each batch and it moves by a millisecond or two; an output delivers by timestamp, so a flush
+  Note Off one sample after a Note On could otherwise be stamped before it and the note would stay on.
+
+Stop then works like this: what the page has already queued plays out, at most one lookahead `L` plus
+the clock jitter (30 ms by default), and the engine's flush (a Note Off for every sounding note, then CC 123,
+ALL NOTES OFF) is stamped after it. **The cost is up to `L` of notes after the Stop key. The Stop
+command itself is not delayed.** E3 now reads "after Stop the receiver holds no note, with or without
+`clear()` in the browser, and the scheduler does not call it".
+
+Not done: a page-side ledger of notes sent, which would let the page call `clear()` where it exists and
+re-send the Note Offs it dropped. No browser the product targets has `clear()`, and the path could not
+be tested against a real one. If one does, and the tail matters, that is the way to tighten it.
+
+The owner approved `tech.md` section 3 as part of SPEC-0002 r1. This amendment departs from its step 4
+on evidence, and the departure is visible here and in the P3 pull requests. `tech.md` step 4 carries a
+pointer to this amendment.

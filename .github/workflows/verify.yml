@@ -92,3 +92,46 @@ jobs:
           cargo build --release -p octoffi --target wasm32-unknown-unknown
           node --version
           node harness/wasm/smoke.mjs
+
+  # SPEC-0002 P3: the web app. Builds the octoweb module, type-checks the TypeScript, runs its Node
+  # tests, then runs the real host and worklet in Chromium and spike S2 (hashes equal native, no
+  # allocation in render; the timing it prints is recorded, not gated).
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install Rust with the wasm target
+        run: |
+          rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+          rustup default stable
+      - name: Build the octoweb module (shipped build, and the build with the spike exports)
+        run: |
+          mkdir -p apps/web/dist
+          cargo build --release -p octoweb --target wasm32-unknown-unknown --no-default-features
+          cp target/wasm32-unknown-unknown/release/octoweb.wasm apps/web/dist/octoweb.wasm
+          cargo build --release -p octoweb --target wasm32-unknown-unknown
+          cp target/wasm32-unknown-unknown/release/octoweb.wasm apps/web/dist/octoweb-spike.wasm
+      - name: Install, type-check and test
+        working-directory: apps/web
+        run: |
+          node --version
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test
+      - name: Install Chromium
+        working-directory: apps/web
+        run: npx playwright-core install --with-deps chromium
+      - name: Build the page code and run the Chromium tests
+        working-directory: apps/web
+        run: |
+          npm run build
+          node --test --test-concurrency=1 "test/browser/*.test.ts"
+      - name: Spike S2, the engine in an AudioWorklet
+        working-directory: apps/web
+        run: node spikes/s2/run.ts

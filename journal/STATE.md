@@ -46,9 +46,8 @@ waves are in `docs/09-roadmap.md`, the task lifecycle in `AGENTS.md`.
   anything: the web panel takes its layout from a control inventory built from the manual
   (`contracts/controls.json`, P2b), not from photographs. Request to the Panelwright to
   reword `reference/NOTES.md` is filed.
-- P2b added `contracts/controls.json` and its schema and moved the `panel.truth` and
-  `motion.registry` schemas to `archive/native-panel/contracts/` (ADR-0007). `apps/` has no
-  scaffolds left; `apps/web` arrives with P3b.
+- P2b added `contracts/controls.json` and its schema and moved the `panel.truth` and `motion.registry` schemas to
+  `archive/native-panel/contracts/` (ADR-0007). `apps/web` is P3.
 
 ## `crates/octocore`: real, tested, manual-corrected, still growing
 
@@ -178,23 +177,24 @@ Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all
 
 ## SPEC-0002 P3 (2026-10-01, started on the owner's "Start p3"): the engine in the browser
 
-Plan: `specs/SPEC-0002/p3-plan.md`; decisions: ADR-0008 (task `WENGE-0014`). Three pull requests:
-**P3a** (documents: ADR-0008, the plan, the browser probe; High), **P3b** (the crate `octoweb` at
-`apps/web/engine/`, the worklet host, the Web MIDI scheduler, spikes S2 and S1, a CI job; Medium), **P3c**
-(the first panel, and `contracts/design.tokens.json`; High). Measured in headless Chromium 141
-(`handoffs/evidence/p3-browser-probe/`): the AudioWorklet has no `TextDecoder`, `fetch`, `crypto` or
-`performance`, so the page calls Rust through C exports; a compiled module passes in `processorOptions`;
-Web MIDI is refused in headless Chromium and the container has no `/dev/snd`, so spike S1's arrival-jitter half
-needs the owner's machine. The chase-light and the transport Play key are requests to the Panelwright
-(`journal/panelwright/requests/`); the browser tests need flooring (`journal/referee/requests/`).
+Plan: `specs/SPEC-0002/p3-plan.md`; decisions: ADR-0008 (task `WENGE-0014`). Three pull requests: **P3a** (ADR-0008, the plan, the
+browser probe; High), **P3b** (the crate `octoweb`, the worklet host, the Web MIDI scheduler, spikes S2 and S1, a CI job; Medium),
+**P3c** (the first panel and `contracts/design.tokens.json`; High). Headless Chromium 141 has no `TextDecoder`, `fetch` or `performance`
+in the worklet, so the page calls Rust through C exports; Web MIDI is refused there and the container has no `/dev/snd`. The chase-light
+and the transport Play key are Panelwright requests; the browser tests need flooring (Referee request).
 
-**Next three steps:** (1) the owner reads ADR-0008 and the plan; (2) P3b, red first: the crate's ABI natively,
-the worklet, the scheduler, S2, then S1; (3) the owner runs S1 on a Mac with a loopback port.
+**P3b (in review):** `octoweb` (15 exports, `apps/web/engine/ABI.md`), the worklet, host and scheduler in `apps/web/src/`, 72 Node and 6
+Chromium tests, a `web` CI job, `just web-*` and `spike-s*`. S2 passed: five golden hashes and two pressed programs equal native in an
+AudioWorklet, `render` allocates nothing, a block costs about 2 us of 2667. S1 here: no late events, margin median 66 ms at a 30 ms
+lookahead, the same with the tab in the background. **Finding:** the page never calls `MIDIOutput.clear()` and never stamps an output
+earlier than its last send (ADR-0008 amendment 1; departs from `tech.md` step 4). **Not measured:** Web MIDI arrival jitter; the owner runs
+`apps/web/spikes/s1/page.html` on a Mac with a loopback port, and the kill criterion waits for it.
+
+**Next three steps:** (1) the owner reviews P3b (it carries ADR-0008 amendment 1; #24 merged before it was found); (2) P3c, the first panel and `contracts/design.tokens.json`; (3) the owner runs S1.
 
 ## Fan-out
 
-Live: P3a in review; P3b started. Not started: P4 and later (MIDI in, clock, the second port). What can
-proceed in the engine meanwhile: attribute-map-factor step events (p.34-37) and the Metronome's requests from
+Live: P3b in review (P3a merged at 12:43 Paris). Not started: P4 and later (MIDI in, clock, second port). Engine work meanwhile: attribute-map-factor step events (p.34-37) and the Metronome's requests from
 P2b. D0 (the tick) blocks O4 step 4b. The panel's next workflows (Track zoom, the direction map, the
 chase-light) wait on owner answers to Q07, the mutator questions and the chase-light question. `octoffi`
 is frozen.

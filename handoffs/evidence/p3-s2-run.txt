@@ -1,0 +1,31 @@
+# Spike S2: the engine in an AudioWorklet (SPEC-0002 P3, WENGE-0014)
+# commit 88523ce, 2026-10-01T11:05:24.004Z
+# Chromium 141.0.7390.37 (headless), 2 cores, crossOriginIsolated true, performance.now() steps by 5.0 us
+# audio context 48000 Hz; the worklet scope has: performance false, Date true, TextDecoder false
+# module: octoweb-spike.wasm (the build with the allocation counter and the pattern runner): measure true, spike true
+
+## 1. Golden patterns hashed in the worklet (octorun inside the module) against examples/golden
+  equal   hello              8691cdb08ddd1451d060fa91a8495a0da09c2f9bbd186cc438eb49adb0dbfe78  (168 allocations while it ran, the runner builds its own engine)
+  equal   chords_and_strums  c111752995825ef134104c056287017d84f2b3d9e9ce7b15d2be8211b4faa701  (730 allocations while it ran, the runner builds its own engine)
+  equal   effector           02c2375adfdb5691e4c2143b2e61c57b78abb5a41a78af2775469bcd2cceae31  (698 allocations while it ran, the runner builds its own engine)
+  equal   phrases            5a20501f459153b9d99244ada4a7d81d6100f2b6446e5f52b33292b81965830a  (325 allocations while it ran, the runner builds its own engine)
+  equal   mcc_and_transport  692075e6a7ce6fb683304b38937d22fdfc544c76e4092d40917eee63cb4e3262  (445 allocations while it ran, the runner builds its own engine)
+
+## 2. Programs pressed on the panel, rendered in 128-frame blocks (golden/programs.json, pinned by the native test)
+  equal   pressed  worklet     fnv1a64:e419310a73bd6208  (107 events in 1500 blocks)
+  equal   pressed  main thread fnv1a64:e419310a73bd6208  (107 events in 1500 blocks)
+  equal   dense    worklet     fnv1a64:eb3418485dd2eba1  (10230 events in 3000 blocks)
+  equal   dense    main thread fnv1a64:eb3418485dd2eba1  (10230 events in 3000 blocks)
+
+## 3. Cost of render(128): the dense program, 20000 blocks; the block is 2.667 ms
+  main thread, performance.now() per block (68250 events; a figure under 5 us is below the clock's step):
+    mean 2.1 us, p50 0.0 us, p99 10.0 us, p99.9 45.0 us, max 525.0 us
+    p99 is 0.4 % of the block; the proposed budget is 25 %
+    allocations during the render loop: 0
+  worklet, Date over batches of 1000 blocks (19 batches, 68250 events), per block:
+    mean 1.6 us, fastest batch 1.0 us, slowest batch 2.0 us   (a batch's mean hides a slow block; the main-thread numbers show the tail)
+    slowest batch is 0.1 % of the block
+    allocations during the render loop: 0
+
+## RESULT: PASS (hashes equal native, no allocation in render). Timing is recorded above for the owner; the budget is a proposal.
+# Timing here is this container's CPU in headless Chromium, not a laptop or the owner's machine.

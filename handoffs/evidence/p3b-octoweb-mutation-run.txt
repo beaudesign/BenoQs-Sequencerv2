@@ -1,0 +1,21 @@
+caught   render allocates: 1 failing, e.g. render_and_the_led_refresh_allocate_nothing .
+caught   no frame limit: 1 failing, e.g. a_block_larger_than_the_limit_is_cut_down_and_zero_frames_make_nothing .
+caught   render forces playing: 1 failing, e.g. stop_leaves_the_receiver_holding_no_note .
+caught   intents not counted: 1 failing, e.g. an_intent_the_engine_cannot_act_on_is_counted_and_changes_nothing .
+caught   any tempo accepted: 1 failing, e.g. a_tempo_the_engine_cannot_use_is_refused .
+caught   commands dropped: 7 failing, e.g. a_matrix_press_lights_the_step_green_and_a_second_press_puts_it_out .
+caught   release treated as press: 2 failing, e.g. a_matrix_press_lights_the_step_green_and_a_second_press_puts_it_out .
+caught   led buffer moves every call: 1 failing, e.g. the_buffers_the_page_reads_do_not_move .
+caught   status lacks zoom bit: 1 failing, e.g. the_status_word_says_playing_and_zoomed .
+caught   playheads not copied: 1 failing, e.g. the_playhead_moves_while_the_transport_runs .
+caught   any sample rate accepted: 1 failing, e.g. init_refuses_a_sample_rate_the_engine_cannot_use .
+caught   bad number read as 0: 1 failing, e.g. init_refuses_text_that_is_not_a_layout .
+caught   at_sample big endian: 1 failing, e.g. a_pattern_played_through_the_module_is_the_engines_own_output_byte_for_byte .
+caught   note off tagged as note on: 2 failing, e.g. a_pattern_played_through_the_module_is_the_engines_own_output_byte_for_byte .
+caught   orange encoded as green: 1 failing, e.g. an_led_byte_is_the_colour_in_the_low_two_bits_and_the_phase_above .
+caught   phase in the wrong bits: 1 failing, e.g. an_led_byte_is_the_colour_in_the_low_two_bits_and_the_phase_above .
+caught   transport inverted: 5 failing, e.g. a_pattern_played_through_the_module_is_the_engines_own_output_byte_for_byte .
+caught   seed high word lost: 1 failing, e.g. host::tests::the_seed_is_the_two_words_joined_low_first .
+caught   spike hashes the wrong stream: 1 failing, e.g. the_five_golden_patterns_hash_to_their_native_goldens .
+
+19 of 19 caught

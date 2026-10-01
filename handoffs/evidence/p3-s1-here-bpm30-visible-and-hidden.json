@@ -1,0 +1,317 @@
+{
+ "commit": "7e3e294",
+ "browser": "Chrome/141.0.7390.37 (headed, driven over the DevTools protocol)",
+ "results": [
+  {
+   "label": "visible tab",
+   "result": {
+    "schema": "wenge.s1/1",
+    "startedAt": "2026-10-01T11:13:48.242Z",
+    "config": {
+     "minutes": 1,
+     "lookaheadMs": 30,
+     "alpha": 1,
+     "outputId": "out1",
+     "inputId": "in1",
+     "bpm": 30
+    },
+    "environment": {
+     "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+     "platform": "Linux x86_64",
+     "audioSampleRate": 44100,
+     "baseLatencyMs": 10,
+     "outputLatencyMs": 32
+    },
+    "ports": {
+     "output": "Stand-in output (a timer in the page, not a MIDI port)",
+     "input": "Stand-in loopback (a timer in the page, not a MIDI port)"
+    },
+    "durationS": 61.52695500000007,
+    "stepMs": 125.01133786847873,
+    "hiddenS": 0,
+    "visibility": [
+     {
+      "atS": 0,
+      "state": "visible"
+     }
+    ],
+    "scheduler": {
+     "sent": 955,
+     "late": 0,
+     "lateMaxMs": 0,
+     "unrouted": 0,
+     "invalid": 0,
+     "raised": 0,
+     "raisedMaxMs": 0
+    },
+    "worklet": {
+     "errors": []
+    },
+    "headroomAtZeroLookaheadMs": 21.625058957215515,
+    "all": {
+     "sent": 955,
+     "received": 955,
+     "matched": 955,
+     "missing": 0,
+     "extra": 0,
+     "latencyMs": {
+      "n": 955,
+      "mean": -0.04238410801140734,
+      "sigma": 1.0922604317404856,
+      "min": -0.7773968256988155,
+      "p50": -0.15739682536150212,
+      "p99": 2.0126031743093336,
+      "max": 18.185603174416656
+     },
+     "intervalErrorMs": {
+      "n": 954,
+      "mean": 0.30659817595871713,
+      "sigma": 3.068326790365276,
+      "min": -9.096337868443257,
+      "p50": 0.02000000048428774,
+      "p99": 14.806337868404228,
+      "max": 46.096337868448586
+     },
+     "marginMs": {
+      "n": 955,
+      "mean": 65.6495935320862,
+      "sigma": 3.563696666854671,
+      "min": 51.625058957215515,
+      "p50": 66.34539682588002,
+      "p99": 71.43105895676854,
+      "max": 71.48405895691394
+     },
+     "late": 0
+    },
+    "visible": {
+     "sent": 955,
+     "received": 955,
+     "matched": 955,
+     "missing": 0,
+     "extra": 0,
+     "latencyMs": {
+      "n": 955,
+      "mean": -0.04238410801140734,
+      "sigma": 1.0922604317404856,
+      "min": -0.7773968256988155,
+      "p50": -0.15739682536150212,
+      "p99": 2.0126031743093336,
+      "max": 18.185603174416656
+     },
+     "intervalErrorMs": {
+      "n": 954,
+      "mean": 0.30659817595871713,
+      "sigma": 3.068326790365276,
+      "min": -9.096337868443257,
+      "p50": 0.02000000048428774,
+      "p99": 14.806337868404228,
+      "max": 46.096337868448586
+     },
+     "marginMs": {
+      "n": 955,
+      "mean": 65.6495935320862,
+      "sigma": 3.563696666854671,
+      "min": 51.625058957215515,
+      "p50": 66.34539682588002,
+      "p99": 71.43105895676854,
+      "max": 71.48405895691394
+     },
+     "late": 0
+    },
+    "hidden": {
+     "sent": 0,
+     "received": 955,
+     "matched": 0,
+     "missing": 0,
+     "extra": 0,
+     "latencyMs": {
+      "n": 0,
+      "mean": 0,
+      "sigma": 0,
+      "min": 0,
+      "p50": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "intervalErrorMs": {
+      "n": 0,
+      "mean": 0,
+      "sigma": 0,
+      "min": 0,
+      "p50": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "marginMs": {
+      "n": 0,
+      "mean": 0,
+      "sigma": 0,
+      "min": 0,
+      "p50": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "late": 0
+    }
+   }
+  },
+  {
+   "label": "tab in the background",
+   "result": {
+    "schema": "wenge.s1/1",
+    "startedAt": "2026-10-01T11:14:50.081Z",
+    "config": {
+     "minutes": 1,
+     "lookaheadMs": 30,
+     "alpha": 1,
+     "outputId": "out1",
+     "inputId": "in1",
+     "bpm": 30
+    },
+    "environment": {
+     "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+     "platform": "Linux x86_64",
+     "audioSampleRate": 44100,
+     "baseLatencyMs": 10,
+     "outputLatencyMs": 32
+    },
+    "ports": {
+     "output": "Stand-in output (a timer in the page, not a MIDI port)",
+     "input": "Stand-in loopback (a timer in the page, not a MIDI port)"
+    },
+    "durationS": 62.52929000000004,
+    "stepMs": 125.01133786847873,
+    "hiddenS": 59.54522000000067,
+    "visibility": [
+     {
+      "atS": 0,
+      "state": "visible"
+     },
+     {
+      "atS": 2.9840699999993667,
+      "state": "hidden"
+     }
+    ],
+    "scheduler": {
+     "sent": 963,
+     "late": 0,
+     "lateMaxMs": 0,
+     "unrouted": 0,
+     "invalid": 0,
+     "raised": 0,
+     "raisedMaxMs": 0
+    },
+    "worklet": {
+     "errors": []
+    },
+    "headroomAtZeroLookaheadMs": 20.749058956545923,
+    "all": {
+     "sent": 963,
+     "received": 963,
+     "matched": 963,
+     "missing": 0,
+     "extra": 0,
+     "latencyMs": {
+      "n": 963,
+      "mean": 500.09337091429035,
+      "sigma": 302.0723149065884,
+      "min": -0.8470589577357259,
+      "p50": 486.82560317475145,
+      "p99": 996.2376031746717,
+      "max": 996.5966031751232
+     },
+     "intervalErrorMs": {
+      "n": 962,
+      "mean": 1.3012480023198894,
+      "sigma": 230.086734800352,
+      "min": -125.01133786848584,
+      "p50": 0,
+      "p99": 875.0136621309625,
+      "max": 913.565578231404
+     },
+     "marginMs": {
+      "n": 963,
+      "mean": 65.55228848342985,
+      "sigma": 3.562430127627122,
+      "min": 50.74905895654592,
+      "p50": 66.2603968249532,
+      "p99": 71.41005895654598,
+      "max": 71.46705895736159
+     },
+     "late": 0
+    },
+    "visible": {
+     "sent": 45,
+     "received": 963,
+     "matched": 45,
+     "missing": 0,
+     "extra": 0,
+     "latencyMs": {
+      "n": 45,
+      "mean": -0.15140942311119512,
+      "sigma": 0.2539014581957448,
+      "min": -0.8470589577357259,
+      "p50": -0.20439682580695262,
+      "p99": 0.8386031746033495,
+      "max": 0.8386031746033495
+     },
+     "intervalErrorMs": {
+      "n": 44,
+      "mean": 0.0015909090976739487,
+      "sigma": 0.3308401274872281,
+      "min": -1.768662131780033,
+      "p50": 0.02000000048428774,
+      "p99": 0.8286621323015737,
+      "max": 0.8286621323015737
+     },
+     "marginMs": {
+      "n": 45,
+      "mean": 66.10040942315423,
+      "sigma": 3.478206403230544,
+      "min": 61.15705895769838,
+      "p50": 66.38539682509827,
+      "p99": 71.38705895777298,
+      "max": 71.38705895777298
+     },
+     "late": 0
+    },
+    "hidden": {
+     "sent": 918,
+     "received": 963,
+     "matched": 918,
+     "missing": 0,
+     "extra": 0,
+     "latencyMs": {
+      "n": 918,
+      "mean": -2317.4580614221113,
+      "sigma": 328.39401019726046,
+      "min": -2983.4903968261788,
+      "p50": -2297.973058957028,
+      "p99": -1763.2213968256547,
+      "max": 930.9481814063038
+     },
+     "intervalErrorMs": {
+      "n": 917,
+      "mean": 4.500315420243338,
+      "sigma": 279.8326736792038,
+      "min": -125.60133786926282,
+      "p50": 0,
+      "p99": 1000.0049999998882,
+      "max": 2999.8950000004843
+     },
+     "marginMs": {
+      "n": 918,
+      "mean": 65.52541980991396,
+      "sigma": 3.564341071806552,
+      "min": 50.74905895654592,
+      "p50": 66.25839682498918,
+      "p99": 71.41005895654598,
+      "max": 71.46705895736159
+     },
+     "late": 0
+    }
+   }
+  }
+ ],
+ "failures": []
+}

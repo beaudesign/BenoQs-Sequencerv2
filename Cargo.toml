@@ -1,3 +1,3 @@
 [workspace]
 resolver = "2"
-members = ["crates/octocore", "crates/octoface", "crates/octoffi", "crates/octorun", "xtask"]
+members = ["crates/octocore", "crates/octoface", "crates/octoffi", "crates/octorun", "apps/web/engine", "xtask"]

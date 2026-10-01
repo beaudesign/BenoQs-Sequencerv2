@@ -1,0 +1,41 @@
+# P3b slice 1 red run: octoweb ABI tests against stubs (parent: 7c77da4 plus stub exports)
+# command: cargo test -p octoweb --no-fail-fast
+# date: 2026-10-01T10:20:46Z
+     Running unittests src/lib.rs (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/p3b-target/debug/deps/octoweb-aa277594d63a28d4)
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/abi.rs (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/p3b-target/debug/deps/abi-9da9aed943a1c24e)
+test a_failed_init_leaves_the_module_uninitialised ... FAILED
+test a_block_larger_than_the_limit_is_cut_down_and_zero_frames_make_nothing ... FAILED
+test a_matrix_press_lights_the_step_green_and_a_second_press_puts_it_out ... FAILED
+test a_press_changes_only_the_leds_it_should ... FAILED
+test a_pattern_played_through_the_module_is_the_engines_own_output_byte_for_byte ... FAILED
+test a_tempo_the_engine_cannot_use_is_refused ... FAILED
+test an_intent_the_engine_cannot_act_on_is_counted_and_changes_nothing ... FAILED
+test calls_before_init_do_nothing_and_say_so ... FAILED
+test an_led_byte_is_the_colour_in_the_low_two_bits_and_the_phase_above ... FAILED
+test init_builds_the_layout_from_the_controls_file ... FAILED
+test init_refuses_a_layout_that_lacks_a_control_the_controller_needs_and_names_it ... FAILED
+test init_refuses_a_sample_rate_the_engine_cannot_use ... FAILED
+test init_refuses_text_that_is_not_a_layout ... FAILED
+test refresh_says_whether_anything_changed ... FAILED
+test render_and_the_led_refresh_allocate_nothing ... FAILED
+test reset_drops_the_module_and_it_can_start_again ... FAILED
+test stop_leaves_the_receiver_holding_no_note ... FAILED
+test the_first_note_on_is_a_real_note_on ... FAILED
+test the_buffers_the_page_reads_do_not_move ... FAILED
+test the_module_reports_abi_version_one ... FAILED
+test the_ids_the_page_cannot_press_do_nothing ... FAILED
+test the_playhead_moves_while_the_transport_runs ... FAILED
+test the_status_word_says_playing_and_zoomed ... FAILED
+test result: FAILED. 0 passed; 23 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/golden.rs (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/p3b-target/debug/deps/golden-655991acdd0f2d10)
+test a_pattern_that_does_not_parse_comes_back_as_a_message ... FAILED
+test the_five_golden_patterns_hash_to_their_native_goldens ... FAILED
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+     Running tests/source_rules.rs (/tmp/claude-0/-home-claude-benoqs-sequencerv2/92efc514-1af1-5184-8977-ada52bb74c75/scratchpad/p3b-target/debug/deps/source_rules-8d0e7638fb1aa919)
+test every_export_is_a_one_line_shim ... ok
+test the_abi_document_lists_every_export_and_nothing_else ... FAILED
+test the_lint_is_allowed_in_exactly_the_export_shims_and_the_allocator ... FAILED
+test the_unsafe_keyword_appears_only_in_the_counting_allocator ... FAILED
+test result: FAILED. 1 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

@@ -22,7 +22,7 @@ where code is involved:
 |---|---|---|
 | E1 | A matrix press in a real browser turns the engine's step on and lights the key green; a second press turns it off | A Playwright test against the built app, reading the LED state from the page. Fails before P3c |
 | E2 | Pressing Play makes a fake Web MIDI output receive a Note On with the right bytes, a Note Off after it, and timestamps no earlier than `now + L` | The same test, with a fake `MIDIOutput` that records `send(data, timestamp)` |
-| E3 | Pressing Stop makes the receiver hold no note that is on, and `clear()` was called before the flush | A test of the scheduler with a fake receiver; a property over generated patterns |
+| E3 | After Stop the receiver holds no note, with or without `MIDIOutput.clear()` in the browser, and the scheduler never calls it (ADR-0008 amendment 1) | A property over generated patterns, tempos, stop times and clock jitter, through the real worklet file and scheduler, with a fake receiver that delivers by timestamp |
 | E4 | The five golden patterns give the same SHA-256 inside an `AudioWorklet` as natively | Spike S2, a recorded browser run. Hashes equal or the spike fails |
 | E5 | `render` allocates nothing, natively and in the worklet | A native test and the S2 run, both with the counting allocator (`measure`) |
 | E6 | The Web MIDI path's scheduling margin and arrival jitter are recorded, with the tab visible and hidden | Spike S1: the scheduling side here, the arrival side by the owner (section 5) |
@@ -96,8 +96,10 @@ Medium. Branch `forge/p3-engine-in-the-browser`. Red first, in this order:
    LED frame about 60 times a second. Tested in Chromium (Playwright).
 3. **The MIDI scheduler** (`apps/web/src/midi-out.ts`): a pure class with an injected clock and an
    injected `MIDIOutput`-like. Node tests: timestamp is `perf(audio time) + L`; an event that is already late
-   is sent at once and counted, never dropped; Stop calls `clear()` and then sends the flush; no Note Off is
-   sent for a note that was never on; velocity is at least 1.
+   is sent at once and counted, never dropped; timestamps on one output never go backwards; `clear()` is
+   never called (amendment 1); velocity is at least 1. (The first draft of this item also had "no Note Off
+   for a note that was never on". That is the engine's output and the page does not track notes, so it is
+   not a scheduler property.)
 4. **Spike S2**, then **spike S1**, each a script in `apps/web/spikes/` and a recorded run in
    `handoffs/evidence/` (section 5).
 5. **CI**: the `web` job; `just` verbs `web-build`, `web-test`, `spike-s2`.

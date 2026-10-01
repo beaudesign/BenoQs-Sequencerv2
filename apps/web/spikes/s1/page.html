@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spike S1: Web MIDI timing</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+  label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; }
+  select, input { font: inherit; padding: 0.25rem; min-width: 14rem; }
+  button { font: inherit; padding: 0.4rem 0.9rem; margin: 0.75rem 0.5rem 0 0; }
+  pre { white-space: pre-wrap; border: 1px solid; padding: 0.75rem; }
+  code { font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<h1>Spike S1: how steady is Web MIDI output</h1>
+<p>
+  WENGE P3 (SPEC-0002, WENGE-0014). This page plays every step of one track from the real engine, through the real
+  worklet and scheduler, to one MIDI output, and listens on one MIDI input for them to come back. Connect the two with a
+  loopback port (macOS: the IAC Driver, enabled in Audio MIDI Setup; Windows: loopMIDI). Use a loopback and not a synth:
+  the run sends about 16 messages a second for as long as you choose.
+</p>
+<p>
+  Keep this tab in front for a first run. For a second run, start it and then switch to another tab for the whole time:
+  the result records how long the tab was hidden and reports the two cases apart.
+</p>
+<p><button id="grant" type="button">Allow MIDI and list the ports</button></p>
+<div id="form" hidden>
+  <label for="output">Output (the loopback's input side)</label>
+  <select id="output"></select>
+  <label for="input">Input (the loopback's output side)</label>
+  <select id="input"></select>
+  <label for="minutes">Minutes (30 is the usual; 1 shows whether it works)</label>
+  <input id="minutes" type="number" min="0.25" max="120" step="0.25" value="30">
+  <label for="bpm">Engine tempo (30 gives a step every 125 ms, a sixteenth note at 120 BPM; 120 gives every 31 ms, a dense stress run)</label>
+  <input id="bpm" type="number" min="20" max="300" step="1" value="30">
+  <label for="lookahead">Lookahead in ms</label>
+  <input id="lookahead" type="number" min="0" max="200" step="1" value="30">
+  <label for="alpha">Clock-map smoothing (1 uses the latest reading alone; 0.1 averages about ten)</label>
+  <input id="alpha" type="number" min="0.01" max="1" step="0.01" value="1">
+  <p><button id="start" type="button">Start</button><button id="stop" type="button" disabled>Stop early</button><button id="save" type="button" disabled>Save the result as a file</button></p>
+</div>
+<p id="status" role="status">Not started.</p>
+<pre id="result" hidden></pre>
+<script type="module" src="/dist/spikes/s1/page.js"></script>
+</body>
+</html>

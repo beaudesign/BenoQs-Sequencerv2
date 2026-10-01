@@ -39,6 +39,8 @@ export const ORDER_WINDOW_MS = 50;
 export interface SentInfo {
   port: number;
   bytes: number[];
+  /** When the engine made the event, in audio-context seconds: exact, with no clock map in it. */
+  audioTime: number;
   /** The timestamp passed to `send`, or null if the event was late and went at once. */
   timestamp: number | null;
   /** `timestamp - now` at the call, in milliseconds. Negative means the event was late. */
@@ -136,7 +138,7 @@ export class MidiScheduler {
         this.stats.lateMaxMs = Math.max(this.stats.lateMaxMs, -marginMs);
       }
       this.stats.sent++;
-      this.onSend?.({ port, bytes, timestamp: marginMs > 0 ? target : null, marginMs });
+      this.onSend?.({ port, bytes, audioTime: at, timestamp: marginMs > 0 ? target : null, marginMs });
     }
   }
 }

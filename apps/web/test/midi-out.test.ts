@@ -95,6 +95,7 @@ test("an event that is already late is sent at once, never dropped, and counted 
   assert.equal(s.stats.sent, 2);
   assert.ok(s.stats.lateMaxMs > 9_900 && s.stats.lateMaxMs < 10_000);
   assert.ok(seen.every((i) => i.timestamp === null && i.marginMs < 0));
+  assert.deepEqual(seen.map((i) => i.audioTime), [0, 48 / 48_000], "the engine's own time of each event, in audio-context seconds");
 });
 
 test("each event goes to the output of its port; a port with no output is counted and the rest still go", () => {

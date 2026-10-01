@@ -62,6 +62,11 @@ web-browser-test: web-wasm
 spike-s2 *args: web-wasm
 	cd apps/web && npm ci --no-audit --no-fund && npm run spike:s2 -- {{args}}
 
+# Spike S1, the half that runs here: scheduling margin with a stand-in MIDI output. `--hidden` also runs it with the
+# tab in the background (needs xvfb or a display). The real-port half is apps/web/spikes/s1/page.html, for the owner.
+spike-s1 *args: web-wasm
+	cd apps/web && npm ci --no-audit --no-fund && npm run build && node spikes/s1/run.ts {{args}}
+
 # Record new tests and fixtures as the ratchet floor. Dropping one needs --remove <kind> <id> --adr ADR-NNNN.
 baseline *args:
 	cargo xtask baseline {{args}}

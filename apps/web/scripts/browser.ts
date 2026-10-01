@@ -4,6 +4,8 @@ import { chromium, type Browser } from "playwright-core";
 export interface LaunchOptions {
   /** A real window, for the hidden-tab runs. Needs a display (`xvfb-run` on a server). */
   headed?: boolean;
+  /** Leave the browser's background throttling as it is, which the hidden-tab runs need. Tests turn it off. */
+  realisticBackground?: boolean;
 }
 
 export async function launch(options: LaunchOptions = {}): Promise<Browser> {
@@ -11,7 +13,11 @@ export async function launch(options: LaunchOptions = {}): Promise<Browser> {
   return chromium.launch({
     headless: !options.headed,
     ...(path ? { executablePath: path } : {}),
-    // Audio may start without a click, and a throttled background timer would blur what the spikes measure.
-    args: ["--autoplay-policy=no-user-gesture-required", "--disable-background-timer-throttling", "--disable-renderer-backgrounding"],
+    // Audio may start without a click. A tab in the background is throttled by default; tests switch that
+    // off so they measure the page and not the browser's power saving, and the hidden-tab runs leave it on.
+    args: [
+      "--autoplay-policy=no-user-gesture-required",
+      ...(options.realisticBackground ? [] : ["--disable-background-timer-throttling", "--disable-renderer-backgrounding"]),
+    ],
   });
 }

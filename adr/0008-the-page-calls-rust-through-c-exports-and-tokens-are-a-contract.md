@@ -209,7 +209,8 @@ What replaces it, in `apps/web/src/midi-out.ts`:
   Note Off one sample after a Note On could otherwise be stamped before it and the note would stay on.
 
 Stop then works like this: what the page has already queued plays out, at most one lookahead `L` plus
-XX, is stamped after it. **The cost is up to `L` of notes after the Stop key. The Stop
+the clock jitter (30 ms by default), and the engine's flush (a Note Off for every sounding note, then CC 123,
+ALL NOTES OFF) is stamped after it. **The cost is up to `L` of notes after the Stop key. The Stop
 command itself is not delayed.** E3 now reads "after Stop the receiver holds no note, with or without
 `clear()` in the browser, and the scheduler does not call it".
 

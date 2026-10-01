@@ -177,24 +177,21 @@ Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all
 
 ## SPEC-0002 P3 (2026-10-01, started on the owner's "Start p3"): the engine in the browser
 
-Plan: `specs/SPEC-0002/p3-plan.md`; decisions: ADR-0008 (task `WENGE-0014`). Three pull requests: **P3a** (ADR-0008, the plan, the
-browser probe; High), **P3b** (the crate `octoweb`, the worklet host, the Web MIDI scheduler, spikes S2 and S1, a CI job; Medium),
-**P3c** (the first panel and `contracts/design.tokens.json`; High). Headless Chromium 141 has no `TextDecoder`, `fetch` or `performance`
-in the worklet, so the page calls Rust through C exports; Web MIDI is refused there and the container has no `/dev/snd`. The chase-light
-and the transport Play key are Panelwright requests; the browser tests need flooring (Referee request).
+Plan: `specs/SPEC-0002/p3-plan.md` (§9 is "P3c as built"); decisions: ADR-0008 (task `WENGE-0014`). Three pull requests: **P3a** (ADR, plan, probe; merged),
+**P3b** (the crate `octoweb`, worklet host, Web MIDI scheduler, spikes S2 and S1, a `web` CI job; Medium), **P3c** (the first panel and `contracts/design.tokens.json`; High).
+Headless Chromium 141 has no `TextDecoder`, `fetch` or `performance` in the worklet, so the page calls Rust through C exports; the browser tests are not floored (Referee request).
 
-**P3b (in review):** `octoweb` (15 exports, `apps/web/engine/ABI.md`), the worklet, host and scheduler in `apps/web/src/`, 72 Node and 6
-Chromium tests, a `web` CI job, `just web-*` and `spike-s*`. S2 passed: five golden hashes and two pressed programs equal native in an
-AudioWorklet, `render` allocates nothing, a block costs about 2 us of 2667. S1 here: no late events, margin median 66 ms at a 30 ms
-lookahead, the same with the tab in the background. **Finding:** the page never calls `MIDIOutput.clear()` and never stamps an output
-earlier than its last send (ADR-0008 amendment 1; departs from `tech.md` step 4). **Not measured:** Web MIDI arrival jitter; the owner runs
-`apps/web/spikes/s1/page.html` on a Mac with a loopback port, and the kill criterion waits for it.
+**P3b (PR #25, in review):** 15 exports (`apps/web/engine/ABI.md`); S2 passed (five golden hashes and two pressed programs equal native in an AudioWorklet, `render` allocates nothing, about 2 us per block of 2667);
+S1 here: no late events, margin median 66 ms at a 30 ms lookahead. **Finding:** the page never calls `MIDIOutput.clear()` and never stamps an output earlier than its last send (ADR-0008 amendment 1; departs from `tech.md` step 4).
+**Not measured:** Web MIDI arrival jitter; the owner runs `apps/web/spikes/s1/page.html` on a Mac with a loopback port, and the kill criterion waits for it.
 
-**Next three steps:** (1) the owner reviews P3b (it carries ADR-0008 amendment 1; #24 merged before it was found); (2) P3c, the first panel and `contracts/design.tokens.json`; (3) the owner runs S1.
+**P3c (PR opened on `forge/p3-web-app`, based on P3b; merge #25 first):** the tokens contract (`design.tokens/1`, candidate, 11 rules in Rust, 19 tests; ADR-0008 amendment 2 adds `stroke`, `flash.duty_percent`, `flash.shine`), one SVG panel from tokens and `apps/web/layout/panel.layout.json`
+(provisional), the strip, Web MIDI out on port 1 behind a Start button, the keyboard path (Space and Enter, a `click` with `detail===0`), CSS generated from tokens. 114 Node and 26 Chromium tests, mutation 72/72, baseline 407 tests; stamp margin in the real app min 59.6 ms, median about 65 ms.
+**Owner decides:** the tokens (colours, 500 ms flash, key size, provisional typeface; screenshots `handoffs/evidence/p3c-panel-*.png`); amendment 2; E2 asserted as median and never-late; 160 Tab stops before the first non-matrix control; the provisional layout of 11 controls. **Not done:** chase-light, tempo control, `prefers-contrast`, the other 76 controls.
+
+**Next three steps:** (1) the owner reviews P3b then P3c (P3c ratifies the tokens by merging; the Conductor then flips `status` to `ratified`); (2) the owner runs S1 on a real loopback port; (3) P4 (MIDI in, clock, second port) only on the owner's word.
 
 ## Fan-out
 
-Live: P3b in review (P3a merged at 12:43 Paris). Not started: P4 and later (MIDI in, clock, second port). Engine work meanwhile: attribute-map-factor step events (p.34-37) and the Metronome's requests from
-P2b. D0 (the tick) blocks O4 step 4b. The panel's next workflows (Track zoom, the direction map, the
-chase-light) wait on owner answers to Q07, the mutator questions and the chase-light question. `octoffi`
-is frozen.
+Live: P3b and P3c in review (P3a merged at 12:43 Paris). Not started: P4 and later. Engine work meanwhile: attribute-map-factor step events (p.34-37) and the Metronome's requests from P2b. D0 (the tick) blocks O4 step 4b.
+The panel's next workflows (Track zoom, the direction map, the chase-light) wait on owner answers to Q07, the mutator questions and the chase-light question. `octoffi` is frozen.

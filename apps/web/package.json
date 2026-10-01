@@ -9,11 +9,13 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/build-css.ts && tsc -p tsconfig.build.json",
     "test": "node --test \"test/*.test.ts\"",
     "test:browser": "npm run build && node --test --test-concurrency=1 \"test/browser/*.test.ts\"",
     "spike:s2": "npm run build && node spikes/s2/run.ts",
-    "spike:s1": "npm run build && node spikes/s1/run.ts"
+    "spike:s1": "npm run build && node spikes/s1/run.ts",
+    "app": "npm run build && node scripts/app.ts",
+    "screenshot": "npm run build && node scripts/screenshot.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

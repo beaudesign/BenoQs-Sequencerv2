@@ -22,3 +22,26 @@ Please:
 **State at the end of P3b:** 72 Node tests (`apps/web`, `npm test`) and 6 Chromium tests (`npm run test:browser`) pass in the
 `web` job. Spike S2 (`node spikes/s2/run.ts`) is also run there and exits non-zero on a hash difference or an allocation in
 `render`; its timing lines are printed and not gated. The two native program tests and the 30 octoweb tests are already in the baseline.
+
+## Added by P3c
+
+**What P3c puts in the repository for these gates to start from** (all in `apps/web/`):
+
+- `engine/tests/tokens.rs` (19 tests) asserts the rules of ADR-0008 decision 6 over `contracts/design.tokens.json` and its schema, and
+  shows each rule failing on a document made to break it. This is the whole of `verify:tokens`' contract half.
+- `engine/tests/app_source_rules.rs` (14 tests) asserts S1, S2, S4, S5, S7, S9, S11, S12, S15 and S16 over the app's files
+  (`src`, `pages`, `layout`), the "no colour, length or type size outside the tokens" rule, and that every `var(--x)` names a token
+  property. It is the source-scan half of `verify:tokens` and most of `verify:slop` for the app. **Both are Rust tests, so the baseline
+  floors them by name already.** If the gates are built as separate programs, either keep these as the engine of the gate or port them
+  and delete these in the same pull request with `--remove … --adr`, not before.
+- `test/browser/app.browser.test.ts` (20 Chromium tests): E1, E2, E7, E8. For `verify:a11y`: every drawn control is a `button` whose
+  `aria-label` is the manual's name (171 of 171, found again through the browser's own accessibility tree by `getByRole`), the Tab order
+  is the layout's order, and the focus ring is drawn from the focus tokens and not left behind by a pointer press.
+- `test/readme.test.ts` keeps the written traversal order in `apps/web/README.md` equal to the layout's.
+
+**Not done, for the Referee or the owner:** `prefers-contrast` (a mode that raises the contrast of labels and `led.off`; `docs/05`
+section 5), which needs a design decision about what it raises to; the screen-reader pass with a real reader (A8 says "an automated
+a11y check plus a written traversal order", and that is what exists); an axe-style scan, which would add a dependency.
+
+**State at the end of P3c:** the `web` job runs 114 Node tests and 26 Chromium tests (up from 72 and 6); the `verify` job floors
+`tokens.rs` and `app_source_rules.rs`. Nothing in `harness/` was loosened.

@@ -530,6 +530,7 @@ dependencies = [
 name = "octoweb"
 version = "0.1.0"
 dependencies = [
+ "jsonschema",
  "octocore",
  "octoface",
  "octorun",

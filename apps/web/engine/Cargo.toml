@@ -27,3 +27,5 @@ spike = ["dep:octorun"]
 
 [dev-dependencies]
 serde_json = "1"
+# The tokens contract test checks contracts/design.tokens.json against its schema, as octoface does for controls.json.
+jsonschema = { version = "0.30", default-features = false }

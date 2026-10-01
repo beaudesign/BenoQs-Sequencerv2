@@ -1,5 +1,5 @@
 // A static file server for the browser tests and the spikes: localhost is a secure context, which Web MIDI and
-// AudioWorklet need. It serves four folders and nothing else, GET only.
+// AudioWorklet need. It serves five folders and nothing else, GET only.
 import { readFile } from "node:fs/promises";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
@@ -13,6 +13,7 @@ export const repoRoot = resolve(webRoot, "../..");
 const ROUTES: [string, string][] = [
   ["/dist/", join(webRoot, "dist")],
   ["/pages/", join(webRoot, "pages")],
+  ["/layout/", join(webRoot, "layout")],
   ["/spikes/", join(webRoot, "spikes")],
   ["/contracts/", join(repoRoot, "contracts")],
 ];

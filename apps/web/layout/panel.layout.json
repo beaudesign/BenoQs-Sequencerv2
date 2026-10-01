@@ -1,0 +1,21 @@
+{
+  "schema": "panel.layout/1",
+  "status": "provisional",
+  "note": "Where the first panel puts the controls it draws. The manual places the matrix (p013, p047, p052), says the SEL column is left of it and the MIX TARGET row below it (p015, p038), and says where no other control sits: the MODE block's contents are Q23, the EDIT block's order is Q04, and the transport keys' LEDs are Q26. So the matrix is placed as the manual says (sixteen columns, row 0 at the bottom, controls.json zone matrix), and the eleven other controls the controller acts on are set out below it in rows, grouped by the zone controls.json gives them, so that they can be used. That arrangement is the web app's own and is not the hardware's. Sizes are token names, positions are cells, and no length is written here.",
+  "size": { "key": "space.6", "gap": "space.2", "margin": "space.4" },
+  "label": { "span": 2, "chars": 16, "leading_em": 1.2 },
+  "matrix": { "col": 0, "row": 0 },
+  "controls": [
+    { "id": "mode.page", "col": 0, "row": 11 },
+    { "id": "mode.step", "col": 3, "row": 11 },
+    { "id": "mode.play", "col": 6, "row": 11 },
+    { "id": "mode.edit", "col": 9, "row": 11 },
+    { "id": "keys.esc", "col": 12, "row": 11 },
+    { "id": "keys.program", "col": 0, "row": 12 },
+    { "id": "mutator.tgl", "col": 3, "row": 12 },
+    { "id": "mutator.zom", "col": 6, "row": 12 },
+    { "id": "mutator.mute", "col": 9, "row": 12 },
+    { "id": "transport.play", "col": 0, "row": 13 },
+    { "id": "transport.stop", "col": 3, "row": 13 }
+  ]
+}

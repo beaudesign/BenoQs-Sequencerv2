@@ -9,6 +9,16 @@ export const TRACK_COUNT = 10;
 /** The frames in one AudioWorklet render quantum. */
 export const RENDER_FRAMES = 128;
 
+export type LedColour = "off" | "red" | "green" | "orange";
+export type LedPhase = "steady" | "flash" | "shine";
+const LED_COLOURS: readonly LedColour[] = ["off", "red", "green", "orange"];
+const LED_PHASES: readonly LedPhase[] = ["steady", "flash", "shine"];
+
+/** One LED byte (ABI.md): the colour in the low two bits, the phase in the next two. A phase the ABI does not define reads as steady. */
+export function decodeLed(byte: number): { colour: LedColour; phase: LedPhase } {
+  return { colour: LED_COLOURS[byte & 0b11] ?? "off", phase: LED_PHASES[(byte >> 2) & 0b11] ?? "steady" };
+}
+
 export const KIND_DOWN = 0;
 export const KIND_UP = 1;
 export const KIND_TURN = 2;

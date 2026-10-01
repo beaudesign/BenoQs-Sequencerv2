@@ -13,6 +13,7 @@ import {
   OctowebError,
   asciiToString,
   decodeEvents,
+  decodeLed,
   layoutFromControls,
   type Exports,
 } from "../src/abi.ts";
@@ -273,4 +274,14 @@ test("two instances with the same seed play the same bytes", () => {
   const a = run();
   assert.equal(a, run());
   assert.ok(/:[0-9a-f]{24}/.test(a), "the run should contain events");
+});
+
+test("an LED byte is decoded into its colour and its phase, and an undefined phase reads as steady", () => {
+  const colours = ["off", "red", "green", "orange"] as const;
+  const phases = ["steady", "flash", "shine"] as const;
+  for (let c = 0; c < 4; c++) {
+    for (let p = 0; p < 3; p++) assert.deepEqual(decodeLed(c | (p << 2)), { colour: colours[c], phase: phases[p] });
+  }
+  assert.deepEqual(decodeLed(0b1110), { colour: "green", phase: "steady" }, "phase 3 is not defined");
+  assert.deepEqual(decodeLed(0), { colour: "off", phase: "steady" });
 });

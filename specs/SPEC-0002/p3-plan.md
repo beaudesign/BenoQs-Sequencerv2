@@ -204,3 +204,34 @@ D0.
 | A browser-only test can be deleted unnoticed | The ratchet leaks | D-P3-8 request; the crate's native tests are floored |
 | The `unsafe_code` lint is allowed in two modules | A reviewer sees it as precedent | The export shims hold the attribute and no `unsafe` keyword; the allocator is behind a feature the shipped module lacks; a test pins both (ADR-0008 3) |
 | The scope grows to the whole panel | P3 never ends | D-P3-4, and `docs/09`'s "the one thing to protect" |
+
+## 9. P3c as built (2026-10-01)
+
+What the first panel is, where it differs from the plan above, and what the owner is asked to decide. Observables E1, E2, E7 and E8 and the
+tokens test pass; E9 is CI `verify` (section 4, P3c exit).
+
+**What was built.** `contracts/design.tokens.json` and its schema, with `apps/web/engine/tests/tokens.rs` asserting the rules of ADR-0008
+decision 6 (red first: 16 of 19 failed before the file existed). The panel: one SVG drawn from `controls.json`, `apps/web/layout/panel.layout.json`
+(cells and token names, no length) and the tokens; a strip with Start, the MIDI output, the lookahead and two sentences; pointer, Space, Enter and a
+screen reader's Activate each press once; LEDs from the engine's frame, flashing ones pinned to one clock so they flash together; no Web MIDI, or a
+refusal, said in the strip with the app still running. `engine/tests/app_source_rules.rs` asserts the slop rules the app can break.
+
+**Where it differs from the plan.**
+
+| What | Plan | As built | Why |
+|---|---|---|---|
+| Tokens groups | `colour`, `space`, `type`, `flash` | Plus `stroke`; `flash` gains `duty_percent` and `shine` | The focus ring is 2 px with a 1 px inner stroke (`docs/05` section 5) and neither is on the space scale; the flash keyframes need a duty point. ADR-0008 amendment 2 |
+| Where the rules are asserted | "A contract test" | Rust (`tokens.rs`, `app_source_rules.rs`), so the baseline floors them by name | D-P3-8: Node tests are not floored. The browser tests still are not |
+| E2's "no earlier than `now + L`" | Every send | Every send is stamped ahead of the moment it was made, and the median is at least `L`. In six runs here every send had at least 59.6 ms (L is 30) | A busy runner can shrink the worklet's head start; asserting the minimum would make the test flaky, and a flaky test gets deleted. The number is in the PR for the owner to judge |
+| The panel as SVG | "SVG from `controls.json`" | The matrix is placed as the manual says; the other eleven controls go in rows below it in a layout the manual does not give (Q23, Q04, Q26), marked `provisional` | Nothing in the manual places them. They are laid out so they can be used, and the file says it is not the hardware |
+| Start | Not in the plan | A button | A browser keeps audio silent until the page has been used, and Web MIDI asks for permission at a gesture |
+| Output | "The one MIDI output" | It is port 1; nothing is sent until one is chosen | The second port is P4 |
+| Tab stops | "Tab order in layout order" | 160 stops before the first control that is not a matrix key | The spec's own order (`docs/05` section 5) is the matrix in reading order, one stop per control. A single roving stop with arrow keys is the usual cure and would change what E8 checks. Left for the owner |
+
+**Not done, on purpose:** the chase-light (D-P3-5); the tempo control (the engine's 120 until the tempo encoder, Wave 1); `prefers-contrast`
+(`docs/05` section 5; it needs a decision about what it raises to); the 76 controls the controller does not act on; the typeface (provisional,
+`pending`); saving the lookahead or the output across visits.
+
+**For the owner to ratify with the screenshots in the pull request:** the colours (nine, three of them lit LED roles), the flash (two a second, half on),
+the key size and gap (the 52 and 8 steps of the space scale), the provisional typeface. Merging P3c ratifies the tokens (ADR-0008 decision 6); the
+`status` line is changed to `ratified` afterwards (`journal/conductor/requests/2026-10-01-docs-after-p3.md`).

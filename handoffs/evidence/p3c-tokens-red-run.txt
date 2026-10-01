@@ -1,0 +1,22 @@
+# P3c red run: apps/web/engine/tests/tokens.rs before contracts/design.tokens.json exists
+# commit base: f574c4a (the file and schema are absent)
+test ciede2000_reproduces_the_published_test_pairs ... ok
+test t10_a_refused_face_and_a_forbidden_group_are_refused ... FAILED
+test t11_the_measure_is_sixty_eight ... FAILED
+test t1_a_colour_that_is_not_rrggbb_is_refused ... FAILED
+test t1_a_space_value_off_the_scale_or_a_ninth_is_refused ... FAILED
+test t2_text_that_is_too_quiet_against_the_ground_is_refused ... FAILED
+test t3_an_unlit_led_that_looks_like_a_lit_one_is_refused ... FAILED
+test t5_a_focus_ring_that_has_a_hue_or_cannot_be_seen_is_refused ... FAILED
+test t4_a_colour_near_the_s8_cluster_is_refused_unless_it_says_why ... FAILED
+test t5_a_ring_that_vanishes_on_one_lit_led_is_refused ... FAILED
+test t6_three_flashes_a_second_is_refused_and_two_and_a_half_is_not ... FAILED
+test t7_a_neutral_that_has_a_hue_is_refused ... FAILED
+test t8_a_token_that_waits_on_the_manual_must_say_so ... FAILED
+test t9_lit_roles_that_cannot_be_told_apart_are_refused ... FAILED
+test the_cluster_colours_are_far_from_one_another_in_the_metric_they_are_judged_by ... ok
+test the_contrast_ratio_matches_the_wcag_figures ... ok
+test the_tokens_say_what_they_are ... FAILED
+test the_tokens_keep_every_rule ... FAILED
+test tokens_json_is_valid_against_its_schema ... FAILED
+test result: FAILED. 3 passed; 16 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s

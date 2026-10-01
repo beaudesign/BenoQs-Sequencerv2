@@ -47,6 +47,10 @@ web-wasm:
 	cargo build -q --release -p octoweb --target wasm32-unknown-unknown
 	cp {{target}}/wasm32-unknown-unknown/release/octoweb.wasm apps/web/dist/octoweb-spike.wasm
 
+# Builds and serves the web app. Open http://localhost:8080/pages/app.html in Chrome or Edge (PORT=... to change it).
+web-app: web-wasm
+	cd apps/web && npm ci --no-audit --no-fund && npm run app
+
 # The web app's type-check and its Node tests (the real worklet file in a stand-in scope, the ABI
 # wrapper, the MIDI scheduler and the Stop property). Needs Node 22.18 or newer.
 web-test: web-wasm

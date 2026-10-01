@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WENGE</title>
+<link rel="stylesheet" href="/dist/tokens.css">
+<link rel="stylesheet" href="/pages/app.css">
+</head>
+<body>
+<main data-engine="idle" data-transport="stopped">
+  <section id="strip" aria-label="Sequencer settings">
+    <button id="start" type="button">Start</button>
+    <div class="field">
+      <label for="midi-output">MIDI output</label>
+      <select id="midi-output"><option value="">No output</option></select>
+    </div>
+    <div class="field">
+      <label for="lookahead">Lookahead in milliseconds</label>
+      <input id="lookahead" type="number" inputmode="numeric" step="1">
+    </div>
+    <p id="engine-status" role="status">The sequencer has not started.</p>
+    <p id="midi-status" role="status">MIDI is asked for when you press Start.</p>
+  </section>
+  <div id="panel-frame"></div>
+</main>
+<noscript><p>This page needs JavaScript to run the sequencer.</p></noscript>
+<script type="module" src="/dist/pages/app.js"></script>
+</body>
+</html>

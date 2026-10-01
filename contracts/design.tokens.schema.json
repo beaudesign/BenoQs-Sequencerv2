@@ -1,0 +1,472 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wenge.local/contracts/design.tokens.schema.json",
+  "title": "Design tokens",
+  "description": "The web panel's colours, space, type, strokes and LED flash, as one file the app's stylesheet is generated from (ADR-0008 decision 6). It has no radius, shadow, gradient or easing group, so the slop rules S1, S4, S9, S15 and S16 have nothing to be satisfied by. The only colour with a hue is a lit LED; every other colour is neutral (the rules are asserted by apps/web/engine/tests/tokens.rs). A token whose value depends on something the manual does not say carries `pending`, the shape `controls.json` uses. Changed only by ADR.",
+  "type": "object",
+  "required": [
+    "schema",
+    "status",
+    "colour",
+    "space",
+    "type",
+    "stroke",
+    "flash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Where this file's schema is, for editors."
+    },
+    "schema": {
+      "const": "design.tokens/1"
+    },
+    "status": {
+      "enum": [
+        "candidate",
+        "ratified"
+      ],
+      "description": "`candidate`: proposed with the panel sketch, awaiting the owner. `ratified`: the owner has merged it."
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "colour": {
+      "type": "object",
+      "required": [
+        "led.red",
+        "led.green",
+        "led.orange",
+        "led.off",
+        "ink",
+        "ink.quiet",
+        "surface",
+        "focus",
+        "focus.inner"
+      ],
+      "additionalProperties": false,
+      "description": "Nine roles and no tenth. The three led roles are roles and not hues: the manual's other colourways (p004) are a later table that maps a role to a hue.",
+      "properties": {
+        "led.red": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "led.green": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "led.orange": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "led.off": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "ink": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "ink.quiet": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "surface": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "focus": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "focus.inner": {
+          "$ref": "#/$defs/colour_token"
+        }
+      }
+    },
+    "space": {
+      "type": "object",
+      "required": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "additionalProperties": false,
+      "description": "docs/05 section 2.2: base 4, eight values. If you need a ninth, you are designing a ninth thing.",
+      "properties": {
+        "0": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 0
+            }
+          }
+        },
+        "1": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 4
+            }
+          }
+        },
+        "2": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 8
+            }
+          }
+        },
+        "3": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 12
+            }
+          }
+        },
+        "4": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 20
+            }
+          }
+        },
+        "5": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 32
+            }
+          }
+        },
+        "6": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 52
+            }
+          }
+        },
+        "7": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 84
+            }
+          }
+        }
+      }
+    },
+    "type": {
+      "type": "object",
+      "required": [
+        "family",
+        "size",
+        "measure"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "type": "object",
+          "required": [
+            "value",
+            "pending"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pending": {
+              "$ref": "#/$defs/pending"
+            }
+          }
+        },
+        "size": {
+          "type": "object",
+          "required": [
+            "label",
+            "body"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 8,
+                  "maximum": 48
+                },
+                "pending": {
+                  "$ref": "#/$defs/pending"
+                }
+              }
+            },
+            "body": {
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 8,
+                  "maximum": 48
+                },
+                "pending": {
+                  "$ref": "#/$defs/pending"
+                }
+              }
+            }
+          }
+        },
+        "measure": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 68
+            },
+            "pending": {
+              "$ref": "#/$defs/pending"
+            }
+          }
+        }
+      }
+    },
+    "stroke": {
+      "type": "object",
+      "required": [
+        "hairline",
+        "focus",
+        "focus_inner"
+      ],
+      "additionalProperties": false,
+      "description": "Line widths. docs/05 section 5 sets the focus ring at 2 px with a 1 px contrasting inner stroke, and neither is on the space scale (ADR-0008 amendment 2).",
+      "properties": {
+        "hairline": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "const": 1
+            },
+            "pending": {
+              "$ref": "#/$defs/pending"
+            }
+          }
+        },
+        "focus": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 4
+            },
+            "pending": {
+              "$ref": "#/$defs/pending"
+            }
+          }
+        },
+        "focus_inner": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2
+            },
+            "pending": {
+              "$ref": "#/$defs/pending"
+            }
+          }
+        }
+      }
+    },
+    "flash": {
+      "type": "object",
+      "required": [
+        "period_ms",
+        "duty_percent",
+        "shine"
+      ],
+      "additionalProperties": false,
+      "description": "The LED flash is information and not decoration (docs/05 section 3). The manual does not give its rate or what shine looks like, so each token says so.",
+      "properties": {
+        "period_ms": {
+          "type": "object",
+          "required": [
+            "value",
+            "pending"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "finding": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Set only if the manual's rate reaches three flashes a second: then the rate is a finding for the owner (WCAG 2.3.1) and not a reason to slow the language down silently."
+            },
+            "pending": {
+              "$ref": "#/$defs/pending"
+            }
+          }
+        },
+        "duty_percent": {
+          "type": "object",
+          "required": [
+            "value",
+            "pending"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 90
+            },
+            "pending": {
+              "$ref": "#/$defs/pending"
+            }
+          }
+        },
+        "shine": {
+          "type": "object",
+          "required": [
+            "value",
+            "pending"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "enum": [
+                "ink",
+                "ink.quiet"
+              ],
+              "description": "Which neutral the shine state is drawn from: the lit colour with a ring in this colour. Never a new colour (Q03)."
+            },
+            "pending": {
+              "$ref": "#/$defs/pending"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "pending": {
+      "type": "object",
+      "required": [
+        "question",
+        "note"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "colour_token": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "pending": {
+          "$ref": "#/$defs/pending"
+        },
+        "suppress": {
+          "type": "array",
+          "description": "Rule S8's own exit: a colour near the AI-design cluster says why it is there.",
+          "items": {
+            "type": "object",
+            "required": [
+              "rule",
+              "why"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "rule": {
+                "const": "S8"
+              },
+              "why": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

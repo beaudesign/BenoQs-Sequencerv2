@@ -1,0 +1,161 @@
+/* The page's own rules. Every colour, length, font and stroke is a custom property from the generated tokens.css
+   (contracts/design.tokens.json): this file writes none of its own (ADR-0008 decision 6, rules S2 and S12).
+   No gradient, shadow, transition or easing anywhere; the one animation is the LED flash, whose keyframes are in
+   tokens.css. The strip has square corners and no colour; the controls are circles, the one place a radius is used. */
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--colour-surface);
+  color: var(--colour-ink);
+  font-family: var(--type-family);
+  font-size: var(--type-size-body);
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--stroke-hairline) solid var(--colour-ink-quiet);
+}
+
+#strip .field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+#strip p {
+  margin: 0;
+  max-width: var(--type-measure);
+  color: var(--colour-ink-quiet);
+}
+
+#strip button,
+#strip select,
+#strip input {
+  font: inherit;
+  color: var(--colour-ink);
+  background: var(--colour-surface);
+  border: var(--stroke-hairline) solid var(--colour-ink);
+  border-radius: 0;
+  padding: var(--space-1) var(--space-2);
+}
+
+#strip button {
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+#strip button:active {
+  background: var(--colour-ink);
+  color: var(--colour-surface);
+}
+
+#strip input {
+  width: var(--space-6);
+  font-variant-numeric: tabular-nums;
+}
+
+#strip :focus-visible {
+  outline: var(--stroke-focus) solid var(--colour-focus);
+  outline-offset: var(--stroke-focus);
+}
+
+/* The panel is one object: it scales to the room it is given and never rearranges. */
+#panel-frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+#panel {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.control {
+  cursor: pointer;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.face {
+  fill: var(--colour-surface);
+  stroke: var(--colour-ink-quiet);
+  stroke-width: var(--stroke-hairline);
+}
+
+.control[data-down] .face {
+  stroke: var(--colour-ink);
+}
+
+/* An LED: the key is lit in the role's colour, or dark. Steady, flashing and shine are told apart by more than colour. */
+.led {
+  fill: var(--colour-led-off);
+}
+
+.led[data-colour="red"] {
+  --lit: var(--colour-led-red);
+  fill: var(--lit);
+}
+
+.led[data-colour="green"] {
+  --lit: var(--colour-led-green);
+  fill: var(--lit);
+}
+
+.led[data-colour="orange"] {
+  --lit: var(--colour-led-orange);
+  fill: var(--lit);
+}
+
+.led[data-phase="flash"] {
+  animation: led-flash var(--flash-period) steps(1, end) infinite;
+}
+
+.led[data-phase="shine"] {
+  stroke: var(--flash-shine);
+  stroke-width: var(--stroke-focus);
+}
+
+/* The focus ring: a light stroke outside the key and a dark one inside its edge, so it shows on the ground and on a lit LED. */
+.ring-inner,
+.ring-outer {
+  display: none;
+  fill: none;
+  pointer-events: none;
+}
+
+.ring-inner {
+  stroke: var(--colour-focus-inner);
+  stroke-width: var(--stroke-focus-inner);
+}
+
+.ring-outer {
+  stroke: var(--colour-focus);
+  stroke-width: var(--stroke-focus);
+}
+
+.control:focus-visible .ring-inner,
+.control:focus-visible .ring-outer {
+  display: inline;
+}
+
+.label {
+  fill: var(--colour-ink);
+  font-size: var(--type-size-label);
+  dominant-baseline: central;
+  pointer-events: none;
+}

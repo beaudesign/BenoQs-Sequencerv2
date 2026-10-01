@@ -239,9 +239,10 @@ short or the placement can be better. Each is small; each is written down becaus
    (`harness/baseline.txt`) is read from `cargo test` output, so a Rust test is floored by name and a Node test is not
    (D-P3-8). The test also runs each rule against a document made to break it, so no rule can sit there unable to
    fail, and it checks its own ΔE (CIEDE2000, the stricter of the usual measures) against four pairs from the
-   published test data. Three rules were added to the seven of decision 6, and each only tightens: the three lit roles
-   are at least ΔE 15 apart and none is grey (T9); the type face is not one of the defaults rule S11 refuses (T10);
-   the measure is 68 (T11).
+   published test data. The seven rules of decision 6 are T1 to T7. T8 makes the `pending` text of decision 6 checkable (the
+   three tokens that wait on the manual say so). Three rules are added, and each only tightens: the three lit roles
+   are at least ΔE 15 apart and none is grey (T9); the type face is not one of the defaults rule S11 refuses, and the file has
+   no radius, shadow, gradient or easing group (T10); the measure is 68 (T11).
 
 The schema closes each group (`additionalProperties: false`, the colour group lists its nine keys, the space group its
 eight values), so a tenth colour or a ninth space step is a change to the schema and therefore to this ADR.

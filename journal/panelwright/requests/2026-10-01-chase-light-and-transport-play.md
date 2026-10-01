@@ -36,3 +36,17 @@ transport workflow the page drops its mapping and nothing else changes. Pages to
 playing, and whether Pause (`transport.pause`) is Continue (`Command::Continue` exists).
 
 Neither item blocks P3.
+
+## Added by P3c: what the first panel left provisional
+
+The first panel is in P3c. Three things in it wait on the manual or on a decision, and none blocks anything.
+
+1. **Where the other controls go.** `apps/web/layout/panel.layout.json` places the matrix as the manual says and puts the eleven other
+   controls it draws in rows under it, grouped by `controls.json` zone, with `status: provisional` and a note naming Q23 (what the MODE block
+   holds), Q04 (the EDIT block's order) and Q26 (whether the transport keys have LEDs). When a hardware check or a page settles a zone,
+   the arrangement in that file changes (cells only; it holds no length) and the tab order follows it. The layout file is the Forge's;
+   what a zone holds is yours.
+2. **`shine`** is drawn as the lit colour with a ring in `ink` (`flash.shine` in the tokens, pending Q03), so it is told from steady by
+   shape and not by a new colour. The controller emits it today only in the Step zoom table (p014).
+3. **The flash rate and duty cycle** are 500 ms and half (tokens, pending `tech.md` 9.2). They are one line each in the tokens file when
+   the manual or a hardware check says otherwise.

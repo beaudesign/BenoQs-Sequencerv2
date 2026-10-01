@@ -1,0 +1,29 @@
+[package]
+name = "octoweb"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "WENGE web engine module: octocore and octoface joined behind C exports for the AudioWorklet (ADR-0008). Owner: Forge."
+
+[lib]
+name = "octoweb"
+# cdylib is the WebAssembly module the page loads; rlib is what the native tests link.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+octocore = { path = "../../../crates/octocore" }
+octoface = { path = "../../../crates/octoface" }
+# Only with the `spike` feature: spike S2 runs a pattern through the headless runner inside the worklet.
+octorun = { path = "../../../crates/octorun", optional = true }
+
+[features]
+# The native tests run with the defaults. The module the app ships is built with
+# `--no-default-features`, so it has neither the counting allocator nor the runner (ADR-0008 3).
+default = ["measure", "spike"]
+# A counting global allocator and an export that reports the count (spike S2, E5).
+measure = []
+# One export that runs a pattern through `octorun` and returns the SHA-256 of its event log (spike S2).
+spike = ["dep:octorun"]
+
+[dev-dependencies]
+serde_json = "1"

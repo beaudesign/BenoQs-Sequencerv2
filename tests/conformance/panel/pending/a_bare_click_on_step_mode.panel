@@ -1,0 +1,6 @@
+# panel fixture: a click on the Step Mode button with no key pressed
+# manual: p013
+# workflow: Step zoom
+# pending: p013 describes hold and press only.
+# question: Q31
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

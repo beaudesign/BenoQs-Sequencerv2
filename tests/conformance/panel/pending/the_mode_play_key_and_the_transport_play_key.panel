@@ -1,0 +1,6 @@
+# panel fixture: the PLAY key of the MODE block and the transport Play key
+# manual: p016, p049, p066
+# workflow: PLAY LED
+# pending: The manual names both and does not say whether they are one key (Q21).
+# question: Q21
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

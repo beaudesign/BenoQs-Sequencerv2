@@ -1,0 +1,14 @@
+# panel fixture: a row 0 key selects another step of the zoomed track
+# manual: p013
+# workflow: Step zoom
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+expect led step(0,5) = red flash
+at 1000 ms click step(0,9)
+expect commands 0
+expect mode step
+expect led step(0,9) = red flash
+given step 3 12 on
+at 2000 ms click step(0,12)
+expect led step(0,12) = green flash

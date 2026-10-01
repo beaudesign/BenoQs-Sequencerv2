@@ -1,0 +1,6 @@
+# panel fixture: the LED of a chord step or a hyperstep in Page view
+# manual: p014, p034, p038
+# workflow: Page mode step LEDs
+# pending: p034 and p038 give an event step Orange in Page view. The Chord/Event and Hyperstep rows of p014 are the Step zoom table, and no page says what a chord step or a hyperstep shows in Page view.
+# question: Q37
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

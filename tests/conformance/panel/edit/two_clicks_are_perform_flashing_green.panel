@@ -1,0 +1,6 @@
+# panel fixture: two clicks on EDIT are perform, flashing green
+# manual: p069
+# workflow: EDIT cycle
+at 0 ms click mode.edit
+at 1000 ms click mode.edit
+expect led mode.edit = green flash

@@ -1,0 +1,9 @@
+# panel fixture: Step zoom LEDs for a hyperstep step
+# manual: p014
+# workflow: Step zoom LED table
+given step 3 5 hyper
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+expect led step(0,5) = red shine
+expect led mutator.mute = off

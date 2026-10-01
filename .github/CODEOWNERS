@@ -40,6 +40,8 @@
 /crates/octocore/**              @beaudesign
 /hosts/**                        @beaudesign
 /tests/conformance/**            @beaudesign
+# Panelwright again: the panel fixtures (ADR-0007). After the line above, because the last match wins.
+/tests/conformance/panel/**     @beaudesign
 
 # Forge: the web app.
 /apps/web/**                     @beaudesign

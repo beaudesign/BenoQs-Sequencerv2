@@ -1,0 +1,9 @@
+# panel fixture: pressing PLAY again discards the changes and leaves PLAY mode
+# manual: p066
+# workflow: PLAY mode
+at 0 ms click mode.play
+at 1000 ms click mode.play
+expect intent SnapshotRecall
+expect intents 1
+expect commands 0
+expect led mode.play = green steady

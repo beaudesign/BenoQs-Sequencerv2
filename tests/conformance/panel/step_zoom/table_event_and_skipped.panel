@@ -1,0 +1,11 @@
+# panel fixture: Step zoom LEDs for a event and skipped step
+# manual: p014
+# workflow: Step zoom LED table
+given step 3 5 on
+given step 3 5 event
+given step 3 5 skip
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+expect led step(0,5) = red flash
+expect led mutator.mute = orange flash

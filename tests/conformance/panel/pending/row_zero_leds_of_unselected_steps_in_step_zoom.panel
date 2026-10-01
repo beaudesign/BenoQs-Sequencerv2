@@ -1,0 +1,6 @@
+# panel fixture: what the other fifteen row 0 keys show in Step zoom
+# manual: p013
+# workflow: Step zoom
+# pending: p013 makes row 0 the track's 16 steps and gives no colours for the unselected ones. The controller shows the page colours, unasserted.
+# question: Q28
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

@@ -1,0 +1,6 @@
+# panel fixture: a double-click on a matrix key zooms into the step
+# manual: p027, p034, p038
+# workflow: Step zoom
+# pending: p027, p034 and p038 name a double-click as a second way into Step zoom; the interval is not given.
+# question: Q24
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

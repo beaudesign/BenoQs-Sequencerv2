@@ -1,0 +1,13 @@
+# panel fixture: hold Step Mode and press a matrix key to zoom into that step
+# manual: p013
+# workflow: Step zoom
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+expect command SetMode mode=Step
+expect commands 1
+expect mode step
+expect engine mode step
+expect engine step 3 5 active = false
+at 600 ms release mode.step
+expect commands 0
+expect mode step

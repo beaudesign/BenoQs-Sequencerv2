@@ -504,6 +504,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "octoface"
+version = "0.1.0"
+dependencies = [
+ "jsonschema",
+ "octocore",
+ "serde_json",
+]
+
+[[package]]
 name = "octoffi"
 version = "0.1.0"
 dependencies = [

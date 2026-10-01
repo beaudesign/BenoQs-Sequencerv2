@@ -1,0 +1,6 @@
+# panel fixture: the LED of the transport Play button
+# manual: p016, p049, p066
+# workflow: PLAY LED
+# pending: The manual gives a colour for the MODE-block PLAY button. It gives the transport Play, Stop and Pause keys no LED at all; p067 gives the Record key one.
+# question: Q26
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

@@ -1,0 +1,20 @@
+[package]
+name = "octoface"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "WENGE panel controller: buttons and encoders in, engine commands and LED frames out. Owner: Panelwright."
+
+[lib]
+name = "octoface"
+
+# No runtime dependencies beyond the engine's types: the controller runs beside the engine in the
+# audio worklet (docs/02-architecture.md section 1, ADR-0007 decision 5).
+[dependencies]
+octocore = { path = "../octocore" }
+
+# Used by the tests only: they read contracts/controls.json and check it against its schema, the
+# way xtask checks the report. Both are already in the lockfile for xtask.
+[dev-dependencies]
+jsonschema = { version = "0.30", default-features = false }
+serde_json = "1"

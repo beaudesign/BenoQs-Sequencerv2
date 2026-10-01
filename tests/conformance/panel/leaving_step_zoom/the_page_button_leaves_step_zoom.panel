@@ -1,0 +1,17 @@
+# panel fixture: the PAGE mode button leaves Step zoom
+# manual: p015
+# workflow: Step zoom exit
+given step 3 5 on
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms click mode.page
+expect command SetMode mode=Page
+expect commands 1
+expect mode page
+expect engine mode page
+expect led step(3,5) = green steady
+at 2000 ms click step(3,5)
+expect command SetStep track=3 step=4 attr=Active value=0
+expect engine step 3 5 active = false
+expect led step(3,5) = off

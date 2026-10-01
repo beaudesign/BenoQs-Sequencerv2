@@ -1,0 +1,6 @@
+# panel fixture: one click on EDIT is preview, flashing orange
+# manual: p068
+# workflow: EDIT cycle
+at 0 ms click mode.edit
+expect led mode.edit = orange flash
+expect commands 0

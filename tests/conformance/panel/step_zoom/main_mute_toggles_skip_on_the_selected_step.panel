@@ -1,0 +1,16 @@
+# panel fixture: the Main Mute button toggles Skip on the selected step
+# manual: p014
+# workflow: Step zoom, skip
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms click mutator.mute
+expect command SetStep track=3 step=4 attr=Skip value=1
+expect commands 1
+expect engine step 3 5 skip = true
+expect led step(0,5) = red flash
+expect led mutator.mute = red steady
+at 2000 ms click mutator.mute
+expect command SetStep track=3 step=4 attr=Skip value=0
+expect engine step 3 5 skip = false
+expect led mutator.mute = off

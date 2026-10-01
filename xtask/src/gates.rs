@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 
 use crate::baseline::{Baseline, Violation};
 use crate::cargo_out::Parsed;
+use crate::panel::PanelScan;
 use crate::scope::{self, Scan};
 
 pub struct GateDef {
@@ -142,8 +143,11 @@ pub struct TestRun {
 
 pub struct Inputs<'a> {
     pub run: &'a TestRun,
-    /// Conformance fixtures on disk (excluding `pending/`), as repo-relative paths.
+    /// Conformance fixtures on disk (`.fixture`, and `.panel` under `tests/conformance/panel/`,
+    /// excluding `pending/`), as repo-relative paths.
     pub fixtures: &'a BTreeSet<String>,
+    /// The scan of the panel fixtures that do not assert, and of stray `.panel` files (ADR-0007 decision 4).
+    pub panel_scan: &'a PanelScan,
     pub baseline: &'a Baseline,
     /// The baseline at the base ref, when `--base` was given.
     pub base: Option<&'a Baseline>,
@@ -222,18 +226,24 @@ fn finish(def: &GateDef, duration_s: f64, metrics: Vec<Metric>, failures: Vec<Fa
     }
 }
 
+/// The test in the octoface `panel_fixtures` binary that runs every `.panel` fixture. Losing it
+/// would leave the fixtures unread, so the gate asks for it by name (ADR-0007 decision 4).
+const PANEL_RUNNER: &str = "all_panel_fixtures_pass";
+
 fn conformance(def: &GateDef, inp: &Inputs) -> Gate {
+    use crate::cargo_out::Outcome;
+
     let mut failures = Vec::new();
     if let Some(e) = &inp.run.build_error {
         failures.push(Failure::new("cargo test", e.clone()));
     }
     let (n_ok, n_bad) = match inp.run.parsed.binary("conformance") {
         Some(b) => {
-            for t in b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Failed) {
+            for t in b.tests.iter().filter(|t| t.outcome == Outcome::Failed) {
                 failures.push(Failure::new(t.id.clone(), "conformance test failed"));
             }
-            let ok = b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Ok).count();
-            let bad = b.tests.iter().filter(|t| t.outcome == crate::cargo_out::Outcome::Failed).count();
+            let ok = b.tests.iter().filter(|t| t.outcome == Outcome::Ok).count();
+            let bad = b.tests.iter().filter(|t| t.outcome == Outcome::Failed).count();
             (ok, bad)
         }
         None => {
@@ -243,10 +253,50 @@ fn conformance(def: &GateDef, inp: &Inputs) -> Gate {
             (0, 0)
         }
     };
+
+    // Panel fixtures: when any assert on disk, the test binary that runs them must have run, and
+    // the test that walks them all must have passed.
+    let panel_on_disk = inp.fixtures.iter().filter(|p| p.ends_with(".panel")).count();
+    let mut panel_runner_passed = 0;
+    if panel_on_disk > 0 {
+        match inp.run.parsed.binary("panel_fixtures") {
+            Some(b) => {
+                for t in b.tests.iter().filter(|t| t.outcome == Outcome::Failed) {
+                    failures.push(Failure::new(t.id.clone(), "panel fixture test failed"));
+                }
+                let suffix = format!("::{PANEL_RUNNER}");
+                match b.tests.iter().find(|t| t.id.ends_with(&suffix)).map(|t| t.outcome) {
+                    Some(Outcome::Ok) => panel_runner_passed = 1,
+                    Some(_) => {} // failed, and named above
+                    None => failures.push(Failure::new(
+                        "conformance.panel",
+                        format!("the `{PANEL_RUNNER}` test, which runs every panel fixture, is not in the panel_fixtures binary"),
+                    )),
+                }
+            }
+            None => {
+                if inp.run.build_error.is_none() {
+                    failures.push(Failure::new(
+                        "conformance.panel",
+                        format!("{panel_on_disk} panel fixtures are on disk and the octoface panel_fixtures test binary did not run"),
+                    ));
+                }
+            }
+        }
+    }
+
+    // PanelScan panel fixtures are reported, not floored: closing one is progress.
+    for (path, what) in &inp.panel_scan.problems {
+        failures.push(Failure::new(path.clone(), what.clone()));
+    }
+
     let metrics = vec![
         Metric::new("conformance.tests_passed", n_ok, "tests", Comparator::Gte, 1),
         Metric::new("conformance.tests_failed", n_bad, "tests", Comparator::Eq, 0),
         Metric::new("conformance.fixtures", inp.fixtures.len(), "fixtures", Comparator::Gte, inp.baseline.fixtures.len()),
+        Metric::new("conformance.panel_runner_passed", panel_runner_passed, "tests", Comparator::Gte, usize::from(panel_on_disk > 0)),
+        Metric::new("conformance.pending_fixtures", inp.panel_scan.pending.len(), "fixtures", Comparator::Gte, 0),
+        Metric::new("conformance.panel_files_malformed", inp.panel_scan.problems.len(), "fixtures", Comparator::Eq, 0),
     ];
     finish(def, inp.run.duration_s, metrics, failures)
 }
@@ -393,7 +443,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
     fn eval(out: &str, baseline: &Baseline, base: Option<&Baseline>) -> Vec<Gate> {
         let run = TestRun { parsed: parse(out), duration_s: 1.0, build_error: None };
         let fixtures = set(&["tests/conformance/x.fixture"]);
-        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline, base, adr_exists: &|_| false, scope: &Scan::clean() };
+        let inputs = Inputs { run: &run, fixtures: &fixtures, panel_scan: &PanelScan::default(), baseline, base, adr_exists: &|_| false, scope: &Scan::clean() };
         evaluate(&inputs).0
     }
 
@@ -490,7 +540,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
     fn a_build_error_fails_both_wired_gates() {
         let run = TestRun { parsed: Parsed::default(), duration_s: 0.5, build_error: Some("error[E0432]".into()) };
         let fixtures = set(&["tests/conformance/x.fixture"]);
-        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline: &baseline(), base: None, adr_exists: &|_| true, scope: &Scan::clean() };
+        let inputs = Inputs { run: &run, fixtures: &fixtures, panel_scan: &PanelScan::default(), baseline: &baseline(), base: None, adr_exists: &|_| true, scope: &Scan::clean() };
         let (gates, _) = evaluate(&inputs);
         assert_eq!(status(&gates, "conformance"), Status::Fail);
         assert_eq!(status(&gates, "regressions"), Status::Fail);
@@ -517,7 +567,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         let fixtures = set(&["tests/conformance/x.fixture", "tests/conformance/y.fixture"]);
         let mut b = baseline();
         b.tests.remove("octocore::a::two");
-        let inputs = Inputs { run: &run, fixtures: &fixtures, baseline: &b, base: None, adr_exists: &|_| true, scope: &Scan::clean() };
+        let inputs = Inputs { run: &run, fixtures: &fixtures, panel_scan: &PanelScan::default(), baseline: &b, base: None, adr_exists: &|_| true, scope: &Scan::clean() };
         let (_, a) = evaluate(&inputs);
         assert_eq!(a.total, 3 + 2);
         assert_eq!(a.previous_total, 2 + 1);
@@ -593,5 +643,119 @@ test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
         let g = scope_gate(def, &s);
         assert_eq!(g.status, Status::Fail);
         assert!(g.failures[0].detail.contains("scope-allow.txt"));
+    }
+    // ---- panel fixtures (ADR-0007 decision 4) -------------------------------------------------
+
+    const PANEL: &str = "\
+     Running tests/panel_fixtures.rs (target/debug/deps/panel_fixtures-0123456789abcdef)
+test a_fixture_with_a_wrong_expectation_fails_and_the_right_one_passes ... ok
+test all_panel_fixtures_pass ... ok
+test the_runner_rejects_what_it_does_not_understand ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+";
+
+    const A_PANEL: &str = "tests/conformance/panel/edit/cycle.panel";
+    const A_PENDING: &str = "tests/conformance/panel/pending/q31.panel";
+
+    fn eval_panel(out: &str, on_disk: &[&str], pending: &PanelScan) -> Vec<Gate> {
+        let run = TestRun { parsed: parse(out), duration_s: 1.0, build_error: None };
+        let fixtures = set(on_disk);
+        let b = baseline();
+        let inputs = Inputs { run: &run, fixtures: &fixtures, panel_scan: pending, baseline: &b, base: None, adr_exists: &|_| false, scope: &Scan::clean() };
+        evaluate(&inputs).0
+    }
+
+    fn conformance_of(gates: &[Gate]) -> &Gate {
+        gates.iter().find(|g| g.name == "conformance").unwrap()
+    }
+
+    fn metric(g: &Gate, key: &str) -> f64 {
+        g.metrics.iter().find(|m| m.key == key).unwrap_or_else(|| panic!("no metric {key}")).value
+    }
+
+    #[test]
+    fn a_panel_fixture_on_disk_needs_the_panel_test_binary() {
+        let on_disk = ["tests/conformance/x.fixture", A_PANEL];
+        let without = eval_panel(&full_run(), &on_disk, &PanelScan::default());
+        let g = conformance_of(&without);
+        assert_eq!(g.status, Status::Fail);
+        assert!(g.failures.iter().any(|f| f.subject == "conformance.panel"), "{:?}", g.failures);
+
+        let with = eval_panel(&format!("{}\n{PANEL}", full_run()), &on_disk, &PanelScan::default());
+        assert_eq!(conformance_of(&with).status, Status::Pass, "{:?}", conformance_of(&with).failures);
+        assert_eq!(metric(conformance_of(&with), "conformance.panel_runner_passed"), 1.0);
+    }
+
+    #[test]
+    fn with_no_panel_fixture_on_disk_the_panel_binary_is_not_asked_for() {
+        let g = eval_panel(&full_run(), &["tests/conformance/x.fixture"], &PanelScan::default());
+        assert_eq!(conformance_of(&g).status, Status::Pass);
+        assert_eq!(metric(conformance_of(&g), "conformance.panel_runner_passed"), 0.0);
+    }
+
+    #[test]
+    fn the_panel_gate_wants_the_test_that_runs_every_fixture_not_just_any_test_in_the_binary() {
+        let on_disk = ["tests/conformance/x.fixture", A_PANEL];
+        let hollow = "\
+     Running tests/panel_fixtures.rs (target/debug/deps/panel_fixtures-0123456789abcdef)
+test the_runner_rejects_what_it_does_not_understand ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+";
+        let g = eval_panel(&format!("{}\n{hollow}", full_run()), &on_disk, &PanelScan::default());
+        assert_eq!(conformance_of(&g).status, Status::Fail);
+        assert!(conformance_of(&g).failures.iter().any(|f| f.subject == "conformance.panel"));
+    }
+
+    #[test]
+    fn a_failing_panel_test_fails_conformance_and_is_named() {
+        let on_disk = ["tests/conformance/x.fixture", A_PANEL];
+        let bad = PANEL.replace("test all_panel_fixtures_pass ... ok", "test all_panel_fixtures_pass ... FAILED").replace("3 passed; 0 failed", "2 passed; 1 failed");
+        let g = eval_panel(&format!("{}\n{bad}", full_run()), &on_disk, &PanelScan::default());
+        assert_eq!(conformance_of(&g).status, Status::Fail);
+        assert!(conformance_of(&g).failures.iter().any(|f| f.subject == "panel_fixtures::all_panel_fixtures_pass"), "{:?}", conformance_of(&g).failures);
+        assert_eq!(metric(conformance_of(&g), "conformance.panel_runner_passed"), 0.0, "a failed runner is not a passed runner");
+        assert!(!conformance_of(&g).metrics.iter().find(|m| m.key == "conformance.panel_runner_passed").unwrap().passes());
+    }
+
+    #[test]
+    fn pending_panel_fixtures_are_reported_and_not_floored() {
+        let three = PanelScan { pending: vec![A_PENDING.into(), "tests/conformance/panel/pending/b.panel".into(), "tests/conformance/panel/pending/c.panel".into()], problems: vec![] };
+        let g = eval_panel(&full_run(), &["tests/conformance/x.fixture"], &three);
+        assert_eq!(conformance_of(&g).status, Status::Pass);
+        assert_eq!(metric(conformance_of(&g), "conformance.pending_fixtures"), 3.0);
+        assert_eq!(metric(conformance_of(&g), "conformance.panel_files_malformed"), 0.0);
+
+        // Closing one by a hardware check lowers the number; that is progress and must not fail.
+        let one = PanelScan { pending: vec![A_PENDING.into()], problems: vec![] };
+        let g = eval_panel(&full_run(), &["tests/conformance/x.fixture"], &one);
+        assert_eq!(conformance_of(&g).status, Status::Pass);
+        assert_eq!(metric(conformance_of(&g), "conformance.pending_fixtures"), 1.0);
+    }
+
+    #[test]
+    fn a_pending_fixture_without_its_headers_fails_the_gate_and_is_named() {
+        let bare = PanelScan { pending: vec![A_PENDING.into()], problems: vec![(A_PENDING.into(), "no `# question:` header".into())] };
+        let g = eval_panel(&full_run(), &["tests/conformance/x.fixture"], &bare);
+        assert_eq!(conformance_of(&g).status, Status::Fail);
+        let f = conformance_of(&g).failures.iter().find(|f| f.subject == A_PENDING).expect("the file is named");
+        assert!(f.detail.contains("question"), "{f:?}");
+        assert_eq!(metric(conformance_of(&g), "conformance.panel_files_malformed"), 1.0);
+        let m = conformance_of(&g).metrics.iter().find(|m| m.key == "conformance.panel_files_malformed").unwrap();
+        assert!(!m.passes(), "the metric itself fails, not only the failure list: {m:?}");
+    }
+
+    #[test]
+    fn panel_fixtures_are_assertions_like_any_other_fixture() {
+        let run = TestRun { parsed: parse(&format!("{}\n{PANEL}", full_run())), duration_s: 1.0, build_error: None };
+        let fixtures = set(&["tests/conformance/x.fixture", A_PANEL]);
+        let b = baseline();
+        let pending = PanelScan { pending: vec![A_PENDING.into()], problems: vec![] };
+        let inputs = Inputs { run: &run, fixtures: &fixtures, panel_scan: &pending, baseline: &b, base: None, adr_exists: &|_| false, scope: &Scan::clean() };
+        let (_, a) = evaluate(&inputs);
+        assert!(a.by_gate.contains(&("conformance".to_string(), 2)), "{:?}", a.by_gate);
+        assert!(a.added.contains(&A_PANEL.to_string()), "{:?}", a.added);
+        assert!(!a.added.contains(&A_PENDING.to_string()), "a pending fixture asserts nothing and is not an assertion");
     }
 }

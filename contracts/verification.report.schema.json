@@ -110,26 +110,25 @@
 
     "findings": {
       "type": "array",
-      "description": "Output of the perceptual pass and of blind comparisons. Scores never gate; findings are the product. Every finding is triaged within one cycle.",
+      "description": "Observations about the product: a reviewer's, a hardware check's, an agent's. A rating never gates; findings are the product, and the desired end of one is a converted test. Every finding is triaged before its wave ends (docs/07 section 4).",
       "items": {
         "type": "object",
         "required": ["id", "source", "observation", "status"],
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string", "pattern": "^F-[0-9]{4}$" },
-          "source": { "enum": ["perceptual_pass", "blind_comparison", "human_review", "agent_report"] },
+          "source": { "enum": ["human_review", "agent_report", "hardware_check"] },
           "scene": { "type": "string" },
           "region": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } },
-          "dimension": {
-            "enum": ["materiality", "light_coherence", "geometric_conviction", "typographic_authority", "motion_honesty", "restraint", "coherence_of_worlds"]
-          },
+          "workflow": { "type": "string", "description": "The workflow the finding is about: its number in specs/SPEC-0002/sources/ or the path of its panel fixture." },
+          "control": { "type": "string", "description": "An `id` from contracts/controls.json." },
           "severity": { "enum": ["low", "medium", "high"] },
           "observation": { "type": "string" },
           "status": { "enum": ["open", "converted", "rejected", "deferred", "closed"] },
           "converted_to": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Assertion ids. This is the desired outcome: 'chrome looks plasticky' is worthless; 'specular lobe angular width at enc.edit.len under probe flat must be between 3.8 and 5.2 degrees' is a test that is still true in a year."
+            "description": "Assertion ids. This is the desired outcome: 'the EDIT light looks wrong' is worthless; 'after one click on edit the LED frame shows edit as orange, flashing' is a fixture that is still true in a year."
           },
           "rejection_reason": { "type": "string", "description": "Kept forever, so the same false positive is not relitigated every cycle." },
           "deferred_to_phase": { "type": "integer", "minimum": 0, "description": "A finding may be deferred at most twice." },
@@ -140,38 +139,16 @@
       }
     },
 
-    "perceptual": {
+    "triage": {
       "type": "object",
-      "description": "Advisory only. Never gates.",
+      "description": "How a wave's findings were triaged. Advisory: the ratio never gates.",
       "additionalProperties": false,
       "properties": {
-        "rubric_version": { "type": "string" },
-        "anchor_set": { "type": "string" },
-        "scores": {
-          "type": "object",
-          "additionalProperties": { "type": "number", "minimum": 1, "maximum": 5 }
-        },
         "conversion_ratio": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "description": "Fraction of this cycle's findings that became assertions. Below 0.40 means the pass is producing vibes rather than signal, and the Referee tightens the rubric."
-        }
-      }
-    },
-
-    "blind_comparison": {
-      "type": "object",
-      "description": "The outer loop, and the only ungameable measure. Run at every phase boundary with fresh participants.",
-      "additionalProperties": false,
-      "properties": {
-        "participants": { "type": "integer", "minimum": 1 },
-        "trials_per_participant": { "type": "integer", "minimum": 20 },
-        "accuracy": { "type": "number", "minimum": 0, "maximum": 1, "description": "Fraction correctly identifying the photograph. Target below 0.60 at release. 0.50 is chance." },
-        "tells": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Free-text 'what gave it away' for every correct trial. Each one enters the findings pipeline. This is the highest-value data the project will get: twenty trials with three people will find things a thousand model passes will not."
+          "description": "Fraction of this wave's findings that became assertions. Below 0.40 means the observations are producing vibes rather than signal, and the Referee tightens how they are recorded."
         }
       }
     }

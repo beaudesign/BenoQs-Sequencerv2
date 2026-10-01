@@ -1,0 +1,8 @@
+# panel fixture: ESC in Page view with nothing selected changes no mode
+# manual: p015
+# workflow: ESC
+given step 3 5 on
+at 0 ms click keys.esc
+expect commands 0
+expect mode page
+expect led step(3,5) = green steady

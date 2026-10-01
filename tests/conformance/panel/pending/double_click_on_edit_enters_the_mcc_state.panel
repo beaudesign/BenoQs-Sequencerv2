@@ -1,0 +1,6 @@
+# panel fixture: a double-click on EDIT turns it red (MCC state)
+# manual: p070
+# workflow: EDIT cycle
+# pending: p070 says to double-click EDIT for the MCC state and gives no interval between the two clicks.
+# question: Q24
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

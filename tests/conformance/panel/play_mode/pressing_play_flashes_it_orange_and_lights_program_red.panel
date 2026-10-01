@@ -1,0 +1,9 @@
+# panel fixture: pressing PLAY takes a snapshot, flashes PLAY orange and lights Program red
+# manual: p066
+# workflow: PLAY LED
+at 0 ms click mode.play
+expect intent SnapshotTake
+expect intents 1
+expect commands 0
+expect led mode.play = orange flash
+expect led keys.program = red steady

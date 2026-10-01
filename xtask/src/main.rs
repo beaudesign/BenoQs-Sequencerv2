@@ -13,6 +13,7 @@ mod baseline;
 mod cargo_out;
 mod gates;
 mod json;
+mod panel;
 mod report;
 mod scope;
 
@@ -156,9 +157,15 @@ fn conformance_fixtures(root: &Path) -> BTreeSet<String> {
                     continue;
                 }
                 walk(&path, root, out);
-            } else if path.extension().is_some_and(|e| e == "fixture") {
+            } else if path.extension().is_some_and(|e| e == "fixture" || e == "panel") {
                 if let Ok(rel) = path.strip_prefix(root) {
-                    out.insert(rel.to_string_lossy().replace('\\', "/"));
+                    let rel = rel.to_string_lossy().replace('\\', "/");
+                    // A `.panel` file counts only where the panel runner reads. A stray one is a
+                    // problem for `panel::scan`, not an assertion.
+                    if path.extension().is_some_and(|e| e == "panel") && !rel.starts_with("tests/conformance/panel/") {
+                        continue;
+                    }
+                    out.insert(rel);
                 }
             }
         }
@@ -261,6 +268,7 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
         None => None,
     };
     let fixtures = conformance_fixtures(root);
+    let panel_scan = panel::scan(root);
     let start = Instant::now();
     let run = run_tests(root, o.release)?;
     let adr = |id: &str| adr_exists(root, id);
@@ -268,6 +276,7 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
     let inputs = Inputs {
         run: &run,
         fixtures: &fixtures,
+        panel_scan: &panel_scan,
         baseline: &baseline,
         base: base.as_ref(),
         adr_exists: &adr,
@@ -467,9 +476,34 @@ mod tests {
     #[test]
     fn fixtures_exclude_pending_and_use_forward_slashes() {
         let f = conformance_fixtures(&root());
-        assert!(f.iter().all(|p| p.starts_with("tests/conformance/") && p.ends_with(".fixture")));
+        assert!(f.iter().all(|p| p.starts_with("tests/conformance/") && (p.ends_with(".fixture") || p.ends_with(".panel"))));
         assert!(f.iter().all(|p| !p.contains("/pending/")));
+        assert!(f.iter().all(|p| !p.contains('\\')));
         assert!(!f.is_empty());
+    }
+
+    #[test]
+    fn panel_fixtures_count_as_fixtures_and_pending_ones_do_not() {
+        let f = conformance_fixtures(&root());
+        assert!(f.iter().any(|p| p.ends_with(".fixture")), "the engine fixtures are still counted");
+        assert!(f.iter().any(|p| p.starts_with("tests/conformance/panel/") && p.ends_with(".panel")), "the panel fixtures are counted");
+        assert!(f.iter().all(|p| !p.starts_with("tests/conformance/panel/pending/")));
+    }
+
+    #[test]
+    fn a_panel_file_outside_the_panel_directory_is_not_counted_as_a_fixture() {
+        // The runner only reads tests/conformance/panel/, so a count that included a stray file
+        // would be an assertion that never ran.
+        let root = std::env::temp_dir().join(format!("xtask-main-{}-stray", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        for rel in ["tests/conformance/a.fixture", "tests/conformance/elsewhere/stray.panel", "tests/conformance/panel/edit/live.panel"] {
+            let f = root.join(rel);
+            std::fs::create_dir_all(f.parent().unwrap()).unwrap();
+            std::fs::write(f, "").unwrap();
+        }
+        let got: Vec<String> = conformance_fixtures(&root).into_iter().collect();
+        assert_eq!(got, ["tests/conformance/a.fixture", "tests/conformance/panel/edit/live.panel"]);
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

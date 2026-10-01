@@ -1,0 +1,6 @@
+# panel fixture: hold a step, click MUT: the step is skipped
+# manual: p014
+# workflow: Page mode step toggle
+# pending: p014 skips a step by holding its button and clicking MUT. The manual does not say whether a step toggles when its key goes down or when it comes up, so the held step may flip before MUT is clicked.
+# question: Q38
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

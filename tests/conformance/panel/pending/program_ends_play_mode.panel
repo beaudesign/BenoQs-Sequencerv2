@@ -1,0 +1,6 @@
+# panel fixture: Program keeps the changes; does PLAY mode end?
+# manual: p066
+# workflow: PLAY mode
+# pending: p066 says Program makes the changes permanent. It does not say whether PLAY mode ends or what the PLAY and Program LEDs then show.
+# question: Q36
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

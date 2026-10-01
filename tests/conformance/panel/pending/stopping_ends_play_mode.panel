@@ -1,0 +1,6 @@
+# panel fixture: stopping the sequencer in PLAY mode; does PLAY mode end?
+# manual: p066
+# workflow: PLAY mode
+# pending: p066 says stopping the sequencer loses the changes made in PLAY mode. It does not say whether PLAY mode ends or what the PLAY and Program LEDs then show.
+# question: Q36
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

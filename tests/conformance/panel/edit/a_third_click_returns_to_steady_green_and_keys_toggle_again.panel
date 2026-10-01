@@ -1,0 +1,10 @@
+# panel fixture: a third click returns EDIT to steady green and the keys toggle again
+# manual: p068, p069
+# workflow: EDIT cycle
+at 0 ms click mode.edit
+at 1000 ms click mode.edit
+at 2000 ms click mode.edit
+expect led mode.edit = green steady
+at 3000 ms click step(3,5)
+expect command SetStep track=3 step=4 attr=Active value=1
+expect engine step 3 5 active = true

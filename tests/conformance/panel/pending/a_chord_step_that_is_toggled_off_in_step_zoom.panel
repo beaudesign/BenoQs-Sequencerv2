@@ -1,0 +1,6 @@
+# panel fixture: a chord or event on a step that is toggled off, in Step zoom
+# manual: p014
+# workflow: Step zoom LED table
+# pending: The table has a 'Chord/Event' row and an Off row; a step can be both. Only the footnote on the Event and Skip row mentions the step being off.
+# question: Q35
+# No assertions. The manual does not settle this; the question is in tests/conformance/panel/QUESTIONS.md.

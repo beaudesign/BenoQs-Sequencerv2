@@ -1,0 +1,7 @@
+# panel fixture: Stop outside PLAY mode only stops
+# manual: p049
+# workflow: Transport
+at 0 ms click transport.stop
+expect command Stop
+expect commands 1
+expect intents 0

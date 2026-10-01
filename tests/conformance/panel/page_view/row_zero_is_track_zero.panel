@@ -1,0 +1,9 @@
+# panel fixture: matrix row 0 is track 0 in Page view
+# manual: p047, p060
+# workflow: Page mode step toggle
+at 0 ms click step(0,1)
+expect command SetStep track=0 step=0 attr=Active value=1
+expect engine step 0 1 active = true
+at 1000 ms click step(9,16)
+expect command SetStep track=9 step=15 attr=Active value=1
+expect engine step 9 16 active = true

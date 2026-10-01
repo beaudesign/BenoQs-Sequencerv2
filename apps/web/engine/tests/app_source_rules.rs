@@ -413,24 +413,61 @@ fn no_token_value_is_written_anywhere_else_in_the_app() {
     assert!(found.is_empty(), "{}", found.join("\n"));
 }
 
+/// The custom properties `tokens-css.ts` writes, from the tokens file. The names are the file's keys with `.` and `_`
+/// made `-`, except the three the generator renames; `test/tokens-css.test.ts` pins the generator to the same list.
+fn token_properties(tokens: &serde_json::Value) -> std::collections::BTreeSet<String> {
+    let mut out = std::collections::BTreeSet::new();
+    for (k, _) in tokens["colour"].as_object().unwrap() {
+        out.insert(format!("colour-{}", k.replace(['.', '_'], "-")));
+    }
+    for (k, _) in tokens["space"].as_object().unwrap() {
+        out.insert(format!("space-{k}"));
+    }
+    for name in [
+        "type-family",
+        "type-size-label",
+        "type-size-body",
+        "type-measure",
+        "stroke-hairline",
+        "stroke-focus",
+        "stroke-focus-inner",
+        "flash-period",
+        "flash-shine",
+    ] {
+        out.insert(name.to_string());
+    }
+    out
+}
+
+fn custom_properties_used(css: &str) -> Vec<String> {
+    css.split("var(--").skip(1).map(|part| part.chars().take_while(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-').collect()).collect()
+}
+
 #[test]
 fn the_stylesheets_use_only_custom_properties_that_exist() {
     // `--lit` is the stylesheet's own (the colour a key is lit in, which the flash keyframes read); every other
-    // `var(--x)` must be a token property, whose names are the ones `tokens-css.ts` writes.
-    let generator = app_sources().into_iter().find(|s| s.name == "src/tokens-css.ts").unwrap().text;
+    // `var(--x)` must be a property the generated tokens.css defines.
+    let tokens: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(web_dir().join("../../contracts/design.tokens.json")).unwrap()).unwrap();
+    let known = token_properties(&tokens);
+    let mut used_any = false;
     for s in app_sources().into_iter().filter(|s| s.kind == Kind::Css) {
-        let code = code_of(&s.text, Kind::Css, true);
-        for part in code.split("var(--").skip(1) {
-            let name: String = part.chars().take_while(|c| c.is_ascii_lowercase() || *c == '-').collect();
-            let family = name.split('-').next().unwrap_or("");
-            assert!(
-                name == "lit" || ["colour", "space", "type", "stroke", "flash"].contains(&family),
-                "{}: var(--{name}) is not a token property",
-                s.name
-            );
-            assert!(name == "lit" || generator.contains(&format!("\"{family}-")) || generator.contains(&format!("`{family}-")), "{}: the generator writes no --{family}-… property", s.name);
+        for name in custom_properties_used(&code_of(&s.text, Kind::Css, true)) {
+            used_any = true;
+            assert!(name == "lit" || known.contains(&name), "{}: var(--{name}) is not a property of the tokens stylesheet", s.name);
         }
     }
+    assert!(used_any, "the scan found no var() in the app's stylesheet");
+}
+
+#[test]
+fn a_property_that_is_not_a_token_is_caught() {
+    let tokens: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(web_dir().join("../../contracts/design.tokens.json")).unwrap()).unwrap();
+    let known = token_properties(&tokens);
+    assert!(known.contains("colour-led-green") && known.contains("colour-focus-inner") && known.contains("space-6") && known.contains("flash-period"));
+    for name in custom_properties_used("a { color: var(--colour-brand); margin: var(--space-9); font: var(--type-size-huge); }") {
+        assert!(!known.contains(&name), "{name} should be unknown");
+    }
+    assert_eq!(custom_properties_used("a { fill: var(--colour-led-off); } b { x: var(--lit) }"), vec!["colour-led-off", "lit"]);
 }
 
 // ---------------------------------------------------------------------------------------------

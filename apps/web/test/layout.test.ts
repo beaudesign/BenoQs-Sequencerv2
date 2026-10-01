@@ -151,6 +151,8 @@ test("an LED is drawn for exactly the controls the manual gives one (transport.s
 test("wrapLabel breaks on spaces, keeps a long word whole, and loses nothing", () => {
   assert.deepEqual(wrapLabel("Transport Stop button", 16), ["Transport Stop", "button"]);
   assert.deepEqual(wrapLabel("ESC", 16), ["ESC"]);
+  assert.deepEqual(wrapLabel("ab cd", 5), ["ab cd"], "a line of exactly the limit fits");
+  assert.deepEqual(wrapLabel("ab cd", 4), ["ab", "cd"], "one more than the limit does not");
   assert.deepEqual(wrapLabel("Matrix key, row 0, column 1", 12), ["Matrix key,", "row 0,", "column 1"]);
   assert.deepEqual(wrapLabel("Extraordinarily long", 5), ["Extraordinarily", "long"]);
   for (const c of controls.controls) assert.equal(wrapLabel(c.name, 14).join(" "), c.name);
@@ -185,4 +187,34 @@ test("the layout is marked provisional and says why", () => {
   assert.equal(file.status, "provisional");
   assert.match(file.note, /Q23/);
   assert.match(file.note, /manual/);
+});
+
+test("the panel is wide enough for a label that runs past the matrix", () => {
+  const key = tokens.space["6"].value;
+  const gap = tokens.space["2"].value;
+  const pitch = key + gap;
+  const file = structuredClone(layoutFile) as LayoutFile;
+  const stop = file.controls.find((c) => c.id === "transport.stop")!;
+  stop.col = 18; // past the sixteenth column of the matrix
+  const g = geometry(tokens, file);
+  assert.equal(g.width, (18 + 1 + file.label.span) * pitch - gap, "the label's two cells are inside the width");
+  const [x0, , w] = g.viewBox;
+  const p = g.placements.find((q) => q.id === "transport.stop")!;
+  assert.ok(p.label!.x + file.label.span * pitch - gap <= x0 + w, "the label ends inside the view box");
+});
+
+test("the height is the last row drawn", () => {
+  const key = tokens.space["6"].value;
+  const gap = tokens.space["2"].value;
+  const file = structuredClone(layoutFile) as LayoutFile;
+  const last = Math.max(...file.controls.map((c) => c.row));
+  assert.equal(geometry(tokens, file).height, (last + 1) * (key + gap) - gap);
+});
+
+test("a label starts one gap to the right of its key's edge, and is centred on the key's height", () => {
+  const gap = tokens.space["2"].value;
+  for (const p of geometry().placements.filter((q) => q.label)) {
+    assert.equal(p.label!.x, p.cx + p.r + gap, p.id);
+    assert.equal(p.label!.y, p.cy, p.id);
+  }
 });

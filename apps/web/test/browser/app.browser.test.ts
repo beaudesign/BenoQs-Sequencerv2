@@ -157,6 +157,21 @@ test("a click that no pointer made, as a screen reader's Activate sends it, pres
   await page.close();
 });
 
+test("Space and Enter on a control are handled, so Space does not scroll the page; other keys are left alone", async () => {
+  const page = await open(installFakeMidi);
+  const prevented = (k: string) =>
+    page.$eval(key("matrix.r1.c2"), (el, k) => {
+      const e = new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true });
+      el.dispatchEvent(e);
+      return e.defaultPrevented;
+    }, k);
+  assert.equal(await prevented(" "), true);
+  assert.equal(await prevented("Enter"), true);
+  assert.equal(await prevented("Tab"), false, "Tab must still move focus");
+  assert.equal(await prevented("a"), false);
+  await page.close();
+});
+
 test("a mouse click presses the key once and not twice (its click event is not a second press)", async () => {
   const page = await open(installFakeMidi);
   await start(page);
@@ -270,7 +285,7 @@ test("E7: without Web MIDI the app loads, runs, and says it has no MIDI", async 
   assert.equal(await page.evaluate(() => typeof navigator.requestMIDIAccess), "undefined");
   await start(page);
   assert.match((await page.textContent("#midi-status")) ?? "", /no Web MIDI/);
-  assert.equal(await page.$eval("#midi-output", (el) => (el as HTMLSelectElement).options.length), 1, "only the no-output option");
+  assert.deepEqual(await page.$eval("#midi-output", (el) => [...(el as HTMLSelectElement).options].map((o) => o.textContent)), ["No output"], "only the no-output option");
   // It runs: a press lights a key, and Play moves the engine without an error.
   await page.click(face("matrix.r3.c4"));
   await page.waitForSelector(`${led("matrix.r3.c4")}[data-colour="green"]`, { timeout: 5_000 });
@@ -359,6 +374,13 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
   assert.equal(inner.width, `${tokens.stroke.focus_inner.value}px`);
   await page.click(face("matrix.r5.c5"));
   assert.equal((await ring("matrix.r5.c5", "outer")).display, "none", "a mouse press does not leave a ring");
+  // The ring is two strokes either side of the key's edge: the light one just outside, the dark one just inside.
+  const radii = await page.$eval(key("matrix.r9.c1"), (g) => {
+    const r = (sel: string) => Number(g.querySelector(sel)!.getAttribute("r"));
+    return { face: r(".face"), outer: r(".ring-outer"), inner: r(".ring-inner") };
+  });
+  assert.equal(radii.outer, radii.face + tokens.stroke.focus.value / 2, "the outer stroke sits just outside the key");
+  assert.equal(radii.inner, radii.face - tokens.stroke.focus_inner.value / 2, "the inner stroke sits just inside its edge");
   await page.close();
 });
 

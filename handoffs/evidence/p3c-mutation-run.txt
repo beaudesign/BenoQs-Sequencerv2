@@ -1,0 +1,102 @@
+# P3c deliberate breakages: each mutant changes one line of the source under test, and the matching tests must fail.
+# Node (25 mutants over layout, tokens-css, tokens, press, midi-access, abi): 22 caught on the first run; three survived and each is closed by a new test.
+# Rust (22: app files and token values, against app_source_rules.rs and tokens.rs): 21 caught on the first run; one survived (a var() naming no token) and is closed by a stricter rule.
+# Chromium (25: panel, app, stylesheet, page): 22 caught on the first run (one only by the type checker); three survived and each is closed by a new test; the type-checker one was redone as a real mutant.
+# Final: 72 of 72 caught.
+
+## Node, first run
+[0] caught   fails=2 tsc_error=False :: matrix read bottom row first
+[1] caught   fails=2 tsc_error=False :: row 0 at the top
+[2] caught   fails=3 tsc_error=False :: pitch ignores the gap
+[3] SURVIVED fails=0 tsc_error=False :: labels outside the width
+[4] caught   fails=1 tsc_error=False :: every control has an LED
+[5] SURVIVED fails=0 tsc_error=False :: wrap one short
+[6] SURVIVED fails=0 tsc_error=False :: label touches the key
+[7] caught   fails=1 tsc_error=False :: duplicates allowed
+[8] caught   fails=1 tsc_error=False :: matrix keys may be listed
+[9] caught   fails=1 tsc_error=False :: status unchecked
+[10] caught   fails=1 tsc_error=False :: space without a unit
+[11] caught   fails=1 tsc_error=False :: duty fixed at half
+[12] caught   fails=1 tsc_error=False :: shine ignores its token
+[13] caught   fails=1 tsc_error=False :: period in seconds
+[14] caught   fails=1 tsc_error=False :: schema unchecked
+[15] caught   fails=2 tsc_error=False :: press on every down
+[16] caught   fails=1 tsc_error=False :: release on the first up
+[17] caught   fails=1 tsc_error=False :: releaseAll keeps them
+[18] caught   fails=5 tsc_error=False :: release of an unheld source
+[19] caught   fails=1 tsc_error=False :: asks for sysex
+[20] caught   fails=2 tsc_error=False :: refusal reads as no MIDI
+[21] caught   fails=1 tsc_error=False :: ports never refresh
+[22] caught   fails=2 tsc_error=False :: port names ignored
+[23] caught   fails=1 tsc_error=False :: LED colour mask too wide
+[24] caught   fails=1 tsc_error=False :: LED phase shift wrong
+survivors: [(3, 'labels outside the width', 'survived'), (5, 'wrap one short', 'survived'), (6, 'label touches the key', 'survived')]
+
+## Node, the three survivors against the new tests
+[3] caught   fails=1 tsc_error=False :: labels outside the width
+[5] caught   fails=1 tsc_error=False :: wrap one short
+[6] caught   fails=1 tsc_error=False :: label touches the key
+survivors: []
+
+## Rust, first run
+[0] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: gradient
+[1] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: hex colour
+[2] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: named colour
+[3] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: length
+[4] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: shadow
+[5] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: transition
+[6] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: radius
+[7] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: easing
+[8] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: default face
+[9] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: all caps
+[10] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: second animation
+[11] SURVIVED failed=[] :: unknown token property
+[12] caught   failed=['the_panel_code_writes_no_pixel_position'] :: pixel offset in panel code
+[13] caught   failed=['the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own'] :: length in the layout file
+[14] caught   failed=['the_tokens_keep_every_rule'] :: surface in the AI cluster
+[15] caught   failed=['the_tokens_keep_every_rule'] :: ink too quiet
+[16] caught   failed=['the_tokens_keep_every_rule'] :: coloured focus ring
+[17] caught   failed=['the_tokens_keep_every_rule'] :: flashing too fast
+[18] caught   failed=['the_tokens_keep_every_rule'] :: unlit looks lit
+[19] caught   failed=['the_tokens_say_what_they_are', 'tokens_json_is_valid_against_its_schema'] :: a tenth colour
+[20] caught   failed=['the_tokens_keep_every_rule', 'the_tokens_say_what_they_are', 'tokens_json_is_valid_against_its_schema'] :: space off the scale
+[21] caught   failed=['the_tokens_keep_every_rule'] :: grey lit LED
+survivors: [(11, 'unknown token property', 'survived')]
+
+## Rust, the survivor against the stricter rule
+[11] caught failed=['the_stylesheets_use_only_custom_properties_that_exist'] :: unknown token property
+
+## Chromium, first run
+[0] caught   fails=8 first=['E1: a press on a matrix key lights it green, and a', "E1: a lit key is drawn in the token's green, and a"] :: colour and phase swapped
+[1] caught   fails=1 first=["a flashing LED is dark and lit at the token's peri"] :: flashing LEDs not pinned together
+[2] caught   fails=10 first=['E1: a press on a matrix key lights it green, and a', "E1: a lit key is drawn in the token's green, and a"] :: mouse click presses twice
+[3] caught   build error :: no assistive-technology click
+[4] caught   fails=2 first=['E8: every control the page draws is a button with ', "E8: the browser's own accessibility tree finds eac"] :: controls named by id
+[5] caught   fails=3 first=['E8: every control the page draws is a button with ', 'E8: Tab walks the strip, then the matrix in readin'] :: controls out of the tab order
+[6] SURVIVED fails=0 first=[] :: key press without preventDefault (page scrolls)
+[7] caught   fails=1 first=['a key can be pressed from the keyboard: Space pres'] :: key never released
+[8] SURVIVED fails=0 first=[] :: outer ring inside the key
+[9] caught   fails=4 first=['E2: Play sends a Note On with the right bytes to t', 'E2: nothing is sent until an output is chosen, and'] :: Play key not mapped to the engine's Play
+[10] caught   fails=4 first=['E2: Play sends a Note On with the right bytes to t', 'E2: nothing is sent until an output is chosen, and'] :: output on the wrong port
+[11] caught   fails=1 first=['E2: the lookahead field sets how far ahead of now '] :: lookahead field ignored
+[12] caught   fails=3 first=['E2: nothing is sent until an output is chosen, and', 'E7: without Web MIDI the app loads, runs, and says'] :: MIDI state not said
+[13] caught   fails=1 first=['a press before Start lights nothing and says what '] :: a press before Start says nothing
+[14] caught   fails=8 first=['E1: a press on a matrix key lights it green, and a', "E1: a lit key is drawn in the token's green, and a"] :: LEDs never painted
+[15] caught   fails=1 first=["E1: a lit key is drawn in the token's green, and a"] :: green drawn as red
+[16] caught   fails=1 first=["a flashing LED is dark and lit at the token's peri"] :: no flash
+[17] caught   fails=1 first=['E8: the focus ring is drawn from the focus tokens,'] :: focus ring in ink
+[18] caught   fails=1 first=['E8: the focus ring is drawn from the focus tokens,'] :: ring always shown
+[19] caught   fails=1 first=["E1: a lit key is drawn in the token's green, and a"] :: page ground not the surface token
+[20] caught   fails=1 first=["E8: the strip's own controls are labelled and the "] :: select unlabelled
+[21] caught   fails=1 first=["E8: the strip's own controls are labelled and the "] :: start renamed
+[22] SURVIVED fails=0 first=[] :: no-output option renamed (not tested: expect SURVIVED)
+[23] caught   fails=1 first=['E2: nothing is sent until an output is chosen, and'] :: no sentence when MIDI is ready
+[24] caught   fails=1 first=['E7: without Web MIDI the app loads, runs, and says'] :: no-MIDI sentence changed
+survivors: [(6, 'key press without preventDefault (page scrolls)', 'survived'), (8, 'outer ring inside the key', 'survived'), (22, 'no-output option renamed (not tested: expect SURVIVED)', 'survived')]
+
+## Chromium, the survivors and the redone mutant against the new tests
+[3] caught   fails=1 first=["a click that no pointer made, as a screen reader's"] :: no assistive-technology click
+[6] caught   fails=1 first=['Space and Enter on a control are handled, so Space'] :: key press without preventDefault (page scrolls)
+[8] caught   fails=1 first=['E8: the focus ring is drawn from the focus tokens,'] :: outer ring inside the key
+[22] caught   fails=1 first=['E7: without Web MIDI the app loads, runs, and says'] :: no-output option renamed (not tested: expect SURVIVED)
+survivors: []

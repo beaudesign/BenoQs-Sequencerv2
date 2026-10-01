@@ -1,0 +1,10 @@
+# P3c red run: the Chromium tests for E1, E2, E7 and E8 (the file as committed) against a tree with no app page (pages/app.html absent). The file was first written before the panel; this is the same file run again without the page.
+# base 13fab93
+      4   name: 'TimeoutError'
+      1 # fail 4
+      1 # pass 0
+      1 # tests 4
+      1 not ok 1 - E1: a press on a matrix key lights it green, and a second press turns it off
+      1 not ok 2 - E2: Play sends a Note On with the right bytes to the chosen output, then its Note Off, stamped ahead of now
+      1 not ok 3 - E7: without Web MIDI the app loads, runs, and says it has no MIDI
+      1 not ok 4 - E8: every control the page draws is a button with the manual's own name, and nothing is drawn that the layout does not hold

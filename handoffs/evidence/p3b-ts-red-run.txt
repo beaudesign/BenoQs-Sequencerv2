@@ -1,0 +1,163 @@
+# red run 1 of the TypeScript scheduler tests, before the scheduler changed (2026-10-01)
+# command: cd apps/web && node --test test/midi-out.test.ts   (tsc: 'stops' missing from SchedulerStats, 2 errors)
+✔ MIDI bytes: Note On, Note Off, control change, pitch bend, channel pressure (2.073772ms)
+✔ MIDI bytes: what is not valid MIDI gives null (0.187956ms)
+✔ an event with time in hand is sent with a timestamp: its due time on the page's clock plus the lookahead (0.428568ms)
+✔ an event that is already late is sent at once, never dropped, and counted with how late (0.271409ms)
+✔ each event goes to the output of its port; a port with no output is counted and the rest still go (0.25554ms)
+✔ a record that is not valid MIDI is counted and not sent (0.146271ms)
+✖ Stop clears each distinct output once, and says how many clears and stops there were (0.847254ms)
+✖ Stop with an output that has no clear() is not an error, and the count says it did not clear (0.236903ms)
+✖ timestamps never go backwards on one output, even when the clock map shifts between batches (0.342769ms)
+✖ a late event does not overtake an earlier one that was queued for the future (0.489373ms)
+✔ ordering is per output: another output's timestamps do not hold this one back (1.918135ms)
+✔ ContextTimeMap: audio time to page time from the latest pair of clocks (0.237822ms)
+✔ ContextTimeMap with alpha below 1 smooths the offset over the pairs it has taken (0.203286ms)
+✔ ContextTimeMap ignores a timestamp the browser could not give (0.084429ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 10
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 184.869901
+
+✖ failing tests:
+
+test at test/midi-out.test.ts:128:1
+✖ Stop clears each distinct output once, and says how many clears and stops there were (0.847254ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== 2
+  
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/midi-out.test.ts:145:1
+✖ Stop with an output that has no clear() is not an error, and the count says it did not clear (0.236903ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== 1
+  
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/midi-out.test.ts:156:1
+✖ timestamps never go backwards on one output, even when the clock map shifts between batches (0.342769ms)
+  AssertionError [ERR_ASSERTION]: Note Off at 30.666666666666668 is before its Note On at 32.645833333333336
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/midi-out.test.ts:173:1
+✖ a late event does not overtake an earlier one that was queued for the future (0.489373ms)
+  AssertionError [ERR_ASSERTION]: it must carry the earlier event's timestamp, not go at once
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+# (the four failing tests: Stop clears/stops counts that the first scheduler did not keep, and two real ordering defects:
+#  - 'timestamps never go backwards on one output': a Note Off one sample after a Note On was stamped 2 ms before it
+#  - 'a late event does not overtake an earlier one queued for the future')
+
+# red run 2: the Stop property test (E3) against the scheduler as first written, which calls clear() and does not order timestamps (2026-10-01)
+# command: cd apps/web && node --test --test-reporter=spec test/stop-property.test.ts
+# 8 cases = 4 clock conditions x (receiver with / without MIDIOutput.clear()); 40 generated runs each
+✖ Stop leaves no note held: steady clocks, with MIDIOutput.clear() (181.638306ms)
+✔ Stop leaves no note held: steady clocks, without MIDIOutput.clear() (131.052107ms)
+✖ Stop leaves no note held: the clock map jitters by up to 3 ms between batches, with MIDIOutput.clear() (121.310997ms)
+✖ Stop leaves no note held: the clock map jitters by up to 3 ms between batches, without MIDIOutput.clear() (109.118737ms)
+✖ Stop leaves no note held: messages arrive late, sometimes by 80 ms, with MIDIOutput.clear() (106.441526ms)
+✔ Stop leaves no note held: messages arrive late, sometimes by 80 ms, without MIDIOutput.clear() (101.895289ms)
+✖ Stop leaves no note held: both, with MIDIOutput.clear() (97.402524ms)
+✖ Stop leaves no note held: both, without MIDIOutput.clear() (104.029242ms)
+ℹ tests 8
+ℹ pass 2
+ℹ fail 6
+✖ failing tests:
+✖ Stop leaves no note held: steady clocks, with MIDIOutput.clear() (181.638306ms)
+  AssertionError [ERR_ASSERTION]: 6 of 40 runs failed
+  +   'seed 1148: held after Stop: port 1 0/45, port 1 0/62',
+  +   'seed 1259: held after Stop: port 1 0/43, port 1 0/64',
+  +   'seed 1518: held after Stop: port 1 0/67, port 1 0/69',
+  +   'seed 1925: held after Stop: port 1 0/64',
+  +   'seed 2036: held after Stop: port 1 0/38'
+    actual: [ 'seed 1148: held after Stop: port 1 0/45, port 1 0/62', 'seed 1259: held after Stop: port 1 0/43, port 1 0/64', 'seed 1518: held after Stop: port 1 0/67, port 1 0/69', 'seed 1925: held after Stop: port 1 0/64', 'seed 2036: held after Stop: port 1 0/38' ],
+✖ Stop leaves no note held: the clock map jitters by up to 3 ms between batches, with MIDIOutput.clear() (121.310997ms)
+  AssertionError [ERR_ASSERTION]: 6 of 40 runs failed
+  +   'seed 1148: held after Stop: port 1 0/45, port 1 0/62',
+  +   'seed 1259: held after Stop: port 1 0/43, port 1 0/64',
+  +   'seed 1518: held after Stop: port 1 0/67, port 1 0/69',
+  +   'seed 1925: held after Stop: port 1 0/64',
+  +   'seed 2036: held after Stop: port 1 0/38'
+      at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    actual: [ 'seed 1148: held after Stop: port 1 0/45, port 1 0/62', 'seed 1259: held after Stop: port 1 0/43, port 1 0/64', 'seed 1518: held after Stop: port 1 0/67, port 1 0/69', 'seed 1925: held after Stop: port 1 0/64', 'seed 2036: held after Stop: port 1 0/38' ],
+✖ Stop leaves no note held: the clock map jitters by up to 3 ms between batches, without MIDIOutput.clear() (109.118737ms)
+  AssertionError [ERR_ASSERTION]: 9 of 40 runs failed
+  +   'seed 1186: held after Stop: port 1 0/38',
+  +   'seed 1260: held after Stop: port 1 0/43',
+  +   'seed 1371: held after Stop: port 1 0/62',
+  +   'seed 1408: held after Stop: port 1 0/43',
+  +   'seed 1445: held after Stop: port 1 0/36'
+      at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    actual: [ 'seed 1186: held after Stop: port 1 0/38', 'seed 1260: held after Stop: port 1 0/43', 'seed 1371: held after Stop: port 1 0/62', 'seed 1408: held after Stop: port 1 0/43', 'seed 1445: held after Stop: port 1 0/36' ],
+✖ Stop leaves no note held: messages arrive late, sometimes by 80 ms, with MIDIOutput.clear() (106.441526ms)
+  AssertionError [ERR_ASSERTION]: 3 of 40 runs failed
+  +   'seed 1148: held after Stop: port 1 0/45, port 1 0/62',
+  +   'seed 1259: held after Stop: port 1 0/43, port 1 0/64',
+  +   'seed 1629: held after Stop: port 1 0/69'
+      at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    actual: [ 'seed 1148: held after Stop: port 1 0/45, port 1 0/62', 'seed 1259: held after Stop: port 1 0/43, port 1 0/64', 'seed 1629: held after Stop: port 1 0/69' ],
+✖ Stop leaves no note held: both, with MIDIOutput.clear() (97.402524ms)
+  AssertionError [ERR_ASSERTION]: 3 of 40 runs failed
+  +   'seed 1148: held after Stop: port 1 0/45, port 1 0/62',
+  +   'seed 1259: held after Stop: port 1 0/43, port 1 0/64',
+  +   'seed 1629: held after Stop: port 1 0/69'
+      at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    actual: [ 'seed 1148: held after Stop: port 1 0/45, port 1 0/62', 'seed 1259: held after Stop: port 1 0/43, port 1 0/64', 'seed 1629: held after Stop: port 1 0/69' ],
+✖ Stop leaves no note held: both, without MIDIOutput.clear() (104.029242ms)
+  AssertionError [ERR_ASSERTION]: 4 of 40 runs failed
+  +   'seed 1186: held after Stop: port 1 0/38',
+  +   'seed 1371: held after Stop: port 1 0/62',
+
+# trace of seed 1148, 'steady clocks', receiver with clear():
+log before stop (last 8):
+  1342.48 deliver 80 26 0 
+  1502.94 send 90 2d 64 ts=1544.58
+  1502.94 send 90 3e 64 ts=1544.58
+  1526.15 send 80 2d 0 ts=1567.04
+  1526.15 send 80 3e 0 ts=1567.04
+  1544.58 deliver 90 2d 64 
+  1544.58 deliver 90 3e 64 
+  1547.58 send 90 2b 64 ts=1589.50
+log after stop:
+  1550.66 clear  
+  1550.66 clear  
+  1552.61 send 80 2b 0 ts=1590.00
+  1552.61 send b0 7b 0 ts=1590.00
+  1590.00 deliver 80 2b 0 
+  1590.00 deliver b0 7b 0 
+held: [ 'port 1 0/45', 'port 1 0/62' ] stopAt offset 0

@@ -1,0 +1,57 @@
+# TypeScript mutation check of apps/web/src, 2026-10-01 (WENGE-0014, P3b)
+# Each line: one change made to the source, then 'node --test test/*.test.ts' and 'tsc --noEmit'. 'caught' = a test failed or the type-check did.
+# The script is a scratch tool and is not committed; the changes are these (file: from -> to):
+#  [0] no ordering rule: src/midi-out.ts: 'export const ORDER_WINDOW_MS = 50;' -> 'export const ORDER_WINDOW_MS = 0;'
+#  [1] ordering rule the wrong way round: src/midi-out.ts: 'target < before && before - target < ORDER_WINDOW_MS' -> 'target > before && before - target < ORDER_WINDOW_MS'
+#  [2] channel not zero-based: src/midi-out.ts: '[0x90 | c, d1, d2]' -> '[0x90 | channel, d1, d2]'
+#  [3] pitch bend bytes swapped: src/midi-out.ts: '[0xe0 | c, d2 & 0x7f, (d2 >> 7) & 0x7f]' -> '[0xe0 | c, (d2 >> 7) & 0x7f, d2 & 0x7f]'
+#  [4] block frame ignored: src/midi-out.ts: 'const base = frame / sampleRate;' -> 'const base = 0;'
+#  [5] lookahead not added: src/midi-out.ts: 'this.time.toPage(at) + this.lookaheadMs' -> 'this.time.toPage(at)'
+#  [6] late events given a stale timestamp: src/midi-out.ts: 'if (marginMs > 0) {' -> 'if (true) {'
+#  [7] unrouted not counted: src/midi-out.ts: 'this.stats.unrouted++;' -> ''
+#  [8] alpha ignored: src/midi-out.ts: 'this.offsetMs + this.alpha * (offset - this.offsetMs)' -> 'offset'
+#  [9] velocity 0 Note On allowed: src/midi-out.ts: 'd2 >= 1 && d2 <= 127 ? [0x90 | c, d1, d2] : null' -> '[0x90 | c, d1, d2]'
+#  [10] d2 big endian: src/abi.ts: 'd2: view.getUint16(i + 4, true)' -> 'd2: view.getUint16(i + 4, false)'
+#  [11] at_sample signed: src/abi.ts: 'atSample: view.getUint32(i + 8, true)' -> 'atSample: view.getInt32(i + 8, true)'
+#  [12] ascii mangled: src/abi.ts: 's += String.fromCharCode(b);' -> 's += String.fromCharCode(b & 0x5f);'
+#  [13] seed high word shifted wrong: src/abi.ts: 'Number((seed >> 32n) & 0xffff_ffffn)' -> 'Number((seed >> 31n) & 0xffff_ffffn)'
+#  [14] layout lines not terminated: src/abi.ts: '`${c.n} ${c.id}\\n`' -> '`${c.n} ${c.id}`'
+#  [15] running reads the wrong bit: src/abi.ts: 'return (this.status() & 1) === 1;' -> 'return (this.status() & 2) === 2;'
+#  [16] LED count off by one: src/abi.ts: 'export const LED_COUNT = 512;' -> 'export const LED_COUNT = 511;'
+#  [17] wrong quantum: src/abi.ts: 'export const RENDER_FRAMES = 128;' -> 'export const RENDER_FRAMES = 64;'
+#  [18] ABI version unchecked: src/abi.ts: 'if (v !== ABI_VERSION)' -> 'if (false)'
+#  [19] events lose their frame: src/worklet.ts: 'this.send({ type: "events", frame: currentFrame, bytes }, [bytes]);' -> 'this.send({ type: "events", frame: 0, bytes }, [bytes]);'
+#  [20] process drops the node: src/worklet.ts: 'return true;\n  }\n}' -> 'return false;\n  }\n}'
+#  [21] panel every block: src/protocol.ts: 'export const PANEL_EVERY_BLOCKS = 8;' -> 'export const PANEL_EVERY_BLOCKS = 1;'
+#  [22] LED frame always posted: src/worklet.ts: 'const leds = changed ? this.engine.ledBytes().slice().buffer : null;' -> 'const leds = this.engine.ledBytes().slice().buffer;'
+#  [23] host reads running from the wrong bit: src/host.ts: 'running: (m.status & 1) === 1,' -> 'running: (m.status & 2) === 2,'
+#  [24] time map never refreshed: src/wire.ts: 'time.refresh?.();' -> ''
+#  [25] wrong sample rate: src/wire.ts: 'scheduler.schedule(frame, source.sampleRate, bytes);' -> 'scheduler.schedule(frame, 44100, bytes);'
+
+[0] caught   fails=  7 tsc_error=False no ordering rule
+[1] caught   fails=  7 tsc_error=False ordering rule the wrong way round
+[2] caught   fails= 12 tsc_error=False channel not zero-based
+[3] caught   fails=  1 tsc_error=False pitch bend bytes swapped
+[4] caught   fails=  3 tsc_error=False block frame ignored
+[5] caught   fails=  6 tsc_error=False lookahead not added
+[6] caught   fails=  1 tsc_error=True  late events given a stale timestamp
+[7] caught   fails=  1 tsc_error=False unrouted not counted
+[8] caught   fails=  1 tsc_error=False alpha ignored
+[9] caught   fails=  2 tsc_error=False velocity 0 Note On allowed
+[10] caught   fails=  3 tsc_error=False d2 big endian
+[11] caught   fails=  1 tsc_error=False at_sample signed
+[12] caught   fails=  4 tsc_error=False ascii mangled
+[13] caught   fails=  1 tsc_error=False seed high word shifted wrong
+[14] caught   fails= 33 tsc_error=False layout lines not terminated
+[15] caught   fails=  1 tsc_error=False running reads the wrong bit
+[16] caught   fails=  1 tsc_error=False LED count off by one
+[17] caught   fails=  1 tsc_error=False wrong quantum
+[18] caught   fails=  1 tsc_error=False ABI version unchecked
+[19] caught   fails=  1 tsc_error=False events lose their frame
+[20] caught   fails= 15 tsc_error=False process drops the node
+[21] caught   fails=  1 tsc_error=False panel every block
+[22] caught   fails=  1 tsc_error=False LED frame always posted
+[23] caught   fails=  8 tsc_error=False host reads running from the wrong bit
+[24] caught   fails=  1 tsc_error=False time map never refreshed
+[25] caught   fails=  1 tsc_error=False wrong sample rate
+survivors: []

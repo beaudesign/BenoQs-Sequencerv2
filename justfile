@@ -8,6 +8,9 @@
 # failed or any gate in harness/required-gates.txt did not pass. A gate that is not
 # built reports `not_implemented`; it is never a silent pass.
 
+# Where cargo puts its output: the checkout's target/, or CARGO_TARGET_DIR if it is set.
+target := env_var_or_default("CARGO_TARGET_DIR", "target")
+
 # Run every gate. Extra args go to xtask, for example `just verify --base origin/main`.
 verify *args:
 	cargo xtask verify {{args}}
@@ -33,6 +36,21 @@ golden:
 wasm-smoke:
 	cargo build -q --release -p octoffi --target wasm32-unknown-unknown
 	node harness/wasm/smoke.mjs
+
+# The octoweb module for the web app, into apps/web/dist: the shipped build (no allocation counter,
+# no pattern runner) as octoweb.wasm, and the build with both, for the tests and spike S2, as
+# octoweb-spike.wasm. Needs `rustup target add wasm32-unknown-unknown`. See apps/web/engine/ABI.md.
+web-wasm:
+	mkdir -p apps/web/dist
+	cargo build -q --release -p octoweb --target wasm32-unknown-unknown --no-default-features
+	cp {{target}}/wasm32-unknown-unknown/release/octoweb.wasm apps/web/dist/octoweb.wasm
+	cargo build -q --release -p octoweb --target wasm32-unknown-unknown
+	cp {{target}}/wasm32-unknown-unknown/release/octoweb.wasm apps/web/dist/octoweb-spike.wasm
+
+# The web app's type-check and its Node tests (the real worklet file in a stand-in scope, the ABI
+# wrapper, the MIDI scheduler and the Stop property). Needs Node 22.18 or newer.
+web-test: web-wasm
+	cd apps/web && npm ci --no-audit --no-fund && npm run typecheck && npm test
 
 # Record new tests and fixtures as the ratchet floor. Dropping one needs --remove <kind> <id> --adr ADR-NNNN.
 baseline *args:

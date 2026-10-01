@@ -1,8 +1,7 @@
 # STATE
 
 Capped at 200 lines. Conductor prunes rather than appends when it grows past
-that. Last pruned: 2026-09-30 (P2b: octoface and the control inventory are live; Phase, reference, SPEC-0002 and
-fan-out sections rewritten). Before that 2026-09-29, and 2026-09-06 after the repo split — this is now
+that. Last pruned: 2026-10-01 (P2 merged; P3 started; the P2 paragraphs shortened, the fan-out rewritten). Before that 2026-09-29, and 2026-09-06 after the repo split — this is now
 `BenoQs-Sequencerv2`, not a branch/PR against the original).
 
 ## This repo's origin (read this before anything else)
@@ -47,9 +46,9 @@ waves are in `docs/09-roadmap.md`, the task lifecycle in `AGENTS.md`.
   anything: the web panel takes its layout from a control inventory built from the manual
   (`contracts/controls.json`, P2b), not from photographs. Request to the Panelwright to
   reword `reference/NOTES.md` is filed.
-- P2b (in review) adds `contracts/controls.json` and its schema and moves the `panel.truth` and
+- P2b added `contracts/controls.json` and its schema and moved the `panel.truth` and
   `motion.registry` schemas to `archive/native-panel/contracts/` (ADR-0007). `apps/` has no
-  scaffolds left; `apps/web` arrives with P3.
+  scaffolds left; `apps/web` arrives with P3b.
 
 ## `crates/octocore`: real, tested, manual-corrected, still growing
 
@@ -156,41 +155,46 @@ Ableton. The draft merged as #17. **The owner replied "Approve" at 15:06 and all
   the `scope` gate; rewrote `SPEC.md`, `agents/CLAUDE.md` (rules 4 to 7), the roles and the docs.
   Ten `octoroom` tests left the baseline by `--remove ... --adr ADR-0006`; assertions now 310
   (299 tests, 11 fixtures).
-- **P2 is two pull requests, as P0 and P1 were.** P2a is ADR-0007 (#22, branch
-  `conductor/p2-controls-adr`, documents only): `controls.json` is a contract and `ControlId` is its
-  `n`; the photoreal and motion schemas are retired; `findings` in the report schema is corrected;
-  panel fixtures are `.panel` files beside the engine's; `octoface` has no runtime dependencies.
-  **P2b (built, in review; carries P2a's commits, so merge #22 first)** adds: `contracts/controls.json`
-  (247 controls, each cited to manual pages; what the manual leaves open is `pending` or in `open`,
-  never guessed) and its schema; `crates/octoface` (the panel controller: `input` gives engine
-  commands and intents, `leds` gives a 512-slot LED frame); 37 asserting panel fixtures for the five
-  workflows (Page mode step toggle, Step zoom, ESC, the EDIT cycle, the PLAY LED) and 15 pending ones
-  for what the manual does not settle; the `conformance` gate change (requires the panel test binary,
-  counts `.panel` files, reports pending ones, fails a pending file without its headers and a `.panel` file
-  outside `tests/conformance/panel/`). Red first in every step; 27 of 27 controller mutants and 15 of 15 gate
-  mutants are caught. An independent review (approve with changes) found twenty things; each was checked
-  against the manual and fixed or answered (`journal/panelwright/2026-09-30.md`). AGENTS.md puts
-  `contracts/**` in the High tier, so P2 is High, not the Medium the README gave it.
-- **Questions for someone with an Octopus:** Q21 to Q38 in `tests/conformance/panel/QUESTIONS.md`, plus
-  the twenty in `specs/SPEC-0002/findings.md` section 6. Each has a pending fixture or a `pending` marker.
+- **P2 is merged (2026-10-01 12:01 Paris, #22 then #23).** P2a is ADR-0007: `controls.json` is a contract and
+  `ControlId` is its `n`; panel fixtures are `.panel` files beside the engine's; `octoface` has no runtime
+  dependencies. P2b added `contracts/controls.json` (247 controls, each cited to manual pages; what the manual
+  leaves open is `pending` or in `open`, never guessed), `crates/octoface` (the panel controller: `input` gives
+  engine commands and intents, `leds` a 512-slot LED frame), 37 asserting panel fixtures for the five workflows
+  (Page mode step toggle, Step zoom, ESC, the EDIT cycle, the PLAY LED) and 15 pending ones, and the
+  `conformance` gate change (counts `.panel` files, reports pending ones, fails a malformed or stray one).
+  Red first; 27 of 27 controller mutants and 15 of 15 gate mutants caught; an independent review's twenty
+  findings checked against the manual (`journal/panelwright/2026-09-30.md`). P2 was High tier (`contracts/**`).
+- **Questions for someone with an Octopus** (before Wave 1 ends): Q21 to Q38 in `tests/conformance/panel/QUESTIONS.md`,
+  the twenty in `specs/SPEC-0002/findings.md` section 6 and `tech.md` section 9. Each has a pending fixture or marker.
 - **Open finding:** `BANK_COUNT` is 10 in `octocore`, while the manual reads as 9 banks of 16
   pages (`specs/SPEC-0002/product.md`). Not changed here; a Metronome question for P2.
 - **"World model" here means two things.** The factory's shared state (this file, `just report`)
   keeps its name; the rooms project is what is removed.
-- **Requests from P2b:** the Metronome, for an engine read model, Audition and PLAY-snapshot commands
+- **Requests from P2b, open:** the Metronome, for an engine read model, Audition and PLAY-snapshot commands
   and the boot mode (`journal/metronome/requests/2026-09-30-engine-read-model-and-panel-intents.md`);
-  the Scribe, for the "planned, P2" wording after the merge (`journal/conductor/requests/`).
+  the Scribe, for the "planned, P2" wording (`journal/conductor/requests/`).
 - **Request:** the Scribe fixes `reference/manual/INDEX.md` (MIDI is pages 93 and 94, not 109 to
   112); `journal/conductor/requests/2026-09-30-fix-manual-index.md`.
-- **Hardware questions** (`tech.md` section 9) need someone with an Octopus before Wave 1 ends.
 
-**Next three steps:** (1) the owner merges #22 (ADR-0007), then the P2b pull request; (2) the Scribe pass
-for "planned, P2" wording; (3) P3 (the static web app loads the WASM engine and plays to one Web MIDI
-output, spikes S1 and S2) **only when the owner asks for it**.
+## SPEC-0002 P3 (2026-10-01, started on the owner's "Start p3"): the engine in the browser
+
+Plan: `specs/SPEC-0002/p3-plan.md`; decisions: ADR-0008 (task `WENGE-0014`). Three pull requests:
+**P3a** (documents: ADR-0008, the plan, the browser probe; High), **P3b** (the crate `octoweb` at
+`apps/web/engine/`, the worklet host, the Web MIDI scheduler, spikes S2 and S1, a CI job; Medium), **P3c**
+(the first panel, and `contracts/design.tokens.json`; High). Measured in headless Chromium 141
+(`handoffs/evidence/p3-browser-probe/`): the AudioWorklet has no `TextDecoder`, `fetch`, `crypto` or
+`performance`, so the page calls Rust through C exports; a compiled module passes in `processorOptions`;
+Web MIDI is refused in headless Chromium and the container has no `/dev/snd`, so spike S1's arrival-jitter half
+needs the owner's machine. The chase-light and the transport Play key are requests to the Panelwright
+(`journal/panelwright/requests/`); the browser tests need flooring (`journal/referee/requests/`).
+
+**Next three steps:** (1) the owner reads ADR-0008 and the plan; (2) P3b, red first: the crate's ABI natively,
+the worklet, the scheduler, S2, then S1; (3) the owner runs S1 on a Mac with a loopback port.
 
 ## Fan-out
 
-Live: P2b in review (carries P2a, #22). Not started and not to be started unasked: P3 and later.
-What can proceed in the engine meanwhile: attribute-map-factor step events (p.34-37) and the
-Metronome's requests from P2b. D0 (the tick) blocks O4 step 4b. The panel's next workflows (Track
-zoom, the direction map) wait on owner answers to Q07 and the mutator questions. `octoffi` is frozen.
+Live: P3a in review; P3b started. Not started: P4 and later (MIDI in, clock, the second port). What can
+proceed in the engine meanwhile: attribute-map-factor step events (p.34-37) and the Metronome's requests from
+P2b. D0 (the tick) blocks O4 step 4b. The panel's next workflows (Track zoom, the direction map, the
+chase-light) wait on owner answers to Q07, the mutator questions and the chase-light question. `octoffi`
+is frozen.

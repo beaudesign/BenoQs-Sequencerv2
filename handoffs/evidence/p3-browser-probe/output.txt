@@ -1,0 +1,34 @@
+{
+  "chromium": "141.0.7390.37",
+  "secureContext": true,
+  "visibility": "visible",
+  "worklet": {
+    "scope": {
+      "performance": "undefined",
+      "TextDecoder": "undefined",
+      "TextEncoder": "undefined",
+      "Date": "function",
+      "WebAssembly": "object",
+      "SharedArrayBuffer": "undefined",
+      "Atomics": "object",
+      "fetch": "undefined",
+      "setTimeout": "undefined",
+      "queueMicrotask": "undefined",
+      "crypto": "undefined",
+      "console": "object"
+    },
+    "sampleRate": 48000,
+    "wasm": {
+      "ok": true,
+      "add_2_40": 42,
+      "isModule": true
+    }
+  },
+  "audio": {
+    "state": "running",
+    "sampleRate": 48000,
+    "baseLatencySeconds": 0.010020833333333333,
+    "outputTimestampHasBothClocks": true
+  },
+  "midiError": "NotAllowedError: Permission to use Web MIDI API was not granted."
+}

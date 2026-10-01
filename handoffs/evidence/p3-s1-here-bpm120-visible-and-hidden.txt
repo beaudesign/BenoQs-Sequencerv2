@@ -1,0 +1,25 @@
+# Spike S1, the half that runs here: scheduling margin with a stand-in MIDI output (SPEC-0002 P3, WENGE-0014)
+# commit 7e3e294, 2026-10-01T11:17:03.114Z, Chrome/141.0.7390.37 (headed, driven over the DevTools protocol)
+# THE ARRIVAL NUMBERS BELOW ARE FROM A TIMER IN THE PAGE, NOT FROM A MIDI PORT. Only the scheduling margins describe the page's real behaviour.
+# The real-port half is spikes/s1/page.html, to be run by the owner on a machine with a loopback port.
+# In the background run, the stand-in's own timer is throttled by Chromium, so its arrival numbers fall apart there. That is the stand-in, not Web MIDI; it only shows why events must not be timed by a page timer.
+
+### visible tab: engine at 120 BPM, a step every 31.2 ms; 30 s requested, 31.5 s run, tab hidden 0.0 s, lookahead 30 ms, clock-map smoothing 1
+  audio context 44100 Hz, base latency 10.0 ms, output latency 32.0 ms
+  all      sent  1913, late   0, margin min 36.78 ms, median 66.26 ms, mean 65.88 ms, sigma 3.17 ms
+  scheduler: sent 1913, late 0 (worst 0.00 ms), timestamps raised for order 0 (worst 0.00 ms), invalid 0, unrouted 0
+  headroom: the worst margin less the lookahead is 6.78 ms, so with these conditions the lookahead could be that much shorter before the first event went late
+  worklet errors: 0
+  STAND-IN ARRIVAL, not Web MIDI: matched 1913 of 1913, missing 0, extra 0; interval error sigma 1.82 ms, max 36.06 ms (this machine's timers)
+
+### tab in the background: engine at 120 BPM, a step every 31.2 ms; 30 s requested, 33.1 s run, tab hidden 30.1 s, lookahead 30 ms, clock-map smoothing 1
+  audio context 44100 Hz, base latency 10.0 ms, output latency 32.0 ms
+  all      sent  1981, late   0, margin min 59.63 ms, median 66.02 ms, mean 65.95 ms, sigma 3.03 ms
+  visible  sent   191, late   0, margin min 59.72 ms, median 66.04 ms, mean 66.06 ms, sigma 3.00 ms
+  hidden   sent  1790, late   0, margin min 59.63 ms, median 66.02 ms, mean 65.93 ms, sigma 3.03 ms
+  scheduler: sent 1981, late 0 (worst 0.00 ms), timestamps raised for order 0 (worst 0.00 ms), invalid 0, unrouted 0
+  headroom: the worst margin less the lookahead is 29.63 ms, so with these conditions the lookahead could be that much shorter before the first event went late
+  worklet errors: 0
+  STAND-IN ARRIVAL, not Web MIDI: matched 1981 of 1981, missing 0, extra 0; interval error sigma 119.02 ms, max 969.12 ms (this machine's timers)
+
+## RESULT: the run completed. Nothing here is a Web MIDI jitter figure.

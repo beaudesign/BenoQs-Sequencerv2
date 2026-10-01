@@ -18,3 +18,7 @@ Please:
    `contracts/design.tokens.json`; the rules S1, S2, S4, S9, S15, S16 in `docs/05`).
 3. Decide whether `cargo xtask verify` should run the browser tests when a Chromium is present and say
    `not_implemented` when it is not. A skipped browser test must never count as a pass.
+
+**State at the end of P3b:** 72 Node tests (`apps/web`, `npm test`) and 6 Chromium tests (`npm run test:browser`) pass in the
+`web` job. Spike S2 (`node spikes/s2/run.ts`) is also run there and exits non-zero on a hash difference or an allocation in
+`render`; its timing lines are printed and not gated. The two native program tests and the 30 octoweb tests are already in the baseline.

@@ -13,3 +13,11 @@ merged**, not before, so the docs say what exists.
   and section 2 when P3c merges.
 - `docs/09-roadmap.md`: P3 is three pull requests (P3a, P3b, P3c); say so in the table.
 - `AGENTS.md`: add `apps/web/engine` to the crate table, when P3b merges.
+- `docs/02-architecture.md` section 6 (about line 190): "On Stop it calls `MIDIOutput.clear()` ... then sends ALL
+  NOTES OFF" is replaced by ADR-0008 amendment 1: the page never calls `clear()` (Chromium has none; where it
+  exists it drops Note Offs the engine already counted as sent), timestamps on one output never go backwards, and
+  the engine's flush ends every note at most one lookahead after the key. `specs/SPEC-0002/tech.md` section 3 step 4
+  already says so.
+- `docs/07-verification.md`: the web gates (Node tests, Chromium tests, spike S2) run in the `web` job in
+  `.github/workflows/verify.yml` and are not part of `cargo xtask verify`; say so until the Referee floors them
+  (`journal/referee/requests/2026-10-01-browser-tests-and-web-gates.md`).

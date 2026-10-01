@@ -1,0 +1,115 @@
+{
+  "$schema": "./design.tokens.schema.json",
+  "schema": "design.tokens/1",
+  "status": "candidate",
+  "note": "Proposed in SPEC-0002 P3c with the panel screenshot in the pull request. The owner ratifies the values by merging it. The rules the values must keep are asserted by apps/web/engine/tests/tokens.rs, so a change of hue passes and a change that breaks a rule does not.",
+  "colour": {
+    "led.red": {
+      "value": "#ff2a12"
+    },
+    "led.green": {
+      "value": "#22e05a"
+    },
+    "led.orange": {
+      "value": "#ff8a00"
+    },
+    "led.off": {
+      "value": "#1f1f1f"
+    },
+    "ink": {
+      "value": "#ececec"
+    },
+    "ink.quiet": {
+      "value": "#bdbdbd"
+    },
+    "surface": {
+      "value": "#2e2e2e"
+    },
+    "focus": {
+      "value": "#ffffff"
+    },
+    "focus.inner": {
+      "value": "#1f1f1f"
+    }
+  },
+  "space": {
+    "0": {
+      "value": 0
+    },
+    "1": {
+      "value": 4
+    },
+    "2": {
+      "value": 8
+    },
+    "3": {
+      "value": 12
+    },
+    "4": {
+      "value": 20
+    },
+    "5": {
+      "value": 32
+    },
+    "6": {
+      "value": 52
+    },
+    "7": {
+      "value": 84
+    }
+  },
+  "type": {
+    "family": {
+      "value": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "pending": {
+        "question": "docs/05 section 2.4",
+        "note": "Provisional. One family is chosen by the Curator by ADR after three specimens are rendered beside the panel at real size; this one may not outlive the first Wave 1 demonstration."
+      }
+    },
+    "size": {
+      "label": {
+        "value": 12
+      },
+      "body": {
+        "value": 16
+      }
+    },
+    "measure": {
+      "value": 68
+    }
+  },
+  "stroke": {
+    "hairline": {
+      "value": 1
+    },
+    "focus": {
+      "value": 2
+    },
+    "focus_inner": {
+      "value": 1
+    }
+  },
+  "flash": {
+    "period_ms": {
+      "value": 500,
+      "pending": {
+        "question": "tech.md 9.2",
+        "note": "The manual says the LEDs flash and does not give the rate. 500 ms is two flashes a second, under the three the web guidelines allow (WCAG 2.3.1). A hardware check settles it."
+      }
+    },
+    "duty_percent": {
+      "value": 50,
+      "pending": {
+        "question": "tech.md 9.2",
+        "note": "The manual gives no duty cycle. Half on and half off until a hardware check says otherwise."
+      }
+    },
+    "shine": {
+      "value": "ink",
+      "pending": {
+        "question": "Q03",
+        "note": "The manual names a 'shine' LED state (p014, p021, p033) and does not say what it looks like. Drawn as the lit colour with a ring in ink, so it is told from steady by shape and not by a new colour."
+      }
+    }
+  }
+}

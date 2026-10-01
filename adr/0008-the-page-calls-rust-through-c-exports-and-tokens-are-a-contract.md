@@ -221,3 +221,30 @@ be tested against a real one. If one does, and the tail matters, that is the way
 The owner approved `tech.md` section 3 as part of SPEC-0002 r1. This amendment departs from its step 4
 on evidence, and the departure is visible here and in the P3 pull requests. `tech.md` step 4 carries a
 pointer to this amendment.
+
+### Amendment 2 (2026-10-01, Conductor, found in P3c): what the tokens file holds, and where its rules are asserted
+
+Decision 6 listed the groups. Writing the file, and the panel that reads it, showed four places where the list is
+short or the placement can be better. Each is small; each is written down because `contracts/` changes only by ADR.
+
+1. **A `stroke` group**: `hairline` (1), `focus` (2) and `focus_inner` (1). `docs/05` section 5 sets the focus ring at
+   2 px with a 1 px contrasting inner stroke, and the strip and the key outlines are hairlines. None of 1 and 2 is on
+   the space scale (base 4, smallest step 4), and "no value written outside the tokens file" would otherwise force
+   them into the stylesheet as literals. Widths are not colour, space or type, so rule 2 of CLAUDE.md is not touched.
+2. **`flash.duty_percent`** (50, `pending`, `tech.md` 9.2). The keyframes of the one flashing LED class need the point
+   at which the light goes off, and it is a number the manual does not give.
+3. **`flash.shine`** is the name of a neutral colour token (`ink` or `ink.quiet`) that the shine state is ringed in
+   (decision 6 said the shine drawing is "drawn from `ink`"; this is where that is recorded). It carries `pending` Q03.
+4. **The rules are asserted by a Rust test**, `apps/web/engine/tests/tokens.rs`, and not by a Node test. The ratchet
+   (`harness/baseline.txt`) is read from `cargo test` output, so a Rust test is floored by name and a Node test is not
+   (D-P3-8). The test also runs each rule against a document made to break it, so no rule can sit there unable to
+   fail, and it checks its own ΔE (CIEDE2000, the stricter of the usual measures) against four pairs from the
+   published test data. Three rules were added to the seven of decision 6, and each only tightens: the three lit roles
+   are at least ΔE 15 apart and none is grey (T9); the type face is not one of the defaults rule S11 refuses (T10);
+   the measure is 68 (T11).
+
+The schema closes each group (`additionalProperties: false`, the colour group lists its nine keys, the space group its
+eight values), so a tenth colour or a ninth space step is a change to the schema and therefore to this ADR.
+
+`status` is `candidate`. The owner ratifies the values by merging P3c (decision 6); the line is changed to `ratified`
+in the next documents pull request.

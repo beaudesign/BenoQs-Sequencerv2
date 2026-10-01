@@ -93,8 +93,9 @@ jobs:
           node --version
           node harness/wasm/smoke.mjs
 
-  # SPEC-0002 P3: the web app. Builds the octoweb module, type-checks the TypeScript and runs its
-  # Node tests. The Chromium steps (worklet, spike S2) are added when those tests land.
+  # SPEC-0002 P3: the web app. Builds the octoweb module, type-checks the TypeScript, runs its Node
+  # tests, then runs the real host and worklet in Chromium and spike S2 (hashes equal native, no
+  # allocation in render; the timing it prints is recorded, not gated).
   web:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -123,3 +124,14 @@ jobs:
           npm ci --no-audit --no-fund
           npm run typecheck
           npm test
+      - name: Install Chromium
+        working-directory: apps/web
+        run: npx playwright-core install --with-deps chromium
+      - name: Build the page code and run the Chromium tests
+        working-directory: apps/web
+        run: |
+          npm run build
+          node --test --test-concurrency=1 "test/browser/*.test.ts"
+      - name: Spike S2, the engine in an AudioWorklet
+        working-directory: apps/web
+        run: node spikes/s2/run.ts

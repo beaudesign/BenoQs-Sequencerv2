@@ -1,6 +1,19 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "noEmit": false, "outDir": "dist", "rootDir": ".", "sourceMap": false, "types": [] },
-  "include": ["src/**/*.ts", "spikes/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": ".",
+    "sourceMap": false,
+    "types": []
+  },
+  "include": [
+    "src/**/*.ts",
+    "spikes/**/*.ts",
+    "pages/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "spikes/**/run.ts"
+  ]
 }

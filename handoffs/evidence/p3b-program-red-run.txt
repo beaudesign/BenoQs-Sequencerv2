@@ -1,0 +1,11 @@
+# red run: tests/program.rs against golden/programs.json with the digests not yet pinned (2026-10-01)
+# the digests were then pinned from the native run, and the Node test and the AudioWorklet must reproduce them
+thread 'the_pressed_program_gives_its_pinned_digest' (17278) panicked at apps/web/engine/tests/program.rs:55:5:
+assertion `left == right` failed: 107 events
+  left: "fnv1a64:e419310a73bd6208"
+ right: "fnv1a64:TBD"
+thread 'the_dense_program_gives_its_pinned_digest' (17277) panicked at apps/web/engine/tests/program.rs:62:5:
+assertion `left == right` failed: 10230 events
+  left: "fnv1a64:eb3418485dd2eba1"
+ right: "fnv1a64:TBD"
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s

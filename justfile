@@ -52,6 +52,16 @@ web-wasm:
 web-test: web-wasm
 	cd apps/web && npm ci --no-audit --no-fund && npm run typecheck && npm test
 
+# Chromium: the real host, worklet and scheduler with a recording MIDI output (apps/web/test/browser).
+# Needs `npx playwright-core install chromium` once, or a Chromium on PLAYWRIGHT_BROWSERS_PATH.
+web-browser-test: web-wasm
+	cd apps/web && npm ci --no-audit --no-fund && npm run test:browser
+
+# Spike S2: the engine in an AudioWorklet, hashes against native and the cost of render. Add `--write` to save the
+# record under handoffs/evidence/. See specs/SPEC-0002/p3-plan.md section 5.
+spike-s2 *args: web-wasm
+	cd apps/web && npm ci --no-audit --no-fund && npm run spike:s2 -- {{args}}
+
 # Record new tests and fixtures as the ratchet floor. Dropping one needs --remove <kind> <id> --adr ADR-NNNN.
 baseline *args:
 	cargo xtask baseline {{args}}

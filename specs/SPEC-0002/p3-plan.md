@@ -200,5 +200,5 @@ D0.
 | The headless browser differs from the owner's Chrome | S2 passes here and fails there | The S2 page is committed and runs in CI on the runner's Chromium; the owner can run it |
 | Hidden tabs cannot be reproduced headless | The hidden-tab claim is untested | The record says so; a headed run under a virtual display if one exists |
 | A browser-only test can be deleted unnoticed | The ratchet leaks | D-P3-8 request; the crate's native tests are floored |
-| `unsafe` in a second place | A reviewer sees it as precedent | One feature, one 20-line module, off in the shipped build, argued in ADR-0008 3 |
+| The `unsafe_code` lint is allowed in two modules | A reviewer sees it as precedent | The export shims hold the attribute and no `unsafe` keyword; the allocator is behind a feature the shipped module lacks; a test pins both (ADR-0008 3) |
 | The scope grows to the whole panel | P3 never ends | D-P3-4, and `docs/09`'s "the one thing to protect" |

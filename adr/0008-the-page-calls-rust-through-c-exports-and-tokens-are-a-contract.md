@@ -63,17 +63,25 @@ bytes. It sits inside `apps/web/` so that it is in the Forge's zone (`CODEOWNERS
 lists `/apps/web/**`) and no role brief, ownership map or `CODEOWNERS` line has to change.
 `octoffi` stays frozen. Adding a crate is Medium tier (`AGENTS.md`).
 
-### 3. Memory, and the one place `unsafe` is allowed
+### 3. Memory, and where `unsafe` is allowed
 
-The shipped module is built with `#![forbid(unsafe_code)]`. The state lives in a thread-local
-that holds a `Box`ed host, and buffers the page reads are fields of it, so reading their
-addresses needs no `unsafe`.
+The crate is `#![deny(unsafe_code)]`, and it holds no `unsafe` block or function in the shipped module.
+It cannot be `forbid`: an exported C function needs `#[no_mangle]`, and rustc's `unsafe_code` lint counts
+that attribute as unsafe code, in edition 2021 and in 2024 with `#[unsafe(no_mangle)]` (checked with rustc
+1.95 for the wasm32 target; `forbid` refuses the file, `deny` with an `allow` on the item accepts it). So
+two modules, and only two, may allow the lint:
 
-A cargo feature, `measure`, adds a counting global allocator (`unsafe impl GlobalAlloc`,
-forwarding to `System`, as `octoffi`'s test does) and an export that reports the count. It
-exists for spike S2 and for a native test that asserts `render` allocates nothing. It is not in
-the shipped module. `docs/02`'s sentence about where `unsafe` appears needs a small correction
-(a request to the Scribe).
+- `exports.rs`: the export shims. Each is one line that calls safe code in another module. It holds the
+  attribute and no `unsafe` keyword, and a test fails if the keyword appears in it or in any other file
+  of the shipped module.
+- `measure.rs`, behind the cargo feature `measure`: a counting global allocator (`unsafe impl GlobalAlloc`,
+  forwarding to `System`, as `octoffi`'s test does) and an export that reports the count. It exists for
+  spike S2 and for a native test that asserts `render` allocates nothing. It is not in the shipped module.
+
+The state lives in a thread-local that holds a `Box`ed host. The buffers the page reads are fields of it,
+so reading their addresses needs no `unsafe`. `docs/02`'s sentence that `octoffi` is "the only place `unsafe`
+appears" stays true of `unsafe` blocks in the shipped build; the Scribe adjusts it to say where the lint is
+allowed (a request is filed).
 
 ### 4. The page is the host: transport and tempo are its commands
 
@@ -168,8 +176,8 @@ carried P2a's. Merge in order. The agent merges none of them.
 - The worklet needs no JavaScript glue and no polyfill. The cost is a hand-written export list
   and a native test that keeps it honest. A header-style listing in the plan is kept in step by
   that test.
-- `unsafe` appears in a second place, behind a feature the shipped module does not use. The
-  Scribe corrects `docs/02`.
+- The shipped module has no `unsafe` block. The lint is allowed in the export shims and, behind a
+  feature, in a counting allocator. Tests keep it that way. The Scribe adjusts `docs/02`.
 - The tokens are a contract before any colour is chosen, so the first colour the page uses is
   already under a rule that can fail.
 - If spike S1 shows Web MIDI too loose for the gear at any lookahead the owner will accept,

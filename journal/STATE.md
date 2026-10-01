@@ -190,11 +190,11 @@ lookahead, the same with the tab in the background. **Finding:** the page never 
 earlier than its last send (ADR-0008 amendment 1; departs from `tech.md` step 4). **Not measured:** Web MIDI arrival jitter; the owner runs
 `apps/web/spikes/s1/page.html` on a Mac with a loopback port, and the kill criterion waits for it.
 
-**Next three steps:** (1) the owner merges #24, then P3b; (2) P3c, the first panel and `contracts/design.tokens.json`; (3) the owner runs S1.
+**Next three steps:** (1) the owner reviews P3b (it carries ADR-0008 amendment 1; #24 merged before it was found); (2) P3c, the first panel and `contracts/design.tokens.json`; (3) the owner runs S1.
 
 ## Fan-out
 
-Live: P3a and P3b in review. Not started: P4 and later (MIDI in, clock, second port). Engine work meanwhile: attribute-map-factor step events (p.34-37) and the Metronome's requests from
+Live: P3b in review (P3a merged at 12:43 Paris). Not started: P4 and later (MIDI in, clock, second port). Engine work meanwhile: attribute-map-factor step events (p.34-37) and the Metronome's requests from
 P2b. D0 (the tick) blocks O4 step 4b. The panel's next workflows (Track zoom, the direction map, the
 chase-light) wait on owner answers to Q07, the mutator questions and the chase-light question. `octoffi`
 is frozen.

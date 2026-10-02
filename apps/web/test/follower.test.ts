@@ -16,9 +16,9 @@ import { ramp, simulate, steady, step } from "./support/sim-clock.ts";
 import { runLoop, worstTicks } from "./support/loop.ts";
 
 // ----- the proposals -----
-const STEADY_TICKS = 1.5; // from SETTLE_S after Start
+const STEADY_TICKS = 1; // from SETTLE_S after Start (the plan's "within one tick"; the first draft said 1.5, and it was tightened to this once it was measured on 40 seeds the tests do not use)
 const SETTLE_S = 2;
-const CATCH_UP_TICKS = 2; // from CATCH_UP_S after Start: the engine starts a lookahead late and has to catch up
+const CATCH_UP_TICKS = 1; // from CATCH_UP_S after Start: the engine starts a lookahead late and has to catch up (the first draft said 2)
 const CATCH_UP_S = 1.5;
 const START_TRANSIENT_MS = 70; // never worse than this, at any time after Start, with a 30 ms lookahead
 const SLOW_RAMP_TICKS = 3;
@@ -255,14 +255,14 @@ test("bad input is ignored: a position or a message that is not a number changes
 
 const jitter = { shape: "uniform", ms: 3 } as const;
 
-test("M4: steady 120 BPM from a Start: the engine's notes land within a tick and a half of the sender's beat from two seconds on", () => {
+test("M4: steady 120 BPM from a Start: the engine's notes land within a tick of the sender's beat from two seconds on", () => {
   for (let seed = 1; seed <= 10; seed++) {
     const { samples } = runLoop({ sim: simulate({ seed, seconds: 12, bpm: steady(120), jitter }), plant: { seed } });
     assert.ok(worstTicks(samples, SETTLE_S * 1000) <= STEADY_TICKS, `seed ${seed}: ${worstTicks(samples, SETTLE_S * 1000).toFixed(2)} ticks`);
   }
 });
 
-test("M4: the engine starts a lookahead late and catches up: within 2 ticks by 1.5 s, and never worse than the lookahead and a message", () => {
+test("M4: the engine starts a lookahead late and catches up: within a tick by 1.5 s, and never worse than the lookahead and a message", () => {
   for (let seed = 1; seed <= 10; seed++) {
     const { samples } = runLoop({ sim: simulate({ seed, seconds: 8, bpm: steady(120), jitter }), plant: { seed } });
     assert.ok(worstTicks(samples, CATCH_UP_S * 1000) <= CATCH_UP_TICKS, `seed ${seed}: ${worstTicks(samples, CATCH_UP_S * 1000).toFixed(2)} ticks`);
@@ -294,13 +294,18 @@ test("the lead: a larger lookahead and an offset move the engine so the sender's
 });
 
 test("the lead can be changed while it runs: a new offset is taken within two and a half seconds", () => {
+  // The script's time is page time, so the windows are in page time too: the sample at the moment of the change is read against the new
+  // target at once, and the engine has not moved, so it is a whole offset out by construction and is not "before".
+  const CHANGE_AT = 7_000;
   const { samples } = runLoop({
     sim: simulate({ seed: 6, seconds: 16, bpm: steady(120), jitter }),
-    script: [{ at: 7_000, run: (f) => f.setOffset(20) }],
+    script: [{ at: CHANGE_AT, run: (f) => f.setOffset(20) }],
   });
-  assert.ok(worstTicks(samples, 2_500, 6_000) <= STEADY_TICKS, "steady before");
-  const after = samples.filter((s) => s.at >= 7_000 + 2_500);
-  assert.ok(Math.max(...after.map((s) => Math.abs(s.heardMs) / s.tickMs)) <= STEADY_TICKS, "steady after");
+  const ticks = (from: number, to: number): number =>
+    Math.max(...samples.filter((s) => s.running && s.sinceStart >= SETTLE_S * 1000 && s.at >= from && s.at < to).map((s) => Math.abs(s.heardMs) / s.tickMs));
+  assert.ok(ticks(0, CHANGE_AT) <= STEADY_TICKS, "steady before");
+  assert.ok(ticks(CHANGE_AT, CHANGE_AT + 100) > 3, "and the change is a real one: the sample at the moment of it is far from the new target");
+  assert.ok(ticks(CHANGE_AT + 2_500, Infinity) <= STEADY_TICKS, "steady after");
 });
 
 test("M4: a slow ramp (100 to 120 BPM over 20 s) is followed", () => {
@@ -318,10 +323,23 @@ test("M4: a fast ramp (100 to 140 BPM over 8 s) is followed, and the engine sett
   }
 });
 
-test("M4: a step in tempo (120 to 90 BPM) is taken: back within a tick and a half three seconds after", () => {
+test("M4: a step in tempo (120 to 90 BPM) is taken: back within a tick three seconds after", () => {
   for (let seed = 1; seed <= 5; seed++) {
     const { samples } = runLoop({ sim: simulate({ seed, seconds: 16, bpm: step(120, 90, 7), jitter }), plant: { seed } });
     assert.ok(worstTicks(samples, 7_000 + AFTER_STEP_S * 1000) <= STEADY_TICKS, `seed ${seed}: ${worstTicks(samples, 10_000).toFixed(2)} ticks`);
+  }
+});
+
+test("M4: a step up, a step down, a doubling and a halving are taken too, on the beat and not a whole pulse off it", () => {
+  // The first step test alone passed with the estimator counting one pulse too many after the step (it read a late pulse as a missing one):
+  // the follower's own phase read zero while the heard error was a whole pulse. These steps are the ones that went wrong then, and a whole
+  // pulse is 8 ticks, so the bound that holds for 120 to 90 holds for them.
+  for (const [from, to] of [[90, 120], [100, 140], [150, 100], [120, 60], [60, 120]] as const) {
+    for (let seed = 1; seed <= 4; seed++) {
+      const { samples } = runLoop({ sim: simulate({ seed, seconds: 16, bpm: step(from, to, 7), jitter }), plant: { seed } });
+      const worst = worstTicks(samples, 7_000 + AFTER_STEP_S * 1000);
+      assert.ok(worst <= STEADY_TICKS, `${from} to ${to} BPM, seed ${seed}: ${worst.toFixed(2)} ticks`);
+    }
   }
 });
 

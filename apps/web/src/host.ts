@@ -53,8 +53,8 @@ export function routeFromWorklet(m: FromWorklet, sink: WorkletSink): void {
         running: (m.status & 1) === 1,
         zoomed: (m.status & 2) === 2,
         droppedIntents: m.droppedIntents,
-        position: 0, // STUB
-        positionFrame: 0, // STUB
+        position: m.position,
+        positionFrame: m.positionFrame,
       });
       break;
     case "error":

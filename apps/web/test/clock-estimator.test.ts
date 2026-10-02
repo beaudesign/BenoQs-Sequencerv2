@@ -233,6 +233,28 @@ test("steps whose new pulses land on the old grid by coincidence (120 to 80, 80 
   }
 });
 
+test("the pulse count goes through a step in tempo: afterwards it is still the sender's pulse number (a late pulse is not read as a missing one)", () => {
+  // Found by the follower, which keeps the engine in line by whole pulses: at 120 to 90 BPM on seed 1 the first pulse after the step fell
+  // 27 ms after the last, nearer to two old periods than to one of the filter's, and was counted as two. The count stayed one too high
+  // for good and the engine settled a whole pulse (20 ms) out. The count is checked against the sender's own pulse index.
+  const steps = [[120, 90], [90, 120], [120, 100], [100, 140], [120, 80], [80, 120], [120, 60], [60, 120], [150, 100], [90, 60]] as const;
+  for (const [from, to] of steps) {
+    for (let seed = 1; seed <= 10; seed++) {
+      const sim = simulate({ seed, seconds: 14, bpm: step(from, to, 6), jitter: { shape: "uniform", ms: 3 } });
+      const est = new ClockEstimator();
+      let before: number | null = null;
+      let after: number | null = null;
+      for (const p of sim.pulses) {
+        est.push(p.at);
+        const elapsed = (sim.truth[p.index]! - sim.truth[0]!) / 1000;
+        if (elapsed > 5.5 && elapsed < 6 && before === null) before = est.pulseCount - p.index;
+        if (elapsed > 6 + RELOCK_WITHIN_S) after = est.pulseCount - p.index;
+      }
+      assert.equal(after, before, `${from} to ${to} BPM, seed ${seed}: the count is ${after} off the sender's, it was ${before} before the step`);
+    }
+  }
+});
+
 // ----- missing, doubled and stray pulses (M4) -----
 
 test("M4: a missing pulse does not make the estimator run away: it counts the pulse it did not hear and keeps the grid", () => {

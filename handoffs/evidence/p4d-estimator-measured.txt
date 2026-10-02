@@ -13,6 +13,16 @@
 #  3. A tempo ramp of 5 BPM a second was lost (outliers, relocks) with the first ceiling on the process noise (1e-4). Raised to 1e-3 with a
 #     gentler rise; steady-state accuracy is unchanged because the noise falls back when the innovations stop leaning.
 #
+#  4. (Found later, by the follower, and added after the table below was first written.) The pulse COUNT went wrong through a step in tempo:
+#     a late pulse read as a missing one (120 to 90 BPM: 27 ms after the last, nearer two of the filter's periods than one), a pulse early
+#     enough to be turned away as a repeat, and a step whose pulses fall now and then on the old grid (150 to 100, 100 to 140) that was
+#     never read as a step because the turned-away pulses came one in three. The count matters to a follower that keeps the engine in line
+#     by whole pulses: afterwards the engine sat a whole pulse (20 ms) off the beat for good. Fix: (a) a gap must also fit the raw
+#     spacing from the last pulse taken in; (b) the estimator keeps a record of a stretch of messages that do not fit (the count at its
+#     start, the messages heard since), and when it ends in a relock the count is that count plus every message, since each was a pulse
+#     of the sender's; (c) a stretch of 12 messages with no four in a row fitting is a relock too. Fixture: "the pulse count goes through
+#     a step in tempo" (10 steps by 10 seeds; red: 42 of 100 runs ended with a wrong count, green: 0 of 100).
+#
 # Two thresholds in the first draft of the fixtures (c901f0a, red) were restated after measuring, and the owner should know:
 #  - Tempo at tempos other than 120 BPM: the draft said 0.2 BPM at every tempo. Jitter is a fixed number of milliseconds, so it is a larger
 #    share of a shorter period: the bound is now 0.17% of the tempo (0.2 BPM at 120, 0.33 at 200). It is looser at 200 and tighter at 60 and 90.
@@ -34,7 +44,7 @@ ramp 100-120 in 20 s   bpm: p50 0.949 p90 1.017 max 1.142 (0% within 0.1) | tick
 ramp 130-110 in 20 s   bpm: p50 0.975 p90 1.037 max 1.179 (0% within 0.1) | ticks max 1.41 | not locked in 0 of 100
 ramp 100-140 in 8 s    bpm: p50 2.365 p90 2.605 max 2.789 (0% within 0.1) | ticks max 2.14 | not locked in 0 of 100
 3 s after that ramp    bpm: p50 0.033 p90 0.057 max 0.431 (98% within 0.1) | ticks max 0.42 | not locked in 0 of 100
-step 120-90 (2 s on)   bpm: p50 0.040 p90 0.098 max 0.168 (92% within 0.1) | ticks max 0.44 | not locked in 0 of 100
+step 120-90 (2 s on)   bpm: p50 0.042 p90 0.087 max 0.134 (97% within 0.1) | ticks max 0.39 | not locked in 0 of 100   (was 0.040 / 0.098 / 0.168 / 92% / 0.44 before defect 4 was fixed; the other rows are unchanged)
 step 120-60 (2 s on)   bpm: p50 0.033 p90 0.065 max 0.086 (100% within 0.1) | ticks max 0.30 | not locked in 0 of 100
 step 60-120 (2 s on)   bpm: p50 0.052 p90 0.099 max 0.147 (93% within 0.1) | ticks max 0.42 | not locked in 0 of 100
 one pulse in 50 lost   bpm: p50 0.051 p90 0.092 max 0.170 (94% within 0.1) | ticks max 0.46 | not locked in 0 of 100

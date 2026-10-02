@@ -81,8 +81,18 @@ export const SEED_PULSES = 4;
 /** How many of the latest messages are looked at for half of them having been turned away, and how many is half. */
 const MESSAGE_WINDOW = 8;
 const HALF_OF_WINDOW = 4;
-/** Accepted pulses in a row that each follow a gap before the gaps are taken to be a slower tempo. */
-const GAPS_IN_A_ROW = 3;
+/**
+ * A stretch of messages that do not all fit the grid (some turned away, some read as following a gap) is an ANOMALY: it ends when this
+ * many pulses in a row fit again, and the estimator keeps the pulse count at which it began and the messages heard since. If it ends in
+ * a new grid (a step in tempo) every one of those messages was a pulse of the sender's and the count is the one before plus them. One
+ * that reaches `ANOMALY_LONGEST` messages without four in a row fitting is the grid being wrong and not the pulses (a new tempo whose
+ * pulses fall now and then on the old grid keeps some accepted and some not, and no run of four turned away ever comes): the filter
+ * starts again from the latest messages.
+ */
+const CLEAN_RUN = 4;
+const ANOMALY_LONGEST = 12;
+/** Gaps read inside one anomaly before they are taken to be a slower tempo and not pulses that went missing. */
+const GAPS_IN_ANOMALY = 3;
 /** While locking, a message this close to the last pulse (a fraction of a period) is the same pulse again. */
 const REPEAT_WITHIN = 0.25;
 /** How much each innovation counts toward the jitter figure (about the last 32). */
@@ -116,9 +126,10 @@ export class ClockEstimator {
   private lastAcceptedRaw = 0;
   /** The arrival times of the last few pulses that moved the grid, to start again from if the tempo turns out to have changed. */
   private recent: number[] = [];
-  /** How many accepted pulses in a row were read as following a gap, and how many pulses those gaps were said to hold. */
-  private gapRun = 0;
-  private gapExcess = 0;
+  /** Accepted pulses in a row that fitted the grid with no message turned away between them. */
+  private cleanRun = 0;
+  /** The stretch of messages that did not all fit, if there is one: the count it began at, the messages heard in it, the gaps read in it, and the pulses those gaps held. */
+  private anomaly: { base: number; messages: number; gaps: number; dropped: number } | null = null;
   /** The sender's count for the latest accepted pulse, from 0 at the first pulse of the epoch. */
   private count = 0;
   /** Pulses accepted since the lock began (the seed included). */
@@ -138,6 +149,11 @@ export class ClockEstimator {
 
   get periodMs(): number | null {
     return this.seeded ? this.period : null;
+  }
+
+  /** The sender's count of the latest pulse taken in, from 0 at the first pulse of the epoch. */
+  get pulseCount(): number {
+    return this.count;
   }
 
   /** Counts the times the pulse count began again (a stall). A missing pulse does not change it; the count goes on over it. */
@@ -175,8 +191,8 @@ export class ClockEstimator {
     this.lastRaw = null;
     this.lastAcceptedRaw = 0;
     this.recent = [];
-    this.gapRun = 0;
-    this.gapExcess = 0;
+    this.cleanRun = 0;
+    this.anomaly = null;
     this.count = 0;
     this.sinceStart = 0;
     this.epochNumber = 0;
@@ -207,8 +223,8 @@ export class ClockEstimator {
     this.lastRaw = timeMs;
     this.lastAcceptedRaw = timeMs;
     this.recent = [timeMs];
-    this.gapRun = 0;
-    this.gapExcess = 0;
+    this.cleanRun = 0;
+    this.anomaly = null;
     this.seeded = false;
     this.seeds = [timeMs];
     this.pending = [];
@@ -259,6 +275,8 @@ export class ClockEstimator {
     this.pending = [];
     this.messages = [];
     this.innovations = [];
+    this.cleanRun = n;
+    this.anomaly = null;
     this.q = this.cfg.qMin;
     this.seeded = Number.isFinite(period) && period > 0;
     if (!this.seeded) this.restartAt(times[times.length - 1]!);
@@ -282,6 +300,7 @@ export class ClockEstimator {
     const locking = this.sinceStart < LOCK_PULSES;
     if (locking ? timeMs - this.lastAcceptedRaw < REPEAT_WITHIN * this.period : dkRaw < 1) {
       this.stats.duplicates++;
+      this.noteMessage(null);
       return this.turnedAway(timeMs) ?? "duplicate";
     }
     const held = this.pending.length;
@@ -290,14 +309,21 @@ export class ClockEstimator {
     // pulses that were never heard.
     const readable = held === 0 || dkRaw === 1 || dkRaw === held + 1;
     const dk = locking ? 1 : dkRaw;
+    // A gap is also read from the raw spacing: the filter's grid lags a step in tempo, and a pulse that is late because the tempo slowed
+    // can sit nearer two of its periods than one (120 to 90 BPM: 27 ms after the last, with a period of 21 ms). Read as a missing pulse
+    // it would leave the count one too high for good. The spacing from the last pulse taken in must itself fit `dk` periods, with the
+    // scatter of the difference of two pulses.
+    const rawMiss = timeMs - this.lastAcceptedRaw - dk * this.period;
+    const gapFits = dk < 2 || Math.abs(rawMiss) <= this.cfg.gateSigmas * Math.sqrt(2 * Math.max(this.r, this.jitterSquared));
     const p00 = this.c00 + 2 * dk * this.c01 + dk * dk * this.c11;
     const p01 = this.c01 + dk * this.c11;
     const p11 = this.c11 + this.q * dk;
     const s = p00 + this.r;
     const miss = timeMs - (this.t0 + dk * this.period);
-    if (!readable || Math.abs(miss) > this.cfg.gateSigmas * Math.sqrt(s)) {
+    if (!readable || !gapFits || Math.abs(miss) > this.cfg.gateSigmas * Math.sqrt(s)) {
       this.stats.outliers++;
       this.pending.push(timeMs);
+      this.noteMessage(null);
       return this.turnedAway(timeMs) ?? "outlier";
     }
 
@@ -314,13 +340,7 @@ export class ClockEstimator {
     this.recent.push(timeMs);
     if (this.recent.length > SEED_PULSES) this.recent.shift();
     if (held === 0) this.stats.dropped += dk - 1;
-    if (held === 0 && dk >= 2) {
-      this.gapRun++;
-      this.gapExcess += dk - 1;
-    } else {
-      this.gapRun = 0;
-      this.gapExcess = 0;
-    }
+    this.noteMessage(true, held === 0 && dk >= 2 ? dk - 1 : 0);
     this.count += dk;
     this.sinceStart++;
     this.pending = [];
@@ -330,27 +350,28 @@ export class ClockEstimator {
     if (!(this.period > 0) || !Number.isFinite(this.t0) || !Number.isFinite(this.period)) {
       this.seeded = false;
       this.restartAt(timeMs);
-    } else if (this.gapRun >= GAPS_IN_A_ROW) {
-      return this.readAsNewTempo(timeMs);
+    } else if (this.anomaly !== null && (this.anomaly.gaps >= GAPS_IN_ANOMALY || this.anomaly.messages >= ANOMALY_LONGEST)) {
+      return this.relock(timeMs);
     }
     return "accepted";
   }
 
   /**
-   * Every pulse for a while has come after a gap: not pulses going missing but a tempo that is a half, a third, a quarter of the old
-   * one, which the gaps explain just as well (a step from 120 to 60 BPM is every second pulse "missing"). Real losses are not in a row
-   * like this. The gaps are given back and the filter starts again from the last pulses, which are consecutive at the new tempo.
+   * The grid is wrong and not the pulses: a tempo that is a half, a third, a quarter of the old one reads as pulses that went missing (a
+   * step from 120 to 60 BPM is every second pulse "missing"), and real losses do not come three times in a stretch like that; or a step
+   * that leaves pulses off the grid. The gaps are given back, the count is the one at the start of the anomaly plus every message heard
+   * since (each was a pulse of the sender's), and the filter starts again from the latest messages, which are consecutive at the new tempo.
    */
-  private readAsNewTempo(timeMs: number): PushOutcome {
-    this.stats.dropped -= this.gapExcess;
-    this.count -= this.gapExcess;
+  private relock(timeMs: number): PushOutcome {
+    const last = this.messages.slice(-this.cfg.relockAfter);
+    const anomaly = this.anomaly!;
+    this.stats.dropped -= anomaly.dropped;
+    this.count = anomaly.base + anomaly.messages;
     this.stats.relocks++;
-    const times = this.recent.slice();
-    this.gapRun = 0;
-    this.gapExcess = 0;
-    this.fit(times);
+    this.fit(last.map((m) => m.at));
     this.lastAcceptedRaw = timeMs;
-    this.sinceStart = this.seeded ? times.length : 1;
+    this.recent = last.map((m) => m.at);
+    this.sinceStart = this.seeded ? last.length : 1;
     return "relocked";
   }
 
@@ -365,6 +386,27 @@ export class ClockEstimator {
     const lean = Math.abs(this.innovations.reduce((a, b) => a + b, 0)) / Math.sqrt(this.innovations.length);
     const over = Math.max(0, lean - this.cfg.biasThreshold);
     this.q = Math.min(this.cfg.qMax, this.cfg.qMin * Math.exp(this.cfg.biasGain * over));
+  }
+
+  /**
+   * One more message in the anomaly, or the end of it: `null` for one turned away, `true` for one taken in (with the pulses its gap held, if
+   * it followed one). The record starts at the first message that does not fit, with the count as it was just before.
+   */
+  private noteMessage(takenIn: true | null, gapDropped = 0): void {
+    if (takenIn === null || gapDropped > 0) {
+      if (this.anomaly === null) this.anomaly = { base: this.count, messages: 0, gaps: 0, dropped: 0 };
+      this.anomaly.messages++;
+      this.cleanRun = 0;
+      if (gapDropped > 0) {
+        this.anomaly.gaps++;
+        this.anomaly.dropped += gapDropped;
+      }
+      return;
+    }
+    this.cleanRun++;
+    if (this.anomaly === null) return;
+    this.anomaly.messages++;
+    if (this.cleanRun >= CLEAN_RUN) this.anomaly = null;
   }
 
   private remember(at: number, turnedAway: boolean): void {
@@ -383,16 +425,9 @@ export class ClockEstimator {
     const last = this.messages.slice(-this.cfg.relockAfter);
     const allTurnedAway = last.length >= this.cfg.relockAfter && last.every((m) => m.turnedAway);
     const halfTurnedAway = this.messages.length >= HALF_OF_WINDOW && this.messages.filter((m) => m.turnedAway).length >= HALF_OF_WINDOW;
-    if (!allTurnedAway && !halfTurnedAway) return null;
-    this.count += this.pending.length;
-    this.stats.relocks++;
-    this.sinceStart = 0;
-    this.fit(last.map((m) => m.at));
-    this.lastAcceptedRaw = timeMs;
-    this.recent = last.map((m) => m.at);
-    this.gapRun = 0;
-    this.gapExcess = 0;
-    this.sinceStart = this.seeded ? last.length : 1;
-    return "relocked";
+    if (!allTurnedAway && !halfTurnedAway && this.anomaly!.messages < ANOMALY_LONGEST) return null;
+    // The pulse count goes on across the relock, because a follower that keeps the engine in line by whole pulses needs it to go through a
+    // step in tempo.
+    return this.relock(timeMs);
   }
 }

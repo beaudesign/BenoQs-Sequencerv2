@@ -19,7 +19,7 @@ export interface LoopOptions {
   settings?: Partial<FollowerSettings>;
   tuning?: Partial<FollowerTuning>;
   plant?: Partial<PlantConfig>;
-  /** Page time of the Start message; default one millisecond before the first pulse. `null` for no Start at all. */
+  /** Page time of the Start message; default one millisecond before the first pulse to arrive. `null` for no Start at all. */
   startAt?: number | null;
   /** More things that happen, such as a Stop, or the offset changing. */
   script?: Timed[];
@@ -68,7 +68,11 @@ export function runLoop(options: LoopOptions): LoopResult {
     },
   };
   const follower = new Follower(actions, { lookaheadMs: lookahead, offsetMs: offset, ...options.settings }, options.tuning);
-  const startAt = options.startAt === undefined ? first - 1 : options.startAt;
+  // The Start goes out before the first pulse, as it does on a port (one port keeps its messages in order): one millisecond before the
+  // first pulse to ARRIVE, which with jitter is not always the first the sender made. (A draft put it a millisecond before the sender's
+  // first pulse and so, in 18 of 40 runs on seeds 100 to 139, after the pulse that had come early: the engine's first pulse was then the
+  // sender's second, and every run of those settled a whole pulse off. Found by measuring on seeds the tests did not use.)
+  const startAt = options.startAt === undefined ? sim.pulses[0]!.at - 1 : options.startAt;
   const until = options.until ?? sim.pulses[sim.pulses.length - 1]!.at;
 
   // One timeline: the pulses, the script, the measurements.

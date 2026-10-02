@@ -1,0 +1,37 @@
+# SIMULATED CLOCK AND PORT: this is not Ableton Live, not a MIDI port, and not Web MIDI's timing (SPEC-0002 P4e, WENGE-0015).
+# It shows the harness running end to end on the real engine and follower. The run that measures S3 is the owner's: apps/web/ABLETON.md.
+# 051f24a (uncommitted changes in apps/web), 2026-10-02T13:53:50.372Z, Chromium 141.0.7390.37 (headless, Playwright)
+
+SIMULATED: the sender is a timer chain in the page that delivers each pulse and gives it a stamp of the time it was due, 2 ms behind, with a made-up scatter of 0.3 ms. It is not Ableton Live, not a MIDI port, and not Web MIDI's timestamps; the stamps are on the page's clock because the simulation makes them so.
+Spike S3, follow a clock: input "Stand-in input (a timer in the page, not a MIDI port)", 60 s run started 2026-10-02T13:51:47.820Z, tab hidden 0.0 s (0 changes of visibility)
+commit 051f24a (uncommitted changes in apps/web), Chromium 141.0.7390.37 (headless, Playwright); Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36, Linux x86_64; audio 44100 Hz, base latency 10.0 ms, output latency 32.0 ms; follower lookahead 30 ms, offset 0 ms
+Input path: received 2814, decoded 2814, ignored 0, malformed 0, timestamps going backwards 0; clock 2813, Start 1, Continue 0, Stop 0; worklet errors 0
+Clock domain: same-clock: seen less stamped: median 1.7 ms, smallest 0.9, 99th 2.6
+Pulses: 2813; tempo from the periods: median 120.831 BPM, from the run 120.000 BPM; drift 0.00 BPM an hour
+  period: n 2812, mean 20.83 ms, sigma 0.26 ms, min 20.69 ms, median 20.69 ms, 99th 21.29 ms, max 21.29 ms
+  stalls 0 (a gap over 500 ms), stamps going backwards 0, equal stamps 0, bursts 0 (pulses handed over together)
+Phase (the engine against where the sender's clock says it should be; positive is ahead):
+  all samples: counted 223 (left out: settling 11, clock lost 0, transport stopped or no phase 6); beyond a fifth of a step (6.25 ms): 3 (1.35%); |phase| median 0.12 ms, 99th 9.74 ms, max 18.14 ms
+Clock map (the browser's audio-to-page offset, read at each sample): 4 jumps of more than 3 ms between samples, the largest 29.99 ms, range 64.06 ms; samples beyond a fifth of a step within 2 s after a jump: 3 of 3
+Tempo the follower read, less the nominal 120 BPM: mean 0.000, largest 0.001 BPM
+The plan's criterion (every phase sample within a fifth of a step, tab visible; a proposal, the owner's to set): NOT MET
+  3 of 223 samples were beyond a fifth of a step (6.25 ms at 120.0 BPM); the largest was 18.1 ms.
+  All 3 of them follow a jump of the browser's clock map (the audio-to-page offset moved by more than 3 ms in the 2 s before; 4 jumps in the run, the largest 30.0 ms): the browser's clock, not the sender's, is the likely cause.
+  The run is 60 s, shorter than the 30 minutes the plan asks for, so it is not the S3 run.
+
+SIMULATED: the port delivers each message from a setTimeout in the page, stamped with the time it was sent for, 2 ms behind, with a made-up scatter of 0.3 ms. It is not a MIDI port and not a loopback: it has no latency of its own and its jitter is made up.
+Spike S3, send a clock: output "Stand-in output (a timer in the page, not a MIDI port)", input "Stand-in input (a timer in the page, not a MIDI port)", engine at 120 BPM, 62 s run started 2026-10-02T13:52:48.481Z, tab hidden 0.0 s
+commit 051f24a (uncommitted changes in apps/web), Chromium 141.0.7390.37 (headless, Playwright); Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36, Linux x86_64; audio 44100 Hz, base latency 10.0 ms, output latency 32.0 ms; lookahead 30 ms
+Clock pulses: sent 2881, heard 2881, matched 2881, missing 0, extra 0
+Transport messages: Start 1 sent, 1 heard; Continue 0 sent, 0 heard; Stop 1 sent, 1 heard
+  latency (heard stamp less the time it was sent for; the port's, with the page's clock map in it): n 2881, mean -2.00 ms, sigma 0.17 ms, min -2.30 ms, median -2.00 ms, 99th -1.71 ms, max -1.70 ms
+  interval error (heard interval less the interval sent; the jitter a listener hears): n 2880, mean -0.00 ms, sigma 0.26 ms, min -0.14 ms, median -0.14 ms, 99th 0.46 ms, max 0.46 ms
+  scheduling margin of the pulses: smallest 54.65 ms, median 65.66 ms, late 0; scheduler: sent 0, real-time 2883, raised for order 0, invalid 0; worklet errors 0
+Stamp map (the offset between the audio clock and the page's, which each pulse's stamp was made with): the engine's own tempo from its audio times is 120.000 BPM; 7 jumps of more than 3 ms between pulses, the largest 9.82 ms, in all 33.28 ms, range 13.21 ms; every stamp after a jump carries it, so the tempo below can differ from the engine's by up to that over the run
+The clock as it came back, read as a clock the way a followed one is:
+  Clock domain: same-clock: seen less stamped: median 1.7 ms, smallest 0.9, 99th 2.9
+  Pulses: 2881; tempo from the periods: median 120.592 BPM, from the run 120.019 BPM; drift 0.00 BPM an hour
+    period: n 2880, mean 20.83 ms, sigma 0.54 ms, min 10.87 ms, median 20.73 ms, 99th 22.11 ms, max 25.63 ms
+    stalls 0 (a gap over 500 ms), stamps going backwards 0, equal stamps 0, bursts 0 (pulses handed over together)
+
+## RESULT: both runs completed. Nothing here is a figure for Live or for a MIDI port.

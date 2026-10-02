@@ -12,7 +12,8 @@ test("a steady sender: the engine's pulses reach the device on the sender's, to 
     const run = closedLoop({ seconds: 10, bpm: steady(120) }, { seed });
     const errors = pulseErrors(run);
     assert.ok(errors.length > 400, `${errors.length} pulses`);
-    assert.ok(worst(errors, 2_500) <= 1, `seed ${seed}: worst ${worst(errors, 2_500).toFixed(2)} ticks after the first 2.5 s`);
+    // The plan's M4 says within one tick after 2 seconds. Measured on seeds 100 to 119 at 70, 120 and 160 BPM: the worst from 2 s is 0.53.
+    assert.ok(worst(errors, 2_000) <= 1, `seed ${seed}: worst ${worst(errors, 2_000).toFixed(2)} ticks after the first 2 s`);
     // Pulse 0 is the sender's pulse 0 to within a pulse's own catch-up: nowhere near a whole pulse (8 ticks) away.
     assert.ok(Math.abs(errors[0]!.ticks) < 8 * 3, `the first pulse is ${errors[0]!.ticks.toFixed(1)} ticks out`);
     assert.equal(run.follower.running, true);

@@ -1,7 +1,7 @@
 # STATE
 
 Capped at 200 lines. Conductor prunes rather than appends when it grows past
-that. Last pruned: 2026-10-02 (P3 merged, its paragraphs shortened; the P4 plan added). Before that 2026-10-01 (P2 merged; P3 started). Before that 2026-09-29, and 2026-09-06 after the repo split — this is now
+that. Last pruned: 2026-10-02 (P3 merged, its paragraphs shortened; the P4 plan added; P4 status updated by the forge). Before that 2026-10-01 (P2 merged; P3 started). Before that 2026-09-29, and 2026-09-06 after the repo split — this is now
 `BenoQs-Sequencerv2`, not a branch/PR against the original).
 
 ## This repo's origin (read this before anything else)
@@ -184,15 +184,16 @@ Plan: `specs/SPEC-0002/p3-plan.md` (§9 is "P3c as built"); decisions: ADR-0008 
 **Open for the owner:** S1's real-port half (a Mac with a loopback port, `apps/web/spikes/s1/page.html`; the kill criterion in `docs/09` waits for it); the tokens are ratified by the merge and the Conductor's flip to `ratified` is filed (`journal/conductor/requests/2026-10-01-docs-after-p3.md`); 160 Tab stops before the first non-matrix control; E2 asserted as median and never-late.
 **Not done:** the chase-light, a tempo control, `prefers-contrast`, the other 76 controls.
 
-## SPEC-0002 P4 (plan 2026-10-02, task `WENGE-0015`): two ports, the clock, MIDI in
+## SPEC-0002 P4 (task `WENGE-0015`): two ports, the clock, MIDI in
 
-`specs/SPEC-0002/p4-plan.md` is a plan only, in review; nothing is built. **F-P4-1:** the roadmap lists MIDI work in the P4 row, Wave 1 and Wave 4, and the consumers of input and program change are not in the engine; the plan narrows P4 to the transport layer (D-P4-1).
-**F-P4-2:** a track reaches port 2 by `MidiChannel` 17 to 32, which only Track zoom (Wave 2) sets, so A6 cannot be shown from the panel (D-P4-2 proposes a query-string stand-in). **D0 as arithmetic:** at 120 BPM a step is 1.5 clock pulses, not 6.
-Five slices P4a to P4e; P4c changes `crates/octocore` (Metronome hat) and its acceptance waits for D0.
+Plan `specs/SPEC-0002/p4-plan.md` ("Accept p4", 2026-10-02 10:54 Paris); decisions ADR-0009 and its two amendments. **Merged on `main`:** the plan, ADR-0009 (P4a), two ports and the MIDI input path (P4b, #30), the engine's optional MIDI clock and ABI 2 (P4c, #31).
+**P4d (in review, `forge/p4d-follower`, task `WENGE-0015`):** the clock follower. An estimator reads an incoming clock, a first-order loop steers the engine's tempo and transport from outside, the echo passes the clock on at once, and the clock state (Off, Master, Slave, Slave with echo) is in the strip with its sentences. 277 Node and 50 Chromium tests, mutation runs in `handoffs/evidence/p4d-mutation-run.txt`. Measured with the real engine in the loop: under half a tick steady from 2 s; 3.51 on a ramp (bound 4); not held at 160 BPM with 1.5 ms of output noise.
+**Everything is measured against a made-up sender.** A real port's `event.timeStamp` clock is assumed. Found: Chromium's `currentFrame` jumps 1024 frames at context start (explains a flake in a P4c test, now waited out); the engine's notes sit 11 ticks after its pulses (ADR-0009 amendment 1). **Owner decides:** D0 (M3 stays `pending`); ADR-0009 amendment 2 (six departures, two defaults); S1 then S3 on a real port. P4e (ABLETON.md and the S3 harness) not started.
+**D0 as arithmetic:** at 120 BPM a step is 1.5 clock pulses, not 6. F-P4-2: a track reaches port 2 by `MidiChannel` 17 to 32, which only Track zoom (Wave 2) sets; P4b's `?route=` is the stand-in.
 
-**Next three steps:** (1) the owner answers D0 and plan section 7 (D-P4-1 to D-P4-5); (2) the owner runs S1, then S3 on Live; (3) P4a (ADR-0009, the Metronome request, `ABLETON.md`) only after (1).
+**Next three steps:** (1) the owner merges P4d, answers D0 and the amendments; (2) P4e: `ABLETON.md` and the S3 harness; (3) the owner runs S1, then S3 on Live, and the follower's numbers are re-read against a real stream.
 
 ## Fan-out
 
-Live: the P4 plan in review. Not started: P4 code and later. Engine work meanwhile: attribute-map-factor step events (p.34-37, #3) and the Metronome's requests from P2b. D0 (the tick) blocks O4 step 4b and P4c's acceptance.
+Live: P4d in review. Not started: P4e and later. Engine work meanwhile: attribute-map-factor step events (p.34-37, #3) and the Metronome's requests from P2b. D0 (the tick) blocks O4 step 4b and P4c's acceptance.
 The panel's next workflows (Track zoom, the direction map, the chase-light) wait on owner answers to Q07, the mutator questions and the chase-light question. `octoffi` is frozen.

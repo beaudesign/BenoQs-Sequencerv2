@@ -1,0 +1,54 @@
+# P4d estimator red capture: the fixtures written before the estimator, run against a stub (src/clock-estimator.ts returns idle and null)
+# command: node --test test/clock-estimator.test.ts  (tsc clean; the stub has the real shape, so these fail on what they assert)
+# Two tests pass by construction against a stub, and are named here so nobody takes them for evidence: 'before any pulse there is nothing to say' (the stub is idle) and 'the same pulses give the same answers' (the stub is deterministic). The mutation run (p4d-mutation-run.txt) is what shows the second can fail.
+✔ before any pulse there is nothing to say: idle, no tempo, no grid
+✖ a perfect clock: no tempo until the seed pulses are in, locking until a beat of pulses, then locked
+✖ a perfect clock at 40, 60, 90, 120, 200 and 300 BPM is read to a hundredth of a BPM in a beat
+✖ the grid: the predicted pulse after the last is one period on, and the pulse index counts the sender's pulses
+✖ M4: steady 120 BPM with up to 3 ms of jitter, after two seconds the next pulse is placed within a tick and the tempo within 0.1 BPM
+✖ steady clocks at 60, 90, 150 and 200 BPM with 3 ms of jitter hold a tick and 0.2 BPM from two seconds on
+✖ jitter with a normal shape (a standard deviation of 1.5 ms) is held as well
+✖ the estimator says how much jitter it sees: the root mean square of how far the pulses fall from its grid
+✖ M4: a slow ramp (100 to 120 BPM over 20 s) is followed: the tempo lags by little and the next pulse is placed within two ticks
+✖ M4: a fast ramp (100 to 140 BPM over 8 s) is followed without losing the lock, and the estimator settles after it ends
+✖ a ramp downward is followed as well as one upward
+✖ a step in tempo (120 to 90 BPM) is taken: within two seconds the tempo and the phase are back to the steady bounds
+✖ M4: a missing pulse does not make the estimator run away: it counts the pulse it did not hear and keeps the grid
+✖ M4: three missing pulses in a row, and a pulse count that goes on counting across them
+✖ M4: a doubled pulse (the same message twice, a moment apart) is ignored and counted
+✖ M4: a stray pulse half way between two real ones is turned away and does not move the grid
+✖ a short burst of pulses far from the grid (fewer than the relock count) is turned away and the lock holds
+✖ M5 (the estimator's part): no pulse for 500 ms is `lost`, the last tempo is kept, and the pulses coming back lock again
+✖ a stall changes the epoch, so a follower knows the pulse count began again; a dropped pulse does not
+✖ after a stall the new tempo is read from the pulses that follow, not from the old one
+✖ a timestamp that is not later than the last one is counted and ignored
+✖ NaN, infinity and non-numbers are ignored and counted, never thrown at and never let into the state
+✔ the same pulses give the same answers every time, to the last bit
+✖ reset forgets everything: idle again, no tempo, the counts at zero
+✖ the estimator has no clock of its own: what it says depends only on the timestamps it was given and the time it is asked about
+ℹ tests 25
+ℹ pass 2
+ℹ fail 23
+✖ a perfect clock: no tempo until the seed pulses are in, locking until a beat of pulses, then locked
+✖ a perfect clock at 40, 60, 90, 120, 200 and 300 BPM is read to a hundredth of a BPM in a beat
+✖ the grid: the predicted pulse after the last is one period on, and the pulse index counts the sender's pulses
+✖ M4: steady 120 BPM with up to 3 ms of jitter, after two seconds the next pulse is placed within a tick and the tempo within 0.1 BPM
+✖ steady clocks at 60, 90, 150 and 200 BPM with 3 ms of jitter hold a tick and 0.2 BPM from two seconds on
+✖ jitter with a normal shape (a standard deviation of 1.5 ms) is held as well
+✖ the estimator says how much jitter it sees: the root mean square of how far the pulses fall from its grid
+✖ M4: a slow ramp (100 to 120 BPM over 20 s) is followed: the tempo lags by little and the next pulse is placed within two ticks
+✖ M4: a fast ramp (100 to 140 BPM over 8 s) is followed without losing the lock, and the estimator settles after it ends
+✖ a ramp downward is followed as well as one upward
+✖ a step in tempo (120 to 90 BPM) is taken: within two seconds the tempo and the phase are back to the steady bounds
+✖ M4: a missing pulse does not make the estimator run away: it counts the pulse it did not hear and keeps the grid
+✖ M4: three missing pulses in a row, and a pulse count that goes on counting across them
+✖ M4: a doubled pulse (the same message twice, a moment apart) is ignored and counted
+✖ M4: a stray pulse half way between two real ones is turned away and does not move the grid
+✖ a short burst of pulses far from the grid (fewer than the relock count) is turned away and the lock holds
+✖ M5 (the estimator's part): no pulse for 500 ms is `lost`, the last tempo is kept, and the pulses coming back lock again
+✖ a stall changes the epoch, so a follower knows the pulse count began again; a dropped pulse does not
+✖ after a stall the new tempo is read from the pulses that follow, not from the old one
+✖ a timestamp that is not later than the last one is counted and ignored
+✖ NaN, infinity and non-numbers are ignored and counted, never thrown at and never let into the state
+✖ reset forgets everything: idle again, no tempo, the counts at zero
+✖ the estimator has no clock of its own: what it says depends only on the timestamps it was given and the time it is asked about

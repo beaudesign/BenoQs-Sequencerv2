@@ -8,29 +8,11 @@ import { MidiScheduler, type TimeMap } from "../../src/midi-out.ts";
 import type { FromWorklet } from "../../src/protocol.ts";
 import { wireMidi } from "../../src/wire.ts";
 import { controlNumbers, matrixId } from "./module.ts";
+import { Rng } from "./rng.ts";
 import { FakeClock, FakeOutput, type LogEntry } from "./receiver.ts";
 import { WorkletRig, type Posted } from "./worklet-scope.ts";
 
-/** A small deterministic generator (xorshift32), so a failing run can be repeated from its seed. */
-export class Rng {
-  private s: number;
-  constructor(seed: number) {
-    this.s = seed >>> 0 || 0x9e3779b9;
-  }
-  next(): number {
-    let x = this.s;
-    x ^= x << 13;
-    x >>>= 0;
-    x ^= x >>> 17;
-    x ^= x << 5;
-    x >>>= 0;
-    this.s = x;
-    return x / 0x1_0000_0000;
-  }
-  int(n: number): number {
-    return Math.floor(this.next() * n);
-  }
-}
+export { Rng };
 
 export interface SessionConfig {
   seed: number;

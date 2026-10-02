@@ -57,7 +57,7 @@ class OctowebProcessor extends AudioWorkletProcessor {
     const leds = changed ? this.engine.ledBytes().slice().buffer : null;
     const playheads = this.engine.playheadBytes().slice().buffer;
     this.send(
-      { type: "panel", frame: currentFrame, leds, playheads, status: this.engine.status(), droppedIntents: this.engine.droppedIntents() },
+      { type: "panel", frame: currentFrame, leds, playheads, status: this.engine.status(), droppedIntents: this.engine.droppedIntents(), position: 0, positionFrame: 0 }, // STUB: the position is not read yet
       leds ? [leds, playheads] : [playheads],
     );
   }

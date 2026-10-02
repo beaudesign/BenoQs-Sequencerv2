@@ -26,6 +26,10 @@ export interface PanelFrame {
   running: boolean;
   zoomed: boolean;
   droppedIntents: number;
+  /** Where the audio is on the engine's tick grid, in ticks, as a fraction. */
+  position: number;
+  /** The audio context's frame at which `position` holds. */
+  positionFrame: number;
 }
 
 /** What the page registers to hear from the worklet. */
@@ -49,6 +53,8 @@ export function routeFromWorklet(m: FromWorklet, sink: WorkletSink): void {
         running: (m.status & 1) === 1,
         zoomed: (m.status & 2) === 2,
         droppedIntents: m.droppedIntents,
+        position: 0, // STUB
+        positionFrame: 0, // STUB
       });
       break;
     case "error":

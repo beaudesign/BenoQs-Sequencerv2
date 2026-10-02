@@ -21,8 +21,12 @@ export type FromWorklet =
   | { type: "ready"; abi: number; sampleRate: number }
   /** Events of one render block. `frame` is the audio context's `currentFrame` at the start of the block. */
   | { type: "events"; frame: number; bytes: ArrayBuffer }
-  /** About every 21 ms. `leds` is present only when an LED changed. */
-  | { type: "panel"; frame: number; leds: ArrayBuffer | null; playheads: ArrayBuffer; status: number; droppedIntents: number }
+  /**
+   * About every 21 ms, and after every message from the page. `leds` is present only when an LED changed. `position` is where the
+   * audio is on the engine's tick grid, in ticks and as a fraction (`octoweb_tick_position`), and `positionFrame` is the audio
+   * context's frame at which that holds: the end of the block just rendered, or `frame` itself for a message handled between blocks.
+   */
+  | { type: "panel"; frame: number; leds: ArrayBuffer | null; playheads: ArrayBuffer; status: number; droppedIntents: number; position: number; positionFrame: number }
   | { type: "error"; message: string };
 
 export const WORKLET_NAME = "octoweb";

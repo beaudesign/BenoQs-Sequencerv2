@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { EVENT_BYTES, KIND_DOWN, KIND_UP, LED_COUNT, RENDER_FRAMES, decodeEvents } from "../src/abi.ts";
+import { routeFromWorklet, type PanelFrame, type WorkletSink } from "../src/host.ts";
 import { PANEL_EVERY_BLOCKS, type FromWorklet } from "../src/protocol.ts";
 import { controlNumbers, layoutBytes, matrixId } from "./support/module.ts";
 import { WorkletRig, type Posted } from "./support/worklet-scope.ts";
@@ -239,4 +240,78 @@ test("a clock message after reset is reported as an error, like any call the mod
   rig.take();
   rig.send({ type: "clock", master: true });
   assert.match(only(rig.take(), "error")[0]?.message ?? "", /set clock.*code 1/);
+});
+
+// ----- the engine's position, for the clock follower (SPEC-0002 P4d, ADR-0009 decision 4) -----
+
+const TICKS_PER_SECOND_120 = 384; // 120 BPM, 192 ticks to the quarter note
+
+test("the panel message carries the engine's tick position and the frame it holds at: the end of the block, or the frame of a message between blocks", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  for (let b = 0; b < PANEL_EVERY_BLOCKS * 3; b++) {
+    for (const p of only(rig.block(), "panel")) {
+      assert.equal(typeof p.position, "number");
+      assert.equal(p.positionFrame, rig.frame, "block b was rendered from frame b * 128, and the position is where it ended: the next block's first frame");
+    }
+  }
+  rig.send({ type: "tempo", bpm: 120 });
+  const handled = only(rig.take(), "panel").at(-1)!;
+  assert.equal(handled.positionFrame, rig.frame, "a message between blocks reads the position as of the next block's first frame");
+});
+
+test("the position is 0 and stands still while the transport is stopped, and the frame goes on", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  const seen: { position: number; positionFrame: number }[] = [];
+  for (let b = 0; b < PANEL_EVERY_BLOCKS * 4; b++) for (const p of only(rig.block(), "panel")) seen.push(p);
+  assert.ok(seen.length >= 4);
+  for (const s of seen) assert.equal(s.position, 0);
+  assert.ok(seen.every((s, i) => i === 0 || s.positionFrame > seen[i - 1]!.positionFrame));
+});
+
+test("the position runs at the tick rate while playing: 384 ticks a second at 120 BPM, to within half a percent", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  rig.send({ type: "tempo", bpm: 120 });
+  rig.send({ type: "transport", play: true });
+  rig.take();
+  const seen: { position: number; positionFrame: number }[] = [];
+  for (let b = 0; b < PANEL_EVERY_BLOCKS * 40; b++) for (const p of only(rig.block(), "panel")) seen.push(p);
+  const first = seen[2]!;
+  const last = seen[seen.length - 1]!;
+  const seconds = (last.positionFrame - first.positionFrame) / 48_000;
+  const ticks = last.position - first.position;
+  assert.ok(Math.abs(ticks / seconds / TICKS_PER_SECOND_120 - 1) < 0.005, `${(ticks / seconds).toFixed(2)} ticks a second over ${seconds.toFixed(2)} s`);
+  for (let i = 1; i < seen.length; i++) assert.ok(seen[i]!.position >= seen[i - 1]!.position, "it never goes backwards");
+});
+
+test("a Stop leaves the position where it was, and Play goes on from there", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  rig.send({ type: "transport", play: true });
+  for (let b = 0; b < 200; b++) rig.block();
+  rig.send({ type: "transport", play: false });
+  const atStop = only(rig.take(), "panel").at(-1)!;
+  const later: number[] = [];
+  for (let b = 0; b < PANEL_EVERY_BLOCKS * 3; b++) for (const p of only(rig.block(), "panel")) later.push(p.position);
+  assert.ok(atStop.position > 50, `it had run: ${atStop.position}`);
+  assert.ok(later.every((p) => p === later[0]), "and then stood still");
+  assert.ok(Math.abs(later[0]! - atStop.position) < 1, `at ${later[0]} after a Stop at ${atStop.position}`);
+  rig.send({ type: "transport", play: true });
+  let resumed = 0;
+  for (let b = 0; b < 200; b++) for (const p of only(rig.block(), "panel")) resumed = p.position;
+  assert.ok(resumed > later[0]! + 50, `it went on: ${resumed}`);
+});
+
+test("routeFromWorklet hands the position and its frame to the page", () => {
+  const got: PanelFrame[] = [];
+  const sink: WorkletSink = { onEvents: null, onError: null, onPanel: (p) => got.push(p) };
+  routeFromWorklet(
+    { type: "panel", frame: 1_000, leds: null, playheads: new Uint8Array(10).buffer, status: 1, droppedIntents: 0, position: 123.5, positionFrame: 1_128 },
+    sink,
+  );
+  assert.equal(got[0]!.position, 123.5);
+  assert.equal(got[0]!.positionFrame, 1_128);
+  assert.equal(got[0]!.running, true);
 });

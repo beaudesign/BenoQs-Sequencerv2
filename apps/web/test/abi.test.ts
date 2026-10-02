@@ -12,6 +12,7 @@ import {
   LED_COUNT,
   Octoweb,
   RENDER_FRAMES,
+  TICKS_PER_CLOCK,
   OctowebError,
   TRACK_ATTR,
   asciiToString,
@@ -404,4 +405,14 @@ test("tick_position: 0 before play, then the audio's place on the tick grid: 125
   const held = e.tickPosition();
   for (let b = 0; b < 10; b++) e.render(RENDER_FRAMES);
   assert.equal(e.tickPosition(), held, "stopped: it stands still");
+});
+
+test("TICKS_PER_CLOCK is the engine's own: the follower reads the engine's position in ticks and a pulse in the same ticks", () => {
+  const domain = readFileSync(`${repoRoot}/crates/octocore/src/domain.rs`, "utf8");
+  const quarter = /pub const TICKS_PER_QUARTER: u32 = (\d+);/.exec(domain);
+  const clock = /pub const TICKS_PER_CLOCK: u32 = TICKS_PER_QUARTER \/ (\d+);/.exec(domain);
+  assert.ok(quarter && clock, "domain.rs still defines both constants in the form this test reads");
+  const pulsesPerQuarter = Number(clock[1]);
+  assert.equal(pulsesPerQuarter, 24, "MIDI clock is 24 pulses to the quarter note");
+  assert.equal(TICKS_PER_CLOCK, Number(quarter[1]) / pulsesPerQuarter);
 });

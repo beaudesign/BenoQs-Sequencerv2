@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spike S3: the MIDI clock with Ableton Live</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+  label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; }
+  select, input { font: inherit; padding: 0.25rem; min-width: 14rem; }
+  button { font: inherit; padding: 0.4rem 0.9rem; margin: 0.75rem 0.5rem 0 0; }
+  fieldset { margin: 1.5rem 0; padding: 0.5rem 1rem 1rem; }
+  pre { white-space: pre-wrap; border: 1px solid; padding: 0.75rem; }
+  code { font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<h1>Spike S3: the MIDI clock with Ableton Live</h1>
+<p>
+  WENGE P4 (SPEC-0002, WENGE-0015). Two runs, on real MIDI ports. <strong>Follow</strong> listens on one input for a clock that
+  Live sends and steers the real engine with it, as the app does in its Slave state, and records how far the engine is from where
+  the sender's clock says it should be. <strong>Send</strong> makes the engine the clock master, sends its clock to one output, and
+  listens on one input for it to come back through a loopback port (macOS: the IAC Driver; Windows: loopMIDI), which needs no Live.
+  The steps for Live are in <code>apps/web/ABLETON.md</code>.
+</p>
+<p>
+  Keep this tab in front for the run the plan asks for (30 minutes at 120 BPM). A second run with the tab behind another is
+  worth having: the result records how long the tab was hidden and reads the two cases apart.
+</p>
+<p><button id="grant" type="button">Allow MIDI and list the ports</button></p>
+<div id="form" hidden>
+  <fieldset>
+    <legend>Follow a clock</legend>
+    <p>
+      Start this run first, then press Play in Live: the engine starts on the Start message, and a clock alone does not start it.
+    </p>
+    <label for="follow-input">Input (the port Live's clock arrives on)</label>
+    <select id="follow-input"></select>
+    <label for="follow-minutes">Minutes (30 is the usual; 1 shows whether it works)</label>
+    <input id="follow-minutes" type="number" min="0.25" max="120" step="0.25" value="30">
+    <label for="follow-nominal">The tempo Live is set to, if you want the tempo the follower read compared with it (blank to leave out)</label>
+    <input id="follow-nominal" type="number" min="20" max="300" step="0.01" value="120">
+    <label for="follow-offset">Offset in ms (0 is the app's default; positive plays earlier)</label>
+    <input id="follow-offset" type="number" min="-100" max="100" step="1" value="0">
+    <p><button id="follow-start" type="button">Start following</button></p>
+  </fieldset>
+  <fieldset>
+    <legend>Send a clock</legend>
+    <p>
+      Choose an output and an input that are the two ends of a loopback port. Do not choose a port that goes to a synth or to Live:
+      the run sends a clock for as long as you choose.
+    </p>
+    <label for="send-output">Output (the loopback's input side)</label>
+    <select id="send-output"></select>
+    <label for="send-input">Input (the loopback's output side)</label>
+    <select id="send-input"></select>
+    <label for="send-minutes">Minutes</label>
+    <input id="send-minutes" type="number" min="0.25" max="120" step="0.25" value="30">
+    <label for="send-bpm">Engine tempo</label>
+    <input id="send-bpm" type="number" min="20" max="300" step="1" value="120">
+    <p><button id="send-start" type="button">Start sending</button></p>
+  </fieldset>
+  <p><button id="stop" type="button" disabled>Stop early</button><button id="save" type="button" disabled>Save the result as a file</button></p>
+</div>
+<p id="status" role="status">Not started.</p>
+<pre id="result" hidden></pre>
+<script type="module" src="/dist/spikes/s3/page.js"></script>
+</body>
+</html>

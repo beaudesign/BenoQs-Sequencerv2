@@ -63,6 +63,20 @@ test("the drift: a sender whose tempo creeps up 0.6 BPM in ten minutes is read a
   assert.ok(Math.abs(a.intervals.driftBpmPerHour - 3.6) < 0.3, `${a.intervals.driftBpmPerHour}`);
 });
 
+test("the drift leaves out the short block at the end of a run: five seconds at another tempo are not a trend", () => {
+  const out: Pulse[] = [];
+  let t = 0;
+  while (t < 240_000) {
+    out.push({ stamp: 5_000 + t, seen: 5_001 + t });
+    t += 2500 / 120;
+  }
+  while (t < 245_000) {
+    out.push({ stamp: 5_000 + t, seen: 5_001 + t });
+    t += 2500 / 130;
+  }
+  assert.ok(Math.abs(analyseFollow(raw({ pulses: out })).intervals.driftBpmPerHour) < 0.5);
+});
+
 test("stalls, a stamp that goes backwards, an equal stamp, and a burst (several pulses seen at once) are counted and kept out of the periods", () => {
   const p = pulses(120, 20);
   const base = p.length;

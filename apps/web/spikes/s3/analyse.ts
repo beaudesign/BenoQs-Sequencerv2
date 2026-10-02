@@ -165,7 +165,8 @@ function intervals(pulses: Pulse[]): FollowAnalysis["intervals"] {
 export function analyseFollow(raw: FollowRaw, options: FollowOptions = {}): FollowAnalysis {
   const settleMs = options.settleMs ?? DEFAULT_SETTLE_MS;
   const iv = intervals(raw.pulses);
-  const fifthOfStepMs = iv.tempoBpm.median > 0 ? STEP_MS_AT_1_BPM / iv.tempoBpm.median / 5 : 0;
+  // From the run's own tempo (pulses over time), not the median of the periods, which a sender whose pulses are quantised to a millisecond skews.
+  const fifthOfStepMs = iv.tempoBpm.fromRun > 0 ? STEP_MS_AT_1_BPM / iv.tempoBpm.fromRun / 5 : 0;
 
   // The latest Start or Continue seen at or before each sample: the settling is counted from it.
   const starts = raw.messages.filter((m) => m.name !== "stop").map((m) => m.seen).sort((a, b) => a - b);
@@ -271,7 +272,7 @@ const S3_SECONDS = 1_800;
 export function followVerdict(a: FollowAnalysis, runSeconds: number, hiddenSeconds: number): Verdict {
   const lines: string[] = [];
   let met: boolean | null = null;
-  const tempo = a.intervals.tempoBpm.median;
+  const tempo = a.intervals.tempoBpm.fromRun;
   if (a.clockDomain.verdict === "no-data") {
     lines.push("No pulses were heard: nothing to read.");
   } else if (a.clockDomain.verdict === "other-clock") {

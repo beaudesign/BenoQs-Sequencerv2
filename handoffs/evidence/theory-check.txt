@@ -1,0 +1,82 @@
+# Output of theory-check.py (run 2026-10-02). Two expectations of mine were wrong on the way and were corrected in the script, not in the code under test: C to G moves 3 semitones (I had 5);
+# the major pentatonic has three ties (I had none). The swing table in sequencing-theory.md had three rows wrong when I first wrote it by hand (the delay is a fraction of the 24-tick PAIR); it now follows the script's lines below.
+# The model is Python, not the engine: it applies the engine's documented tie rule (crates/octocore/src/scale.rs: ties go down) and is not a test of the engine.
+PASS E(2,5) has 2 onsets in 5 slots  x.x..
+PASS E(2,5) is T's pattern up to rotation  mine x.x.., T x.x.., exact=True
+PASS E(3,7) has 3 onsets in 7 slots  x.x.x..
+PASS E(3,7) is T's pattern up to rotation  mine x.x.x.., T x.x.x.., exact=True
+PASS E(3,8) has 3 onsets in 8 slots  x..x..x.
+PASS E(3,8) is T's pattern up to rotation  mine x..x..x., T x..x..x., exact=True
+PASS E(4,7) has 4 onsets in 7 slots  x.x.x.x
+PASS E(4,7) is T's pattern up to rotation  mine x.x.x.x, T x.x.x.x, exact=True
+PASS E(5,8) has 5 onsets in 8 slots  x.xx.xx.
+PASS E(5,8) is T's pattern up to rotation  mine x.xx.xx., T x.xx.xx., exact=True
+PASS E(5,12) has 5 onsets in 12 slots  x..x.x..x.x.
+PASS E(5,12) is T's pattern up to rotation  mine x..x.x..x.x., T x..x.x..x.x., exact=True
+PASS E(5,16) has 5 onsets in 16 slots  x..x..x..x..x...
+PASS E(5,16) is T's pattern up to rotation  mine x..x..x..x..x..., T x..x..x..x..x..., exact=True
+PASS E(7,12) has 7 onsets in 12 slots  x.xx.x.xx.x.
+PASS E(7,12) is T's pattern up to rotation  mine x.xx.x.xx.x., T x.xx.x.xx.x., exact=True
+PASS E(7,16) has 7 onsets in 16 slots  x..x.x.x..x.x.x.
+PASS E(7,16) is T's pattern up to rotation  mine x..x.x.x..x.x.x., T x..x.x.x..x.x.x., exact=True
+PASS E(9,16) has 9 onsets in 16 slots  x.xx.x.x.xx.x.x.
+PASS E(9,16) is T's pattern up to rotation  mine x.xx.x.x.xx.x.x., T x.xx.x.x.xx.x.x., exact=True
+PASS E(2,5) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(3,7) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(3,8) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(4,7) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(5,8) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(5,12) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(5,16) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(7,12) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(7,16) is maximally even (inter-onset gaps differ by at most 1)
+PASS E(9,16) is maximally even (inter-onset gaps differ by at most 1)
+PASS loops of 16 and 12 steps realign after 48 steps
+PASS loops of 16 and 15 steps realign after 240 steps
+PASS loops of 16 and 7 steps realign after 112 steps
+PASS loops of 16 and 16 steps realign after 16 steps
+PASS loops of 16 and 8 steps realign after 16 steps
+PASS swing 50 % delays the second step by 0 ticks
+PASS swing 66.67 % (triplet) delays the second step by 4 ticks of 12 (a third of a step)
+PASS swing 75 % delays the second step by 6 ticks (half a step)
+PASS swing 54 % rounds to 1 tick (the Octopus resolution is one tick)  0.96 ticks
+PASS the largest swing the neutral track STA reaches is (12+5)/24 = 70.8 %
+PASS swing 75 % needs a push of 6, which M p.45's chart gives from track STA 10 (+6 at the top step STA)  chart row 10: -6 -4 -3 -2 -1 0 +1 +2 +3 +4 +6
+      info  at 120 BPM, reading A: step is a sixteenth, 125 ms: 54 % -> 10.00 ms; 58 % -> 20.00 ms; 62 % -> 30.00 ms; 66.66666666666667 % -> 41.67 ms; 70.83333333333333 % -> 52.08 ms; 75 % -> 62.50 ms
+      info  at 120 BPM, reading B: engine today, 31.25 ms: 54 % -> 2.50 ms; 58 % -> 5.00 ms; 62 % -> 7.50 ms; 66.66666666666667 % -> 10.42 ms; 70.83333333333333 % -> 13.02 ms; 75 % -> 15.62 ms
+PASS Ionian is the major scale rotated to its degree 1  [0, 2, 4, 5, 7, 9, 11]
+PASS Dorian is the major scale rotated to its degree 2  [0, 2, 3, 5, 7, 9, 10]
+PASS Phrygian is the major scale rotated to its degree 3  [0, 1, 3, 5, 7, 8, 10]
+PASS Lydian is the major scale rotated to its degree 4  [0, 2, 4, 6, 7, 9, 11]
+PASS Mixolydian is the major scale rotated to its degree 5  [0, 2, 4, 5, 7, 9, 10]
+PASS Aeolian is the major scale rotated to its degree 6  [0, 2, 3, 5, 7, 8, 10]
+PASS Locrian is the major scale rotated to its degree 7  [0, 1, 3, 5, 6, 8, 10]
+PASS diatonic triads of the major scale are M m m M M m dim  ['major', 'minor', 'minor', 'major', 'major', 'minor', 'diminished']
+PASS diatonic sevenths are maj7 m7 m7 maj7 7 m7 m7b5  ['maj7', 'm7', 'm7', 'maj7', '7', 'm7', 'm7b5']
+PASS in C major the out-of-scale notes with a scale tone either side are C#, D#, F#, G#, A# (five ties)  [1, 3, 6, 8, 10]
+PASS tie-down and tie-up disagree on every one of those five
+PASS the scale's two semitone steps are E-F and B-C, so no out-of-scale pitch lies between those pairs
+PASS C to F: the closest voicing moves 3 semitones in all (C stays; E up 1, G up 2)  3 semitones, voicing (60, 65, 69)
+PASS C to G: the closest voicing moves 3 semitones in all (C down 1 to B, E down 2 to D, G stays); my first figure of 5 was wrong and this check found it  3, (59, 62, 67)
+PASS C to Am: two common tones, one voice moves 2 semitones  2, (60, 64, 69)
+PASS root position C to F moves 15 semitones in all (what a naive transposition does)  15
+PASS effector example, M p.60: +3 -1 -2 -2 = -2 semitones for track 0
+PASS strum table, M p.22: every note's offset never decreases as the level rises
+PASS strum table, M p.22: at every level the later note is never earlier than the one before it
+PASS strum 9 on a 7-note chord spreads the notes over 45 ticks, 3.75 steps, less than a quarter of a bar of 16 steps
+PASS Brownian direction, M p.45: 2/3 forward, 1/3 reverse is a drift of +1/3 step a step
+PASS track map factors, M p.53: neutral is 9 of 1..17 (8 of 0..16 as shown for LEN and STA)
+PASS 192 holds 16ths (12 ticks), 32nds (6), 64ths (3), 8th triplets (16) and 16th triplets (8)
+PASS 192 holds no quintuplet or septuplet subdivision of a sixteenth (5 and 7 do not divide 192)
+PASS a tie is the middle of a two-semitone gap: C major has five (C# D# F# G# A#), the major pentatonic three (C# D# G#); in a three-semitone gap (E-G) F is nearer E and F# nearer G  pentatonic ties [1, 3, 8]
+PASS the whole-tone scale has six ties (every out-of-scale pitch class), harmonic minor has three  harmonic minor ties [1, 4, 6]
+PASS a tonic triad shifted by 0 2 4 5 7 9 11 semitones and forced to C major with ties DOWN gives the seven diatonic triads (same pitch classes)
+      info  with ties UP the degrees that come out wrong for triads: [2, 3, 6, 7]
+PASS a tonic seventh shifted by 0 2 4 5 7 9 11 semitones and forced to C major with ties DOWN gives the seven diatonic sevenths (same pitch classes)
+      info  with ties UP the degrees that come out wrong for sevenths: [2, 3, 5, 6, 7]
+PASS the bossa clave x..x..x...x..x.. is a rotation of E(5,16)  x..x..x..x..x...
+PASS the 3-2 son clave is not Euclidean: its gaps are 3 3 4 2 4, which differ by 2  x..x..x...x.x..., spread 2
+PASS the 2-3 son clave is the 3-2 rotated by half a bar: 3 onsets then 2 becomes 2 then 3  x..x..x...x.x... -> ..x.x...x..x..x.
+PASS crates/octocore/src/tables.rs holds the strum table for notes 2 to 7, 9 levels each, cell for cell equal to the manual's  rows found: [2, 3, 4, 5, 6, 7]
+
+ALL CHECKS PASS

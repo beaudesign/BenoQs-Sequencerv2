@@ -1,0 +1,106 @@
+# P4d MUTATION RUN. Each line is one small change to the code under test, made in a copy of the tree, and what the tests said. "caught"
+# means at least one test failed (or the type check did); "SURVIVED" means none did. Run on the build container, final tree of slice C.
+# Scripts: the runner is a small Python file kept in the session's scratch and not in the repo; the mutants are listed in full below so the
+# run can be repeated by hand. Nothing here says the tests are complete: it says these particular wrong programs are not accepted.
+#
+# PART 1. Estimator, follower and the loop harness (tests: test/clock-estimator.test.ts, test/follower.test.ts): 35 mutants, 32 caught, 3 survived.
+[ 0] caught   fails=  2 tsc_error=False pulses counted by the grid even while locking
+[ 1] caught   fails=  1 tsc_error=False a gap not checked against the raw spacing
+[ 2] caught   fails=  1 tsc_error=False a read that is not readable accepted
+[ 3] caught   fails=  4 tsc_error=False the count not carried across a relock
+[ 4] caught   fails=  4 tsc_error=False an anomaly ends after one clean pulse
+[ 5] caught   fails=  1 tsc_error=False no relock for a long anomaly
+[ 6] caught   fails=  1 tsc_error=False gaps never read as a new tempo
+[ 7] caught   fails=  3 tsc_error=False no adaptation of the process noise
+[ 8] caught   fails=  4 tsc_error=False a stall is not noticed
+[ 9] caught   fails=  1 tsc_error=False a stall does not change the epoch
+[10] caught   fails=  1 tsc_error=False an equal timestamp let in
+[11] caught   fails=  3 tsc_error=False dropped pulses counted one too many
+[12] caught   fails=  3 tsc_error=False no outlier gate
+[13] caught   fails=  2 tsc_error=False no relock on a run of turned-away pulses
+[14] caught   fails=  1 tsc_error=False no repeat detection while locking
+[15] caught   fails=  2 tsc_error=False offset sign wrong
+[16] caught   fails= 13 tsc_error=False no lead at all
+[17] caught   fails= 15 tsc_error=False trim sign wrong
+[18] caught   fails= 14 tsc_error=False no trim
+[19] caught   fails=  1 tsc_error=False trim unbounded
+[20] caught   fails= 18 tsc_error=False Start never starts the engine
+[21] caught   fails=  5 tsc_error=False Stop never stops the engine
+[22] caught   fails=  1 tsc_error=False anchor ignores where the engine is
+[23] SURVIVED fails=  0 tsc_error=False a stall does not retake the anchor
+[24] SURVIVED fails=  0 tsc_error=False never gives up counting whole pulses
+[25] caught   fails=  1 tsc_error=False the loop keeps steering while the clock is lost
+[26] caught   fails=  1 tsc_error=False every tempo sent
+[27] caught   fails=  1 tsc_error=False a tempo above 999 sent
+[28] caught   fails= 16 tsc_error=False Start starts at the message and not the pulse
+[29] caught   fails= 15 tsc_error=False wrong ticks per pulse
+[30] SURVIVED fails=  0 tsc_error=False position used while stopped
+[31] caught   fails=  1 tsc_error=False a Stop does not cancel a pending Start
+[32] caught   fails=  1 tsc_error=False (harness) Start before the sender's first pulse and not the first to arrive
+[33] caught   fails=  2 tsc_error=False [pair] never gives up AND the anchor ignores where the engine is
+[34] caught   fails=  1 tsc_error=False [pair] never gives up AND a stall does not retake the anchor
+survivors: [(23, 'a stall does not retake the anchor', 'survived'), (24, 'never gives up counting whole pulses', 'survived'), (30, 'position used while stopped', 'survived')]
+
+# What survived, and why it is left:
+#  [23] "a stall does not retake the anchor" and [24] "never gives up counting whole pulses" each guard the same thing as the other and as the
+#       anchor taken from the engine's own position: a count that cannot be trusted is taken again as the nearest whole pulse. Any one alone
+#       is covered by the other two, so removing one is not seen; REMOVING TWO TOGETHER IS: [33] and [34] are caught. The three are
+#       redundant on purpose and are kept.
+#  [30] "position used while stopped": the follower reads the engine's position only while it believes the transport is running, and drops
+#       the early return that says so. EQUIVALENT: while stopped the anchor is null and the same function then takes the nearest whole
+#       pulse, writes a phase that status() does not show (it reports null while stopped) and sends a tempo equal to the sender's,
+#       which is what is sent anyway. Nothing observable differs. Left as it is, and named so nobody mistakes it for a gap in the tests.
+#
+# History: the first run of part 1 had 8 survivors (14 repeat detection while locking, 19 trim unbounded, 22 anchor ignores the engine,
+# 23, 24, 25 tempo sent while the clock is lost, 30, 32 the harness's Start). Each was answered with a test or by removing dead code, and
+# the three above are what remained: [14] a doubled pulse while the lock is still being made (test/clock-estimator.test.ts), [19] trim
+# saturation at plus and minus 8% (test/follower.test.ts), [22] the engine's position in the anchor, [25] a clock that is lost (the
+# guard that had been in apply() was dead code, because its callers already see to a lost clock: it was removed, and the mutant now
+# removes the guard in onPosition, which is caught), [32] the harness itself (the Start before the first pulse to ARRIVE).
+
+# PART 2. Slice C: the echo, the clock state, the worklet's position, the follower in front of the real engine, and the page's wiring in Chromium.
+# 34 mutants. The first run: 31 caught, 3 survived ([11] phase of exactly zero reads behind, [13] the default is master, [14] one pulses).
+# Each got an assertion (test/clock-state.test.ts: the default is off and first; "1 pulse"; exactly zero reads "ahead") and the three were run again:
+# all caught. The listing below is the first run for 0 to 25 and the second for 11, 13 and 14, then 26 to 33 (page mutants run the Chromium tests whose
+# names match the feature, against a fresh build).
+
+[ 0] caught   fails=  2 tsc_error=False node    the echo is stamped ahead like a note
+[ 1] caught   fails=  2 tsc_error=False node    the echo is not counted
+[ 2] caught   fails=  1 tsc_error=False node    the echo with no device is not counted as unrouted
+[ 3] caught   fails=  2 tsc_error=False node    the echo is always a Clock
+[ 4] caught   fails=  1 tsc_error=False node    an invalid echo is not counted
+[ 5] caught   fails=  1 tsc_error=False node    a refusal is not marked refused
+[ 6] caught   fails=  1 tsc_error=False node    before Start is not pending
+[ 7] caught   fails=  1 tsc_error=False node    plain slave echoes
+[ 8] caught   fails=  2 tsc_error=False node    one output called both
+[ 9] caught   fails=  1 tsc_error=False node    slave with no input accepted as following
+[10] caught   fails=  1 tsc_error=False node    lost clock says the wrong thing about the transport
+[11] SURVIVED fails=  0 tsc_error=False node    phase of exactly zero reads behind
+[12] caught   fails=  1 tsc_error=False node    a status shown for a state that does not follow
+[13] SURVIVED fails=  0 tsc_error=False node    the default is master
+[14] SURVIVED fails=  0 tsc_error=False node    one pulses
+[15] caught   fails=  2 tsc_error=True  node    numbers shown before there is a tempo
+[16] caught   fails= 10 tsc_error=False node    the position is always zero
+[17] caught   fails=  1 tsc_error=False node    the position is dated a block early
+[18] caught   fails=  8 tsc_error=False node    (real engine) no lead
+[19] caught   fails=  8 tsc_error=False node    (real engine) trim sign wrong
+[20] caught   fails=  8 tsc_error=False node    (real engine) the anchor a whole pulse out
+[21] caught   fails=  1 tsc_error=False node    (real engine) Stop never stops the engine
+[22] caught   fails=  8 tsc_error=False node    (real engine) no trim
+[23] caught   fails=  8 tsc_error=False node    (real engine) a loop ten times slower
+[11] caught   fails=  1 tsc_error=False node    phase of exactly zero reads behind        (after the assertion was added)
+[13] caught   fails=  1 tsc_error=False node    the default is master                     (after the assertion was added)
+[14] caught   fails=  1 tsc_error=False node    one pulses                                (after the assertion was added)
+[24] caught   fails=  1 tsc_error=False browser page: the input's clock is never fed to the follower
+[25] caught   fails=  1 tsc_error=False browser page: plain slave echoes
+[26] caught   fails=  1 tsc_error=False browser page: the echo is never sent
+[27] caught   fails=  1 tsc_error=False browser page: master never turns the engine's clock on
+[28] caught   fails=  1 tsc_error=False browser page: the follower's lookahead is not kept equal to the scheduler's
+[29] caught   fails=  1 tsc_error=False browser page: the offset field does nothing
+[30] caught   fails=  1 tsc_error=False browser page: a new input keeps the last sender's follower
+[31] caught   fails=  1 tsc_error=False browser page: the position is dated by the panel's own frame
+[32] caught   fails=  1 tsc_error=False browser page: a refusal leaves the control on what was refused
+[33] caught   fails=  1 tsc_error=False browser page: leaving slave keeps the follower steering
+survivors: none
+# The page-wiring mutants [24] to [33] were run against the Chromium tests whose names match (slave, lead, echo, master, M8, choosing another input).
+# Not covered by any mutant: the 250 ms refresh timer of the detail line (a timing), and the exact words of the sentences beyond what the tests quote.

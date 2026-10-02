@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { FollowStatus } from "../src/follower.ts";
-import { CLOCK_LABELS, CLOCK_MODES, decideClock, describeClock, isClockMode, type ClockMode, type ClockWorld } from "../src/clock-state.ts";
+import { CLOCK_DEFAULT, CLOCK_LABELS, CLOCK_MODES, decideClock, describeClock, isClockMode, type ClockMode, type ClockWorld } from "../src/clock-state.ts";
 
 const ready: ClockWorld = { started: true, midi: "ready", outputs: 1, input: "Live" };
 const world = (over: Partial<ClockWorld> = {}): ClockWorld => ({ ...ready, ...over });
@@ -16,6 +16,8 @@ const status = (over: Partial<FollowStatus> = {}): FollowStatus => ({ phase: "fo
 test("four states, off first, with the manual's own words as labels", () => {
   assert.deepEqual([...CLOCK_MODES], ["off", "master", "slave", "slave-echo"]);
   assert.deepEqual(CLOCK_LABELS, { off: "Off", master: "Master Clock", slave: "Slave Clock", "slave-echo": "Slave Clock with MIDI Clock echo" });
+  assert.equal(CLOCK_DEFAULT, "off", "the manual's default: Octopus neither sends nor reacts to MIDI Clock");
+  assert.equal(CLOCK_MODES[0], CLOCK_DEFAULT, "and it is the first in the list");
   assert.equal(isClockMode("master"), true);
   for (const bad of ["", "Master", "slave echo", null, undefined, 3, {}]) assert.equal(isClockMode(bad), false, String(bad));
 });
@@ -133,6 +135,8 @@ test("the detail line carries the numbers: tempo, pulses, jitter, and how far ah
   const d = decideClock("slave", ready);
   assert.equal(describeClock(d, ready, status()).detail, "120.0 BPM, 480 pulses, jitter 1.2 ms, engine 0.4 ms ahead");
   assert.equal(describeClock(d, ready, status({ bpm: 87.34, phaseMs: -4.44, jitterMs: 2.91, pulses: 12 })).detail, "87.3 BPM, 12 pulses, jitter 2.9 ms, engine 4.4 ms behind");
+  assert.equal(describeClock(d, ready, status({ pulses: 1 })).detail, "120.0 BPM, 1 pulse, jitter 1.2 ms, engine 0.4 ms ahead", "one pulse, not one pulses");
+  assert.equal(describeClock(d, ready, status({ phaseMs: 0 })).detail, "120.0 BPM, 480 pulses, jitter 1.2 ms, engine 0.0 ms ahead", "exactly on the beat has to read as one or the other; a measured phase is never exactly zero");
   assert.equal(describeClock(d, ready, status({ phaseMs: null })).detail, "120.0 BPM, 480 pulses, jitter 1.2 ms", "no phase to report while the transport is stopped");
   assert.equal(describeClock(d, ready, status({ phase: "waiting", bpm: null, phaseMs: null, pulses: 0, jitterMs: 0 })).detail, "", "nothing to say before there is a tempo");
   assert.equal(describeClock(d, ready, null).detail, "");

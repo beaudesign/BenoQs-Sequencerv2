@@ -146,6 +146,28 @@ export class MidiScheduler {
     }
   }
 
+  /**
+   * The echo (slave with echo, D-P4-8): one real-time message that came in, handed to every chosen device at once. It is not the engine's
+   * clock: it has no audio time to stamp from and no lookahead is added, because the sender timed it and it has already taken the time
+   * it took to arrive. It is sent with no timestamp (now), it does not move rule 1's record of what each device was promised, and it is
+   * counted with the other real-time sends and not reported to `onSend`, which is for events that have an engine time.
+   */
+  passThrough(status: number): void {
+    const bytes = midiBytes(KIND_REALTIME, 0, status, 0);
+    if (!bytes) {
+      this.stats.invalid++;
+      return;
+    }
+    if (this.devices.length === 0) {
+      this.stats.unrouted++;
+      return;
+    }
+    for (const output of this.devices) {
+      output.send(bytes);
+      this.stats.realtime++;
+    }
+  }
+
   /** One send to one device, at audio time `at`: stamped on the page's clock plus the lookahead, and held to rule 1. */
   private send(output: MidiOutputLike, port: number, bytes: number[], at: number): void {
     let target = this.time.toPage(at) + this.lookaheadMs;

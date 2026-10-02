@@ -30,6 +30,17 @@ async function open(): Promise<Page> {
   return page;
 }
 
+/**
+ * Waits until the worklet has been running for a few dozen milliseconds. Chromium (141, headless) starts an AudioContext with a jump: the
+ * second `process()` call has a `currentFrame` 896 or 1024 frames (7 or 8 blocks) after the first, and the engine, which renders only the
+ * blocks it is called for, has nothing for the blocks between. A Play that lands in that window has a gap of about 20 ms in its first
+ * pulse (measured: handoffs/evidence/p4d-startup-frame-jump.txt), which a test of exact pulse spacing is not about. The app never plays
+ * that early (a person presses Start, then Play); the tests that measure spacing wait.
+ */
+async function pastStartup(page: Page): Promise<void> {
+  await page.waitForFunction(() => harness.panelCount() >= 8, null, { timeout: 5_000 });
+}
+
 test("the module is compiled on the page, the worklet starts, and the audio context says its rate", async () => {
   const page = await open();
   const info = await page.evaluate(() => harness.start());
@@ -80,6 +91,7 @@ test("Play: Note Ons reach the scheduler in the future, with the margin the look
 test("the clock: with it on, Start and then a pulse every 24th of a quarter note reach every device, in the future, through the real worklet", async () => {
   const page = await open();
   await page.evaluate(() => harness.start({ lookaheadMs: 30 }));
+  await pastStartup(page);
   await page.evaluate(() => {
     harness.tempo(120);
     harness.clock(true);
@@ -113,6 +125,7 @@ test("the clock: with it on, Start and then a pulse every 24th of a quarter note
 test("the clock: Stop is heard after the last pulse and Play again says Continue", async () => {
   const page = await open();
   await page.evaluate(() => harness.start({ lookaheadMs: 30 }));
+  await pastStartup(page);
   await page.evaluate(() => {
     harness.clock(true);
     harness.transport(true);
@@ -134,6 +147,7 @@ test("the clock: Stop is heard after the last pulse and Play again says Continue
 test("the clock: turned off while it runs, no more pulses reach a device once what was already on its way has gone", async () => {
   const page = await open();
   await page.evaluate(() => harness.start({ lookaheadMs: 30 }));
+  await pastStartup(page);
   await page.evaluate(() => {
     harness.clock(true);
     harness.transport(true);

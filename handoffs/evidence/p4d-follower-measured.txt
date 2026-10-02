@@ -1,0 +1,86 @@
+# P4d follower: what it measured, and what changed between the red run and the green one
+# command: node apps/web/scripts/measure-follower.ts   (the sender and the engine are made up: test/support/sim-clock.ts and plant.ts; nothing
+# here was measured on a real port, a real sender or a real browser. The real engine is in the loop in test/follower-engine.test.ts, slice C.)
+#
+# Defects found while the follower was made green. Two of them were found only by measuring on seeds the tests do not use (100 to 139):
+#  1. The pulse count went wrong through a step in tempo (the estimator's: see p4d-estimator-measured.txt, defect 4). The follower's own
+#     phase read zero while the heard error was a whole pulse, which is what a count that is one out looks like. First seen as the
+#     failing "step in tempo (120 to 90 BPM)" test (8.23 ticks on seed 1); a loop over five more steps (up, down, 1.5 times, double, half)
+#     is the fixture that was added and stayed red against the old counting.
+#  2. THE HARNESS PUT THE START AFTER THE FIRST PULSE. The loop sent 0xFA a millisecond before the sender's first pulse as the sender made
+#     it, but the pulses carry jitter, and in 18 of 40 steady runs the first pulse to arrive had come earlier than that: the Start was
+#     heard after it, the first clock after the Start was the sender's SECOND pulse, and the engine's first pulse was taken to be the
+#     sender's second. Every such run settled a whole pulse (8 ticks) off. A port keeps its messages in order, so that stream cannot
+#     happen; the fault was the harness's, not the follower's. The Start now goes one millisecond before the first pulse to ARRIVE. The
+#     tests on seeds 1 to 12 had not hit it (it needs the first pulse early by more than a millisecond). Mutation "Start before the sender's
+#     first pulse and not the first to arrive" is in the run recorded in p4d-mutation-run.txt.
+#  3. A test window was measured from Start while its event was in page time: the "lead can be changed" test read the sample at the moment
+#     of the change (a whole offset away from the new target, by construction) as "steady before". Fixed by putting the windows in page
+#     time, and the test now asserts the sample at the moment of the change IS far from the target (so the change is a real one).
+#
+# Thresholds. None was loosened. Two were TIGHTENED once the numbers were in (the first draft said 1.5 ticks steady and 2 ticks for the
+# catch-up; the plan says "within one tick"): steady and after-a-step are now 1 tick (measured worst 0.59 on 40 unseen seeds at 160 BPM),
+# the catch-up from 1.5 s after the Start is now 1 tick (worst 0.69). The ramp bounds (3 and 4 ticks) are the first draft's: the slow ramp
+# measured 2.07 and the fast ramp 3.78 on the ramp itself, which is close to the 4 and says the loop does not have much room there:
+# a ramp at 5 BPM a second is followed with a lag the estimator and the loop share (the estimator alone: 2.14 ticks).
+#
+# Restated, not met as the plan words it: after a Stop and a Continue the engine resumes where it stopped (it does not rewind, and song
+# position 0xF2 is decoded and ignored), so the test measures the FINE placement (modulo a whole pulse) from two seconds after the Continue.
+# A sender that Continues from the middle of a song does not get its song position from this follower: that is said in follower.ts, in
+# ABLETON.md (slice P4e), and is not tested because there is nothing to test.
+#
+# What these tests do not say: whether Web MIDI's event.timeStamp is on performance.now()'s clock (assumed; spike S3 measures it), how
+# the audio-to-page clock map moves in a real browser (made up here as 1.5 ms of jitter on the position's time), and what a real sender's
+# jitter looks like (uniform plus or minus 3 ms here, which is the plan's number).
+#
+# follower measured on made-up clocks and a made-up engine, uniform jitter of plus or minus 3 ms, seeds 100 to 139 (the tests use 1 to 12)
+# worst heard error in ticks over the window (seconds after the Start message), lookahead 30 ms unless said
+steady 120 (2-12 s)                ticks: p50 0.28 p90 0.43 max 0.48 | over the 1 proposed: 0 of 40
+steady 70 (2.5-12 s)               ticks: p50 0.19 p90 0.28 max 0.41 | over the 1 proposed: 0 of 40
+steady 160 (2.5-12 s)              ticks: p50 0.37 p90 0.51 max 0.59 | over the 1 proposed: 0 of 40
+catch-up 120 (1.5-8 s)             ticks: p50 0.32 p90 0.45 max 0.69 | over the 1 proposed: 0 of 40
+lookahead 60 offset +10 (3.5-14 s) ticks: p50 0.27 p90 0.35 max 0.43 | over the 1 proposed: 0 of 40
+lookahead 0 (3.5-14 s)             ticks: p50 0.27 p90 0.34 max 0.43 | over the 1 proposed: 0 of 40
+ramp 100-120 in 20 s (3-24 s)      ticks: p50 1.67 p90 1.89 max 2.07 | over the 3 proposed: 0 of 40
+ramp 100-140 in 8 s (3-9 s)        ticks: p50 3.07 p90 3.57 max 3.78 | over the 4 proposed: 0 of 40
+3 s after that ramp (11-18 s)      ticks: p50 0.31 p90 0.40 max 0.54 | over the 1 proposed: 0 of 40
+step 120-90 (3 s on)               ticks: p50 0.22 p90 0.29 max 0.35 | over the 1 proposed: 0 of 40
+step 90-120 (3 s on)               ticks: p50 0.26 p90 0.35 max 0.45 | over the 1 proposed: 0 of 40
+step 100-140 (3 s on)              ticks: p50 0.31 p90 0.38 max 0.46 | over the 1 proposed: 0 of 40
+step 150-100 (3 s on)              ticks: p50 0.22 p90 0.28 max 0.35 | over the 1 proposed: 0 of 40
+step 120-60 (3 s on)               ticks: p50 0.15 p90 0.22 max 0.23 | over the 1 proposed: 0 of 40
+step 60-120 (3 s on)               ticks: p50 0.27 p90 0.37 max 0.45 | over the 1 proposed: 0 of 40
+one pulse in 53 lost, 1 in 37 doubled ticks: p50 0.28 p90 0.43 max 0.48 | over the 1 proposed: 0 of 40
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# SLICE C: the follower in front of the REAL engine (the engine, worklet, scheduler and follower are real; the sender's pulses and the receiver are made up)
+# command: node apps/web/scripts/measure-follower-engine.ts   (about a minute). Measured at the DEVICE: when each engine pulse is delivered, against the
+# sender's pulse with the same number. The tests use seeds 1 to 7; these are seeds 100 to 119.
+#
+# What it says, in words:
+#  * With the output's own timing noise off (what is left is the follower, the engine and the noise of the sender and of the position map), the
+#    worst heard error is under half a tick in steady state at 70, 120 and 160 BPM, after a step in tempo and after a ramp. The count is right: a
+#    pulse out of place would read 8 ticks. On a ramp of 3.75 BPM a second the worst is 3.51 ticks (p50 2.96): the bound is 4, the number the
+#    simulated follower's fast ramp has, and nine seeds of twenty are over 3, so the margin is thin and nobody should call it comfortable.
+#  * With the output noise ON (the page's idea of the audio clock wrong by up to 1.5 ms at each batch of events) the figures are mostly that noise:
+#    120 BPM stays under a tick (0.85), 160 BPM does not (1.11; 5 of 20 over), because a tick there is 1.9 ms. The test of the bound at 120 BPM with the
+#    noise on is kept; there is no such test at 160 BPM because the bound would not hold, and that is said here and not hidden by dropping the noise.
+#  * The two noises are drawn independently here. If the page's map is wrong in the same way for the position it reports and the events it stamps
+#    (they share one ContextTimeMap in the app) the follower will see and cancel part of it; or it may be worse. Unknown until spike S3.
+#  * The engine's own notes sit 11 ticks after the pulse of their step (crates/octocore/tests/clock.rs, AMBIGUITIES.md "the first note after Play"): a fact
+#    of the engine and a question for the owner, found again here when a first draft of the notes test expected them on the pulse and read 10.8 ticks.
+#
+# follower in front of the real engine: simulated sender (uniform jitter of plus or minus 3 ms), real engine, worklet, scheduler and follower; seeds 100 to 119 (the tests use 1 to 7)
+# worst heard error in ticks over the window (milliseconds after the Start message), lookahead 30 ms
+steady 120 (2.5-10 s)          output noise 0   ms   ticks: p50 0.22 p90 0.32 max 0.38 | over the 1 proposed: 0 of 20
+steady 70 (3-10 s)             output noise 0   ms   ticks: p50 0.14 p90 0.21 max 0.21 | over the 1 proposed: 0 of 20
+steady 160 (3-10 s)            output noise 0   ms   ticks: p50 0.26 p90 0.38 max 0.42 | over the 1 proposed: 0 of 20
+step 120 to 90 at 5 s (9.5-14 s) output noise 0   ms   ticks: p50 0.17 p90 0.24 max 0.24 | over the 1 proposed: 0 of 20
+ramp 100 to 130 over 8 s, on it output noise 0   ms   ticks: p50 2.96 p90 3.49 max 3.51 | over the 3 proposed: 9 of 20
+ramp 100 to 130, after (11-14 s) output noise 0   ms   ticks: p50 0.18 p90 0.29 max 0.34 | over the 1 proposed: 0 of 20
+steady 120 (2.5-10 s)          output noise 1.5 ms   ticks: p50 0.74 p90 0.80 max 0.85 | over the 1 proposed: 0 of 20
+steady 70 (3-10 s)             output noise 1.5 ms   ticks: p50 0.43 p90 0.50 max 0.52 | over the 1 proposed: 0 of 20
+steady 160 (3-10 s)            output noise 1.5 ms   ticks: p50 0.97 p90 1.09 max 1.11 | over the 1 proposed: 5 of 20
+step 120 to 90 at 5 s (9.5-14 s) output noise 1.5 ms   ticks: p50 0.53 p90 0.59 max 0.62 | over the 1 proposed: 0 of 20
+ramp 100 to 130 over 8 s, on it output noise 1.5 ms   ticks: p50 3.34 p90 3.92 max 4.07 | over the 3 proposed: 17 of 20
+ramp 100 to 130, after (11-14 s) output noise 1.5 ms   ticks: p50 0.76 p90 0.87 max 0.89 | over the 1 proposed: 0 of 20

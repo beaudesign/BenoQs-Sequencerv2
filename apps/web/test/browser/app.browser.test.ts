@@ -75,6 +75,8 @@ declare global {
       sent: { 1: FakeSend[]; 2: FakeSend[] };
       inputOpen(): boolean;
       emit(data: number[] | null, timeStamp: number): void;
+      /** A sender's clock, made in the page with the page's own timer, so its pulses carry the timer's real jitter and `performance.now()` stamps. */
+      clock: { run(bpm: number): void; halt(): void; send(status: number): void };
       /** A device is plugged in or pulled out, and the browser says its ports changed. */
       plugIn(id: string, name: string): void;
       unplug(id: string): void;
@@ -104,10 +106,36 @@ function installTwoPorts(): void {
     inputs: new Map<string, { id: string; name: string; onmidimessage: ((e: FakeIn) => unknown) | null }>([[input.id, input]]),
     onstatechange: null as ((e: unknown) => unknown) | null,
   };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deliver = (status: number): void => void input.onmidimessage?.({ data: Uint8Array.of(status), timeStamp: performance.now() });
   window.__ports = {
     sent,
     inputOpen: () => input.onmidimessage !== null,
     emit: (data, timeStamp) => void input.onmidimessage?.({ data: data ? Uint8Array.from(data) : null, timeStamp }),
+    clock: {
+      // A pulse every 2500 / bpm milliseconds on average: each is timed from the start and not from the last, because a timer given a
+      // fractional interval is cut to a whole number of milliseconds (a first version asked for 90 BPM and made 92.6). What is left is the
+      // timer's own scatter of a millisecond or so, which is the point of using a real one.
+      run(bpm) {
+        clearTimeout(timer);
+        const period = 2500 / bpm;
+        const origin = performance.now();
+        let n = 0;
+        const next = (): void => {
+          n += 1;
+          timer = setTimeout(() => {
+            deliver(0xf8);
+            next();
+          }, Math.max(0, origin + n * period - performance.now()));
+        };
+        next();
+      },
+      halt() {
+        clearTimeout(timer);
+        timer = undefined;
+      },
+      send: deliver,
+    },
     plugIn(id, name) {
       access.inputs.set(id, { id, name, onmidimessage: null });
       access.onstatechange?.({});
@@ -406,7 +434,7 @@ test("E8: the browser's own accessibility tree finds each control by its manual 
 test("E8: Tab walks the strip, then the matrix in reading order, then the other controls in the layout's order", async () => {
   const page = await open();
   const seen: string[] = [];
-  const total = 5 + geometry.placements.length;
+  const total = 7 + geometry.placements.length;
   for (let i = 0; i < total; i++) {
     await page.keyboard.press("Tab");
     seen.push(await page.evaluate(() => {
@@ -414,7 +442,7 @@ test("E8: Tab walks the strip, then the matrix in reading order, then the other 
       return el?.getAttribute("data-id") ?? el?.id ?? "";
     }));
   }
-  assert.deepEqual(seen, ["start", "midi-out-1", "midi-out-2", "midi-in", "lookahead", ...tabOrder(geometry)]);
+  assert.deepEqual(seen, ["start", "midi-out-1", "midi-out-2", "midi-in", "clock-state", "clock-offset", "lookahead", ...tabOrder(geometry)]);
   await page.keyboard.press("Tab");
   const after = await page.evaluate(() => (document.activeElement as HTMLElement).tagName);
   assert.notEqual(after, "G", "the next Tab leaves the panel");
@@ -429,7 +457,7 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
       return { display: s.display, stroke: s.stroke, width: s.strokeWidth };
     });
   assert.equal((await ring("matrix.r9.c1", "outer")).display, "none");
-  for (const _stop of ["start", "out 1", "out 2", "in", "lookahead"]) await page.keyboard.press("Tab");
+  for (const _stop of ["start", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
   await page.keyboard.press("Tab"); // r9.c1
   const outer = await ring("matrix.r9.c1", "outer");
   const inner = await ring("matrix.r9.c1", "inner");
@@ -452,7 +480,7 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
 
 test("E8: the strip's own controls are labelled and the strip does not sit on the panel", async () => {
   const page = await open();
-  for (const [role, name] of [["button", "Start"], ["combobox", "MIDI Out 1"], ["combobox", "MIDI Out 2"], ["combobox", "MIDI In"], ["spinbutton", "Lookahead in milliseconds"]] as const) {
+  for (const [role, name] of [["button", "Start"], ["combobox", "MIDI Out 1"], ["combobox", "MIDI Out 2"], ["combobox", "MIDI In"], ["combobox", "MIDI Clock"], ["spinbutton", "Clock offset in milliseconds"], ["spinbutton", "Lookahead in milliseconds"]] as const) {
     assert.equal(await page.getByRole(role, { name, exact: true }).count(), 1, name);
   }
   const strip = await page.$eval("#strip", (el) => el.getBoundingClientRect().toJSON() as DOMRect);
@@ -695,5 +723,271 @@ test("M7: a device plugged in later appears in the input list, and the chosen on
   assert.equal(await page.inputValue("#midi-in"), "", "the choice went with the device");
   assert.match((await page.textContent("#midi-in-status")) ?? "", /Choose a MIDI input/);
   await page.waitForFunction(() => document.querySelector("#midi-in-count")!.textContent === "", null, { timeout: 5_000 });
+  await page.close();
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// P4d: the clock (M7, M8, and the follower and the echo as the page runs them)
+// ---------------------------------------------------------------------------------------------------------------
+// The sender is made in the page (`window.__ports.clock`): its pulses are a timer's, with a timer's real jitter, stamped with
+// `performance.now()`. That Web MIDI's own `event.timeStamp` is on that clock is an ASSUMPTION the real input has to be measured against
+// (spike S3); here the fake input hands over what the page's code expects.
+
+const STATE = "#clock-state";
+const clockLabels = ["Off", "Master Clock", "Slave Clock", "Slave Clock with MIDI Clock echo"];
+
+async function clockSaid(page: Page): Promise<string> {
+  return (await page.textContent("#clock-status")) ?? "";
+}
+
+/** Waits for the sentence to say exactly this: it is refreshed every few hundred milliseconds, so right after a message it may still say the last thing. */
+async function clockSays(page: Page, words: string, timeout = 3_000): Promise<void> {
+  try {
+    await page.waitForFunction((w) => document.querySelector("#clock-status")!.textContent === w, words, { timeout });
+  } catch {
+    assert.equal(await clockSaid(page), words);
+  }
+}
+
+/** The engine's distance from the sender's beat, in milliseconds (positive: ahead), read from the detail line, or null if it shows none. */
+async function phaseShown(page: Page): Promise<number | null> {
+  const m = /engine (\d+\.\d) ms (ahead|behind)/.exec((await page.textContent("#clock-detail")) ?? "");
+  return m ? Number(m[1]) * (m[2] === "ahead" ? 1 : -1) : null;
+}
+
+const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
+
+test("M7: the clock state is a labelled control with the manual's own words, Off first and the default, and the offset sits beside it", async () => {
+  const page = await open();
+  await page.waitForSelector(STATE, { timeout: 3_000 });
+  assert.deepEqual(await page.$eval(STATE, (el) => [...(el as HTMLSelectElement).options].map((o) => o.textContent)), clockLabels);
+  assert.equal(await page.inputValue(STATE), "off");
+  assert.equal(await page.getByRole("combobox", { name: "MIDI Clock", exact: true }).count(), 1);
+  assert.equal(await page.inputValue("#clock-offset"), "0", "no extra lead by default");
+  assert.deepEqual(await page.$eval("#clock-offset", (el) => [(el as HTMLInputElement).min, (el as HTMLInputElement).max]), ["-100", "100"]);
+  assert.match(await clockSaid(page), /^MIDI Clock is off\. The sequencer neither sends nor follows a clock\.$/);
+  assert.equal(await page.getAttribute("#clock-status", "role"), "status", "the sentence is a live region");
+  assert.equal(await page.getAttribute("#clock-detail", "role"), null, "and the numbers under it are not");
+  await page.close();
+});
+
+test("M7: the clock state is set from the keyboard, and the sentence follows the outputs that are chosen", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.focus(STATE);
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await page.inputValue(STATE), "master", "ArrowDown chose Master Clock");
+  assert.match(await clockSaid(page), /^Master Clock is on, but no MIDI output is chosen, so nothing is sent yet\.$/);
+  await page.selectOption("#midi-out-1", "out-1");
+  assert.equal(await clockSaid(page), "Master Clock: sending MIDI Clock and the transport to the chosen output.");
+  await page.selectOption("#midi-out-2", "out-2");
+  assert.equal(await clockSaid(page), "Master Clock: sending MIDI Clock and the transport to both chosen outputs.");
+  await page.selectOption("#midi-out-2", "out-1");
+  assert.equal(await clockSaid(page), "Master Clock: sending MIDI Clock and the transport to the chosen output.", "one device for both ports is one output");
+  await page.close();
+});
+
+test("M8: with no Web MIDI, with access refused, and with MIDI that cannot start, master and slave are refused in words and the control goes back to Off", async () => {
+  const cases: [string, () => void, RegExp][] = [
+    ["no Web MIDI", removeMidi, /needs Web MIDI and this browser has none, so MIDI Clock stays off\.$/],
+    ["access refused", refuseMidi, /needs MIDI access, which was refused, so MIDI Clock stays off\. Allow it for this site, then press Start again\.$/],
+    ["cannot start", failMidi, /needs Web MIDI, which could not start on this system, so MIDI Clock stays off\.$/],
+  ];
+  for (const [what, init, words] of cases) {
+    const page = await open(init);
+    await start(page);
+    for (const [value, label] of [["master", "Master Clock"], ["slave", "Slave Clock"], ["slave-echo", "Slave Clock with MIDI Clock echo"]] as const) {
+      await page.selectOption(STATE, value);
+      assert.equal(await page.inputValue(STATE), "off", `${what}: ${label} is not shown as working`);
+      const said = await clockSaid(page);
+      assert.ok(said.startsWith(`${label} `), `${what}: the sentence names what was refused: ${said}`);
+      assert.match(said, words, what);
+      assert.equal(await page.textContent("#clock-detail"), "", `${what}: no numbers for a clock that is not there`);
+    }
+    await page.click(face("matrix.r3.c4"));
+    await page.waitForSelector(`${led("matrix.r3.c4")}[data-colour="green"]`, { timeout: 5_000 });
+    await page.close();
+  }
+});
+
+test("M7: a state chosen before Start is kept, says it waits, and takes effect when MIDI has been asked for", async () => {
+  const page = await open(installTwoPorts);
+  await page.waitForSelector(STATE, { timeout: 3_000 });
+  await page.selectOption(STATE, "master");
+  assert.equal(await page.inputValue(STATE), "master", "not refused: there is nothing to judge by yet");
+  assert.equal(await clockSaid(page), "Press Start first, then Master Clock takes effect.");
+  await start(page);
+  await page.waitForFunction(() => /^Master Clock is on/.test(document.querySelector("#clock-status")!.textContent ?? ""), null, { timeout: 5_000 });
+  assert.equal(await page.inputValue(STATE), "master");
+  await page.close();
+});
+
+test("master: Start, then a Clock every 24th of a quarter note, to each device once, and Stop; and Off ends the clock and not the playing", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.selectOption("#midi-out-1", "out-1");
+  await page.selectOption("#midi-out-2", "out-2");
+  await page.selectOption(STATE, "master");
+  await page.click(face("transport.play"));
+  await page.waitForFunction(() => window.__ports.sent[1].filter((s) => s.data[0] === 0xf8).length >= 40, null, { timeout: 8_000 });
+  const heard = await page.evaluate(() => ({ one: window.__ports.sent[1].slice(), two: window.__ports.sent[2].slice() }));
+  assert.deepEqual(heard.one[0]!.data, [0xfa], "the first thing either device hears is Start");
+  assert.deepEqual(heard.two[0]!.data, [0xfa]);
+  const pulses = heard.one.filter((s) => s.data[0] === 0xf8);
+  assert.ok(pulses.every((s) => s.timestamp !== null), "every pulse is stamped ahead");
+  const gaps = pulses.slice(1).map((s, i) => s.timestamp! - pulses[i]!.timestamp!);
+  const period = 2500 / 120;
+  assert.ok(Math.abs(median(gaps) - period) < 1, `a pulse every ${median(gaps).toFixed(2)} ms at the engine's 120 BPM, which is ${period.toFixed(2)}`);
+  assert.equal(heard.two.filter((s) => s.data[0] === 0xf8).length >= pulses.length - 3, true, "the other device hears the same clock");
+  await page.selectOption(STATE, "off");
+  await page.waitForTimeout(300);
+  const stopped = await page.evaluate(() => window.__ports.sent[1].filter((s) => s.data[0] === 0xf8).length);
+  await page.waitForTimeout(500);
+  assert.equal(await page.evaluate(() => window.__ports.sent[1].filter((s) => s.data[0] === 0xf8).length), stopped, "no more pulses once it is Off");
+  assert.equal(await page.getAttribute("main", "data-transport"), "playing", "the sequencer plays on");
+  await page.selectOption(STATE, "master");
+  await page.click(face("transport.stop"));
+  await page.waitForFunction(() => window.__ports.sent[1].some((s) => s.data[0] === 0xfc), null, { timeout: 5_000 });
+  await page.close();
+});
+
+test("slave: the clock on the input sets the tempo and the transport, and the sentence says each step of it", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.selectOption("#midi-out-1", "out-1");
+  for (const c of [1, 5, 9, 13]) await page.click(face(`matrix.r0.c${c}`)); // a note every four steps: six pulses
+  await page.selectOption("#midi-in", "fake-in");
+  await page.selectOption(STATE, "slave");
+  assert.equal(await clockSaid(page), "Slave Clock: waiting for MIDI Clock from Fake input.");
+  assert.match((await page.textContent("#midi-in-status")) ?? "", /Its clock sets the tempo and the transport/);
+  await page.evaluate(() => window.__ports.clock.run(90));
+  await page.waitForFunction(() => /following Fake input\. The transport is stopped until it sends Start\./.test(document.querySelector("#clock-status")!.textContent ?? ""), null, { timeout: 5_000 });
+  assert.equal(await page.getAttribute("main", "data-transport"), "stopped", "a clock alone does not start the transport");
+  assert.deepEqual(await page.evaluate(() => window.__ports.sent[1].length), 0, "and nothing is played");
+  await page.evaluate(() => window.__ports.clock.send(0xfa));
+  await page.waitForFunction(() => document.querySelector("main")!.getAttribute("data-transport") === "playing", null, { timeout: 5_000 });
+  await clockSays(page, "Slave Clock: following Fake input, and the transport is playing.");
+  // The engine starts a lookahead and a little more behind the sender's beat and catches up, at most 8% fast, for about a second (the
+  // detail line below shows it); so the spacing is read from the notes after that, and not from the first ones, which are close together.
+  await page.waitForFunction(() => window.__ports.sent[1].filter((s) => (s.data[0]! & 0xf0) === 0x90).length >= 16, null, { timeout: 10_000 });
+  const detail = (await page.textContent("#clock-detail")) ?? "";
+  assert.match(detail, /^(89|90)\.\d BPM, \d+ pulses, jitter \d\.\d ms, engine -?\d+\.\d ms (ahead|behind)$/, detail);
+  // The engine itself is at the sender's tempo, not at its own 120: a note every six pulses, which is 166.7 ms at 90 BPM.
+  const ons = noteOns(await page.evaluate(() => window.__ports.sent[1].slice())).filter((s) => s.timestamp !== null).slice(8);
+  const spacing = median(ons.slice(1).map((s, i) => s.timestamp! - ons[i]!.timestamp!));
+  assert.ok(Math.abs(spacing - 15_000 / 90) < 3, `a note every ${spacing.toFixed(1)} ms; at 90 BPM it is ${(15_000 / 90).toFixed(1)}`);
+  await page.evaluate(() => window.__ports.clock.send(0xfc));
+  await page.waitForFunction(() => document.querySelector("main")!.getAttribute("data-transport") === "stopped", null, { timeout: 5_000 });
+  await clockSays(page, "Slave Clock: following Fake input. The transport is stopped until it sends Start.");
+  await page.close();
+});
+
+test("slave: when the clock stops the engine plays on at the last tempo and the sentence says so; when it comes back it is followed again", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.selectOption("#midi-in", "fake-in");
+  await page.selectOption(STATE, "slave");
+  await page.evaluate(() => {
+    window.__ports.clock.run(120);
+    window.__ports.clock.send(0xfa);
+  });
+  await page.waitForFunction(() => document.querySelector("main")!.getAttribute("data-transport") === "playing", null, { timeout: 5_000 });
+  await page.waitForFunction(() => /following Fake input, and the transport is playing\./.test(document.querySelector("#clock-status")!.textContent ?? ""), null, { timeout: 5_000 });
+  await page.evaluate(() => window.__ports.clock.halt());
+  await page.waitForFunction(() => /the clock from Fake input stopped\. The sequencer plays on at the last tempo\.$/.test(document.querySelector("#clock-status")!.textContent ?? ""), null, { timeout: 5_000 });
+  assert.equal(await page.getAttribute("main", "data-transport"), "playing", "the engine was not stopped by the clock stopping");
+  await page.evaluate(() => window.__ports.clock.run(120));
+  await page.waitForFunction(() => /following Fake input, and the transport is playing\./.test(document.querySelector("#clock-status")!.textContent ?? ""), null, { timeout: 8_000 });
+  await page.close();
+});
+
+test("echo: Slave Clock with MIDI Clock echo passes the clock, Start and Stop to the outputs at once, and plain Slave and Off pass nothing", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.selectOption("#midi-out-1", "out-1");
+  await page.selectOption("#midi-out-2", "out-2");
+  await page.selectOption("#midi-in", "fake-in");
+  const realtime = (port: 1 | 2): Promise<number[][]> => page.evaluate((p) => window.__ports.sent[p].filter((s) => s.data[0]! >= 0xf8).map((s) => s.data), port);
+  await page.selectOption(STATE, "slave");
+  await page.evaluate(() => window.__ports.clock.run(120));
+  await page.waitForTimeout(400);
+  assert.deepEqual(await realtime(1), [], "plain Slave passes nothing on");
+  assert.deepEqual(await realtime(2), [], "on either port");
+  await page.evaluate(() => window.__ports.clock.halt());
+  await page.selectOption(STATE, "slave-echo");
+  assert.match(await clockSaid(page), /Passing the clock on to both chosen outputs\. Do not send the echo to the port the clock comes from\.$/);
+  await page.evaluate(() => {
+    window.__ports.clock.run(120);
+    window.__ports.clock.send(0xfa);
+  });
+  await page.waitForFunction(() => window.__ports.sent[1].filter((s) => s.data[0] === 0xf8).length >= 20, null, { timeout: 5_000 });
+  await page.evaluate(() => {
+    window.__ports.clock.send(0xfc);
+    window.__ports.clock.halt(); // a sender that stops; one that keeps the clock running after Stop would put pulses after it
+  });
+  await page.waitForTimeout(100);
+  const heard = await page.evaluate(() => ({ one: window.__ports.sent[1].slice(), two: window.__ports.sent[2].slice() }));
+  for (const [name, list] of [["port 1's device", heard.one], ["port 2's device", heard.two]] as const) {
+    assert.ok(list.every((s) => s.timestamp === null), `${name}: each is sent at once, with no timestamp and no lookahead`);
+    assert.deepEqual(list[0]!.data, [0xfa], `${name}: Start first`);
+    assert.deepEqual(list[list.length - 1]!.data, [0xfc], `${name}: Stop last`);
+    assert.ok(list.filter((s) => s.data[0] === 0xf8).length >= 20, `${name}: and the clock between`);
+  }
+  assert.ok(Math.abs(heard.one.length - heard.two.length) <= 1, "both devices hear the same");
+  await page.selectOption(STATE, "off");
+  const before = await page.evaluate(() => window.__ports.sent[1].length);
+  await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => window.__ports.sent[1].length), before, "Off passes nothing on");
+  await page.close();
+});
+
+test("the lead: the lookahead and the offset move where the engine puts itself against the sender's beat, and it settles there", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.selectOption("#midi-in", "fake-in");
+  await page.selectOption(STATE, "slave");
+  await page.evaluate(() => {
+    window.__ports.clock.run(120);
+    window.__ports.clock.send(0xfa);
+  });
+  const settled = async (): Promise<void> => {
+    await page.waitForFunction(() => {
+      const m = /engine (\d+\.\d) ms (ahead|behind)/.exec(document.querySelector("#clock-detail")!.textContent ?? "");
+      return m !== null && Number(m[1]) < 8;
+    }, null, { timeout: 12_000 });
+  };
+  await settled();
+  // 50 ms more lookahead: the engine has to be 50 ms further ahead of the sender's grid, so for a moment it is behind where it should be.
+  await page.fill("#lookahead", "80");
+  await page.press("#lookahead", "Tab");
+  await page.waitForFunction(() => {
+    const m = /engine (\d+\.\d) ms behind/.exec(document.querySelector("#clock-detail")!.textContent ?? "");
+    return m !== null && Number(m[1]) >= 15;
+  }, null, { timeout: 3_000 });
+  await settled();
+  // And an offset of minus 60 takes 60 ms of the lead away: the engine is ahead of where it should be, then back.
+  await page.fill("#clock-offset", "-60");
+  await page.press("#clock-offset", "Tab");
+  await page.waitForFunction(() => {
+    const m = /engine (\d+\.\d) ms ahead/.exec(document.querySelector("#clock-detail")!.textContent ?? "");
+    return m !== null && Number(m[1]) >= 15;
+  }, null, { timeout: 3_000 });
+  await settled();
+  assert.equal(await page.getAttribute("main", "data-transport"), "playing");
+  await page.close();
+});
+
+test("choosing another input starts the follower again: nothing of the last sender's tempo is kept", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.evaluate(() => window.__ports.plugIn("second-in", "Second input"));
+  await page.selectOption("#midi-in", "fake-in");
+  await page.selectOption(STATE, "slave");
+  await page.evaluate(() => window.__ports.clock.run(100));
+  await page.waitForFunction(() => /^(99|100)\.\d BPM/.test(document.querySelector("#clock-detail")!.textContent ?? ""), null, { timeout: 5_000 });
+  await page.evaluate(() => window.__ports.clock.halt());
+  await page.selectOption("#midi-in", "second-in");
+  assert.equal(await clockSaid(page), "Slave Clock: waiting for MIDI Clock from Second input.");
+  assert.equal(await page.textContent("#clock-detail"), "", "no tempo until this sender has made one");
   await page.close();
 });

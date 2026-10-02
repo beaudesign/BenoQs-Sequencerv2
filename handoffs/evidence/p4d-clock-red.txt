@@ -1,0 +1,51 @@
+# RED RUNS for slice C of P4d (the clock state, the echo, and the page wiring). Run on the build container; nothing here touched a real port.
+# Each was run against the code as it was BEFORE the thing it tests existed, and the tests are the ones now in the tree.
+#
+# 1. The echo (SPEC-0002 M7): test/midi-out.test.ts against src/midi-out.ts from the previous commit (no passThrough).
+#    36 tests in the file; the 6 echo tests (numbers 47 to 52 in the joint run below) fail; the 30 that were there stay green.
+# 2. The clock state (M7, M8): test/clock-state.test.ts against a STUB (every export declared, nothing decided).
+#    16 tests; 15 fail. The one that passes against the stub is "the detail line is empty for off and master, and for a refusal"
+#    (number 14): a stub that returns nothing satisfies it. It passes by construction against a stub and is kept because it pins what
+#    the real one must not start doing; the mutation run (p4d-mutation-run.txt) is where it is shown to be able to fail.
+#
+# Joint run, node --test test/midi-out.test.ts test/clock-state.test.ts: 52 tests, 31 pass, 21 fail. The failing ones:
+not ok 1 - four states, off first, with the manual's own words as labels
+not ok 2 - off: nothing is sent and nothing is followed, whatever the world is
+not ok 3 - master: the engine is the clock, and the sentence says where it goes
+not ok 4 - master with no output chosen is accepted, and says that nothing is sent yet
+not ok 5 - slave follows the clock on the chosen input, and does not send one
+not ok 6 - slave with no input chosen is accepted and says to choose one: choosing it later starts the following
+not ok 7 - slave with echo follows and passes the clock on; with no output it follows and says the echo has nowhere to go
+not ok 8 - M8: master and slave are refused, with a sentence, when MIDI is not there to do it, and the state falls back to off
+not ok 9 - before Start, and while MIDI is being asked for, there is nothing to send or follow with: the choice is kept as pending, with a sentence, and not refused
+not ok 10 - the sentences are sentences: sentence case, one full stop at the end, no colour words, and the manual's own names
+not ok 11 - slave: the status line says what the follower is doing, in words that change only when the follower's state does
+not ok 12 - slave with echo says it is passing the clock on, and not to send it back to where it comes from
+not ok 13 - the detail line carries the numbers: tempo, pulses, jitter, and how far ahead or behind the engine is
+not ok 15 - without a follower status (off, master, a refusal, pending) the status line is the decision's own sentence
+not ok 16 - a name with odd characters is put in the sentence as text and never as markup
+not ok 47 - echo: a real-time message passed through goes to every chosen device at once, with no timestamp, whatever the lookahead
+not ok 48 - echo: Start, Continue and Stop pass the same way, and one device chosen for both ports hears each once
+not ok 49 - echo: what is not Clock, Start, Continue or Stop is never passed on, and is counted as invalid
+not ok 50 - echo: with no device chosen it is counted as unrouted and nothing is sent
+not ok 51 - echo: a pass-through does not move the ordering rule for the notes queued on the same device, and is not reported to onSend
+not ok 52 - echo: choosing devices changes who hears the next pulse, as it does for the engine's own clock
+#
+# 3. The page (M7, M8, and the follower and the echo as the page runs them): test/browser/app.browser.test.ts in Chromium, against the
+#    page, strip, input and settings files from the previous commit (no clock control, no follower, no echo). 41 tests in the file:
+#    28 pass, 13 fail. Three of the failures are tests that existed and that the new controls change on purpose (the Tab order has two
+#    more stops, the focus-ring test Tabs through them, the strip's labels list two more controls); ten are new.
+  not ok 16 - E8: Tab walks the strip, then the matrix in reading order, then the other controls in the layout's order
+  not ok 17 - E8: the focus ring is drawn from the focus tokens, and appears on keyboard focus and not on a pointer press
+  not ok 18 - E8: the strip's own controls are labelled and the strip does not sit on the panel
+  not ok 32 - M7: the clock state is a labelled control with the manual's own words, Off first and the default, and the offset sits beside it
+  not ok 33 - M7: the clock state is set from the keyboard, and the sentence follows the outputs that are chosen
+  not ok 34 - M8: with no Web MIDI, with access refused, and with MIDI that cannot start, master and slave are refused in words and the control goes back to Off
+  not ok 35 - M7: a state chosen before Start is kept, says it waits, and takes effect when MIDI has been asked for
+  not ok 36 - master: Start, then a Clock every 24th of a quarter note, to each device once, and Stop; and Off ends the clock and not the playing
+  not ok 37 - slave: the clock on the input sets the tempo and the transport, and the sentence says each step of it
+  not ok 38 - slave: when the clock stops the engine plays on at the last tempo and the sentence says so; when it comes back it is followed again
+  not ok 39 - echo: Slave Clock with MIDI Clock echo passes the clock, Start and Stop to the outputs at once, and plain Slave and Off pass nothing
+  not ok 40 - the lead: the lookahead and the offset move where the engine puts itself against the sender's beat, and it settles there
+  not ok 41 - choosing another input starts the follower again: nothing of the last sender's tempo is kept
+# tests 41, pass 28, fail 13

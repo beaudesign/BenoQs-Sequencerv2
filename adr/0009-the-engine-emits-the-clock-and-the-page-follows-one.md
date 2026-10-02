@@ -198,3 +198,64 @@ it rises by the clock's tests (`harness/baseline.txt`, `removed test ... ADR-000
 **M3 is still `pending` on D0** (`a_step_is_a_whole_number_of_pulses` is an ignored test that names it). Nothing here claims a pattern is
 in time with a clock; with item 3 it is now two reasons and not one.
 
+
+### Amendment 2 (2026-10-02, Conductor, found in P4d): what the follower, the echo and the clock state do, as built
+
+Decisions 5 and 6 were written before the follower existed. P4d built it red first (the estimator's fixtures, the follower's fixtures, the
+clock state's and the echo's, each failing against a stub before the code), measured it, and ran mutants against it
+(`handoffs/evidence/p4d-*.txt`). Six places differ from the text above, and the owner is asked to accept or change each. None touches a
+contract, a golden hash or a ratchet entry.
+
+1. **The actuator is a first-order loop, not a second-order one.** Decision 5 said "a small trim proportional to the phase error (a
+   second-order loop)". It is built as the sender's tempo times `1 + trim`, with `trim = clamp(-phase / 250 ms, ±8%)`: the trim is
+   proportional to the error and there is no integral term, so it is first order. A second-order loop was not needed to meet M4 (below), and an integral
+   term would add a wind-up to a loop that already has a limit; if S3 shows a constant error that a first-order loop cannot take out, it is the next step.
+   The numbers (250 ms, 8%) are the author's and the owner's to change.
+2. **The estimator is not a pure function; it keeps state.** Decision 5 said "a pure function takes the timestamp of each incoming pulse". It is a
+   class (`apps/web/src/clock-estimator.ts`): a two-state Kalman filter (phase and period) with process noise that adapts when the errors lean one way,
+   a seeding of four pulses and a locking of 24 in which the count is not allowed to skip, a gate on the raw spacing of each pulse, a record of the
+   anomalies (pulses turned away, gaps) that decides when to start again, and four states (`idle`, `locking`, `locked`, `lost`). It is pure in the
+   sense that matters, deterministic and without a clock of its own; and it is exercised on simulated senders only. The reason it is more than a window of
+   averages is in `p4d-estimator-measured.txt`: through a step in tempo the pulse count went wrong in 42 of 100 runs until the anomaly record was added.
+3. **The lead and its sign.** A positive offset makes the notes land earlier: the engine is that much further ahead of the sender's grid than the lookahead
+   alone asks. That is the opposite sign to Live's "MIDI Clock Sync Delay" (which delays what Live sends), and ABLETON.md (P4e) says so beside the
+   two preferences. The follower's lookahead must be the scheduler's: the page keeps them equal (`applyLookahead`), and a test shows what happens when they are not.
+4. **Start, Continue and Stop, and what the follower does not follow.** Start and Continue act at the next pulse; Stop acts at once; a pulse alone never starts
+   the transport; with no pulse for 500 ms the status says so and nothing more is sent. At the first pulse after a Start the engine's whole-pulse position is
+   taken as the sender's pulse count, so a downbeat is on the right pulse and not a whole pulse off; the engine starts about a lookahead late (more, in a
+   browser: about 53 ms at the first position report) and runs up to 8% fast for about a second to catch up, so **the first second after a Start is not on the
+   beat and the first bar is slightly compressed**. Song Position (`0xF2`) is decoded and **ignored**: a Continue from the middle of a song resumes where
+   the sequencer stopped, not where the sender is. This is a limit of the design, not of the tests, and ABLETON.md says it.
+5. **The echo does not wait for the lookahead.** Decision 6 said the echo is "stamped like the notes and with the same ordering rule". It is sent at once, with no timestamp,
+   to every distinct chosen device (`MidiScheduler.passThrough`), counted with the other real-time sends and not reported to `onSend`. A pulse that has
+   arrived from the sender is already as late as the page will ever be; stamping it ahead by a lookahead would delay the echo by that much against the
+   sender's grid, which is the opposite of what an echo is for. The ordering rule is not applied to it, so a Stop passed on at once can reach a device
+   before notes the engine had already stamped a few milliseconds ahead: a few notes after a Stop is the cost, and the engine's own flush follows. Echo into a
+   loop (to the port the clock comes from) is **the user's to avoid**: no code can see it through a virtual port, and the sentence says so every time it is shown.
+6. **The clock state and what refuses it.** Four states, off first and the default (the manual's), with the manual's own words as labels. Master and slave are
+   exclusive. A choice that cannot work is refused with a sentence and the control goes back to Off (M8); a choice made before Start, or while MIDI access is
+   awaited, is kept, says it waits, and takes effect when MIDI has been asked for (M7). The status sentence is a live region that changes only when the state
+   does; the numbers (tempo, pulses, jitter, how far ahead or behind the engine is) are in a second line that is not live.
+
+**Defaults taken, for the owner to overturn.** (a) While slaved, the local Play key still sends the engine's Play and is not gated, so a person can start the
+engine against a stopped sender; the follower then believes the transport is stopped and a Stop from the sender still stops it. (b) The tempo knob is
+overwritten as soon as the sender's tempo arrives. Neither is hidden; both are things a manual-faithful workflow, which the Panelwright owns, may want otherwise.
+
+**Thresholds, restated.** M4 says "a tempo within 0.1 BPM and a phase error within one tick out, after 2 seconds" at 120 BPM with up to 3 ms of jitter. Met, with the real
+engine, worklet and scheduler and with the output's own noise off: the worst heard error on seeds the tests do not use is 0.38 ticks from 2 s (0.53 at 160 BPM),
+0.24 after a step in tempo, 0.34 after a ramp, and **3.51 on a ramp of 3.75 BPM a second against a bound of 4**: the loop does not have much room there.
+**With the output's own noise on (the page's idea of the audio clock wrong by up to 1.5 ms) a tick is not reliably held at 160 BPM** (worst 1.11 of 1.9 ms), and the
+test for that is not written, because its bound would not hold. All of these bounds are the author's and the owner's to change; none was loosened (the first
+drafts were tightened). `p4d-follower-measured.txt` holds the tables.
+
+**Not established, and the owner should not read it as established.**
+- Everything above was measured against a **made-up sender** and, in a browser, a timer-driven one. Whether a real port's `event.timeStamp` is on `performance.now()`'s
+  clock is **assumed** (S3 measures it). Whether the audio-to-page map's error is the same for the position the follower reads and the events the scheduler
+  stamps (they share one map, so it may largely cancel) is **unknown**; the two noises are drawn independently in the simulation.
+- **A finding about Chromium that touches every clock number here:** at the start of an AudioContext, `currentFrame` jumps 896 or 1024 frames between the first and the
+  second `process()` call (10 of 12 fresh contexts, headless; `p4d-startup-frame-jump.txt`), and the engine renders only the calls it gets. A Play within about 20 ms of that
+  has a hole in its first pulse. The app does not play that early, and the P4c test that measures pulse spacing was flaky for exactly this reason until it waited. What a
+  real device and a hidden tab do is for S1 and S3; and if `process()` can skip mid-session the engine falls behind the audio timeline for good, which master mode would
+  not correct and slave mode would. That is a question for the Metronome and the owner, not decided here.
+- The 11-tick lag of the engine's notes behind its pulses (amendment 1, item 3) is **unchanged**, and the follower lands the *pulses* on the sender's grid: a pattern's notes
+  sit 11 ticks after it, at any tempo. With D0 (the tick length) still open, **M3 stays `pending`** and nothing here claims a pattern is in time with a clock.

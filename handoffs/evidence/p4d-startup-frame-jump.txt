@@ -1,0 +1,17 @@
+# MEASURED in headless Chromium on the build container (no sound device). A real device, and Chrome with the desktop's audio stack, are for spike S1 and S3 to say.
+# Produced by: node apps/web/scripts/measure-startup-frames.ts
+# What it means: at the start of a context the worklet is called once, then the frame counter jumps by 8 quanta before the second call. The engine renders only the calls it gets, so a Play that lands in that window has about 20 ms of audio timeline with nothing in it: the first pulse is that much early against the second (seen as a first gap of 32, 41 or 53 ms where 20.8 was expected, in 2 to 4 of every 25-40 runs of the P4c clock test, at P4c's own commit as well as here). The app does not play that early; the tests that measure pulse spacing wait for the panel to have been sent eight times (host.browser.test.ts, pastStartup).
+# currentFrame step between process() calls, first 12 calls of 12 fresh contexts (128 is the render quantum)
+run  0  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  1  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  2  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  3  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  4  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  5  first call at frame    0, then steps: 128 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  6  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  7  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  8  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run  9  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run 10  first call at frame    0, then steps: 1024 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+run 11  first call at frame    0, then steps: 128 128 128 128 128 128 128 128 128 128 128   (44100 Hz)
+# steps that were not 128: 1024 (10 in 12 runs)

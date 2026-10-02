@@ -46,18 +46,23 @@ class OctowebProcessor extends AudioWorkletProcessor {
       }
       // A Stop, from the transport message or from a panel key, shows in the panel's status word. The
       // engine's flush Note Offs come out of the next render and are scheduled like any other event.
-      this.postPanel();
+      this.postPanel(currentFrame);
     } catch (e) {
       this.send({ type: "error", message: String(e) });
     }
   }
 
-  private postPanel(): void {
+  /**
+   * `positionFrame` is the audio context's frame at which the engine's tick position holds: it is where the last render ended. For a
+   * message handled between blocks that is the next block's first frame, `currentFrame`; for the panel message made at the end of
+   * `process()` it is one block on.
+   */
+  private postPanel(positionFrame: number): void {
     const changed = this.engine.refreshLeds();
     const leds = changed ? this.engine.ledBytes().slice().buffer : null;
     const playheads = this.engine.playheadBytes().slice().buffer;
     this.send(
-      { type: "panel", frame: currentFrame, leds, playheads, status: this.engine.status(), droppedIntents: this.engine.droppedIntents() },
+      { type: "panel", frame: currentFrame, leds, playheads, status: this.engine.status(), droppedIntents: this.engine.droppedIntents(), position: this.engine.tickPosition(), positionFrame },
       leds ? [leds, playheads] : [playheads],
     );
   }
@@ -69,7 +74,7 @@ class OctowebProcessor extends AudioWorkletProcessor {
         const bytes = this.engine.eventBytes(n).slice().buffer;
         this.send({ type: "events", frame: currentFrame, bytes }, [bytes]);
       }
-      if (++this.blocks % PANEL_EVERY_BLOCKS === 0) this.postPanel();
+      if (++this.blocks % PANEL_EVERY_BLOCKS === 0) this.postPanel(currentFrame + RENDER_FRAMES);
     } catch (e) {
       this.send({ type: "error", message: String(e) });
     }

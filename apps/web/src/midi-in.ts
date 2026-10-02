@@ -24,6 +24,8 @@ export type InMessage =
 export type DecodedKind = Exclude<InMessage["kind"], "ignored" | "malformed">;
 
 const REALTIME: Readonly<Record<number, RealtimeName>> = { 0xf8: "clock", 0xfa: "start", 0xfb: "continue", 0xfc: "stop" };
+/** The status byte of each, for passing one on (the echo). */
+export const REALTIME_STATUS: Readonly<Record<RealtimeName, number>> = { clock: 0xf8, start: 0xfa, continue: 0xfb, stop: 0xfc };
 const MALFORMED: InMessage = { kind: "malformed" };
 
 /** The message in `data`, or `malformed` or `ignored` and never a throw. */
@@ -145,9 +147,13 @@ export class InputPath {
   }
 }
 
-/** The sentence for the input line: where it is listening, or `fallback` (the browser's own sentence) when no input is chosen. */
-export function describeInput(name: string | null, fallback: string): string {
-  return name === null ? fallback : `Listening to ${name}. Nothing uses its messages yet.`;
+/**
+ * The sentence for the input line: where it is listening, or `fallback` (the browser's own sentence) when no input is chosen.
+ * `clock` says that the chosen clock state follows this input, so its Start, Stop and clock messages are used (everything else is not yet).
+ */
+export function describeInput(name: string | null, fallback: string, clock = false): string {
+  if (name === null) return fallback;
+  return clock ? `Listening to ${name}. Its clock sets the tempo and the transport; its notes are not used yet.` : `Listening to ${name}. Nothing uses its messages yet.`;
 }
 
 /** What the chosen input has sent, in a sentence. Words are sentence case and the counts are the ones `InputStats` keeps. */

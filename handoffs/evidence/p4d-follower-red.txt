@@ -1,0 +1,71 @@
+# P4d follower red capture: the fixtures written before the follower, run against a stub (src/follower.ts does nothing; the worklet posts position 0)
+# command: node --test test/follower.test.ts test/worklet.test.ts test/abi.test.ts  (tsc clean; the stubs have the real shapes)
+# Passing against the stub by construction (nothing is sent when nothing should be, the stub is deterministic, the constant is already correct) and named so nobody takes them for evidence: 'a clock alone never starts the transport', 'a change of less than the minimum is not sent', 'a tempo the engine would refuse is never sent', 'a tempo is not changed while the clock is lost', 'bad input is ignored', 'the same run twice gives the same calls', 'TICKS_PER_CLOCK is the engine's own'. The mutation run (p4d-mutation-run.txt) is what shows they can fail.
+✔ set_clock before init is code 1, and tick_position before init is 0
+✔ tick_position: 0 before play, then the audio's place on the tick grid: 125 samples a tick at 120 BPM and 48 kHz
+✔ TICKS_PER_CLOCK is the engine's own: the follower reads the engine's position in ticks and a pulse in the same ticks
+✔ M5: a clock alone never starts the transport
+✖ M5: 0xFA starts the transport at the next pulse, not at the message
+✖ M5: 0xFB continues the transport the same way, and 0xFC stops it at once
+✖ M5: a Stop before the pulse that would have started the transport cancels the start
+✖ a Start while the transport is already running does not start it again
+✖ a Stop while stopped is still passed on: the engine's Stop clears hanging notes whatever state it was in
+✖ feed routes the four real-time names to the four handlers
+✖ the tempo follows the estimate, and nothing is set before there is an estimate
+✖ the tempo follows while the transport is stopped, so the first bar starts at the right tempo
+✔ a change of less than the minimum is not sent: a steady clock does not flood the engine with the same tempo
+✔ a tempo the engine would refuse (above 999 BPM) is never sent; below 5 BPM a pulse is more than 500 ms apart and never locks at all
+✔ a tempo is not changed while the clock is lost: the engine plays on at the last one
+✖ M5: with no clock for 500 ms the status says so, and it keeps the last tempo
+✖ the status carries the tempo, the pulses heard and the jitter, for the settings view's sentence
+✔ bad input is ignored: a position or a message that is not a number changes nothing
+✖ M4: steady 120 BPM from a Start: the engine's notes land within a tick and a half of the sender's beat from two seconds on
+✖ M4: the engine starts a lookahead late and catches up: within 2 ticks by 1.5 s, and never worse than the lookahead and a message
+✖ M5: the engine starts at the first pulse after the Start, and plays at the sender's tempo from the first bar
+✖ M4: an engine that starts at the wrong tempo (120) under a sender at 160 or 70 is brought to it and held
+✖ the lead: a larger lookahead and an offset move the engine so the sender's beat is still met (60 ms lookahead, +10 ms offset)
+✖ the lead can be changed while it runs: a new offset is taken within two and a half seconds
+✖ M4: a slow ramp (100 to 120 BPM over 20 s) is followed
+✖ M4: a fast ramp (100 to 140 BPM over 8 s) is followed, and the engine settles after it
+✖ M4: a step in tempo (120 to 90 BPM) is taken: back within a tick and a half three seconds after
+✖ M4: missing pulses and doubled pulses do not move the engine off the beat
+✖ M5: the clock stalls for 1.2 s: the engine plays on at the last tempo, nothing is sent, and the beat is found again when it returns
+✖ M5: a Stop and a Continue (the sender goes on sending its clock): the engine stops, resumes, and is on the beat within two seconds
+✖ the tempo the follower sends stays within the trim of the sender's tempo, and never outside what the engine accepts
+✔ the same run twice gives the same calls, to the last bit
+✖ the panel message carries the engine's tick position and the frame it holds at: the end of the block, or the frame of a message between blocks
+✖ the position is 0 and stands still while the transport is stopped, and the frame goes on
+✖ the position runs at the tick rate while playing: 384 ticks a second at 120 BPM, to within half a percent
+✖ a Stop leaves the position where it was, and Play goes on from there
+✖ routeFromWorklet hands the position and its frame to the page
+ℹ tests 86
+ℹ pass 58
+ℹ fail 28
+✖ M5: 0xFA starts the transport at the next pulse, not at the message
+✖ M5: 0xFB continues the transport the same way, and 0xFC stops it at once
+✖ M5: a Stop before the pulse that would have started the transport cancels the start
+✖ a Start while the transport is already running does not start it again
+✖ a Stop while stopped is still passed on: the engine's Stop clears hanging notes whatever state it was in
+✖ feed routes the four real-time names to the four handlers
+✖ the tempo follows the estimate, and nothing is set before there is an estimate
+✖ the tempo follows while the transport is stopped, so the first bar starts at the right tempo
+✖ M5: with no clock for 500 ms the status says so, and it keeps the last tempo
+✖ the status carries the tempo, the pulses heard and the jitter, for the settings view's sentence
+✖ M4: steady 120 BPM from a Start: the engine's notes land within a tick and a half of the sender's beat from two seconds on
+✖ M4: the engine starts a lookahead late and catches up: within 2 ticks by 1.5 s, and never worse than the lookahead and a message
+✖ M5: the engine starts at the first pulse after the Start, and plays at the sender's tempo from the first bar
+✖ M4: an engine that starts at the wrong tempo (120) under a sender at 160 or 70 is brought to it and held
+✖ the lead: a larger lookahead and an offset move the engine so the sender's beat is still met (60 ms lookahead, +10 ms offset)
+✖ the lead can be changed while it runs: a new offset is taken within two and a half seconds
+✖ M4: a slow ramp (100 to 120 BPM over 20 s) is followed
+✖ M4: a fast ramp (100 to 140 BPM over 8 s) is followed, and the engine settles after it
+✖ M4: a step in tempo (120 to 90 BPM) is taken: back within a tick and a half three seconds after
+✖ M4: missing pulses and doubled pulses do not move the engine off the beat
+✖ M5: the clock stalls for 1.2 s: the engine plays on at the last tempo, nothing is sent, and the beat is found again when it returns
+✖ M5: a Stop and a Continue (the sender goes on sending its clock): the engine stops, resumes, and is on the beat within two seconds
+✖ the tempo the follower sends stays within the trim of the sender's tempo, and never outside what the engine accepts
+✖ the panel message carries the engine's tick position and the frame it holds at: the end of the block, or the frame of a message between blocks
+✖ the position is 0 and stands still while the transport is stopped, and the frame goes on
+✖ the position runs at the tick rate while playing: 384 ticks a second at 120 BPM, to within half a percent
+✖ a Stop leaves the position where it was, and Play goes on from there
+✖ routeFromWorklet hands the position and its frame to the page

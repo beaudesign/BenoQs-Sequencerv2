@@ -19,6 +19,9 @@ export function decodeLed(byte: number): { colour: LedColour; phase: LedPhase } 
   return { colour: LED_COLOURS[byte & 0b11] ?? "off", phase: LED_PHASES[(byte >> 2) & 0b11] ?? "steady" };
 }
 
+/** The attribute numbers `octoweb_set_track` takes: the engine's own order (ABI.md). Only the one the page writes is named. */
+export const TRACK_ATTR = { midiChannel: 8 } as const;
+
 export const KIND_DOWN = 0;
 export const KIND_UP = 1;
 export const KIND_TURN = 2;
@@ -33,6 +36,7 @@ export interface Exports {
   octoweb_input(nowMs: number, kind: number, control: number, detents: number): number;
   octoweb_transport(play: number): number;
   octoweb_set_tempo(bpm: number): number;
+  octoweb_set_track(track: number, attr: number, value: number): number;
   octoweb_render(frames: number): number;
   octoweb_events(): number;
   octoweb_refresh_leds(): number;
@@ -139,6 +143,11 @@ export class Octoweb {
 
   setTempo(bpm: number): void {
     this.check(this.x.octoweb_set_tempo(bpm), "set tempo");
+  }
+
+  /** One attribute of one track (`TRACK_ATTR`). A track or attribute that does not exist is code 5. */
+  setTrack(track: number, attr: number, value: number): void {
+    this.check(this.x.octoweb_set_track(track, attr, value), "set track");
   }
 
   /** Renders a block and returns the number of events now in the events buffer. */

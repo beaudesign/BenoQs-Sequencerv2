@@ -96,10 +96,15 @@ export class MidiScheduler {
     this.lookaheadMs = lookaheadMs;
   }
 
+  /**
+   * Chooses the device a port sends to. Rule 1 holds per device, so only a device that no port uses any more forgets its last
+   * timestamp: choosing a device for port 2 does not unseat what port 1's device has been promised.
+   */
   setOutput(port: number, output: MidiOutputLike | null): void {
+    const replaced = this.outputs.get(port);
     if (output) this.outputs.set(port, output);
     else this.outputs.delete(port);
-    this.latest.clear();
+    if (replaced && replaced !== output && ![...this.outputs.values()].includes(replaced)) this.latest.delete(replaced);
   }
 
   /** `frame` is the audio context's frame at the start of the block the events came from. */

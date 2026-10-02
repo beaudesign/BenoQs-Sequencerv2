@@ -25,6 +25,7 @@ is malformed, 4 the layout is not one the controller accepts, 5 a number out of 
 | `octoweb_input(now_ms, kind, control, detents) -> code` | One panel input. `kind` 0 is a press, 1 a release, 2 an encoder turn of `detents`. `control` is a control number. A number the controller does not use is ignored and is not an error. `now_ms` is the page's time in milliseconds |
 | `octoweb_transport(play) -> code` | Starts (`play` nonzero) or stops the transport. The page is the host for this until the controller builds the transport workflow (ADR-0008 decision 4) |
 | `octoweb_set_tempo(bpm) -> code` | The tempo the next renders use. Refused outside 1 to 999 and for non-finite values |
+| `octoweb_set_track(track, attr, value) -> code` | Writes one attribute of one track through the engine's own `SetTrack`. `track` is 0 to 9. `attr` is the attribute's place in the engine's list: 0 Pitch, 1 Velocity, 2 LengthFactor, 3 StartFactor, 4 DirectionRaw, 5 Rotation, 6 Amount, 7 Groove, **8 MidiChannel**, 9 Muted, 10 Soloed, 11 Paused, 12 RecordArmed, 13 IsFeeder, 14 IsListener. A track or attribute that does not exist is code 5 and changes nothing. The value is the engine's to clamp: a `MidiChannel` of 1 to 16 is port 1 and 17 to 32 is port 2. Added in P4b; the ABI number stays 1 (a page built for 1 never calls it) |
 | `octoweb_render(frames) -> count` | Renders `frames` frames (at most 4096; the page asks for 128) and returns how many events are now in the events buffer. Events carry sample offsets inside this block |
 | `octoweb_events() -> ptr` | The events buffer: 256 records of 12 bytes, valid for the first `count` of the last render. Null before `octoweb_init` |
 | `octoweb_refresh_leds() -> u32` | Recomputes the LED frame from the controller and the engine's page. Returns 1 if any LED changed since the last call, else 0 |
@@ -61,5 +62,5 @@ phase in the next two (0 steady, 1 flash, 2 shine). Red, green and orange are ro
 
 At start, in the worklet constructor: `octoweb_scratch`, write the layout, `octoweb_init`. Then, on
 each 128-frame quantum: `octoweb_render(128)` and read the events. On each message from the page:
-`octoweb_input`, `octoweb_transport` or `octoweb_set_tempo`. About every 16 ms:
+`octoweb_input`, `octoweb_transport`, `octoweb_set_tempo` or `octoweb_set_track`. About every 16 ms:
 `octoweb_refresh_leds` and, if it returned 1, send the LED frame to the page.

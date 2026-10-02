@@ -1,0 +1,53 @@
+# P4b deliberate breakages: each is one edit to the code, the relevant tests are run, and the edit is undone.
+# 'caught' means a test failed. Run from the P4b tree, 2026-10-02.
+# T14 survived the first run (the port boundary at channel 16 was not asserted); a boundary test was added and it is caught in this run.
+
+## Rust (octoweb ABI, source rules)
+R1   caught   track 10 accepted
+R2   caught   attribute above 14 accepted
+R3   caught   set_track writes nothing
+R4   caught   a bad track gives code 0
+R5   caught   arguments swapped in the export
+R6   caught   ABI.md gives the wrong number (checked by the Node test)
+R7   caught   export removed while ABI.md lists it
+R8   caught   src/route.ts reads the address
+R9   caught   the page stops reading the address (the rule says it must be the one reader)
+
+## TypeScript, Node
+T1   caught   Note On with velocity 0 stays a Note On
+T2   caught   pitch bend bytes swapped
+T3   caught   program change read as 3 bytes
+T4   caught   realtime length not checked
+T5   caught   data byte above 127 accepted
+T6   caught   the old input is not let go
+T7   caught   counts not restarted on a new input
+T8   caught   equal timestamps counted as backwards
+T9   caught   consumer called before counting
+T10  caught   ignored counted as decoded
+T11  caught   track 10 accepted
+T12  caught   duplicate tracks applied
+T13  caught   a sign accepted
+T14  caught   channel 16 described as port 2
+T15  caught   every port change resets the ordering
+T16  caught   same-name devices treated as one
+T17  caught   a platform failure called a refusal
+T18  caught   '1 messages'
+T19  caught   wrong attribute number
+T20  caught   the worklet ignores a track message
+T21  caught   no-input sentence missing
+T22  caught   one port only gives the fallback sentence
+T23  caught   a second route parameter unreported
+
+## Chromium
+B1   caught   both ports go to port 1's device
+B2   caught   the route is not applied
+B3   caught   the chosen input is never listened to
+B4   caught   the route sentence is not shown
+B5   caught   port 2's list does not apply its choice
+B6   caught   a label that is not the manual's
+B7   caught   a consumer for Start appears
+B8   caught   the empty input option is worded as an output
+B9   caught   the inputs are never listed
+B10  caught   a device plugged in later does not appear in the input list
+
+42 of 42 caught. One survived the first run (T14) and is closed by a test.

@@ -1,0 +1,8 @@
+error[E0425]: cannot find function `octoweb_set_track` in this scope
+error[E0425]: cannot find function `octoweb_set_track` in this scope
+error[E0425]: cannot find function `octoweb_set_track` in this scope
+error[E0425]: cannot find function `octoweb_set_track` in this scope
+error[E0425]: cannot find function `octoweb_set_track` in this scope
+error[E0425]: cannot find function `octoweb_set_track` in this scope
+error[E0425]: cannot find function `octoweb_set_track` in this scope
+error: could not compile `octoweb` (test "abi") due to 7 previous errors

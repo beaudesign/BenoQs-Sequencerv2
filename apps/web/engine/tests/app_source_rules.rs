@@ -376,6 +376,30 @@ fn the_app_keeps_the_slop_rules_and_writes_no_colour_length_or_face_of_its_own()
     assert!(all.is_empty(), "the app breaks rules of docs/05 section 4:\n{}", all.join("\n"));
 }
 
+/// Whether the code reads the address: the word `location` (`window.location`, `globalThis.location`, a bare `location.search`), outside
+/// comments and strings.
+fn reads_location(s: &Source) -> bool {
+    words(&code_of(&s.text, s.kind, false)).contains(&"location")
+}
+
+#[test]
+fn only_the_page_entry_reads_the_address() {
+    // D-P4-2: the `?route=` stand-in is read in one place, so it can be found and removed when Track zoom exists.
+    let readers: Vec<String> = app_sources().into_iter().filter(|s| s.kind == Kind::Script && reads_location(s)).map(|s| s.name).collect();
+    assert_eq!(readers, vec!["pages/app.ts".to_string()], "the address is read in pages/app.ts and nowhere else");
+}
+
+#[test]
+fn reading_the_address_is_caught_and_the_word_in_a_comment_or_a_string_is_not() {
+    assert!(reads_location(&ts("const q = window.location.search;")));
+    assert!(reads_location(&ts("const q = globalThis.location?.search;")));
+    assert!(reads_location(&ts("const q = location.search;")));
+    assert!(reads_location(&ts("const { search } = document.location;")));
+    assert!(!reads_location(&ts("// the location of the file\nconst x = 1;")));
+    assert!(!reads_location(&ts("const s = 'location.search';")));
+    assert!(!reads_location(&ts("const relocation = 1; const locations = [];")), "a longer word is not the word");
+}
+
 #[test]
 fn the_panel_code_writes_no_pixel_position() {
     let mut all = Vec::new();

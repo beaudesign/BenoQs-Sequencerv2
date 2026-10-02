@@ -20,8 +20,8 @@ function section(title: string): string {
 
 test("the README's tab order lists the strip, then the matrix in reading order, then the other controls in the layout's order", () => {
   const text = section("Tab order");
-  const strip = /`start`, `midi-output`, `lookahead`/.exec(text);
-  assert.ok(strip, "the strip's three stops");
+  const strip = /`start`, `midi-out-1`, `midi-out-2`, `midi-in`, `lookahead`/.exec(text);
+  assert.ok(strip, "the strip's five stops");
   assert.match(text, /row 9 \(the top row\) from column 1 to column 16, then row 8/);
   assert.match(text, /row 0 \(the bottom row\)/);
   const listed = [...text.matchAll(/^\s+\d+\.\s+`([a-z0-9_.]+)`\s*$/gm)].map((m) => m[1]);
@@ -32,4 +32,12 @@ test("the README's tab order lists the strip, then the matrix in reading order, 
 test("the README names every control the panel draws besides the matrix", () => {
   const text = section("The panel");
   for (const id of tabOrder(geometry).slice(160)) assert.ok(text.includes(`\`${id}\``), id);
+});
+
+test("the README says what the route hook is, and that it is a hook and not a control", () => {
+  const text = section("The route hook");
+  assert.match(text, /`\?route=0:17,1:3`/);
+  assert.match(text, /not a control/);
+  assert.match(text, /Track zoom/);
+  assert.match(text, /matrix\.r3\.c1/, "the track is the row the control ids give");
 });

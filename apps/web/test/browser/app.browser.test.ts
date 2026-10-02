@@ -1,6 +1,8 @@
-// The panel in Chromium: the real page, the real worklet, the real scheduler, and a fake `MIDIOutput` that records
-// what it is given (Web MIDI itself cannot be granted in headless Chromium). Observables E1, E2, E7 and E8 of
-// specs/SPEC-0002/p3-plan.md. Needs `npm run build` first, which `npm run test:browser` does.
+// The panel in Chromium: the real page, the real worklet, the real scheduler, and fake `MIDIOutput`s and a fake `MIDIInput` that record
+// what they are given and hand over what the test says (Web MIDI itself cannot start in this headless Chromium: it is refused without a
+// permission and fails with InvalidStateError with one, because the container has no MIDI backend; see specs/SPEC-0002/p4b-findings.md).
+// Observables E1, E2, E7 and E8 of specs/SPEC-0002/p3-plan.md and M1, M6, M7 and M8 of specs/SPEC-0002/p4-plan.md.
+// Needs `npm run build` first, which `npm run test:browser` does.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { after, before, test } from "node:test";
@@ -62,6 +64,69 @@ function installFakeMidi(): void {
   });
 }
 
+interface FakeIn {
+  data: Uint8Array | null;
+  timeStamp: number;
+}
+
+declare global {
+  interface Window {
+    __ports: {
+      sent: { 1: FakeSend[]; 2: FakeSend[] };
+      inputOpen(): boolean;
+      emit(data: number[] | null, timeStamp: number): void;
+      /** A device is plugged in or pulled out, and the browser says its ports changed. */
+      plugIn(id: string, name: string): void;
+      unplug(id: string): void;
+    };
+  }
+}
+
+/** Two outputs and one input, as a rig with a synth and a drum machine would show. */
+function installTwoPorts(): void {
+  const sent: { 1: FakeSend[]; 2: FakeSend[] } = { 1: [], 2: [] };
+  const output = (id: string, name: string, log: FakeSend[]) => ({
+    id,
+    name,
+    send(data: ArrayLike<number>, timestamp?: number) {
+      log.push({ data: Array.from(data), timestamp: timestamp ?? null, at: performance.now() });
+    },
+  });
+  const input = {
+    id: "fake-in",
+    name: "Fake input",
+    onmidimessage: null as ((e: FakeIn) => unknown) | null,
+  };
+  const o1 = output("out-1", "Fake synth", sent[1]);
+  const o2 = output("out-2", "Fake drums", sent[2]);
+  const access = {
+    outputs: new Map([[o1.id, o1], [o2.id, o2]]),
+    inputs: new Map<string, { id: string; name: string; onmidimessage: ((e: FakeIn) => unknown) | null }>([[input.id, input]]),
+    onstatechange: null as ((e: unknown) => unknown) | null,
+  };
+  window.__ports = {
+    sent,
+    inputOpen: () => input.onmidimessage !== null,
+    emit: (data, timeStamp) => void input.onmidimessage?.({ data: data ? Uint8Array.from(data) : null, timeStamp }),
+    plugIn(id, name) {
+      access.inputs.set(id, { id, name, onmidimessage: null });
+      access.onstatechange?.({});
+    },
+    unplug(id) {
+      access.inputs.delete(id);
+      access.onstatechange?.({});
+    },
+  };
+  Object.defineProperty(Navigator.prototype, "requestMIDIAccess", { configurable: true, value: () => Promise.resolve(access) });
+}
+
+function failMidi(): void {
+  Object.defineProperty(Navigator.prototype, "requestMIDIAccess", {
+    configurable: true,
+    value: () => Promise.reject(new DOMException("Platform dependent initialization failed.", "InvalidStateError")),
+  });
+}
+
 function removeMidi(): void {
   delete (Navigator.prototype as { requestMIDIAccess?: unknown }).requestMIDIAccess;
 }
@@ -73,11 +138,11 @@ function refuseMidi(): void {
   });
 }
 
-async function open(init?: () => void): Promise<Page> {
+async function open(init?: () => void, query = ""): Promise<Page> {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   page.on("pageerror", (e) => assert.fail(`page error: ${e.message}`));
   if (init) await page.addInitScript(init);
-  await page.goto(`${server.url}/pages/app.html`);
+  await page.goto(`${server.url}/pages/app.html${query}`);
   await page.waitForSelector('main[data-engine="idle"]');
   return page;
 }
@@ -204,7 +269,7 @@ test("E2: Play sends a Note On with the right bytes to the chosen output, then i
   const want = expectedFirstNote();
   const page = await open(installFakeMidi);
   await start(page);
-  await page.selectOption("#midi-output", "fake-1");
+  await page.selectOption("#midi-out-1", "fake-1");
   await page.click(face("matrix.r0.c1"));
   await page.click(face("transport.play"));
   await page.waitForFunction(() => window.__midi.sent.length >= 2, null, { timeout: 8_000 });
@@ -230,7 +295,7 @@ test("E2: nothing is sent until an output is chosen, and the strip says to choos
   await page.click(face("transport.play"));
   await page.waitForTimeout(700);
   assert.equal(await page.evaluate(() => window.__midi.sent.length), 0);
-  await page.selectOption("#midi-output", "fake-1");
+  await page.selectOption("#midi-out-1", "fake-1");
   await page.waitForFunction(() => window.__midi.sent.length >= 2, null, { timeout: 8_000 });
   assert.match((await page.textContent("#midi-status")) ?? "", /Fake output/);
   await page.close();
@@ -239,7 +304,7 @@ test("E2: nothing is sent until an output is chosen, and the strip says to choos
 test("E2: the lookahead field sets how far ahead of now the sends are stamped", async () => {
   const page = await open(installFakeMidi);
   await start(page);
-  await page.selectOption("#midi-output", "fake-1");
+  await page.selectOption("#midi-out-1", "fake-1");
   await page.fill("#lookahead", "90");
   await page.press("#lookahead", "Tab");
   await page.click(face("matrix.r0.c1"));
@@ -255,7 +320,7 @@ test("E2: the lookahead field sets how far ahead of now the sends are stamped", 
 test("the Stop key stops the transport and leaves no note on", async () => {
   const page = await open(installFakeMidi);
   await start(page);
-  await page.selectOption("#midi-output", "fake-1");
+  await page.selectOption("#midi-out-1", "fake-1");
   for (const c of [1, 5, 9, 13]) await page.click(face(`matrix.r0.c${c}`));
   await page.click(face("transport.play"));
   await page.waitForFunction(() => window.__midi.sent.length >= 4, null, { timeout: 8_000 });
@@ -285,7 +350,10 @@ test("E7: without Web MIDI the app loads, runs, and says it has no MIDI", async 
   assert.equal(await page.evaluate(() => typeof navigator.requestMIDIAccess), "undefined");
   await start(page);
   assert.match((await page.textContent("#midi-status")) ?? "", /no Web MIDI/);
-  assert.deepEqual(await page.$eval("#midi-output", (el) => [...(el as HTMLSelectElement).options].map((o) => o.textContent)), ["No output"], "only the no-output option");
+  for (const [selector, none] of [["#midi-out-1", "No output"], ["#midi-out-2", "No output"], ["#midi-in", "No input"]] as const) {
+    assert.deepEqual(await page.$eval(selector, (el) => [...(el as HTMLSelectElement).options].map((o) => o.textContent)), [none], `${selector}: only the empty option`);
+  }
+  assert.equal(await page.textContent("#midi-in-status"), "", "one sentence, in the MIDI line, covers both directions");
   // It runs: a press lights a key, and Play moves the engine without an error.
   await page.click(face("matrix.r3.c4"));
   await page.waitForSelector(`${led("matrix.r3.c4")}[data-colour="green"]`, { timeout: 5_000 });
@@ -338,7 +406,7 @@ test("E8: the browser's own accessibility tree finds each control by its manual 
 test("E8: Tab walks the strip, then the matrix in reading order, then the other controls in the layout's order", async () => {
   const page = await open();
   const seen: string[] = [];
-  const total = 3 + geometry.placements.length;
+  const total = 5 + geometry.placements.length;
   for (let i = 0; i < total; i++) {
     await page.keyboard.press("Tab");
     seen.push(await page.evaluate(() => {
@@ -346,7 +414,7 @@ test("E8: Tab walks the strip, then the matrix in reading order, then the other 
       return el?.getAttribute("data-id") ?? el?.id ?? "";
     }));
   }
-  assert.deepEqual(seen, ["start", "midi-output", "lookahead", ...tabOrder(geometry)]);
+  assert.deepEqual(seen, ["start", "midi-out-1", "midi-out-2", "midi-in", "lookahead", ...tabOrder(geometry)]);
   await page.keyboard.press("Tab");
   const after = await page.evaluate(() => (document.activeElement as HTMLElement).tagName);
   assert.notEqual(after, "G", "the next Tab leaves the panel");
@@ -361,9 +429,7 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
       return { display: s.display, stroke: s.stroke, width: s.strokeWidth };
     });
   assert.equal((await ring("matrix.r9.c1", "outer")).display, "none");
-  await page.keyboard.press("Tab"); // start
-  await page.keyboard.press("Tab"); // output
-  await page.keyboard.press("Tab"); // lookahead
+  for (const _stop of ["start", "out 1", "out 2", "in", "lookahead"]) await page.keyboard.press("Tab");
   await page.keyboard.press("Tab"); // r9.c1
   const outer = await ring("matrix.r9.c1", "outer");
   const inner = await ring("matrix.r9.c1", "inner");
@@ -386,8 +452,8 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
 
 test("E8: the strip's own controls are labelled and the strip does not sit on the panel", async () => {
   const page = await open();
-  for (const [selector, name] of [["#start", "Start"], ["#midi-output", "MIDI output"], ["#lookahead", "Lookahead in milliseconds"]] as const) {
-    assert.equal(await page.getByRole(selector === "#start" ? "button" : selector === "#midi-output" ? "combobox" : "spinbutton", { name, exact: true }).count(), 1, name);
+  for (const [role, name] of [["button", "Start"], ["combobox", "MIDI Out 1"], ["combobox", "MIDI Out 2"], ["combobox", "MIDI In"], ["spinbutton", "Lookahead in milliseconds"]] as const) {
+    assert.equal(await page.getByRole(role, { name, exact: true }).count(), 1, name);
   }
   const strip = await page.$eval("#strip", (el) => el.getBoundingClientRect().toJSON() as DOMRect);
   const panel = await page.$eval("svg#panel", (el) => el.getBoundingClientRect().toJSON() as DOMRect);
@@ -459,5 +525,175 @@ test("a flashing LED is dark and lit at the token's period, and two flashing LED
   assert.ok(rises.length >= 2, "two rising edges were seen");
   const period = rises[1]! - rises[0]!;
   assert.ok(Math.abs(period - tokens.flash.period_ms.value) < 60, `the period is ${period.toFixed(0)} ms, the token says ${tokens.flash.period_ms.value}`);
+  await page.close();
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// P4b: two ports, the input path, the settings (plan observables M1, M6, M7, M8)
+// ---------------------------------------------------------------------------------------------------------------
+
+const noteOns = (sends: FakeSend[]): FakeSend[] => sends.filter((s) => (s.data[0]! & 0xf0) === 0x90);
+const channelsOf = (sends: FakeSend[]): number[] => [...new Set(sends.map((s) => s.data[0]! & 0x0f))].sort((a, b) => a - b);
+
+test("M1: with a device chosen for each port, each port's notes go to its own device and to no other", async () => {
+  // Track 0 is routed to channel 17 (port 2, channel 1) and track 1 to channel 3 (port 1, channel 3).
+  const page = await open(installTwoPorts, "?route=0:17,1:3");
+  await start(page);
+  await page.selectOption("#midi-out-1", "out-1");
+  await page.selectOption("#midi-out-2", "out-2");
+  await page.click(face("matrix.r0.c1"));
+  await page.click(face("matrix.r1.c1"));
+  await page.click(face("transport.play"));
+  await page.waitForFunction(() => window.__ports.sent[1].length >= 2 && window.__ports.sent[2].length >= 2, null, { timeout: 8_000 });
+  const sent = await page.evaluate(() => ({ 1: window.__ports.sent[1].slice(), 2: window.__ports.sent[2].slice() }));
+  assert.ok(noteOns(sent[1]).length >= 1 && noteOns(sent[2]).length >= 1);
+  assert.deepEqual(channelsOf(sent[1]), [2], "the synth hears channel 3 (nibble 2) and nothing else");
+  assert.deepEqual(channelsOf(sent[2]), [0], "the drums hear channel 1 (nibble 0) and nothing else");
+  assert.match((await page.textContent("#midi-status")) ?? "", /Port 1 sends to Fake synth\. Port 2 sends to Fake drums\./);
+  await page.close();
+});
+
+test("M1: a port with no device chosen sends nothing, and the other port still plays", async () => {
+  const page = await open(installTwoPorts, "?route=0:17,1:3");
+  await start(page);
+  await page.selectOption("#midi-out-1", "out-1");
+  await page.click(face("matrix.r0.c1"));
+  await page.click(face("matrix.r1.c1"));
+  await page.click(face("transport.play"));
+  await page.waitForFunction(() => window.__ports.sent[1].length >= 2, null, { timeout: 8_000 });
+  await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => window.__ports.sent[2].length), 0, "port 2 has no device, so its notes have nowhere to go");
+  assert.match((await page.textContent("#midi-status")) ?? "", /^Port 1 sends to Fake synth\.$/);
+  await page.close();
+});
+
+test("M1: one device chosen for both ports hears both, and the sentence says it is one device", async () => {
+  const page = await open(installTwoPorts, "?route=0:17,1:3");
+  await start(page);
+  await page.selectOption("#midi-out-1", "out-1");
+  await page.selectOption("#midi-out-2", "out-1");
+  await page.click(face("matrix.r0.c1"));
+  await page.click(face("matrix.r1.c1"));
+  await page.click(face("transport.play"));
+  await page.waitForFunction(() => window.__ports.sent[1].length >= 4, null, { timeout: 8_000 });
+  const sent = await page.evaluate(() => window.__ports.sent[1].slice());
+  assert.deepEqual(channelsOf(sent), [0, 2], "channels 1 (port 2) and 3 (port 1) both reach the one device");
+  assert.equal(await page.evaluate(() => window.__ports.sent[2].length), 0);
+  assert.match((await page.textContent("#midi-status")) ?? "", /^Port 1 and port 2 send to Fake synth\.$/);
+  await page.close();
+});
+
+test("M1: with no route, every track plays on port 1, and a device chosen for port 2 hears nothing", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.selectOption("#midi-out-1", "out-1");
+  await page.selectOption("#midi-out-2", "out-2");
+  await page.click(face("matrix.r0.c1"));
+  await page.click(face("transport.play"));
+  await page.waitForFunction(() => window.__ports.sent[1].length >= 2, null, { timeout: 8_000 });
+  assert.equal(await page.evaluate(() => window.__ports.sent[2].length), 0);
+  assert.equal(await page.isHidden("#route-status"), true, "no route in the address, nothing to say about one");
+  await page.close();
+});
+
+test("the route stand-in says what it applied, and what it left out and why", async () => {
+  const page = await open(installTwoPorts, "?route=3:17,bad,4:99");
+  await start(page);
+  const text = (await page.textContent("#route-status")) ?? "";
+  assert.equal(await page.isVisible("#route-status"), true);
+  assert.match(text, /Track 3 sends on port 2, channel 1\./);
+  assert.match(text, /"bad"/);
+  assert.match(text, /"4:99"/);
+  await page.close();
+});
+
+test("M7: each port's output and the input are set from the keyboard, each with the manual's own name", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.focus("#midi-out-2");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await page.inputValue("#midi-out-2"), "out-1", "ArrowDown chose the first device");
+  assert.match((await page.textContent("#midi-status")) ?? "", /^Port 2 sends to Fake synth\.$/);
+  await page.focus("#midi-in");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await page.inputValue("#midi-in"), "fake-in");
+  assert.equal(await page.evaluate(() => window.__ports.inputOpen()), true);
+  assert.match((await page.textContent("#midi-in-status")) ?? "", /Listening to Fake input/);
+  await page.close();
+});
+
+test("M6: a chosen input's messages are counted on the strip, and nothing else happens: no sound, no transport", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  assert.deepEqual(await page.$eval("#midi-in", (el) => [...(el as HTMLSelectElement).options].map((o) => o.textContent)), ["No input", "Fake input"]);
+  assert.match((await page.textContent("#midi-in-status")) ?? "", /Choose a MIDI input/);
+  assert.equal(await page.evaluate(() => window.__ports.inputOpen()), false, "a port is not listened to until it is chosen");
+  await page.selectOption("#midi-out-1", "out-1");
+  await page.selectOption("#midi-in", "fake-in");
+  await page.evaluate(() => {
+    for (const [data, t] of [[[0x90, 60, 100], 10], [[0xf8], 20], [[0xfa], 21], [[0xb0, 1, 5], 30]] as const) window.__ports.emit([...data], t);
+  });
+  await page.waitForFunction(() => /4 messages/.test(document.querySelector("#midi-in-count")!.textContent ?? ""), null, { timeout: 5_000 });
+  assert.match((await page.textContent("#midi-in-status")) ?? "", /Nothing uses its messages yet/);
+  await page.waitForTimeout(300);
+  assert.equal(await page.getAttribute("main", "data-transport"), "stopped", "a Start message from the input does not start the transport yet");
+  assert.deepEqual(await page.evaluate(() => [window.__ports.sent[1].length, window.__ports.sent[2].length]), [0, 0], "and nothing is sent");
+  await page.selectOption("#midi-in", "");
+  assert.equal(await page.evaluate(() => window.__ports.inputOpen()), false, "choosing no input lets go of the port");
+  assert.match((await page.textContent("#midi-in-status")) ?? "", /Choose a MIDI input/);
+  await page.close();
+});
+
+test("M6: a message with no data and one that is not MIDI are counted apart and do not break the page", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.selectOption("#midi-in", "fake-in");
+  await page.evaluate(() => {
+    window.__ports.emit(null, 1);
+    window.__ports.emit([0x90, 60], 2);
+    window.__ports.emit([0xfe], 3);
+    window.__ports.emit([0x90, 60, 100], 4);
+  });
+  await page.waitForFunction(() => /4 messages/.test(document.querySelector("#midi-in-count")!.textContent ?? ""), null, { timeout: 5_000 });
+  const count = (await page.textContent("#midi-in-count")) ?? "";
+  assert.match(count, /1 used/);
+  assert.match(count, /1 ignored/);
+  assert.match(count, /2 malformed/);
+  await page.close();
+});
+
+test("M8: with the browser's own refusal (Chromium 141, no permission) the app says so, offers no port, and still plays", async () => {
+  const page = await open(); // no stand-in: the real requestMIDIAccess, which this headless Chromium refuses with NotAllowedError
+  await start(page);
+  assert.match((await page.textContent("#midi-status")) ?? "", /refused/);
+  for (const selector of ["#midi-out-1", "#midi-out-2", "#midi-in"]) assert.equal(await page.$$eval(`${selector} option`, (o) => o.length), 1, selector);
+  await page.click(face("matrix.r3.c4"));
+  await page.waitForSelector(`${led("matrix.r3.c4")}[data-colour="green"]`, { timeout: 5_000 });
+  await page.close();
+});
+
+test("M8: a browser that has Web MIDI and cannot start it says that, and not that it was refused", async () => {
+  const page = await open(failMidi);
+  await start(page);
+  const text = (await page.textContent("#midi-status")) ?? "";
+  assert.match(text, /could not start/);
+  assert.match(text, /Platform dependent initialization failed/);
+  assert.doesNotMatch(text, /refused/);
+  await page.click(face("matrix.r3.c4"));
+  await page.waitForSelector(`${led("matrix.r3.c4")}[data-colour="green"]`, { timeout: 5_000 });
+  await page.close();
+});
+
+test("M7: a device plugged in later appears in the input list, and the chosen one pulled out lets go and says to choose again", async () => {
+  const page = await open(installTwoPorts);
+  await start(page);
+  await page.evaluate(() => window.__ports.plugIn("late-in", "Late input"));
+  assert.deepEqual(await page.$eval("#midi-in", (el) => [...(el as HTMLSelectElement).options].map((o) => o.textContent)), ["No input", "Fake input", "Late input"]);
+  await page.selectOption("#midi-in", "late-in");
+  assert.match((await page.textContent("#midi-in-status")) ?? "", /Listening to Late input/);
+  await page.evaluate(() => window.__ports.unplug("late-in"));
+  assert.equal(await page.inputValue("#midi-in"), "", "the choice went with the device");
+  assert.match((await page.textContent("#midi-in-status")) ?? "", /Choose a MIDI input/);
+  await page.waitForFunction(() => document.querySelector("#midi-in-count")!.textContent === "", null, { timeout: 5_000 });
   await page.close();
 });

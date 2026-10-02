@@ -187,3 +187,27 @@ test("two processors with the same seed post the same events", () => {
   assert.ok(a.length >= 4);
   assert.deepEqual(a, run());
 });
+
+test("a track message sets one attribute of one track: a track set to channel 17 then plays on port 2", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  press(rig, matrixId(0, 0), 0);
+  rig.send({ type: "track", track: 0, attr: 8, value: 17 });
+  rig.send({ type: "tempo", bpm: 240 });
+  rig.send({ type: "transport", play: true });
+  const routes = new Set<string>();
+  for (let b = 0; b < 600; b++) {
+    for (const m of only(rig.block(), "events")) for (const e of decodeEvents(new Uint8Array(m.bytes))) if (e.kind === 0) routes.add(`${e.port}:${e.channel}`);
+  }
+  assert.deepEqual([...routes], ["2:1"]);
+});
+
+test("a track message the engine refuses is reported to the page as an error and does not stop the worklet", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  rig.send({ type: "track", track: 10, attr: 8, value: 17 });
+  const posted = rig.take();
+  assert.match(only(posted, "error")[0]?.message ?? "", /set track.*code 5/);
+  rig.send({ type: "tempo", bpm: 120 });
+  assert.deepEqual(only(rig.take(), "error"), []);
+});

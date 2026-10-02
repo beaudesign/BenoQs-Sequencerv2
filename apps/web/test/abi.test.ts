@@ -1,6 +1,7 @@
 // The TypeScript wrapper against the real module, in Node. The native twin of these tests is
 // apps/web/engine/tests/abi.rs; the two keep the ABI honest from both sides.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   ABI_VERSION,
@@ -11,13 +12,14 @@ import {
   Octoweb,
   RENDER_FRAMES,
   OctowebError,
+  TRACK_ATTR,
   asciiToString,
   decodeEvents,
   decodeLed,
   layoutFromControls,
   type Exports,
 } from "../src/abi.ts";
-import { compile, controlNumbers, controlsDoc, instantiate, layoutBytes, matrixId, start } from "./support/module.ts";
+import { compile, controlNumbers, controlsDoc, instantiate, layoutBytes, matrixId, repoRoot, start } from "./support/module.ts";
 
 const n = controlNumbers();
 const ctl = (id: string): number => {
@@ -74,6 +76,7 @@ test("the shipped module exports exactly the documented functions, and none of t
     "octoweb_reset",
     "octoweb_scratch",
     "octoweb_set_tempo",
+    "octoweb_set_track",
     "octoweb_status",
     "octoweb_transport",
   ]);
@@ -284,4 +287,45 @@ test("an LED byte is decoded into its colour and its phase, and an undefined pha
   }
   assert.deepEqual(decodeLed(0b1110), { colour: "green", phase: "steady" }, "phase 3 is not defined");
   assert.deepEqual(decodeLed(0), { colour: "off", phase: "steady" });
+});
+
+test("set_track: a track set to a channel above 16 plays on port 2, through the wrapper, with the attribute numbered as ABI.md says", () => {
+  const e = start();
+  click(e, matrixId(0, 0), 0);
+  click(e, matrixId(1, 0), 100);
+  e.setTrack(0, TRACK_ATTR.midiChannel, 17);
+  e.setTrack(1, TRACK_ATTR.midiChannel, 3);
+  e.setTempo(240);
+  e.transport(true);
+  const routes = new Set<string>();
+  for (let b = 0; b < 600; b++) {
+    const n = e.render(RENDER_FRAMES);
+    for (const ev of decodeEvents(e.eventBytes(n))) if (ev.kind === 0) routes.add(`${ev.port}:${ev.channel}`);
+  }
+  assert.deepEqual([...routes].sort(), ["1:3", "2:1"]);
+});
+
+test("set_track: a track or an attribute that does not exist is code 5, and before init it is code 1", () => {
+  const e = start();
+  for (const [track, attr] of [[10, 8], [-1, 8], [0, 15], [0, -1], [0, 99]] as const) {
+    assert.throws(() => e.setTrack(track, attr, 3), (err: unknown) => err instanceof OctowebError && err.code === 5, `track ${track} attribute ${attr}`);
+  }
+  const bare = new Octoweb(instantiate());
+  assert.throws(() => bare.setTrack(0, TRACK_ATTR.midiChannel, 17), (err: unknown) => err instanceof OctowebError && err.code === 1);
+});
+
+test("TRACK_ATTR names the attribute numbers ABI.md gives, and ABI.md gives the engine's list in its order", () => {
+  const doc = readFileSync(`${repoRoot}/apps/web/engine/ABI.md`, "utf8");
+  const row = doc.split("\n").find((l) => l.startsWith("| `octoweb_set_track("));
+  assert.ok(row, "ABI.md has a row for octoweb_set_track");
+  const list = /engine's list: (.*?)\. A track/.exec(row)?.[1];
+  assert.ok(list, "the row gives the list of attributes");
+  const listed = [...list.matchAll(/(\d+) (\w+)/g)].map((m) => [Number(m[1]), m[2]] as const);
+  assert.deepEqual(
+    listed.map(([, name]) => name),
+    ["Pitch", "Velocity", "LengthFactor", "StartFactor", "DirectionRaw", "Rotation", "Amount", "Groove", "MidiChannel", "Muted", "Soloed", "Paused", "RecordArmed", "IsFeeder", "IsListener"],
+  );
+  listed.forEach(([n], i) => assert.equal(n, i));
+  assert.equal(TRACK_ATTR.midiChannel, 8);
+  assert.equal(listed[TRACK_ATTR.midiChannel]?.[1], "MidiChannel");
 });

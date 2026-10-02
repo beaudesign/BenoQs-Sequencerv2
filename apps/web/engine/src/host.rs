@@ -8,7 +8,7 @@
 use crate::encode::{led_byte, write_event, EVENT_BYTES};
 use octocore::domain::TRACK_COUNT;
 use octocore::engine::{MAX_BPM, MAX_SAMPLE_RATE, MIN_BPM, MIN_SAMPLE_RATE};
-use octocore::types::{Command, ControlId, Snapshot, MAX_CONTROLS, MAX_EVENTS_PER_TICK};
+use octocore::types::{Command, ControlId, Snapshot, TrackAttr, MAX_CONTROLS, MAX_EVENTS_PER_TICK};
 use octocore::{Engine, EventBuffer, RenderContext};
 use octoface::{Input, Layout, PageView, Panel, PanelMode};
 use std::cell::{Cell, RefCell};
@@ -216,6 +216,22 @@ pub fn set_tempo(bpm: f32) -> u32 {
             OK
         } else {
             ERR_BAD_ARGUMENT
+        }
+    })
+    .unwrap_or(ERR_NOT_INITIALISED)
+}
+
+/// One attribute of one track, through the engine's own `SetTrack` (ADR-0009 decision 7). `attr` is the attribute's place in
+/// `TrackAttr::ALL`; a track or attribute that does not exist is refused, and the value is the engine's to clamp.
+pub fn set_track(track: u32, attr: u32, value: i32) -> u32 {
+    with_host(|h| {
+        let track = u8::try_from(track).ok().filter(|t| usize::from(*t) < TRACK_COUNT);
+        match (track, TrackAttr::from_u32(attr)) {
+            (Some(track), Some(attr)) => {
+                h.engine.handle_command(Command::SetTrack { track, attr, value });
+                OK
+            }
+            _ => ERR_BAD_ARGUMENT,
         }
     })
     .unwrap_or(ERR_NOT_INITIALISED)

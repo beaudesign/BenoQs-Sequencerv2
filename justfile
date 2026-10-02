@@ -71,6 +71,11 @@ spike-s2 *args: web-wasm
 spike-s1 *args: web-wasm
 	cd apps/web && npm ci --no-audit --no-fund && npm run build && node spikes/s1/run.ts {{args}}
 
+# Spike S3, the half that runs here: the app's clock, followed and sent, with a SIMULATED sender and port (every record says so on its
+# first line). The run that measures it is apps/web/spikes/s3/page.html with Live, for the owner; apps/web/ABLETON.md says how.
+spike-s3 *args: web-wasm
+	cd apps/web && npm ci --no-audit --no-fund && npm run build && node spikes/s3/run.ts {{args}}
+
 # Record new tests and fixtures as the ratchet floor. Dropping one needs --remove <kind> <id> --adr ADR-NNNN.
 baseline *args:
 	cargo xtask baseline {{args}}

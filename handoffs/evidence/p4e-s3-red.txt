@@ -1,0 +1,48 @@
+P4e, S3 analysis: the red run (spikes/s3/analyse.ts a stub that declares the shapes and computes nothing).
+11 tests: 10 fail. One passes by construction: "a run that is too short, or empty, says so and does not divide by zero" (the stub returns
+zeros, which is what an empty run should give); it is a guard for the real code, not a proof of it, and it does not count as red.
+Two of the tests' own arithmetic was corrected after the first red run, before any code existed (the stub fails them either way):
+the Start message in the phase test is seen at 1000 (not 1001) so its twelve settling samples are twelve, and the second-Start test's
+sample at 23500 is at 22500 (23500 is 3500 ms after the Continue, which is past a 3000 ms settling). This is the second red run.
+----
+not ok 1 - the clock domain: a stamp a little behind the time it was seen is on the page's clock; a stamp on another clock is told apart, with the numbers
+not ok 2 - the intervals: the tempo from the stamps, the scatter of the periods, and no drift in a steady clock
+not ok 3 - the drift: a sender whose tempo creeps up 0.6 BPM in ten minutes is read as about 3.6 BPM an hour
+not ok 4 - stalls, a stamp that goes backwards, an equal stamp, and a burst (several pulses seen at once) are counted and kept out of the periods
+not ok 5 - the phase: samples while the transport runs and the clock is not lost, after the settling, against a fifth of a step
+not ok 6 - the phase is counted from the latest Start or Continue, so a second Start has its own settling
+not ok 7 - the hidden tab is a filter: the same raw data, read for the samples taken while it was hidden, or while it was not
+not ok 8 - the tempo the follower read, against the one the sender was set to when it is given
+ok 9 - a run that is too short, or empty, says so and does not divide by zero
+not ok 10 - the loop: each pulse sent is paired with the one heard at the same place in the order, and the latency and the interval error are read from the pairs
+not ok 11 - the loop: pulses that never came back are missing, and pulses heard that were never sent are extra, counted from the end
+# tests 11
+# pass 1
+# fail 10
+
+Third red run: four more tests (the saved-pulse unpacking and the three of the verdict), written with stubs for followVerdict and unpackPulses that return nothing. The first eleven pass by then because analyseFollow and analyseLoop were written; the four are red:
+----
+not ok 12 - saved pulses, as [stamp, seen] pairs, come back as pulses
+not ok 13 - the verdict: every sample inside a fifth of a step is the plan's criterion met, and a run shorter than 30 minutes says it is not the S3 run
+not ok 14 - the verdict cannot be met or missed when there is nothing to read: stamps on another clock, no pulses, no Start heard
+not ok 15 - the verdict says how much of the run the tab was hidden, because the plan's criterion is for a visible tab
+# tests 15
+# pass 11
+# fail 4
+
+Fourth red run: the clock map (a jump of the browser's audio-to-page offset between samples, and a phase beyond a fifth of a step after one), 3 tests with a stub that returns zeros:
+----
+not ok 10 - the clock map: a step of the audio-to-page offset between two samples of more than 3 ms is a jump, counted with the largest
+not ok 11 - a phase beyond a fifth of a step within two seconds after a jump of the clock map is attributed to it, and one that is not is not
+not ok 19 - the verdict says when every excursion beyond a fifth of a step follows a jump of the browser's clock map, and when some do not
+# tests 21
+# pass 18
+# fail 3
+
+Fifth red run: the stamp map of the send run (the engine's tempo from its audio times, and the jumps of the clock map in the stamps), 1 test with a stub that returns zeros:
+----
+not ok 22 - the stamp map: the engine's own tempo from its audio times, and the jumps of the clock map the stamps were made with
+# tests 22
+# pass 21
+# fail 1
+(The test's own arithmetic was corrected after that red run: a steady map's range is 9e-13 ms of floating-point noise, not 0, so it is asserted to be under 1e-6.)

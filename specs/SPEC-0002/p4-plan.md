@@ -197,3 +197,19 @@ revised. The pull request was **not merged** when this was written.
 **Not answered by this reply, and still open.** **D0, the tick length** (question 1): P4c is built with M3 `pending`, and nothing in P4
 claims "in time" before D0 is answered. **Question 4**: the owner's runs of S1 and then S3 on real ports. **Merging**: the agent
 merges nothing.
+
+**r2, 2026-10-02, 16:08 (Europe/Paris).** After the agent's report on P4e (pull request #33, ready, CI green), the owner replied **"Accept all changes"**. The
+reply names no item, so the agent reads it as *accept every change the reports flagged for the owner's decision, as built*: it is the same
+shape as "Accept p4" above. Chat is not a source of truth, so the reading is written down here. If it is wrong, say so and this record is revised.
+The pull request was **not merged** when this was written.
+
+| Item | What is accepted | What is not |
+|---|---|---|
+| ADR-0009 amendment 1 (P4c, merged in #31) | The six places where the engine's clock does more than the ADR said, and the one where it does otherwise, as built | Any claim that a pattern is in time with a clock: M3 stays `pending` |
+| ADR-0009 amendment 2 (P4d, merged in #32) | The six departures (first-order loop, stateful estimator, sign of the lead, Start/Continue/Stop timing with no song position, the echo sent at once, the clock state's refusals) and the two defaults (the local Play key is not gated while slaved; the tempo knob is overwritten by the sender's tempo) | |
+| The follower's and the clock state's thresholds (M4 and D-P4-10) | As proposed and as built: a tempo within 0.1 BPM and a phase error within one tick after 2 s; the 4-tick ramp bound; the 250 ms and 8% of the loop. They stay the owner's to change, and tightening them is free | Reading them as met at 160 BPM with output noise: they are not (`p4d-follower-measured.txt`) |
+| P4e as built (#33) | `apps/web/ABLETON.md` and the S3 harness, with the S3 thresholds as the author proposed them (same clock: min >= -5 ms and 99th <= 100 ms; stall over 500 ms; 3 s settling; clock-map jump over 3 ms; 2 s excursion window; 60 s drift blocks; the criterion a fifth of a step for 30 minutes, tab visible) | Reading the simulated run as a figure for Live or for a MIDI port: it is neither, and every record says so |
+
+**Not answered by this reply, and still open.** **D0, the tick length** (question 1): a choice between readings of the engine's tick, which "accept all changes" does
+not make; M3 stays `pending` and nothing claims "in time" before D0 is answered. **Question 4**: the owner's runs of S1 and then S3 on real ports, with Live, which no
+reply can stand in for. **Merging**: the agent merges nothing; #33 waits for the owner's merge. **ABLETON.md** is accepted as a procedure to run, not as checked against Live.

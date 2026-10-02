@@ -1,0 +1,53 @@
+P4e, mutation run over the S3 harness (spikes/s3/analyse.ts, format.ts, page.ts) and its tests (WENGE-0015).
+
+WHAT THIS IS. 53 single-line changes, each made to one source file in turn, the tests that cover it run, and the change put back. A mutant is
+"caught" when a test fails (or the compiler rejects it); "survived" when every test still passes. A survivor is a line the tests do not
+pin. Run by a hand-written script of string replacements that is not committed; each mutant is named by what it breaks, below.
+The Node mutants (analysis and report, 0 to 37) run `node --test test/s3-analyse.test.ts test/s3-report.test.ts`; the browser mutants
+(38 to 52) run `test/browser/s3.browser.test.ts` in headless Chromium. The first run was on the tree of 492a123 (the page, report and
+runner as first committed); the re-run of the seven that survived or came out doubtful was on that tree with the tests named below added
+(they were committed in 051f24a). The rest of 051f24a (the page's clock-map record, the stand-in's stamping, the start-up wait) was made
+after the re-run, so the count below is for the tree as it was then, and not for the final head.
+
+FIRST RUN: 53 mutants, 47 caught, 6 survived.
+  Survived: [4] a small step back (0.5 ms) in the stamps is not counted as going backwards
+            [12] the median tempo is a thousandth out
+            [19] the fifth of a step is taken from the median of the periods, not from the run's tempo
+            [39] the pulse's stamp and the time it was seen are swapped in the saved record
+            [47] the same swap for the pulses heard in the send run
+            [51] the follower is fed the time the page saw a pulse, not its stamp
+  Also doubtful: [52] Start and Stop swapped in the page's own count showed "caught", with one failing test; the failing test was
+            the send run's, which at that time failed on about half of its runs with no mutant at all (the first pulse landing in Chromium's
+            start-up hole; handoffs/evidence/p4e-send-first-pulse.txt, fixed later by waiting for the first panels), so its "caught" was the
+            flake and not the mutant. The re-run below shows it for what it is.
+
+WHAT WAS ADDED FOR THEM (each test written, shown to fail on the mutant, then kept):
+  [4]  a stamp 0.5 ms behind the last is counted as going backwards (a test in s3-analyse.test.ts)
+  [12] the median tempo is asserted to a thousandth, on a noiseless clock
+  [19] a sender whose pulses are quantised (so that the median period and the run's tempo differ) must still get the fifth from the tempo of the run
+  [39], [47] the browser tests assert that the time the page saw a pulse less its stamp is the stand-in's 2 ms (STAMP_AGE_MS) within 1 ms, read
+       from the saved record's clock-domain line, for the pulses followed (s3.browser.test.ts, the follow test) and for the pulses heard in
+       the send run; a record with the two swapped reads minus 2 ms and fails. The sender-stops test asserts the same for the Stop's own
+       stamp and seen.
+  [51] not caught, below.
+
+RE-RUN OF THE SEVEN (after the tests above):
+  [4] caught   [12] caught   [19] caught   [39] caught   [47] caught
+  [51] SURVIVED   [52] SURVIVED
+
+THE TWO THAT STAND, AND WHY (named, not hidden):
+  [51] the follower is fed `seen` and not `stamp`. In the simulation the stamp is the page's own clock a fixed 2 ms behind the time the
+       page saw the pulse (STAMP_AGE_MS in spikes/s3/stand-in.ts), and the follower, which only compares one pulse with the next and with
+       its own estimate, has the same tempo and a phase 2 ms different; the figures it gives are inside what the tests allow for a stand-in
+       with 0.3 ms of scatter. A test that tells the two apart needs a stand-in whose stamps and seen times differ by more than the tolerance
+       AND a threshold that is not mine to set. This one is for the real run: the clock-domain line of the report (stamp against seen) is the
+       measure, and a page that fed the follower the wrong one would show a different phase there. Passing this mutant is a limit of the
+       simulation, not a finding about the page.
+  [52] Start and Stop swapped in the page's own count. The send run sends exactly one Start and one Stop and the same table counts what was
+       sent and what was heard, so a swap is invisible in a run that has one of each; mutant 37 (Continue and Stop swapped in the report)
+       is caught, so the report's own order is pinned. An equivalent mutant for the run the test makes, not for a run with a Continue.
+
+WHAT THIS SAYS ABOUT THE SUITE. 51 of 53 mutants are caught after the additions; the two that stand are named above with their reason.
+It does not say the harness measures Live correctly. It says the code that reads the records does what its tests say, and that the page
+puts the records down as the tests say; whether a real port's stamps are on the clock the follower assumes is the first line of the
+owner's S3 report.

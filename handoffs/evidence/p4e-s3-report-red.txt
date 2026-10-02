@@ -1,0 +1,6 @@
+P4e, S3 report (spikes/s3/format.ts): the red run.
+test/s3-report.test.ts (5 tests) was written first, and format.ts did not exist: `node --test test/s3-report.test.ts` stopped at
+"Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../spikes/s3/format.ts' imported from .../test/s3-report.test.ts"; tests 1, pass 0, fail 1
+(the file as a whole; none of the five could run). That is a red run of the weakest kind, a missing module and not a wrong answer: the
+five tests then passed on the first run of the code, which means the assertions had not been shown to fail for the right reason. The
+mutation run for P4e (handoffs/evidence/p4e-mutation-run.txt) is where each of them is shown to catch a change.

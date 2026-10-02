@@ -152,6 +152,11 @@ record.
 
 ## Amendments
 
+**Owner's acceptance.** Amendments 1 and 2 were put to the owner for acceptance or change in the reports on #31, #32 and #33. The owner replied **"Accept all changes"**
+(2026-10-02 16:08 Paris), which the agent reads as accepting both as built, with their defaults and the thresholds they name as proposals; the reading, and what it does
+not cover (D0, the real-port runs, any claim that a pattern is in time with a clock), is written down in `specs/SPEC-0002/p4-plan.md` section 10, r2. The text of the
+amendments is unchanged by this note.
+
 ### Amendment 1 (2026-10-02, Conductor, found in P4c): what the engine's clock does, as built
 
 Decisions 1 to 4 and 7 were written from a reading of the code. P4c built them red first (`crates/octocore/tests/clock.rs`, 22 tests,

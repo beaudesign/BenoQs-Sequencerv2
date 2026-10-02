@@ -21,6 +21,7 @@ panel. SPEC-0002, task WENGE-0014, ADR-0008. Owner: the Forge.
 | `pages/host.*` | The page the Chromium tests of the engine drive (no UI) |
 | `spikes/s2/` | Spike S2: the module in an AudioWorklet, hashes against native, and the cost of `render` |
 | `spikes/s1/` | Spike S1: Web MIDI timing. `run.ts` for here, `page.html` for a person with a loopback port |
+| `spikes/s3/` | Spike S3: the MIDI clock with Ableton Live, followed and sent. `page.html` for a person with a real port, `report.ts` to read the saved file, `run.ts` for a run here against a simulated clock. `ABLETON.md` is the guide |
 | `test/` | Node tests, and `test/browser/` for Chromium |
 
 ## Commands
@@ -32,6 +33,7 @@ just web-test           # type-check and the Node tests
 just web-browser-test   # the real host and worklet in Chromium
 just spike-s2 --write   # S2, and save the record to handoffs/evidence/
 just spike-s1 --seconds 60 --write        # S1's stand-in run; add --hidden under xvfb for the background-tab run
+just spike-s3 --seconds 30 --write        # S3's run against a SIMULATED clock; the real one is spikes/s3/page.html
 ```
 
 Chromium comes from `npx playwright-core install chromium`, or from `PLAYWRIGHT_BROWSERS_PATH`.
@@ -164,6 +166,21 @@ Both came from the Stop property test (`test/stop-property.test.ts`) failing, an
    millisecond or two. A flush Note Off one sample after a Note On could otherwise be stamped before it.
 
 The cost of the first: what was queued when Stop is pressed plays out, up to the lookahead (30 ms by default).
+
+## Running spike S3 on your machine
+
+S3 asks how well the app follows Ableton Live's clock, and how a port treats the clock the app sends. `ABLETON.md` has the whole
+procedure; in short:
+
+1. Build as for S1 (steps 1 and 2 above) and open `/spikes/s3/page.html` in Chrome or Edge.
+2. **Follow a clock**: choose the port Live's clock arrives on, press Start following, then Play in Live, and leave the tab in
+   front for 30 minutes. **Send a clock**: a loopback port, output and input, no Live needed.
+3. Save the result (a JSON file of the raw records) and read it with `node spikes/s3/report.ts <file>`; add `--settle <ms>` for a
+   different settling and `--nominal <bpm>` for the tempo Live was set to.
+4. Put the file and the report in `handoffs/evidence/`.
+
+`just spike-s3` runs both against a simulated sender and port, which shows the harness works and nothing else: its records say on
+their first line that they are not Live, not a MIDI port and not Web MIDI's timing.
 
 ## Running spike S1 on your machine
 

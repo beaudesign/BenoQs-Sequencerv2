@@ -14,6 +14,7 @@
   ],
   "exclude": [
     "src/**/*.test.ts",
-    "spikes/**/run.ts"
+    "spikes/**/run.ts",
+    "spikes/**/report.ts"
   ]
 }

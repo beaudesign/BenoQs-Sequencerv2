@@ -7,6 +7,7 @@ import {
   ABI_VERSION,
   EVENT_BYTES,
   KIND_DOWN,
+  KIND_REALTIME,
   KIND_UP,
   LED_COUNT,
   Octoweb,
@@ -40,16 +41,16 @@ function click(e: Octoweb, id: string, t: number): void {
 }
 
 test("the module reports the ABI number the page speaks", () => {
-  assert.equal(ABI_VERSION, 1);
+  assert.equal(ABI_VERSION, 2, "P4c: event kind 5, octoweb_set_clock and octoweb_tick_position (ADR-0009)");
   assert.equal(instantiate().octoweb_abi() >>> 0, ABI_VERSION);
 });
 
 test("the wrapper refuses a module that speaks another ABI", () => {
   const real = instantiate();
-  const other: Exports = { ...real, octoweb_abi: () => 2 };
+  const other: Exports = { ...real, octoweb_abi: () => 1 };
   assert.throws(
     () => new Octoweb(other),
-    (e: unknown) => e instanceof OctowebError && /abi\/2/.test(e.message) && /speaks 1/.test(e.message),
+    (e: unknown) => e instanceof OctowebError && /abi\/1/.test(e.message) && /speaks 2/.test(e.message),
   );
 });
 
@@ -75,9 +76,11 @@ test("the shipped module exports exactly the documented functions, and none of t
     "octoweb_render",
     "octoweb_reset",
     "octoweb_scratch",
+    "octoweb_set_clock",
     "octoweb_set_tempo",
     "octoweb_set_track",
     "octoweb_status",
+    "octoweb_tick_position",
     "octoweb_transport",
   ]);
 });
@@ -328,4 +331,77 @@ test("TRACK_ATTR names the attribute numbers ABI.md gives, and ABI.md gives the 
   listed.forEach(([n], i) => assert.equal(n, i));
   assert.equal(TRACK_ATTR.midiChannel, 8);
   assert.equal(listed[TRACK_ATTR.midiChannel]?.[1], "MidiChannel");
+});
+
+test("KIND_REALTIME is the record kind ABI.md gives the clock", () => {
+  assert.equal(KIND_REALTIME, 5);
+});
+
+test("set_clock: with the clock on, Play makes a kind 5 record for Start and then Clock, with the status byte in d1 and no port or channel", () => {
+  const e = start();
+  e.setClock(true);
+  e.transport(true);
+  const events = decodeEvents(e.eventBytes(e.render(RENDER_FRAMES)));
+  assert.deepEqual(
+    events.map((x) => [x.kind, x.port, x.channel, x.d1, x.d2, x.atSample]),
+    [
+      [5, 0, 0, 0xfa, 0, 0],
+      [5, 0, 0, 0xf8, 0, 0],
+    ],
+    "Start, then the first pulse, both on the first sample",
+  );
+});
+
+test("set_clock: the clock is off until it is asked for, and off again when it is turned off", () => {
+  const e = start();
+  e.transport(true);
+  let kinds = new Set<number>();
+  for (let b = 0; b < 100; b++) for (const x of decodeEvents(e.eventBytes(e.render(RENDER_FRAMES)))) kinds.add(x.kind);
+  assert.ok(!kinds.has(5), "no kind 5 record by default");
+  e.setClock(true);
+  kinds = new Set();
+  for (let b = 0; b < 100; b++) for (const x of decodeEvents(e.eventBytes(e.render(RENDER_FRAMES)))) kinds.add(x.kind);
+  assert.ok(kinds.has(5), "pulses once it is on");
+  e.setClock(false);
+  e.render(RENDER_FRAMES); // what was waiting is dropped
+  kinds = new Set();
+  for (let b = 0; b < 100; b++) for (const x of decodeEvents(e.eventBytes(e.render(RENDER_FRAMES)))) kinds.add(x.kind);
+  assert.ok(!kinds.has(5), "and none after it is turned off");
+});
+
+test("set_clock: pulses are 1,000 samples apart at 120 BPM and 48 kHz", () => {
+  const e = start();
+  e.setClock(true);
+  e.transport(true);
+  const at: number[] = [];
+  for (let b = 0; b < 400; b++) {
+    for (const x of decodeEvents(e.eventBytes(e.render(RENDER_FRAMES)))) if (x.kind === KIND_REALTIME && x.d1 === 0xf8) at.push(b * RENDER_FRAMES + x.atSample);
+  }
+  assert.ok(at.length >= 50, `${at.length} pulses`);
+  for (let i = 1; i < at.length; i++) assert.equal(at[i]! - at[i - 1]!, 1000);
+});
+
+test("set_clock before init is code 1, and tick_position before init is 0", () => {
+  const e = new Octoweb(instantiate());
+  assert.throws(() => e.setClock(true), (x: unknown) => x instanceof OctowebError && x.code === 1);
+  assert.equal(e.tickPosition(), 0);
+});
+
+test("tick_position: 0 before play, then the audio's place on the tick grid: 125 samples a tick at 120 BPM and 48 kHz", () => {
+  const e = start();
+  assert.equal(e.tickPosition(), 0);
+  e.transport(true);
+  let last = 0;
+  for (let b = 1; b <= 50; b++) {
+    e.render(RENDER_FRAMES);
+    const p = e.tickPosition();
+    assert.ok(Math.abs(p - (b * RENDER_FRAMES) / 125) < 1e-6, `after ${b} blocks the position is ${p}`);
+    assert.ok(p >= last);
+    last = p;
+  }
+  e.transport(false);
+  e.render(RENDER_FRAMES);
+  const held = e.tickPosition();
+  for (let b = 0; b < 10; b++) e.render(RENDER_FRAMES);
+  assert.equal(e.tickPosition(), held, "stopped: it stands still");
 });

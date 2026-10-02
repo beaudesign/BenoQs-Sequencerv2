@@ -1,8 +1,8 @@
-// A typed wrapper over the exports of the octoweb module (apps/web/engine/ABI.md, octoweb-abi/1).
+// A typed wrapper over the exports of the octoweb module (apps/web/engine/ABI.md, octoweb-abi/2).
 // It runs inside the AudioWorklet and in Node, so it uses nothing the worklet lacks: no
 // TextDecoder, no performance, no fetch.
 
-export const ABI_VERSION = 1;
+export const ABI_VERSION = 2;
 export const EVENT_BYTES = 12;
 export const LED_COUNT = 512;
 export const TRACK_COUNT = 10;
@@ -22,6 +22,9 @@ export function decodeLed(byte: number): { colour: LedColour; phase: LedPhase } 
 /** The attribute numbers `octoweb_set_track` takes: the engine's own order (ABI.md). Only the one the page writes is named. */
 export const TRACK_ATTR = { midiChannel: 8 } as const;
 
+/** The event record kind for a MIDI real-time message: `d1` is the status byte (0xF8 Clock, 0xFA Start, 0xFB Continue, 0xFC Stop), port and channel are 0. */
+export const KIND_REALTIME = 5;
+
 export const KIND_DOWN = 0;
 export const KIND_UP = 1;
 export const KIND_TURN = 2;
@@ -37,6 +40,8 @@ export interface Exports {
   octoweb_transport(play: number): number;
   octoweb_set_tempo(bpm: number): number;
   octoweb_set_track(track: number, attr: number, value: number): number;
+  octoweb_set_clock(master: number): number;
+  octoweb_tick_position(): number;
   octoweb_render(frames: number): number;
   octoweb_events(): number;
   octoweb_refresh_leds(): number;
@@ -59,7 +64,7 @@ export class OctowebError extends Error {
   }
 }
 
-/** One engine event, decoded. */
+/** One record of the events buffer, decoded. Kind 5 is a real-time message (`KIND_REALTIME`); the others are notes and controllers. */
 export interface MidiEvent {
   kind: number;
   port: number;
@@ -150,7 +155,17 @@ export class Octoweb {
     this.check(this.x.octoweb_set_track(track, attr, value), "set track");
   }
 
-  /** Renders a block and returns the number of events now in the events buffer. */
+  /** Makes the engine the MIDI clock master, or not. Off at `init`. Turned on while the transport runs, the engine says where it is (Start or Continue) and the pulses follow. */
+  setClock(master: boolean): void {
+    this.check(this.x.octoweb_set_clock(master ? 1 : 0), "set clock");
+  }
+
+  /** Where the audio is on the engine's tick grid, in ticks, at the end of the last render. 0 before `init` and before the first Play. */
+  tickPosition(): number {
+    return this.x.octoweb_tick_position();
+  }
+
+  /** Renders a block and returns the number of records now in the events buffer: notes and the clock, in sample order. */
   render(frames: number): number {
     return this.x.octoweb_render(frames) >>> 0;
   }

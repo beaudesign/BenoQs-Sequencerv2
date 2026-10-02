@@ -15,7 +15,7 @@
 //    already queued, so what was queued plays out (at most `L` plus the clock jitter) and is then
 //    ended. specs/SPEC-0002/p3-plan.md (finding F-P3-2) and ADR-0008 amendment 1.
 
-import { EVENT_BYTES } from "./abi.ts";
+import { EVENT_BYTES, KIND_REALTIME } from "./abi.ts";
 
 export interface TimeMap {
   /** The page's high-resolution clock in milliseconds (`performance.now()`). */
@@ -37,6 +37,7 @@ export interface MidiOutputLike {
 export const ORDER_WINDOW_MS = 50;
 
 export interface SentInfo {
+  /** 1 or 2. 0 for a real-time message, which has no port: it goes to every chosen device, and this is called once for each. */
   port: number;
   bytes: number[];
   /** When the engine made the event, in audio-context seconds: exact, with no clock map in it. */
@@ -54,15 +55,21 @@ export interface SchedulerStats {
   lateMaxMs: number;
   /** Events for a port with no output chosen. */
   unrouted: number;
-  /** Records that are not valid MIDI (channel out of range, Note On with velocity 0) and were not sent. */
+  /** Real-time messages (the clock, Start, Continue, Stop) sent: one for each device that heard each. Not part of `sent`, which counts notes and controllers. */
+  realtime: number;
+  /** Records that are not valid MIDI (channel out of range, Note On with velocity 0, a real-time status that is not one of the four) and were not sent. */
   invalid: number;
   /** Events whose timestamp was raised to follow the previous send to the same output, and the largest raise. */
   raised: number;
   raisedMaxMs: number;
 }
 
+const REALTIME_STATUS: ReadonlySet<number> = new Set([0xf8, 0xfa, 0xfb, 0xfc]);
+
 /** The MIDI bytes for one 12-byte event record, or null if it is not valid MIDI. */
 export function midiBytes(kind: number, channel: number, d1: number, d2: number): number[] | null {
+  // A real-time message has no channel and no data bytes: the status byte in d1 is the whole message (ABI.md, kind 5).
+  if (kind === KIND_REALTIME) return REALTIME_STATUS.has(d1) ? [d1] : null;
   if (channel < 1 || channel > 16 || d1 > 127) return null;
   const c = channel - 1;
   switch (kind) {
@@ -83,13 +90,15 @@ export function midiBytes(kind: number, channel: number, d1: number, d2: number)
 
 export class MidiScheduler {
   lookaheadMs: number;
-  readonly stats: SchedulerStats = { sent: 0, late: 0, lateMaxMs: 0, unrouted: 0, invalid: 0, raised: 0, raisedMaxMs: 0 };
+  readonly stats: SchedulerStats = { sent: 0, late: 0, lateMaxMs: 0, unrouted: 0, realtime: 0, invalid: 0, raised: 0, raisedMaxMs: 0 };
   /** Called for every send, for the spikes. */
   onSend: ((info: SentInfo) => void) | null = null;
   private readonly time: TimeMap;
   private readonly outputs = new Map<number, MidiOutputLike>();
   /** The latest timestamp given to each output, for rule 1. */
   private readonly latest = new Map<MidiOutputLike, number>();
+  /** Each device chosen for any port, once: where a real-time message goes. */
+  private devices: MidiOutputLike[] = [];
 
   constructor(time: TimeMap, lookaheadMs = 30) {
     this.time = time;
@@ -104,7 +113,8 @@ export class MidiScheduler {
     const replaced = this.outputs.get(port);
     if (output) this.outputs.set(port, output);
     else this.outputs.delete(port);
-    if (replaced && replaced !== output && ![...this.outputs.values()].includes(replaced)) this.latest.delete(replaced);
+    this.devices = [...new Set(this.outputs.values())];
+    if (replaced && replaced !== output && !this.devices.includes(replaced)) this.latest.delete(replaced);
   }
 
   /** `frame` is the audio context's frame at the start of the block the events came from. */
@@ -112,39 +122,53 @@ export class MidiScheduler {
     const view = new DataView(records.buffer, records.byteOffset, records.byteLength);
     const base = frame / sampleRate;
     for (let i = 0; i + EVENT_BYTES <= records.byteLength; i += EVENT_BYTES) {
+      const kind = view.getUint8(i);
+      const at = base + view.getUint32(i + 8, true) / sampleRate;
+      if (kind === KIND_REALTIME) {
+        const bytes = midiBytes(kind, 0, view.getUint8(i + 3), 0);
+        if (!bytes) this.stats.invalid++;
+        else if (this.devices.length === 0) this.stats.unrouted++;
+        else for (const output of this.devices) this.send(output, 0, bytes, at);
+        continue;
+      }
       const port = view.getUint8(i + 1);
       const output = this.outputs.get(port);
       if (!output) {
         this.stats.unrouted++;
         continue;
       }
-      const bytes = midiBytes(view.getUint8(i), view.getUint8(i + 2), view.getUint8(i + 3), view.getUint16(i + 4, true));
+      const bytes = midiBytes(kind, view.getUint8(i + 2), view.getUint8(i + 3), view.getUint16(i + 4, true));
       if (!bytes) {
         this.stats.invalid++;
         continue;
       }
-      const at = base + view.getUint32(i + 8, true) / sampleRate;
-      let target = this.time.toPage(at) + this.lookaheadMs;
-      const before = this.latest.get(output);
-      if (before !== undefined && target < before && before - target < ORDER_WINDOW_MS) {
-        this.stats.raised++;
-        this.stats.raisedMaxMs = Math.max(this.stats.raisedMaxMs, before - target);
-        target = before;
-      }
-      this.latest.set(output, Math.max(target, before ?? target));
-      const now = this.time.now();
-      const marginMs = target - now;
-      if (marginMs > 0) {
-        output.send(bytes, target);
-      } else {
-        // Already due. A past or missing timestamp means "now" (W3C Web MIDI), and sends keep their order.
-        output.send(bytes);
-        this.stats.late++;
-        this.stats.lateMaxMs = Math.max(this.stats.lateMaxMs, -marginMs);
-      }
-      this.stats.sent++;
-      this.onSend?.({ port, bytes, audioTime: at, timestamp: marginMs > 0 ? target : null, marginMs });
+      this.send(output, port, bytes, at);
     }
+  }
+
+  /** One send to one device, at audio time `at`: stamped on the page's clock plus the lookahead, and held to rule 1. */
+  private send(output: MidiOutputLike, port: number, bytes: number[], at: number): void {
+    let target = this.time.toPage(at) + this.lookaheadMs;
+    const before = this.latest.get(output);
+    if (before !== undefined && target < before && before - target < ORDER_WINDOW_MS) {
+      this.stats.raised++;
+      this.stats.raisedMaxMs = Math.max(this.stats.raisedMaxMs, before - target);
+      target = before;
+    }
+    this.latest.set(output, Math.max(target, before ?? target));
+    const now = this.time.now();
+    const marginMs = target - now;
+    if (marginMs > 0) {
+      output.send(bytes, target);
+    } else {
+      // Already due. A past or missing timestamp means "now" (W3C Web MIDI), and sends keep their order.
+      output.send(bytes);
+      this.stats.late++;
+      this.stats.lateMaxMs = Math.max(this.stats.lateMaxMs, -marginMs);
+    }
+    if (port === 0) this.stats.realtime++;
+    else this.stats.sent++;
+    this.onSend?.({ port, bytes, audioTime: at, timestamp: marginMs > 0 ? target : null, marginMs });
   }
 }
 

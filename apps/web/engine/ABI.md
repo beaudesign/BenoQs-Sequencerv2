@@ -1,4 +1,4 @@
-# octoweb-abi/1
+# octoweb-abi/2
 
 The functions the page calls on the WebAssembly module `octoweb` (ADR-0008). The module has no
 imports. Every function takes and returns numbers; strings and tables cross as bytes in the
@@ -17,7 +17,7 @@ is malformed, 4 the layout is not one the controller accepts, 5 a number out of 
 
 | Export | Does |
 |---|---|
-| `octoweb_abi() -> u32` | The ABI number, 1 |
+| `octoweb_abi() -> u32` | The ABI number, 2 |
 | `octoweb_scratch(len) -> ptr` | At least `len` bytes of scratch memory, and the address of the first. Valid until the next call to this function. The page writes the layout here, and reads messages from here |
 | `octoweb_init(sample_rate, seed_lo, seed_hi, layout_len) -> code` | Makes the engine and the panel controller. Reads the layout from the first `layout_len` bytes of scratch: one `<n> <id>` per line, the `n` and `id` of each control in `contracts/controls.json`. On failure the module is left uninitialised, and the reason is in scratch, `octoweb_message_len` bytes of UTF-8 |
 | `octoweb_message_len() -> u32` | The length of the message the last `octoweb_init` left in scratch. 0 after a success |
@@ -26,8 +26,10 @@ is malformed, 4 the layout is not one the controller accepts, 5 a number out of 
 | `octoweb_transport(play) -> code` | Starts (`play` nonzero) or stops the transport. The page is the host for this until the controller builds the transport workflow (ADR-0008 decision 4) |
 | `octoweb_set_tempo(bpm) -> code` | The tempo the next renders use. Refused outside 1 to 999 and for non-finite values |
 | `octoweb_set_track(track, attr, value) -> code` | Writes one attribute of one track through the engine's own `SetTrack`. `track` is 0 to 9. `attr` is the attribute's place in the engine's list: 0 Pitch, 1 Velocity, 2 LengthFactor, 3 StartFactor, 4 DirectionRaw, 5 Rotation, 6 Amount, 7 Groove, **8 MidiChannel**, 9 Muted, 10 Soloed, 11 Paused, 12 RecordArmed, 13 IsFeeder, 14 IsListener. A track or attribute that does not exist is code 5 and changes nothing. The value is the engine's to clamp: a `MidiChannel` of 1 to 16 is port 1 and 17 to 32 is port 2. Added in P4b; the ABI number stays 1 (a page built for 1 never calls it) |
-| `octoweb_render(frames) -> count` | Renders `frames` frames (at most 4096; the page asks for 128) and returns how many events are now in the events buffer. Events carry sample offsets inside this block |
-| `octoweb_events() -> ptr` | The events buffer: 256 records of 12 bytes, valid for the first `count` of the last render. Null before `octoweb_init` |
+| `octoweb_set_clock(master) -> code` | Makes the engine the MIDI clock master (`master` nonzero) or not. Off after `octoweb_init`. While the transport runs, turning it on first sends Start (the sequencer is at tick 0) or Continue (anywhere else) and then the pulses; turning it off drops what was waiting and sends nothing. The messages come out as kind 5 records in the events buffer. Added in P4c (ADR-0009) |
+| `octoweb_tick_position() -> f64` | Where the audio is on the engine's tick grid, in ticks, at the end of the last `octoweb_render`: the whole part is the tick that has played and the fraction is how far into the next one. It stands still while the transport is stopped and a read changes nothing. 0 before `octoweb_init`. The page does not read it until the follower (P4d) needs it. Added in P4c (ADR-0009) |
+| `octoweb_render(frames) -> count` | Renders `frames` frames (at most 4096; the page asks for 128) and returns how many records are now in the events buffer: the notes and, with the clock on, the clock messages, in sample order, a clock message first where one falls on the sample of a note. Records carry sample offsets inside this block |
+| `octoweb_events() -> ptr` | The events buffer: 512 records of 12 bytes (256 for notes and 256 for the clock), valid for the first `count` of the last render. Null before `octoweb_init` |
 | `octoweb_refresh_leds() -> u32` | Recomputes the LED frame from the controller and the engine's page. Returns 1 if any LED changed since the last call, else 0 |
 | `octoweb_leds() -> ptr` | The LED frame: 512 bytes, indexed by control number. Null before `octoweb_init` |
 | `octoweb_playheads() -> ptr` | 10 bytes: the step (0 to 15) each track is on, updated by `octoweb_render`. Null before `octoweb_init` |
@@ -52,8 +54,11 @@ bytes, `at_sample` (32 bits, little endian, the offset inside the block).
 | 2 | Control change | controller | value |
 | 3 | Pitch bend | 0 | the 14-bit value, 8192 centre |
 | 4 | Channel pressure | the value | 0 |
+| 5 | MIDI real-time message | the status byte: `0xF8` Clock, `0xFA` Start, `0xFB` Continue, `0xFC` Stop | 0 |
 
-`port` is 1 or 2 and `channel` 1 to 16, as the engine numbers them.
+`port` is 1 or 2 and `channel` 1 to 16, as the engine numbers them, for kinds 0 to 4. A kind 5 record has `port` 0 and `channel` 0
+because a real-time message has neither: the page sends it to every device it has chosen, once for each (ADR-0009 decision 3). A
+page that built for ABI 1 would count a kind 5 record as invalid, which is why the number is 2.
 
 **An LED** is one byte: the colour in the low two bits (0 off, 1 red, 2 green, 3 orange) and the
 phase in the next two (0 steady, 1 flash, 2 shine). Red, green and orange are roles, not hues.
@@ -62,5 +67,5 @@ phase in the next two (0 steady, 1 flash, 2 shine). Red, green and orange are ro
 
 At start, in the worklet constructor: `octoweb_scratch`, write the layout, `octoweb_init`. Then, on
 each 128-frame quantum: `octoweb_render(128)` and read the events. On each message from the page:
-`octoweb_input`, `octoweb_transport`, `octoweb_set_tempo` or `octoweb_set_track`. About every 16 ms:
+`octoweb_input`, `octoweb_transport`, `octoweb_set_tempo`, `octoweb_set_track` or `octoweb_set_clock`. About every 16 ms:
 `octoweb_refresh_leds` and, if it returned 1, send the LED frame to the page.

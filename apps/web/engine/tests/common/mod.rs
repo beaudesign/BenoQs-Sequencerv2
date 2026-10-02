@@ -138,3 +138,20 @@ pub fn wire(e: &octocore::Event) -> [u8; EVENT_BYTES] {
     b[8..12].copy_from_slice(&at.to_le_bytes());
     b
 }
+
+/// The wire form of an engine real-time message, written here from `ABI.md` and not taken from the crate: kind 5, no port and no
+/// channel, the MIDI status byte in `d1`, then the offset inside the block.
+pub fn wire_realtime(e: &octocore::RealtimeEvent) -> [u8; EVENT_BYTES] {
+    use octocore::Realtime::*;
+    let status: u8 = match e.msg {
+        Clock => 0xF8,
+        Start => 0xFA,
+        Continue => 0xFB,
+        Stop => 0xFC,
+    };
+    let mut b = [0u8; EVENT_BYTES];
+    b[0] = 5;
+    b[3] = status;
+    b[8..12].copy_from_slice(&e.at_sample.to_le_bytes());
+    b
+}

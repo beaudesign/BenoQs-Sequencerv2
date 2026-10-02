@@ -114,11 +114,24 @@ export class Session implements WorkletSink {
     for (const p of posted) {
       const spike = this.rng.next() < (this.config.spikeChance ?? 0) ? (this.config.spikeMs ?? 0) : 0;
       const when = Math.max(this.lastDelivery, at + this.rng.next() * this.config.delayMs + spike);
-      for (const o of this.outputs.values()) o.advanceTo(when);
-      this.clock.now = Math.max(this.clock.now, when);
+      this.advanceOutputs(when);
       this.lastDelivery = when;
       routeFromWorklet(p.message, this);
     }
+  }
+
+  /**
+   * Time passes to `to` for every output. Each output starts from the same moment: `FakeOutput.advanceTo` moves the shared clock as it
+   * delivers, so the second output used to start from where the first had left it and log its deliveries late (found by
+   * `clock-path.test.ts`, which reads both devices' times).
+   */
+  private advanceOutputs(to: number): void {
+    const before = this.clock.now;
+    for (const o of this.outputs.values()) {
+      this.clock.now = before;
+      o.advanceTo(to);
+    }
+    this.clock.now = Math.max(before, to);
   }
 
   /** Presses and releases a control, as the panel would: the page tells the worklet between blocks. */
@@ -152,9 +165,7 @@ export class Session implements WorkletSink {
 
   /** Time passes with nothing new from the worklet. */
   drain(ms: number): void {
-    const to = this.clock.now + ms;
-    for (const o of this.outputs.values()) o.advanceTo(to);
-    this.clock.now = to;
+    this.advanceOutputs(this.clock.now + ms);
   }
 
   held(): string[] {

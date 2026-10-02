@@ -31,6 +31,10 @@ pub const MAX_SCALE_INTERVALS: usize = 12;
 /// PROVISIONAL — see tests/conformance/AMBIGUITIES.md "user-programmed directions".
 pub const USER_DIRECTION_COUNT: usize = 11; // dir values 6..=16
 pub const TICKS_PER_QUARTER: u32 = 192;
+/// Ticks in one MIDI clock pulse: a pulse is a 24th of a quarter note (ADR-0009). The check below fails the build if a change to
+/// the tick (D0, `WENGE-0012`) leaves a pulse that is not a whole number of ticks, so pulses cannot drift from the tick grid.
+pub const TICKS_PER_CLOCK: u32 = TICKS_PER_QUARTER / 24;
+const _: () = assert!(TICKS_PER_QUARTER % 24 == 0, "a MIDI clock pulse (a 24th of a quarter note) must be a whole number of ticks");
 pub const DEFAULT_STEP_TICKS: u32 = 12; // 1/16 note at 192 PPQN
 
 /// Track indices run 0..=9 and correspond to panel rows 0 (bottom) to 9 (top).

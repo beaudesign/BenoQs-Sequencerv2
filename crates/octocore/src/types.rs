@@ -133,6 +133,25 @@ pub enum Event {
     ChannelPressure { port: u8, ch: u8, value: u8, at_sample: u32 },
 }
 
+/// A MIDI system real-time message the engine can send as a master clock (ADR-0009). These are not `Event` variants: they have no
+/// port and no channel, and they travel beside the events in their own list (`Engine::take_realtime`).
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Realtime {
+    Clock = 0xF8,
+    Start = 0xFA,
+    Continue = 0xFB,
+    Stop = 0xFC,
+}
+
+/// A real-time message and the sample, inside the render that made it, where it falls.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RealtimeEvent {
+    pub msg: Realtime,
+    pub at_sample: u32,
+}
+
 /// Maximum events emitted by a single `Engine::tick_samples` call. Sized for "full
 /// density" (docs §7): ten tracks, max chord polyphony, all firing at once, each
 /// producing a note-on and a matched note-off.

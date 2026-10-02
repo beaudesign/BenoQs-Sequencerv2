@@ -1,0 +1,48 @@
+# P4c web-module red capture: tests written before the implementation, against inert stubs
+# (octoweb_set_clock does nothing, octoweb_tick_position returns 0.0, ABI still 1, events buffer unchanged)
+# command: cargo test -p octoweb --test abi_clock --test abi --no-fail-fast
+# 3 tests pass by construction: the clock-off test, the before-init test, and the sample-order test (no real-time record exists yet, so it is vacuous until the implementation; the mutation run checks it).
+test a_channel_outside_1_to_32_is_the_engines_to_clamp_not_a_crash ... ok
+test a_failed_init_leaves_the_module_uninitialised ... ok
+test a_matrix_press_lights_the_step_green_and_a_second_press_puts_it_out ... ok
+test a_block_larger_than_the_limit_is_cut_down_and_zero_frames_make_nothing ... ok
+test a_pattern_played_through_the_module_is_the_engines_own_output_byte_for_byte ... ok
+test a_press_changes_only_the_leds_it_should ... ok
+test a_tempo_the_engine_cannot_use_is_refused ... ok
+test a_track_set_to_a_channel_above_16_plays_on_port_two_and_the_rest_stay_on_port_one ... ok
+test a_track_that_was_never_set_still_plays_on_port_one_channel_one ... ok
+test an_intent_the_engine_cannot_act_on_is_counted_and_changes_nothing ... ok
+test an_led_byte_is_the_colour_in_the_low_two_bits_and_the_phase_above ... ok
+test calls_before_init_do_nothing_and_say_so ... ok
+test init_refuses_a_layout_that_lacks_a_control_the_controller_needs_and_names_it ... ok
+test init_builds_the_layout_from_the_controls_file ... ok
+test init_refuses_text_that_is_not_a_layout ... ok
+test refresh_says_whether_anything_changed ... ok
+test init_refuses_a_sample_rate_the_engine_cannot_use ... ok
+test render_and_the_led_refresh_allocate_nothing ... ok
+test reset_drops_the_module_and_it_can_start_again ... ok
+test set_track_refuses_a_track_or_an_attribute_that_does_not_exist_and_changes_nothing ... ok
+test the_attribute_number_the_page_sends_is_the_engines_own_order ... ok
+test stop_leaves_the_receiver_holding_no_note ... ok
+test the_buffers_the_page_reads_do_not_move ... ok
+test the_first_note_on_is_a_real_note_on ... ok
+test the_ids_the_page_cannot_press_do_nothing ... ok
+test the_playhead_moves_while_the_transport_runs ... ok
+test the_status_word_says_playing_and_zoomed ... ok
+test the_module_reports_abi_version_two ... FAILED
+test result: FAILED. 27 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+test a_block_is_in_sample_order_and_a_pulse_comes_before_a_note_on_its_sample ... ok
+test a_pulse_is_a_24th_of_a_quarter_note_apart_at_the_pages_tempo_and_rate ... FAILED
+test before_init_set_clock_says_not_initialised_and_the_position_is_zero ... ok
+test a_request_for_more_frames_than_the_limit_is_cut_down_with_the_clock_on ... FAILED
+test set_clock_takes_any_nonzero_as_on_and_zero_as_off ... FAILED
+test play_with_the_clock_on_sends_start_and_then_a_clock_on_the_same_sample ... FAILED
+test stop_continue_and_a_start_after_reset_come_through_in_order ... FAILED
+test the_clock_is_off_until_the_page_asks_for_it ... ok
+test the_longest_block_at_the_lowest_rate_and_fastest_tempo_loses_no_pulse_and_fits_the_buffer ... FAILED
+test the_position_stands_still_while_stopped ... FAILED
+test the_notes_are_the_same_with_the_clock_on_and_off ... FAILED
+test the_real_time_records_are_the_engines_own_byte_for_byte ... FAILED
+test the_tick_position_is_the_audio_position_and_equals_the_engines_own ... FAILED
+test turning_the_clock_off_while_it_runs_stops_the_pulses_and_sends_nothing ... FAILED
+test result: FAILED. 3 passed; 11 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s

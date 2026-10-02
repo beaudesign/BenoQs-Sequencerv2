@@ -26,7 +26,7 @@ function press(rig: WorkletRig, id: string, t = 0): void {
 test("the constructor starts the engine and says ready, with the sample rate the context runs at", () => {
   const rig = new WorkletRig({ sampleRate: 44_100 });
   const first = rig.take();
-  assert.deepEqual(first.map((p) => p.message), [{ type: "ready", abi: 1, sampleRate: 44_100 }]);
+  assert.deepEqual(first.map((p) => p.message), [{ type: "ready", abi: 2, sampleRate: 44_100 }]);
 });
 
 test("a layout the controller refuses stops the constructor, so the page hears of it as a processor error", () => {
@@ -210,4 +210,33 @@ test("a track message the engine refuses is reported to the page as an error and
   assert.match(only(posted, "error")[0]?.message ?? "", /set track.*code 5/);
   rig.send({ type: "tempo", bpm: 120 });
   assert.deepEqual(only(rig.take(), "error"), []);
+});
+
+test("a clock message turns the engine's clock on and off: Start and pulses reach the page in the events message, kind 5", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  const clockRecords = (blocks: number) => {
+    const out: { kind: number; d1: number; port: number; channel: number }[] = [];
+    for (let b = 0; b < blocks; b++) for (const m of only(rig.block(), "events")) for (const e of decodeEvents(new Uint8Array(m.bytes))) if (e.kind === 5) out.push(e);
+    return out;
+  };
+  rig.send({ type: "transport", play: true });
+  assert.deepEqual(clockRecords(100), [], "off by default");
+  rig.send({ type: "clock", master: true });
+  const on = clockRecords(100);
+  assert.equal(on[0]?.d1, 0xfb, "turned on while running: the engine says where it is, and it is not at tick 0, so Continue");
+  assert.ok(on.slice(1).every((e) => e.d1 === 0xf8 && e.port === 0 && e.channel === 0), "then pulses");
+  assert.ok(on.length > 10);
+  rig.send({ type: "clock", master: false });
+  rig.block();
+  assert.deepEqual(clockRecords(100), [], "off again");
+});
+
+test("a clock message after reset is reported as an error, like any call the module refuses, and does not stop the worklet", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  rig.send({ type: "reset" });
+  rig.take();
+  rig.send({ type: "clock", master: true });
+  assert.match(only(rig.take(), "error")[0]?.message ?? "", /set clock.*code 1/);
 });

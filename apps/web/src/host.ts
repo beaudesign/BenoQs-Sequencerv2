@@ -140,6 +140,11 @@ export class Host implements WorkletSink {
     this.post({ type: "track", track, attr, value });
   }
 
+  /** Makes the engine the MIDI clock master, or not (ADR-0009). The clock reaches every chosen output as real-time records in the events. */
+  setClock(master: boolean): void {
+    this.post({ type: "clock", master });
+  }
+
   async close(): Promise<void> {
     this.node.disconnect();
     await this.context.close();

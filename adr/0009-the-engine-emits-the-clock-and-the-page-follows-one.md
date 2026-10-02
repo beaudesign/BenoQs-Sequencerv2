@@ -149,3 +149,52 @@ record.
 - The ABI number changes once in P4. The page and the module ship together, so the number is a consistency check and not
   a compatibility promise.
 - A realtime message is sent to every chosen device once. A rig that routes one device to both ports hears one clock.
+
+## Amendments
+
+### Amendment 1 (2026-10-02, Conductor, found in P4c): what the engine's clock does, as built
+
+Decisions 1 to 4 and 7 were written from a reading of the code. P4c built them red first (`crates/octocore/tests/clock.rs`, 22 tests,
+17 failing against a stub) and the code showed six places where the ADR said less than the engine does, and one where it said something
+the engine does not. Each is a departure from the text above, flagged for the owner, and none touches a contract or an existing
+golden hash.
+
+1. **Start or Continue is decided by where the sequencer is, not by which button was pressed.** The engine does not rewind on Stop (the
+   manual, p.40: POS "does not restore to the start POS(ition) when stopping the sequencer"), and `Command::Play` and `Command::Continue`
+   are the same call (`set_running(true)`). So the engine cannot tell a Play from a Continue, and it sends `Start` when it is at tick 0
+   (new, or after `Reset`) and `Continue` everywhere else. A `Start` sent from the middle of a pattern would tell a drum machine the
+   sequencer is at its beginning when it is not. Decision 2's "Play from stopped: `Start`" is amended to this.
+2. **The pulses are on the grid of the global tick, for every run.** A `Clock` falls on every tick whose global index is a multiple of
+   `TICKS_PER_CLOCK`, counted from the last `Reset` and not from the last Play. After a Stop at tick 20 and a Play, `Continue` is on the
+   first tick's sample and the first `Clock` is four ticks later, on tick 24. That is MIDI-correct (a receiver advances on the next
+   pulse) and it keeps the clock and the pattern on one grid. Decision 2 said this only for Continue; it holds for all.
+3. **The first note sounds 11 ticks after `Start`, not on its sample.** Decision 2 says "the first pulse and the first step are the same
+   sample". The pulse is (`Start` and the first `Clock` share a sample), the step is not: a step fires when its tick counter reaches the
+   step length, so the first note after Play is on tick 11 (`tests/conformance/AMBIGUITIES.md`, "the first note after Play"). At 120 BPM
+   that is 28.6 ms, or 1.4 pulses, after `Start`. **This is not a clock fault and the clock does not hide it**: `clock.rs` pins it by name.
+   It is a second reason, beside D0, that a pattern on this clock is not on the receiver's grid, and it belongs to the same owner
+   decision. P4d's user offset can correct a constant; it does not remove it.
+4. **Turning the clock on while the transport runs says where the sequencer is; turning it off says nothing.** Decision 2 did not
+   cover it. On: `Start` at tick 0, otherwise `Continue`, at the next tick's sample, then the pulses. Off: the pulses waiting are
+   dropped and no `Stop` is sent, because the sequencer has not stopped, and a `Stop` would stop the receivers while it plays on.
+5. **`tick_position()` is the audio's place on the grid and is counted from the last `Reset`.** Decision 4 said "the global tick count plus how far the
+   engine is between ticks". The engine steps up to `MAX_EARLY_TICKS` (12) ahead of the audio, so the global count is up to twelve ticks ahead of
+   what the speakers play, which is what a phase comparison must not see. The position is found from a ring of the last 32 ticks'
+   due samples, and it is the plain tick count while stopped. It is a read.
+6. **A real-time message that finds no room is dropped, newest first, and counted.** `Engine::realtime_dropped()` reports it; it is not an
+   export. `REALTIME_PER_RENDER` is 256 and the longest block the module renders (4,096 frames at 8 kHz and 999 BPM) holds about 205
+   pulses, so the page cannot lose one; a test pins that.
+7. **`Reset` while running sends `Stop`, and `Play` after it sends `Start`.** Decision 2 said nothing of `Reset`. A `Stop` while stopped
+   still sends nothing on the clock and keeps its CC 123 flush (D-P4-7), as decision 2 says.
+
+The ABI (decision 7) is as built: kind 5 with the status byte in `d1`, `octoweb_set_clock`, `octoweb_tick_position`, `octoweb_abi()` 2. Two
+details it did not say: the events buffer is **512 records** (256 for notes and 256 for the clock) and was 256, and a real-time send is counted
+in the scheduler's `realtime` statistic and not in `sent`.
+
+**The ratchet.** One baseline entry is removed under this ADR: `abi::the_module_reports_abi_version_one`, whose subject (the number `octoweb_abi`
+returns) decision 7 changes. `abi::the_module_reports_abi_version_two` replaces it and asserts the new number, so the floor does not loosen:
+it rises by the clock's tests (`harness/baseline.txt`, `removed test ... ADR-0009`).
+
+**M3 is still `pending` on D0** (`a_step_is_a_whole_number_of_pulses` is an ignored test that names it). Nothing here claims a pattern is
+in time with a clock; with item 3 it is now two reasons and not one.
+

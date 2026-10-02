@@ -5,15 +5,17 @@
 //! `init` or `reset`. Nothing here allocates after `init` except the controller's own return
 //! values on an input (two small `Vec`s, only when a press produces a command or an intent).
 
-use crate::encode::{led_byte, write_event, EVENT_BYTES};
+use crate::encode::{led_byte, write_merged, EVENT_BYTES};
 use octocore::domain::TRACK_COUNT;
-use octocore::engine::{MAX_BPM, MAX_SAMPLE_RATE, MIN_BPM, MIN_SAMPLE_RATE};
+use octocore::engine::{MAX_BPM, MAX_SAMPLE_RATE, MIN_BPM, MIN_SAMPLE_RATE, REALTIME_PER_RENDER};
 use octocore::types::{Command, ControlId, Snapshot, TrackAttr, MAX_CONTROLS, MAX_EVENTS_PER_TICK};
-use octocore::{Engine, EventBuffer, RenderContext};
+use octocore::{Engine, EventBuffer, Realtime, RealtimeEvent, RenderContext};
 use octoface::{Input, Layout, PageView, Panel, PanelMode};
 use std::cell::{Cell, RefCell};
 
-pub const ABI_VERSION: u32 = 1;
+pub const ABI_VERSION: u32 = 2;
+/// The records the events buffer holds: all the notes one render can make and all its clock messages (ADR-0009 decision 1).
+pub const EVENT_CAPACITY: usize = MAX_EVENTS_PER_TICK + REALTIME_PER_RENDER;
 /// The most frames one `render` call takes. The page asks for 128.
 pub const MAX_FRAMES: u32 = 4096;
 
@@ -36,7 +38,9 @@ pub struct Host {
     bpm: f32,
     buf: EventBuffer,
     snap: Snapshot,
-    events: [u8; MAX_EVENTS_PER_TICK * EVENT_BYTES],
+    /// What the engine says in a render besides notes: the clock, Start, Continue and Stop.
+    realtime: [RealtimeEvent; REALTIME_PER_RENDER],
+    events: [u8; EVENT_CAPACITY * EVENT_BYTES],
     leds: [u8; MAX_CONTROLS],
     playheads: [u8; TRACK_COUNT],
     dropped_intents: u32,
@@ -117,7 +121,8 @@ pub fn init(sample_rate: f32, seed: u64, layout_len: usize) -> u32 {
             bpm: 120.0,
             buf: EventBuffer::new(),
             snap: Snapshot::zeroed(),
-            events: [0; MAX_EVENTS_PER_TICK * EVENT_BYTES],
+            realtime: [RealtimeEvent { msg: Realtime::Clock, at_sample: 0 }; REALTIME_PER_RENDER],
+            events: [0; EVENT_CAPACITY * EVENT_BYTES],
             leds: [0; MAX_CONTROLS],
             playheads: [0; TRACK_COUNT],
             dropped_intents: 0,
@@ -184,15 +189,13 @@ impl Host {
         }
         let ctx = RenderContext { sample_rate: self.sample_rate, buffer_len: frames, bpm: self.bpm, playing: self.engine.is_running() };
         self.engine.render(&ctx, &mut self.buf);
-        let events = self.buf.as_slice();
-        for (i, e) in events.iter().enumerate() {
-            write_event(&mut self.events[i * EVENT_BYTES..(i + 1) * EVENT_BYTES], e);
-        }
+        let realtime = self.engine.take_realtime(&mut self.realtime);
+        let records = write_merged(&mut self.events, self.buf.as_slice(), &self.realtime[..realtime]);
         self.engine.snapshot(&mut self.snap);
         for (slot, p) in self.playheads.iter_mut().zip(self.snap.playheads.iter()) {
             *slot = p.step_index;
         }
-        events.len() as u32
+        records as u32
     }
 
     fn status(&self) -> u32 {
@@ -235,6 +238,16 @@ pub fn set_track(track: u32, attr: u32, value: i32) -> u32 {
         }
     })
     .unwrap_or(ERR_NOT_INITIALISED)
+}
+
+/// Whether the engine is the MIDI clock master (ADR-0009 decision 2). Off at `init`.
+pub fn set_clock(master: bool) -> u32 {
+    with_host(|h| h.engine.set_clock_master(master)).map_or(ERR_NOT_INITIALISED, |()| OK)
+}
+
+/// Where the audio is on the engine's tick grid, in ticks, at the end of the last render. 0 before `init`.
+pub fn tick_position() -> f64 {
+    with_host(|h| h.engine.tick_position()).unwrap_or(0.0)
 }
 
 pub fn render(frames: u32) -> u32 {

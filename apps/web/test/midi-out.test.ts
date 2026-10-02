@@ -300,3 +300,143 @@ test("ContextTimeMap ignores a timestamp the browser could not give", () => {
   m.refresh();
   assert.equal(m.toPage(2), 2000);
 });
+
+// ------------------------------------------------------------------------------------------------ real-time messages (ABI 2, kind 5)
+
+const realtime = (status: number, at: number): Uint8Array => record(5, 0, 0, status, 0, at);
+
+test("MIDI bytes: the four real-time messages are one byte, the status byte in d1, whatever the port, channel and d2 hold", () => {
+  assert.deepEqual(midiBytes(5, 0, 0xf8, 0), [0xf8]);
+  assert.deepEqual(midiBytes(5, 0, 0xfa, 0), [0xfa]);
+  assert.deepEqual(midiBytes(5, 0, 0xfb, 0), [0xfb]);
+  assert.deepEqual(midiBytes(5, 0, 0xfc, 0), [0xfc]);
+  assert.deepEqual(midiBytes(5, 3, 0xf8, 9), [0xf8], "the channel and d2 are not read: the record's port and channel are 0 and a clock has none");
+});
+
+test("MIDI bytes: a kind 5 record whose d1 is not Clock, Start, Continue or Stop is not valid, and is not sent as something else", () => {
+  for (const d1 of [0, 0x90, 0xf0, 0xf7, 0xf9, 0xfd, 0xfe, 0xff, 128, 255]) assert.equal(midiBytes(5, 0, d1, 0), null, `d1 ${d1}`);
+});
+
+test("a real-time message goes to every chosen device, once, and is not counted as a note", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const a = new RecordingOutput();
+  const b = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, a);
+  s.setOutput(2, b);
+  s.schedule(96_000, 48_000, realtime(0xf8, 0));
+  assert.deepEqual(a.sent, [{ data: [0xf8], timestamp: 2030 }], "due at 2 s, plus the lookahead");
+  assert.deepEqual(b.sent, [{ data: [0xf8], timestamp: 2030 }], "the same timestamp, on the other device");
+  assert.equal(s.stats.realtime, 2, "two sends, one for each device");
+  assert.equal(s.stats.sent, 0, "`sent` counts notes, as it did before the clock");
+  assert.equal(s.stats.unrouted, 0);
+  assert.equal(s.stats.invalid, 0);
+});
+
+test("one device chosen for both ports hears one clock, not two", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const only = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, only);
+  s.setOutput(2, only);
+  s.schedule(96_000, 48_000, realtime(0xfa, 0));
+  assert.equal(only.sent.length, 1);
+  assert.equal(s.stats.realtime, 1);
+});
+
+test("with no device chosen a real-time message has nowhere to go: it is counted as unrouted and nothing is sent", () => {
+  const t = new FakeTime();
+  const s = new MidiScheduler(t, 30);
+  s.schedule(0, 48_000, realtime(0xf8, 0));
+  assert.equal(s.stats.unrouted, 1);
+  assert.equal(s.stats.realtime, 0);
+});
+
+test("choosing a device or letting one go changes who hears the next pulse, with the ordering of the others untouched", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const a = new RecordingOutput();
+  const b = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, a);
+  s.schedule(96_000, 48_000, realtime(0xf8, 0));
+  s.setOutput(2, b);
+  s.schedule(96_000, 48_000, realtime(0xf8, 1000));
+  s.setOutput(1, null);
+  s.schedule(96_000, 48_000, realtime(0xf8, 2000));
+  assert.equal(a.sent.length, 2);
+  assert.equal(b.sent.length, 2);
+});
+
+test("a real-time record that is not valid MIDI is counted as invalid and sent to no one", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const out = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, out);
+  s.schedule(96_000, 48_000, realtime(0xfe, 0));
+  assert.deepEqual(out.sent, []);
+  assert.equal(s.stats.invalid, 1);
+  assert.equal(s.stats.realtime, 0);
+});
+
+test("a pulse and a note on one sample are sent in the order the records came, with the same timestamp", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const out = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, out);
+  s.schedule(96_000, 48_000, concat(realtime(0xf8, 64), record(0, 1, 1, 60, 100, 64)));
+  assert.deepEqual(out.sent.map((x) => x.data), [[0xf8], [0x90, 60, 100]], "the pulse first, as the module wrote them");
+  assert.equal(out.sent[0]!.timestamp, out.sent[1]!.timestamp);
+});
+
+test("timestamps on a device never go backwards across notes and the clock together (rule 1 holds for real-time messages)", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const out = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, out);
+  s.schedule(96_000, 48_000, record(0, 1, 1, 60, 100, 480)); // due 10 ms after the block
+  t.offsetMs = -4; // the clock map moves 4 ms back between batches
+  s.schedule(96_000, 48_000, realtime(0xf8, 0)); // due at the start of the block, which is now 4 ms before where it was
+  const stamps = out.sent.map((x) => x.timestamp ?? -Infinity);
+  assert.deepEqual(stamps, [...stamps].sort((x, y) => x - y), "no timestamp before the one sent earlier");
+  assert.equal(s.stats.raised, 1);
+});
+
+test("a pulse that is already late is sent at once and counted late, like a late note", () => {
+  const t = new FakeTime();
+  t.nowMs = 5000;
+  const out = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, out);
+  s.schedule(96_000, 48_000, realtime(0xf8, 0));
+  assert.deepEqual(out.sent, [{ data: [0xf8], timestamp: undefined }]);
+  assert.equal(s.stats.late, 1);
+  assert.equal(s.stats.realtime, 1);
+});
+
+test("onSend names a real-time send with port 0, and is called once for each device", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, new RecordingOutput());
+  s.setOutput(2, new RecordingOutput());
+  const got: SentInfo[] = [];
+  s.onSend = (i) => got.push(i);
+  s.schedule(96_000, 48_000, realtime(0xfc, 0));
+  assert.deepEqual(got.map((g) => [g.port, g.bytes]), [[0, [0xfc]], [0, [0xfc]]]);
+});
+
+test("the scheduler still never calls clear() when real-time messages are sent", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const out = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, out);
+  s.schedule(96_000, 48_000, concat(realtime(0xfa, 0), realtime(0xfc, 5)));
+  assert.equal(out.clears, 0);
+});

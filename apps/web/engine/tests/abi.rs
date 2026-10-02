@@ -15,8 +15,8 @@ const ORANGE_FLASH: u8 = 3 | (1 << 2);
 const GREEN_FLASH: u8 = 2 | (1 << 2);
 
 #[test]
-fn the_module_reports_abi_version_one() {
-    assert_eq!(octoweb_abi(), 1);
+fn the_module_reports_abi_version_two() {
+    assert_eq!(octoweb_abi(), 2, "P4c added event kind 5, octoweb_set_clock and octoweb_tick_position (ADR-0009)");
 }
 
 #[test]
@@ -345,7 +345,7 @@ fn a_block_larger_than_the_limit_is_cut_down_and_zero_frames_make_nothing() {
     abi.click(&abi.matrix(0, 0), 0.0);
     octoweb_transport(1);
     assert_eq!(octoweb_render(0), 0);
-    assert!(octoweb_render(u32::MAX) <= 256, "never more events than the buffer holds");
+    assert!(octoweb_render(u32::MAX) <= 512, "never more events than the buffer holds: 256 for notes and 256 for the clock");
     // An absurd request is the longest block the module takes, and no more: the same events as 4096 frames.
     let ask = |frames: u32| {
         let abi = Abi::start();

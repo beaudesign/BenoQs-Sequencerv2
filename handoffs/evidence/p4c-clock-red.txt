@@ -1,0 +1,24 @@
+test a_clock_pulse_is_ticks_per_quarter_over_24_ticks_which_is_8_until_d0_is_answered ... ok
+test a_render_that_is_not_taken_does_not_pile_up_into_the_next ... ok
+test a_step_is_a_whole_number_of_pulses ... ignored, pending on D0 (WENGE-0012): with a 192-tick quarter a step is 12 ticks, which is 1.5 pulses; a step is a whole number of pulses only if the tick is 48 to the quarter note. Plan observable M3.
+test a_pulse_is_a_24th_of_a_quarter_note_apart ... FAILED
+test a_stop_and_a_play_before_the_next_render_come_out_in_that_order_on_one_sample ... FAILED
+test play_after_a_stop_sends_continue_and_the_pulses_stay_on_the_grid_the_pattern_is_on ... FAILED
+test an_unusable_tempo_makes_no_pulse_and_leaves_none_to_replay ... ok
+test pulses_follow_a_tempo_change_and_never_bunch_or_repeat ... FAILED
+test realtime_that_does_not_fit_the_callers_array_is_dropped_newest_first_and_counted ... FAILED
+test reset_then_play_sends_start_again_and_a_reset_while_running_sends_stop ... FAILED
+test start_comes_before_the_first_clock_and_both_are_on_the_first_ticks_sample ... FAILED
+test pulses_fall_on_the_samples_of_every_eighth_tick_at_each_tempo_and_rate_and_block_size ... FAILED
+test stop_sends_stop_at_the_sample_it_takes_effect_and_no_pulse_follows_even_one_stepped_ahead ... FAILED
+test stop_while_stopped_sends_no_realtime_and_keeps_its_all_notes_off ... ok
+test take_realtime_hands_over_what_the_last_render_made_and_clears_it ... FAILED
+test the_wire_bytes_of_the_four_messages_are_midi_status_bytes ... ok
+test tick_position_is_the_audio_position_at_the_end_of_the_render_and_is_whole_on_a_tick ... FAILED
+test tick_position_moves_by_a_fraction_between_ticks ... FAILED
+test the_first_note_follows_start_by_the_eleven_ticks_the_engine_already_waits ... FAILED
+test tick_position_never_goes_back_over_blocks_and_tempo_changes ... FAILED
+test turning_the_clock_on_while_running_says_where_the_sequencer_is_and_then_pulses ... FAILED
+test tick_position_while_stopped_is_the_engines_own_count_and_reading_it_changes_nothing ... FAILED
+test with_the_clock_off_nothing_is_produced_and_the_notes_are_as_they_were ... FAILED
+test result: FAILED. 5 passed; 17 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.11s

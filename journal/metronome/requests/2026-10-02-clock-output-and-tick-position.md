@@ -32,3 +32,16 @@ with a note message. Stop while stopped is unchanged (unconditional CC 123).
 ## Not asked
 
 A change to the tick (D0), to `Event`, `Command`, the wire format or `octoffi`; the "200" button's workflow; host lock.
+
+## Status (2026-10-02, P4c, Metronome hat): done, all four items, with departures
+
+Items 1 to 4 are in P4c (`crates/octocore/src/{types,domain,engine,lib}.rs`, `crates/octocore/tests/clock.rs`), red first
+(`handoffs/evidence/p4c-clock-red.txt`: 17 failing against a stub, 5 passing by construction, 1 ignored). With the clock off the engine is
+byte-for-byte what it was: every golden hash, conformance fixture and invariant is unchanged (`cargo test --workspace` and `cargo xtask verify`).
+
+The code differs from the text above in seven places, each written up in **ADR-0009 amendment 1** for the owner. The ones that change what a
+receiver hears: Start or Continue follows the sequencer's position (the engine does not rewind on Stop, so Play and Continue are one call); the
+pulses are on the global tick grid; **the first note sounds 11 ticks after Start** (the request said the pulse and the step start on one
+sample, which is true of the pulse and of tick 0 and not of the first note, `AMBIGUITIES.md` "the first note after Play"); and
+`tick_position` is the audio's place, not the stepped-ahead count. The last item is the one the request said could be declined; it was
+not, and `tick_position` is a read that changes nothing (a test pins that).

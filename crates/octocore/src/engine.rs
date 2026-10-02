@@ -25,7 +25,7 @@ use crate::rng::Rng;
 use crate::scale;
 use crate::steps::{StepClock, StepRate};
 use crate::tables;
-use crate::types::{Event, MAX_EVENTS_PER_TICK};
+use crate::types::{Event, Realtime, RealtimeEvent, MAX_EVENTS_PER_TICK};
 
 /// A step event already resolved to one target track and one primitive
 /// change — `StepEventKind::TrackToggle`'s AMT/Range addressing is resolved
@@ -109,6 +109,15 @@ struct Scheduled {
     event: RawEvent,
     /// The queue's sort key: (whole sample the event lands in, `RawEvent::rank`, creation
     /// number). See `Engine::queue`.
+    order: (i64, u8, u64),
+}
+
+/// A real-time message waiting for its sample. Sorted like `Scheduled`: the sample it lands in, then transport messages before
+/// pulses, then first made first.
+#[derive(Clone, Copy, Debug)]
+struct ScheduledRealtime {
+    due_sample: f64,
+    msg: Realtime,
     order: (i64, u8, u64),
 }
 
@@ -256,6 +265,14 @@ pub struct Diagnostics {
 /// The tempos the engine follows. Hosts report 0 before playback starts, and a stray NaN or
 /// infinity from a broken plugin must not stop the clock or hang the audio thread (an
 /// infinite tempo means zero samples per tick, which is an endless loop).
+/// The most real-time messages one `render` hands to `take_realtime`. A 4,096-sample block at the fastest tempo holds about 1,700
+/// ticks, which is about 210 pulses, so this holds a worst-case block. A message that does not fit is dropped and counted.
+pub const REALTIME_PER_RENDER: usize = 256;
+/// Real-time messages waiting for their sample: the pulses stepped ahead of the audio and the transport messages.
+const RT_QUEUE_CAP: usize = 256;
+/// How many recent ticks' due times the engine remembers, for `tick_position`. The engine is at most `MAX_EARLY_TICKS` + 1 ticks
+/// ahead of the audio at the end of a render, so this holds all of them and the last one behind.
+const TICK_RING: usize = 32;
 pub const MIN_BPM: f32 = 1.0;
 pub const MAX_BPM: f32 = 999.0;
 /// The sample rates the engine follows. Together with the tempo range this bounds the ticks
@@ -394,6 +411,18 @@ pub struct Engine {
     diag: Diagnostics,
     /// The command ring and snapshot buffer, once `open_link` has made them.
     link: Option<Box<crate::link::EngineLink>>,
+    /// Whether the engine sends a MIDI clock (ADR-0009). Off by default, and off the engine behaves as it did before the clock.
+    clock_master: bool,
+    /// Real-time messages waiting for their sample, latest first so the next one out is at the end.
+    rt_queue: [Option<ScheduledRealtime>; RT_QUEUE_CAP],
+    rt_queue_len: usize,
+    rt_seq: u64,
+    /// What the last `render` made, for `take_realtime`.
+    rt_out: [RealtimeEvent; REALTIME_PER_RENDER],
+    rt_out_len: usize,
+    rt_dropped: u32,
+    /// The due sample of each of the last `TICK_RING` ticks, by tick number modulo the ring, for `tick_position`.
+    tick_due: [f64; TICK_RING],
 }
 
 impl Engine {
@@ -421,6 +450,14 @@ impl Engine {
             last_tick_fires: FireLog::default(),
             diag: Diagnostics::default(),
             link: None,
+            clock_master: false,
+            rt_queue: [None; RT_QUEUE_CAP],
+            rt_queue_len: 0,
+            rt_seq: 0,
+            rt_out: [RealtimeEvent { msg: Realtime::Clock, at_sample: 0 }; REALTIME_PER_RENDER],
+            rt_out_len: 0,
+            rt_dropped: 0,
+            tick_due: [0.0; TICK_RING],
         }
     }
 
@@ -494,6 +531,7 @@ impl Engine {
             // ticks run, so `next_tick_due` still points at the moment the transport
             // stopped. Left alone, Play would replay every idle tick in one call.
             self.next_tick_due = self.sample_clock;
+            self.rt_transport_started();
         }
         if self.running && !running {
             self.all_notes_off_now();
@@ -506,8 +544,122 @@ impl Engine {
                 rt.live_direction_raw = None;
                 rt.live_midi_channel = None;
             }
+            self.rt_transport_stopped();
         }
         self.running = running;
+    }
+
+    /// Makes the engine a MIDI clock master, or not (ADR-0009). Off by default. Turned on while the transport runs, it first says
+    /// where the sequencer is (`Start` at tick 0, `Continue` anywhere else) and the pulses follow; turned off, it drops the
+    /// messages still waiting and sends nothing.
+    pub fn set_clock_master(&mut self, on: bool) {
+        if on == self.clock_master {
+            return;
+        }
+        self.clock_master = on;
+        self.rt_queue_len = 0;
+        self.rt_queue = [None; RT_QUEUE_CAP];
+        if on && self.running {
+            self.rt_transport_started();
+        }
+    }
+
+    /// Hands over, in order, the real-time messages the last `render` made, and clears them. `at_sample` is inside that render's
+    /// block. A message beyond `out.len()` is dropped and counted in `realtime_dropped`. The next `render` clears what was not taken.
+    pub fn take_realtime(&mut self, out: &mut [RealtimeEvent]) -> usize {
+        let n = self.rt_out_len.min(out.len());
+        out[..n].copy_from_slice(&self.rt_out[..n]);
+        self.rt_dropped = self.rt_dropped.saturating_add((self.rt_out_len - n) as u32);
+        self.rt_out_len = 0;
+        n
+    }
+
+    /// Real-time messages that did not fit, or lost their room, since `new`.
+    pub fn realtime_dropped(&self) -> u32 {
+        self.rt_dropped
+    }
+
+    /// Where the audio is on the tick grid, in ticks, at the end of the last `render`: the whole part is the tick that has played
+    /// and the fraction is how far into the next one. While the transport runs this is the audio's position and not `tick()`, which
+    /// is up to `MAX_EARLY_TICKS` ahead of it; while stopped it is `tick()`. A read: it changes nothing.
+    pub fn tick_position(&self) -> f64 {
+        if !self.running || self.global_tick == 0 {
+            return self.global_tick as f64;
+        }
+        let t = self.sample_clock;
+        let newest = self.global_tick - 1;
+        let oldest = self.global_tick.saturating_sub(TICK_RING as u64);
+        let mut k = newest;
+        loop {
+            let due = self.tick_due[(k % TICK_RING as u64) as usize];
+            if due <= t {
+                let next = if k == newest { self.next_tick_due } else { self.tick_due[((k + 1) % TICK_RING as u64) as usize] };
+                let span = next - due;
+                return k as f64 + if span > 0.0 { ((t - due) / span).min(1.0) } else { 0.0 };
+            }
+            if k == oldest {
+                // Every tick remembered is ahead of the audio. Only a tempo the engine cannot follow leaves it so.
+                return oldest as f64;
+            }
+            k -= 1;
+        }
+    }
+
+    /// The transport has started: with the clock on, `Start` if the sequencer is at its beginning (tick 0, as after `new` or
+    /// `Reset`) and `Continue` otherwise, at the sample of the first tick. The engine resumes where it stopped, so a resume is a
+    /// `Continue` (ADR-0009 amendment 1).
+    fn rt_transport_started(&mut self) {
+        if self.clock_master {
+            let msg = if self.global_tick == 0 { Realtime::Start } else { Realtime::Continue };
+            self.rt_schedule(self.sample_clock, msg);
+        }
+    }
+
+    /// The transport has stopped: with the clock on, the pulses stepped ahead of the audio are dropped and `Stop` goes at the sample
+    /// the stop takes effect, which is where the flush Note Offs go.
+    fn rt_transport_stopped(&mut self) {
+        if self.clock_master {
+            self.rt_queue = [None; RT_QUEUE_CAP];
+            self.rt_queue_len = 0;
+            self.rt_schedule(self.sample_clock, Realtime::Stop);
+        }
+    }
+
+    fn rt_schedule(&mut self, due_sample: f64, msg: Realtime) {
+        if self.rt_queue_len >= RT_QUEUE_CAP {
+            self.rt_dropped = self.rt_dropped.saturating_add(1);
+            return;
+        }
+        let rank = u8::from(msg == Realtime::Clock);
+        let order = (due_sample.floor() as i64, rank, self.rt_seq);
+        self.rt_seq += 1;
+        // Latest first, so the earliest is at the end and comes out by shortening the list.
+        let mut i = self.rt_queue_len;
+        while i > 0 && self.rt_queue[i - 1].is_some_and(|q| q.order < order) {
+            self.rt_queue[i] = self.rt_queue[i - 1];
+            i -= 1;
+        }
+        self.rt_queue[i] = Some(ScheduledRealtime { due_sample, msg, order });
+        self.rt_queue_len += 1;
+    }
+
+    /// Moves every queued real-time message due before `until` into the list `take_realtime` hands over, earliest first.
+    fn drain_realtime(&mut self, until: f64, buffer_start: f64, buffer_len: u32) {
+        while self.rt_queue_len > 0 {
+            let Some(next) = self.rt_queue[self.rt_queue_len - 1] else { break };
+            if next.due_sample >= until {
+                break;
+            }
+            self.rt_queue_len -= 1;
+            self.rt_queue[self.rt_queue_len] = None;
+            let at_sample = ((next.due_sample - buffer_start).max(0.0) as u32).min(buffer_len.saturating_sub(1));
+            if self.rt_out_len < REALTIME_PER_RENDER {
+                self.rt_out[self.rt_out_len] = RealtimeEvent { msg: next.msg, at_sample };
+                self.rt_out_len += 1;
+            } else {
+                self.rt_dropped = self.rt_dropped.saturating_add(1);
+            }
+        }
     }
 
     pub fn is_running(&self) -> bool {
@@ -555,6 +707,7 @@ impl Engine {
     }
 
     pub fn reset(&mut self) {
+        let was_running = self.running;
         self.running = false;
         // The queue below is cleared, so the NoteOffs it held are gone. The sounding table is
         // kept on purpose: the next render turns those notes off.
@@ -567,6 +720,13 @@ impl Engine {
         self.queue_len = 0;
         self.deferred_actions = [None; TRACK_COUNT];
         self.measure_deferred = [None; TRACK_COUNT];
+        self.rt_queue = [None; RT_QUEUE_CAP];
+        self.rt_queue_len = 0;
+        self.rt_out_len = 0;
+        if was_running {
+            // The sample clock was just zeroed, so the Stop is at the start of the next render in the new timeline.
+            self.rt_transport_stopped();
+        }
     }
 
     fn schedule(&mut self, due_sample: f64, event: RawEvent) {
@@ -733,6 +893,7 @@ impl Engine {
     }
 
     fn render_core(&mut self, ctx: &RenderContext, out: &mut EventBuffer) {
+        self.rt_out_len = 0;
         if ctx.playing != self.running {
             self.set_running(ctx.playing);
         }
@@ -779,6 +940,7 @@ impl Engine {
             }
 
             self.drain_due(chunk_end, buffer_start, ctx.buffer_len, out);
+            self.drain_realtime(chunk_end, buffer_start, ctx.buffer_len);
         }
 
         self.sample_clock = buffer_start + ctx.buffer_len as f64;
@@ -821,6 +983,13 @@ impl Engine {
     /// docs). `tick_due_sample` is this tick's absolute sample time, the base for
     /// any note this tick schedules.
     fn step_all_tracks(&mut self, tick_due_sample: f64, samples_per_tick: f64) {
+        // This tick's number is the count before it. A MIDI clock pulse falls on every `TICKS_PER_CLOCK`th tick of that count, not of
+        // the run, so the pulses stay on the grid the pattern is on across a stop and a continue (ADR-0009 amendment 1).
+        let index = self.global_tick;
+        self.tick_due[(index % TICK_RING as u64) as usize] = tick_due_sample;
+        if self.clock_master && index % TICKS_PER_CLOCK as u64 == 0 {
+            self.rt_schedule(tick_due_sample, Realtime::Clock);
+        }
         self.global_tick += 1;
         self.last_tick_fires.clear();
 

@@ -1,0 +1,56 @@
+# P4c deliberate breakages: each is one edit to the code, the relevant tests are run, and the edit is undone.
+# 'caught' means a test failed. Run from the P4c tree, 2026-10-02, by a script that applies one edit, runs the suite for that layer, and restores the file.
+# E9 survived the first run (no test made one render produce more clock messages than the engine keeps); `one_render_that_makes_more_messages_than_the_engine_keeps...` was added and it is caught in the second run.
+# Layers: E = crates/octocore/tests/clock.rs; W = apps/web/engine tests (abi_clock, abi, encode unit tests); T = apps/web Node tests plus tsc; T15 = the Chromium host tests.
+
+## Engine (crates/octocore/src/engine.rs)
+E1   caught   a pulse on the wrong tick
+E2   caught   Start and Continue swapped
+E3   caught   Stop never sent
+E4   caught   Clock before Start and Stop on one sample
+E5   caught   pulses stepped ahead survive a Stop
+E6   caught   tick_position is the stepped-ahead tick
+E7   caught   turning the clock off sends Stop
+E8   caught   Reset while running sends no Stop
+E9   caught   a message dropped for room is not counted
+E10  caught   take_realtime does not clear
+E11  caught   a message dropped for the caller's room is not counted
+E12  caught   a pulse on the end of a chunk comes out early
+E13  caught   pulses waiting survive turning the clock off
+E14  caught   the position ring is smaller than the engine runs ahead
+E15  caught   Play sends no Start
+E16  caught   the position has no fraction
+
+## Web module (apps/web/engine/src)
+W1   caught   a note before a pulse on one sample
+W2   caught   set_clock ignores its argument
+W3   caught   tick_position always 0
+W4   caught   every real-time record says Clock
+W5   caught   no room for the clock in the events buffer
+W6   caught   the clock never reaches the buffer
+W7   caught   a real-time record on port 1
+W8   caught   the module still says ABI 1
+W9   caught   the real-time list is appended after the notes
+W10  caught   only 1 is on
+W11  caught   the reserved bytes of a real-time record are not written
+W12  caught   tick_position loses precision
+
+## Page (apps/web/src, apps/web/test/support) and the Chromium host test
+T1   caught   a real-time message padded to three bytes
+T2   caught   active sensing accepted as a clock message
+T3   caught   only the first device hears the clock
+T4   caught   a device on both ports hears it twice
+T5   caught   real-time sends counted as notes
+T6   caught   the worklet ignores the clock message
+T7   caught   the clock switch is inverted
+T8   caught   the worklet says it speaks ABI 1
+T9   caught   tickPosition always 0
+T10  caught   a clock with no device is not counted
+T11  caught   an invalid real-time record is not counted
+T12  caught   a real-time send named as port 1
+T13  caught   the device list is never refreshed
+T14  caught   a real-time record with channel 0 is rejected
+T15  caught   Host.setClock(false) turns it on
+T16  caught   the second output starts from where the first left the clock
+
+44 of 44 caught.

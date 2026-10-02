@@ -86,6 +86,19 @@ only reach port 2 from Track zoom, which is not built (`specs/SPEC-0002/p4-plan.
 Track zoom lands. Only `pages/app.ts` reads the address (`engine/tests/app_source_rules.rs` fails if another file under
 `src/` reads `location`); `src/route.ts` only parses text.
 
+## The MIDI clock
+
+The engine can be the clock master (ADR-0009). With `Host.setClock(true)` (the worklet message `clock`, the export
+`octoweb_set_clock`) it sends Start or Continue when the transport starts and a Clock every 8 ticks, which is 24 to the quarter
+note, as kind 5 records in the same events as the notes, in sample order. The scheduler sends each one to **every chosen output,
+once for each device**: a device chosen for both ports hears one clock. It is off until asked for, and with it off nothing about
+the notes changes.
+
+**Nothing in the page turns it on yet.** The clock state belongs in the strip, and it arrives with the follower in P4d. Until
+then the clock is reached from a test or the console, and what reaches a device is pinned in `test/clock-path.test.ts`. A step
+of the pattern is 12 ticks, which is 1.5 pulses; whether that is in time with a drum machine is decision D0 (`WENGE-0012`) and
+not something this page claims.
+
 ## Tab order
 
 Acceptance criterion A8. The order of the elements in the page is the tab order (nothing has a `tabindex` above 0), and it

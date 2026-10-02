@@ -13,6 +13,8 @@ export type ToWorklet =
   | { type: "transport"; play: boolean }
   | { type: "tempo"; bpm: number }
   | { type: "track"; track: number; attr: number; value: number }
+  /** Makes the engine the MIDI clock master (ADR-0009), or not. */
+  | { type: "clock"; master: boolean }
   | { type: "reset" };
 
 export type FromWorklet =

@@ -22,6 +22,8 @@ export interface Harness {
   click(id: string): void;
   tempo(bpm: number): void;
   transport(play: boolean): void;
+  /** Makes the engine the MIDI clock master, or not (ADR-0009). */
+  clock(master: boolean): void;
   sends: Send[];
   errors: string[];
   panelCount(): number;
@@ -83,6 +85,7 @@ const harness: Harness = {
   },
   tempo: (bpm) => host?.setTempo(bpm),
   transport: (play) => host?.transport(play),
+  clock: (master) => host?.setClock(master),
   sends,
   errors,
   panelCount: () => panels,

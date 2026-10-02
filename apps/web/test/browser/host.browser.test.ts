@@ -77,6 +77,79 @@ test("Play: Note Ons reach the scheduler in the future, with the margin the look
   await page.close();
 });
 
+test("the clock: with it on, Start and then a pulse every 24th of a quarter note reach every device, in the future, through the real worklet", async () => {
+  const page = await open();
+  await page.evaluate(() => harness.start({ lookaheadMs: 30 }));
+  await page.evaluate(() => {
+    harness.tempo(120);
+    harness.clock(true);
+    harness.transport(true);
+  });
+  // Two devices hear every message, so 120 sends are 60 pulses: a little over a second of audio.
+  await page.waitForFunction(() => harness.sends.filter((s) => s.port === 0).length >= 120, null, { timeout: 10_000 });
+  const { sends, stats, errors } = await page.evaluate(() => ({ sends: harness.sends.filter((s) => s.port === 0).slice(0, 160), stats: harness.stats(), errors: harness.errors }));
+  assert.deepEqual(errors, []);
+  assert.equal(sends[0]!.bytes[0], 0xfa, "Start first");
+  assert.equal(sends[1]!.bytes[0], 0xfa, "to the second device too");
+  assert.equal(stats.invalid, 0);
+  assert.equal(stats.unrouted, 0);
+  assert.equal(stats.sent, 0, "no notes: the pattern is empty, and `sent` counts notes");
+  assert.ok(stats.realtime >= 120);
+  const pulses = sends.filter((s) => s.bytes[0] === 0xf8);
+  const times = [...new Set(pulses.map((s) => s.audioTime))].sort((a, b) => a - b);
+  assert.ok(times.length >= 50, `${times.length} distinct pulses`);
+  for (let i = 1; i < times.length; i++) {
+    // 120 BPM: a pulse every 20.833 ms. The engine places each on a whole sample, so a rate that does not divide it evenly (44.1 kHz) moves one by under a sample.
+    assert.ok(Math.abs((times[i]! - times[i - 1]!) * 1000 - 1000 / 48) < 0.05, `pulse ${i} came ${((times[i]! - times[i - 1]!) * 1000).toFixed(3)} ms after the one before`);
+  }
+  assert.ok(Math.abs(((times.at(-1)! - times[0]!) * 1000) / (times.length - 1) - 1000 / 48) < 0.01, "and on average to a hundredth of a millisecond");
+  const margins = pulses.map((s) => s.marginMs).sort((a, b) => a - b);
+  assert.ok(margins[Math.floor(margins.length / 2)]! >= 15, `median margin ${margins[Math.floor(margins.length / 2)]!.toFixed(1)} ms with a 30 ms lookahead`);
+  const stamped = sends.filter((s) => s.timestamp !== null).map((s) => s.timestamp!);
+  assert.deepEqual(stamped, [...stamped].sort((a, b) => a - b), "timestamps on a device never go backwards");
+  await page.close();
+});
+
+test("the clock: Stop is heard after the last pulse and Play again says Continue", async () => {
+  const page = await open();
+  await page.evaluate(() => harness.start({ lookaheadMs: 30 }));
+  await page.evaluate(() => {
+    harness.clock(true);
+    harness.transport(true);
+  });
+  await page.waitForFunction(() => harness.sends.filter((s) => s.bytes[0] === 0xf8).length >= 20, null, { timeout: 10_000 });
+  await page.evaluate(() => harness.transport(false));
+  await page.waitForFunction(() => harness.sends.some((s) => s.bytes[0] === 0xfc), null, { timeout: 5_000 });
+  await page.evaluate(() => harness.transport(true));
+  await page.waitForFunction(() => harness.sends.some((s) => s.bytes[0] === 0xfb), null, { timeout: 5_000 });
+  const { all, errors } = await page.evaluate(() => ({ all: harness.sends.filter((s) => s.port === 0).map((s) => [s.bytes[0]!, s.audioTime] as const), errors: harness.errors }));
+  assert.deepEqual(errors, []);
+  const stop = all.find(([b]) => b === 0xfc)!;
+  assert.ok(all.every(([b, t]) => b !== 0xf8 || t < stop[1] || t > all.find(([x]) => x === 0xfb)![1]), "no pulse between Stop and Continue");
+  assert.equal(all.filter(([b]) => b === 0xfc).length, 2, "one Stop, once to each device");
+  assert.ok(all.find(([b]) => b === 0xfb)![1] > stop[1], "Continue after Stop");
+  await page.close();
+});
+
+test("the clock: turned off while it runs, no more pulses reach a device once what was already on its way has gone", async () => {
+  const page = await open();
+  await page.evaluate(() => harness.start({ lookaheadMs: 30 }));
+  await page.evaluate(() => {
+    harness.clock(true);
+    harness.transport(true);
+  });
+  await page.waitForFunction(() => harness.sends.filter((s) => s.bytes[0] === 0xf8).length >= 20, null, { timeout: 10_000 });
+  await page.evaluate(() => harness.clock(false));
+  await page.waitForTimeout(400); // what the worklet had already posted, and the messages in flight, arrive in this time
+  const settled = await page.evaluate(() => harness.sends.filter((s) => s.bytes[0] === 0xf8).length);
+  await page.waitForTimeout(600);
+  const later = await page.evaluate(() => ({ pulses: harness.sends.filter((s) => s.bytes[0] === 0xf8).length, stops: harness.sends.filter((s) => s.bytes[0] === 0xfc).length, errors: harness.errors }));
+  assert.equal(later.pulses, settled, "a second of 120 BPM would have been 48 more pulses to each device");
+  assert.equal(later.stops, 0, "turning the clock off sends no Stop: the transport is still running");
+  assert.deepEqual(later.errors, []);
+  await page.close();
+});
+
 test("Stop: the transport stops, and a receiver that plays the sends in timestamp order holds no note", async () => {
   const page = await open();
   await page.evaluate(() => harness.start());

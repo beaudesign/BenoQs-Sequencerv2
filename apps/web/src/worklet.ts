@@ -1,7 +1,7 @@
 // Runs in the AudioWorkletGlobalScope: the engine and the panel controller, once per 128 frames.
 // No sequencing and no panel logic lives here: it calls the module and posts what comes back.
 /// <reference path="./worklet-env.d.ts" />
-import { KIND_DOWN, KIND_TURN, KIND_UP, Octoweb, RENDER_FRAMES, type Exports } from "./abi.ts";
+import { ABI_VERSION, KIND_DOWN, KIND_TURN, KIND_UP, Octoweb, RENDER_FRAMES, type Exports } from "./abi.ts";
 import { PANEL_EVERY_BLOCKS, WORKLET_NAME, type FromWorklet, type ToWorklet, type WorkletOptions } from "./protocol.ts";
 
 class OctowebProcessor extends AudioWorkletProcessor {
@@ -15,7 +15,7 @@ class OctowebProcessor extends AudioWorkletProcessor {
     this.engine = new Octoweb(instance.exports as unknown as Exports);
     this.engine.init(o.layout, sampleRate, o.seed);
     this.port.onmessage = (e: MessageEvent<ToWorklet>) => this.handle(e.data);
-    this.send({ type: "ready", abi: 1, sampleRate });
+    this.send({ type: "ready", abi: ABI_VERSION, sampleRate });
   }
 
   private send(message: FromWorklet, transfer: Transferable[] = []): void {
@@ -36,6 +36,9 @@ class OctowebProcessor extends AudioWorkletProcessor {
           break;
         case "track":
           this.engine.setTrack(m.track, m.attr, m.value);
+          break;
+        case "clock":
+          this.engine.setClock(m.master);
           break;
         case "reset":
           this.engine.reset();

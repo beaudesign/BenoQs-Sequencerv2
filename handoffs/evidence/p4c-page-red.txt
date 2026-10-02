@@ -1,0 +1,23 @@
+# P4c page-side red capture: tests written before the TypeScript, run against the P4b module (octoweb-abi/1) and the P4b sources
+# command: npm test (node --test test/*.test.ts), with dist/octoweb.wasm from c89ec87
+not ok 1 - test/abi.test.ts
+not ok 5 - Start and then a steady clock reach every chosen device, 24 pulses to 500 ms at 120 BPM
+not ok 6 - one device on both ports hears the clock once
+not ok 7 - Stop is heard once, after the last pulse and before anything else, and Play again says Continue
+not ok 72 - MIDI bytes: the four real-time messages are one byte, the status byte in d1, whatever the port, channel and d2 hold
+not ok 74 - a real-time message goes to every chosen device, once, and is not counted as a note
+not ok 75 - one device chosen for both ports hears one clock, not two
+not ok 76 - with no device chosen a real-time message has nowhere to go: it is counted as unrouted and nothing is sent
+not ok 77 - choosing a device or letting one go changes who hears the next pulse, with the ordering of the others untouched
+not ok 78 - a real-time record that is not valid MIDI is counted as invalid and sent to no one
+not ok 79 - a pulse and a note on one sample are sent in the order the records came, with the same timestamp
+not ok 80 - timestamps on a device never go backwards across notes and the clock together (rule 1 holds for real-time messages)
+not ok 81 - a pulse that is already late is sent at once and counted late, like a late note
+not ok 82 - onSend names a real-time send with port 0, and is called once for each device
+not ok 129 - the constructor starts the engine and says ready, with the sample rate the context runs at
+not ok 144 - a clock message turns the engine's clock on and off: Start and pulses reach the page in the events message, kind 5
+not ok 145 - a clock message after reset is reported as an error, like any call the module refuses, and does not stop the worklet
+# tests 145
+# pass 128
+# fail 17
+# 3 tests pass by construction against the old module: "nothing on the clock reaches a device until the clock is turned on", "the notes a device hears are the same ... with the clock on and off" (the worklet ignores a clock message it has no case for, so both runs are clock-off) and "Stop with the clock on leaves no note held". The mutation run checks that they can fail.

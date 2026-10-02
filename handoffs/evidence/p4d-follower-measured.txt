@@ -51,3 +51,36 @@ step 150-100 (3 s on)              ticks: p50 0.22 p90 0.28 max 0.35 | over the 
 step 120-60 (3 s on)               ticks: p50 0.15 p90 0.22 max 0.23 | over the 1 proposed: 0 of 40
 step 60-120 (3 s on)               ticks: p50 0.27 p90 0.37 max 0.45 | over the 1 proposed: 0 of 40
 one pulse in 53 lost, 1 in 37 doubled ticks: p50 0.28 p90 0.43 max 0.48 | over the 1 proposed: 0 of 40
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# SLICE C: the follower in front of the REAL engine (the engine, worklet, scheduler and follower are real; the sender's pulses and the receiver are made up)
+# command: node apps/web/scripts/measure-follower-engine.ts   (about a minute). Measured at the DEVICE: when each engine pulse is delivered, against the
+# sender's pulse with the same number. The tests use seeds 1 to 7; these are seeds 100 to 119.
+#
+# What it says, in words:
+#  * With the output's own timing noise off (what is left is the follower, the engine and the noise of the sender and of the position map), the
+#    worst heard error is under half a tick in steady state at 70, 120 and 160 BPM, after a step in tempo and after a ramp. The count is right: a
+#    pulse out of place would read 8 ticks. On a ramp of 3.75 BPM a second the worst is 3.51 ticks (p50 2.96): the bound is 4, the number the
+#    simulated follower's fast ramp has, and nine seeds of twenty are over 3, so the margin is thin and nobody should call it comfortable.
+#  * With the output noise ON (the page's idea of the audio clock wrong by up to 1.5 ms at each batch of events) the figures are mostly that noise:
+#    120 BPM stays under a tick (0.85), 160 BPM does not (1.11; 5 of 20 over), because a tick there is 1.9 ms. The test of the bound at 120 BPM with the
+#    noise on is kept; there is no such test at 160 BPM because the bound would not hold, and that is said here and not hidden by dropping the noise.
+#  * The two noises are drawn independently here. If the page's map is wrong in the same way for the position it reports and the events it stamps
+#    (they share one ContextTimeMap in the app) the follower will see and cancel part of it; or it may be worse. Unknown until spike S3.
+#  * The engine's own notes sit 11 ticks after the pulse of their step (crates/octocore/tests/clock.rs, AMBIGUITIES.md "the first note after Play"): a fact
+#    of the engine and a question for the owner, found again here when a first draft of the notes test expected them on the pulse and read 10.8 ticks.
+#
+# follower in front of the real engine: simulated sender (uniform jitter of plus or minus 3 ms), real engine, worklet, scheduler and follower; seeds 100 to 119 (the tests use 1 to 7)
+# worst heard error in ticks over the window (milliseconds after the Start message), lookahead 30 ms
+steady 120 (2.5-10 s)          output noise 0   ms   ticks: p50 0.22 p90 0.32 max 0.38 | over the 1 proposed: 0 of 20
+steady 70 (3-10 s)             output noise 0   ms   ticks: p50 0.14 p90 0.21 max 0.21 | over the 1 proposed: 0 of 20
+steady 160 (3-10 s)            output noise 0   ms   ticks: p50 0.26 p90 0.38 max 0.42 | over the 1 proposed: 0 of 20
+step 120 to 90 at 5 s (9.5-14 s) output noise 0   ms   ticks: p50 0.17 p90 0.24 max 0.24 | over the 1 proposed: 0 of 20
+ramp 100 to 130 over 8 s, on it output noise 0   ms   ticks: p50 2.96 p90 3.49 max 3.51 | over the 3 proposed: 9 of 20
+ramp 100 to 130, after (11-14 s) output noise 0   ms   ticks: p50 0.18 p90 0.29 max 0.34 | over the 1 proposed: 0 of 20
+steady 120 (2.5-10 s)          output noise 1.5 ms   ticks: p50 0.74 p90 0.80 max 0.85 | over the 1 proposed: 0 of 20
+steady 70 (3-10 s)             output noise 1.5 ms   ticks: p50 0.43 p90 0.50 max 0.52 | over the 1 proposed: 0 of 20
+steady 160 (3-10 s)            output noise 1.5 ms   ticks: p50 0.97 p90 1.09 max 1.11 | over the 1 proposed: 5 of 20
+step 120 to 90 at 5 s (9.5-14 s) output noise 1.5 ms   ticks: p50 0.53 p90 0.59 max 0.62 | over the 1 proposed: 0 of 20
+ramp 100 to 130 over 8 s, on it output noise 1.5 ms   ticks: p50 3.34 p90 3.92 max 4.07 | over the 3 proposed: 17 of 20
+ramp 100 to 130, after (11-14 s) output noise 1.5 ms   ticks: p50 0.76 p90 0.87 max 0.89 | over the 1 proposed: 0 of 20

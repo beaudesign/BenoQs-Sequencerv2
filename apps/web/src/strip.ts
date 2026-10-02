@@ -8,6 +8,10 @@ export interface Strip {
   /** One list of devices for each of the engine's two output ports. */
   outputs: Record<OutputPort, HTMLSelectElement>;
   input: HTMLSelectElement;
+  /** The clock state: off, master, slave, slave with echo (src/clock-state.ts). */
+  clock: HTMLSelectElement;
+  /** The extra lead, in milliseconds, for the notes when following a clock. */
+  clockOffset: HTMLInputElement;
   lookahead: HTMLInputElement;
   /** The app's own state, in a sentence. */
   say(engine: string): void;
@@ -17,6 +21,10 @@ export interface Strip {
   sayInput(message: string): void;
   /** How many messages the chosen input has sent. Not a live region: it changes twice a second. */
   sayInputCount(text: string): void;
+  /** What the clock state is doing, in a sentence. A live region: it changes only when the state does. */
+  sayClock(text: string): void;
+  /** The numbers under it (tempo, pulses, jitter, phase). Not a live region: it changes four times a second. Empty hides the line. */
+  sayClockDetail(text: string): void;
   /** The routes the address asked for, in a sentence. Empty hides the line. */
   sayRoute(text: string): void;
   /** Lists the outputs the browser offers in both lists and keeps each selection if it is still there. */
@@ -51,21 +59,29 @@ export function bindStrip(doc: Document): Strip {
   const start = find<HTMLButtonElement>(doc, "#start");
   const outputs = { 1: find<HTMLSelectElement>(doc, "#midi-out-1"), 2: find<HTMLSelectElement>(doc, "#midi-out-2") };
   const input = find<HTMLSelectElement>(doc, "#midi-in");
+  const clock = find<HTMLSelectElement>(doc, "#clock-state");
+  const clockOffset = find<HTMLInputElement>(doc, "#clock-offset");
   const lookahead = find<HTMLInputElement>(doc, "#lookahead");
   const engine = find<HTMLElement>(doc, "#engine-status");
   const midi = find<HTMLElement>(doc, "#midi-status");
   const inStatus = find<HTMLElement>(doc, "#midi-in-status");
   const inCount = find<HTMLElement>(doc, "#midi-in-count");
   const route = find<HTMLElement>(doc, "#route-status");
+  const clockStatus = find<HTMLElement>(doc, "#clock-status");
+  const clockDetail = find<HTMLElement>(doc, "#clock-detail");
   return {
     start,
     outputs,
     input,
+    clock,
+    clockOffset,
     lookahead,
     say: (text) => void (engine.textContent = text),
     sayMidi: (text) => void (midi.textContent = text),
     sayInput: (text) => void (inStatus.textContent = text),
     sayInputCount: (text) => void (inCount.textContent = text),
+    sayClock: (text) => void (clockStatus.textContent = text),
+    sayClockDetail: (text) => void (clockDetail.textContent = text),
     sayRoute(text) {
       route.textContent = text;
       route.hidden = text === "";

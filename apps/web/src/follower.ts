@@ -190,7 +190,7 @@ export class Follower {
         this.actions.transport(true);
       }
     }
-    this.apply(timeMs);
+    this.apply();
   }
 
   /** The engine's position, from the panel message, mapped to page time. */
@@ -216,7 +216,7 @@ export class Follower {
     }
     this.phase = error * period;
     this.trim = Math.max(-this.tuning.maxTrim, Math.min(this.tuning.maxTrim, -this.phase / this.tuning.trimTimeMs));
-    this.apply(sample.pageTimeMs);
+    this.apply();
   }
 
   status(nowMs: number): FollowStatus {
@@ -237,10 +237,13 @@ export class Follower {
     if (this.believedRunning) this.retakeAnchor = true;
   }
 
-  /** Sends the tempo the loop asks for if it is worth sending: the sender's tempo, trimmed while the engine is running. */
-  private apply(nowMs: number): void {
+  /**
+   * Sends the tempo the loop asks for if it is worth sending: the sender's tempo, trimmed while the engine is running. Its callers see to
+   * a lost clock: a pulse has just made the clock fresh, and `onPosition` returns before it while the clock is lost.
+   */
+  private apply(): void {
     const bpm = this.estimator.bpm;
-    if (bpm === null || this.estimator.state(nowMs) === "lost") return;
+    if (bpm === null) return;
     const trimmed = this.believedRunning && this.anchor !== null ? bpm * (1 + this.trim) : bpm;
     if (!finite(trimmed) || trimmed < ENGINE_BPM.min || trimmed > ENGINE_BPM.max) return;
     if (this.applied !== null && Math.abs(trimmed - this.applied) < this.tuning.minTempoChange) return;

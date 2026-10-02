@@ -24,6 +24,19 @@
       <select id="midi-in"><option value="">No input</option></select>
     </div>
     <div class="field">
+      <label for="clock-state">MIDI Clock</label>
+      <select id="clock-state">
+        <option value="off">Off</option>
+        <option value="master">Master Clock</option>
+        <option value="slave">Slave Clock</option>
+        <option value="slave-echo">Slave Clock with MIDI Clock echo</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="clock-offset">Clock offset in milliseconds</label>
+      <input id="clock-offset" type="number" inputmode="numeric" step="1">
+    </div>
+    <div class="field">
       <label for="lookahead">Lookahead in milliseconds</label>
       <input id="lookahead" type="number" inputmode="numeric" step="1">
     </div>
@@ -31,6 +44,8 @@
     <p id="midi-status" role="status">MIDI is asked for when you press Start.</p>
     <p id="midi-in-status" role="status"></p>
     <p id="midi-in-count"></p>
+    <p id="clock-status" role="status"></p>
+    <p id="clock-detail"></p>
     <p id="route-status" role="status" hidden></p>
   </section>
   <div id="panel-frame"></div>

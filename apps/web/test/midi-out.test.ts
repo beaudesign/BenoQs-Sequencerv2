@@ -440,3 +440,83 @@ test("the scheduler still never calls clear() when real-time messages are sent",
   s.schedule(96_000, 48_000, concat(realtime(0xfa, 0), realtime(0xfc, 5)));
   assert.equal(out.clears, 0);
 });
+
+// ------------------------------------------------------------------------------------------------ the echo (D-P4-8, ADR-0009 amendment 2)
+// Slave with echo hands what came in to the outputs. It is not the engine's clock and has no audio time, so it is not stamped from the
+// page clock and has no lookahead added: a pulse that was timed by the sender and arrived late is sent at once and not later again.
+
+test("echo: a real-time message passed through goes to every chosen device at once, with no timestamp, whatever the lookahead", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const a = new RecordingOutput();
+  const b = new RecordingOutput();
+  const s = new MidiScheduler(t, 250);
+  s.setOutput(1, a);
+  s.setOutput(2, b);
+  s.passThrough(0xf8);
+  assert.deepEqual(a.sent, [{ data: [0xf8], timestamp: undefined }], "no timestamp: sent now, and 250 ms of lookahead is not added");
+  assert.deepEqual(b.sent, [{ data: [0xf8], timestamp: undefined }]);
+  assert.equal(s.stats.realtime, 2, "counted with the other real-time sends, one for each device");
+  assert.equal(s.stats.sent, 0);
+  assert.equal(s.stats.late, 0, "it is not late: it was never due at a time");
+});
+
+test("echo: Start, Continue and Stop pass the same way, and one device chosen for both ports hears each once", () => {
+  const t = new FakeTime();
+  const only = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, only);
+  s.setOutput(2, only);
+  for (const status of [0xfa, 0xfb, 0xfc]) s.passThrough(status);
+  assert.deepEqual(only.sent.map((x) => x.data), [[0xfa], [0xfb], [0xfc]]);
+  assert.equal(s.stats.realtime, 3);
+});
+
+test("echo: what is not Clock, Start, Continue or Stop is never passed on, and is counted as invalid", () => {
+  const t = new FakeTime();
+  const out = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, out);
+  for (const status of [0x90, 0xf0, 0xf2, 0xfe, 0xff, 0, 128, -1, NaN, 1.5]) s.passThrough(status);
+  assert.deepEqual(out.sent, []);
+  assert.equal(s.stats.invalid, 10);
+  assert.equal(s.stats.realtime, 0);
+});
+
+test("echo: with no device chosen it is counted as unrouted and nothing is sent", () => {
+  const s = new MidiScheduler(new FakeTime(), 30);
+  s.passThrough(0xf8);
+  assert.equal(s.stats.unrouted, 1);
+  assert.equal(s.stats.realtime, 0);
+});
+
+test("echo: a pass-through does not move the ordering rule for the notes queued on the same device, and is not reported to onSend", () => {
+  const t = new FakeTime();
+  t.nowMs = 1000;
+  const out = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, out);
+  const seen: SentInfo[] = [];
+  s.onSend = (i) => seen.push(i);
+  s.schedule(96_000, 48_000, record(0, 1, 1, 60, 100, 0)); // due at 2 s, stamped 2030
+  s.passThrough(0xf8);
+  s.schedule(96_000, 48_000, record(1, 1, 1, 60, 0, 0)); // a Note Off due at the same moment: the ordering rule raises nothing
+  assert.deepEqual(out.sent.map((x) => x.timestamp), [2030, undefined, 2030]);
+  assert.equal(s.stats.raised, 0);
+  assert.equal(seen.length, 2, "the two notes were reported; the pass-through was not (it has no engine time to report)");
+});
+
+test("echo: choosing devices changes who hears the next pass-through, as it does for the engine's own clock", () => {
+  const t = new FakeTime();
+  const a = new RecordingOutput();
+  const b = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, a);
+  s.passThrough(0xf8);
+  s.setOutput(2, b);
+  s.passThrough(0xf8);
+  s.setOutput(1, null);
+  s.passThrough(0xf8);
+  assert.equal(a.sent.length, 2);
+  assert.equal(b.sent.length, 2);
+});

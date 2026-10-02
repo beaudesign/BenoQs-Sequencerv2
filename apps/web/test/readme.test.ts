@@ -20,8 +20,8 @@ function section(title: string): string {
 
 test("the README's tab order lists the strip, then the matrix in reading order, then the other controls in the layout's order", () => {
   const text = section("Tab order");
-  const strip = /`start`, `midi-out-1`, `midi-out-2`, `midi-in`, `lookahead`/.exec(text);
-  assert.ok(strip, "the strip's five stops");
+  const strip = /`start`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`/.exec(text);
+  assert.ok(strip, "the strip's seven stops");
   assert.match(text, /row 9 \(the top row\) from column 1 to column 16, then row 8/);
   assert.match(text, /row 0 \(the bottom row\)/);
   const listed = [...text.matchAll(/^\s+\d+\.\s+`([a-z0-9_.]+)`\s*$/gm)].map((m) => m[1]);

@@ -300,6 +300,21 @@ test("M4: a doubled pulse (the same message twice, a moment apart) is ignored an
   }
 });
 
+test("a doubled pulse while the lock is still being made (the first beat) is ignored and counted, and the count is not moved by it", () => {
+  // While locking, the grid is not yet known well enough to say a pulse is a repeat (the estimator reads it from the gap to the last pulse),
+  // and this is the case that rule is for. Found as a survivor in the mutation run for P4d: nothing before this tested it.
+  for (let seed = 1; seed <= 20; seed++) {
+    const extras = [6, 9, 14, 20];
+    const sim = simulate({ seed, seconds: 6, bpm: steady(120), jitter: { shape: "uniform", ms: 3 }, duplicate: (i) => (extras.includes(i) ? 0.4 : null) });
+    const e = new ClockEstimator();
+    for (const p of sim.pulses) e.push(p.at);
+    const last = sim.pulses.filter((p) => !p.extra).length - 1;
+    assert.equal(e.stats.duplicates, extras.length, `seed ${seed}: each extra was counted as a repeat`);
+    assert.equal(e.pulseCount, last, `seed ${seed}: the count is the sender's, not moved by the extras`);
+    assert.ok(Math.abs(e.bpm! - 120) < 0.3, `seed ${seed}: tempo ${e.bpm}`);
+  }
+});
+
 test("M4: a stray pulse half way between two real ones is turned away and does not move the grid", () => {
   for (let seed = 1; seed <= 20; seed++) {
     const period = 2500 / 120;

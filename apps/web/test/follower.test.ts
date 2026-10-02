@@ -251,6 +251,27 @@ test("bad input is ignored: a position or a message that is not a number changes
   assert.doesNotThrow(() => f.status(t));
 });
 
+test("the trim is at most 8% either way, and it is used in full when the engine is a long way off", () => {
+  // An engine five pulses (104 ms) behind the grid or ahead of it asks for far more than 8%: it gets 8%, and not what the loop asked for.
+  // Found as a survivor in the mutation run for P4d ("trim unbounded" and "no trim" were both caught only by the loop's tolerances).
+  for (const [direction, expected] of [[-1, 1.08], [1, 0.92]] as const) {
+    const r = new Recorder();
+    const f = new Follower(r);
+    f.onPosition({ ticks: 800, pageTimeMs: 900 }); // the engine is at pulse 100 when the Start comes
+    let t = feedPulses(f, r, 1_000, 30);
+    f.onStart(t);
+    r.now = t + 1;
+    f.onClock(t + 1);
+    t = feedPulses(f, r, t + 22, 40);
+    const at = t + 20;
+    const grid = f.estimator.pulseIndex(at + 30)!; // the sender's pulse the engine should be at, with the default 30 ms lookahead
+    const shouldBe = 100 + (grid - 30); // the engine was anchored at pulse 100 on the sender's pulse 30, the one that came after the Start
+    f.onPosition({ ticks: (shouldBe + direction * 5) * 8, pageTimeMs: at });
+    const ratio = r.tempos[r.tempos.length - 1]! / f.estimator.bpm!;
+    assert.ok(Math.abs(ratio - expected) < 1e-9, `${direction > 0 ? "ahead" : "behind"}: the tempo was ${ratio.toFixed(4)} times the sender's, not ${expected}`);
+  }
+});
+
 // ----- the loop closed (M4, M5) -----
 
 const jitter = { shape: "uniform", ms: 3 } as const;
@@ -320,6 +341,17 @@ test("M4: a fast ramp (100 to 140 BPM over 8 s) is followed, and the engine sett
     const { samples } = runLoop({ sim: simulate({ seed, seconds: 18, bpm: ramp(100, 140, 8), jitter }), plant: { seed } });
     assert.ok(worstTicks(samples, 3_000, 9_000) <= FAST_RAMP_TICKS, `seed ${seed}: on the ramp ${worstTicks(samples, 3_000, 9_000).toFixed(2)} ticks`);
     assert.ok(worstTicks(samples, 8_000 + AFTER_STEP_S * 1000) <= STEADY_TICKS, `seed ${seed}: after it ${worstTicks(samples, 11_000).toFixed(2)} ticks`);
+  }
+});
+
+test("M4: seeds the tuning never saw: steady 120 BPM and a step to 90, forty seeds each, are held to the same tick", () => {
+  // The first draft passed on seeds 1 to 12 and put 18 of 40 steady runs on seeds 100 to 139 a whole pulse out: the harness's Start came
+  // after the first pulse. These seeds are in the test so that it cannot happen again unseen (handoffs/evidence/p4d-follower-measured.txt).
+  for (let seed = 100; seed < 140; seed++) {
+    const steadyRun = runLoop({ sim: simulate({ seed, seconds: 8, bpm: steady(120), jitter }), plant: { seed } });
+    assert.ok(worstTicks(steadyRun.samples, SETTLE_S * 1000) <= STEADY_TICKS, `steady, seed ${seed}: ${worstTicks(steadyRun.samples, SETTLE_S * 1000).toFixed(2)} ticks`);
+    const stepRun = runLoop({ sim: simulate({ seed, seconds: 14, bpm: step(120, 90, 5), jitter }), plant: { seed } });
+    assert.ok(worstTicks(stepRun.samples, 5_000 + AFTER_STEP_S * 1000) <= STEADY_TICKS, `step, seed ${seed}: ${worstTicks(stepRun.samples, 8_000).toFixed(2)} ticks`);
   }
 });
 

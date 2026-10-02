@@ -12,7 +12,8 @@ panel. SPEC-0002, task WENGE-0014, ADR-0008. Owner: the Forge.
 | `src/worklet.ts` | The `AudioWorkletProcessor`: renders 128 frames, posts events and, every 8 blocks, the LED frame and playheads |
 | `src/host.ts` | The page's side: compiles the module, starts the worklet, routes its messages, sends panel input |
 | `src/midi-out.ts`, `src/wire.ts` | Turns events into `MIDIOutput.send(data, timestamp)` calls with a lookahead, one device for each port, and joins them to the host |
-| `src/midi-in.ts`, `src/route.ts` | The input path (decode and count; no consumer yet) and the `?route=` stand-in for port 2 (parses text only) |
+| `src/midi-in.ts`, `src/route.ts` | The input path (decode and count; the clock is the one consumer) and the `?route=` stand-in for port 2 (parses text only) |
+| `src/clock-estimator.ts`, `src/follower.ts`, `src/clock-state.ts` | The clock as a slave: a Kalman filter on the pulses' times, the loop that steers the engine's tempo and transport from outside, and the four clock states with their sentences. See **The MIDI clock** |
 | `pages/app.*` | The app: `app.html` (the strip is written here), `app.css` (names tokens, writes none), `app.ts` (joins the panel, the engine and Web MIDI) |
 | `src/panel.ts`, `src/layout.ts`, `src/press.ts`, `src/strip.ts`, `src/midi-access.ts` | The SVG panel, where each control goes, pointer and key presses, the strip, and Web MIDI as the page needs it |
 | `src/tokens.ts`, `src/tokens-css.ts` | `contracts/design.tokens.json` read and written out as the stylesheet `dist/tokens.css` |
@@ -38,8 +39,8 @@ Chromium comes from `npx playwright-core install chromium`, or from `PLAYWRIGHT_
 ## The panel
 
 `pages/app.html` is a strip and a panel. The strip is plain: **Start**, the device for **MIDI Out 1** and for **MIDI Out 2**,
-the device for **MIDI In**, the **lookahead** in milliseconds (30 by default), and sentences that say what the app and the
-browser's MIDI are doing. It never sits on the panel and holds no colour. The panel is one SVG that scales as a whole and
+the device for **MIDI In**, the **MIDI Clock** state, the **clock offset** in milliseconds, the **lookahead** in milliseconds
+(30 by default), and sentences that say what the app and the browser's MIDI and clock are doing. It never sits on the panel and holds no colour. The panel is one SVG that scales as a whole and
 never rearranges.
 
 - **Start** is a button because a browser keeps audio silent until the page has been used. It starts the engine in its
@@ -53,8 +54,8 @@ never rearranges.
   ordering. A track gets onto port 2 from Track zoom, which does not exist yet; until then see **The route hook**.
 - **One input**: choose a device for MIDI In and its messages are decoded (`src/midi-in.ts`: Note On and Off, controller,
   pitch bend, channel pressure, program change and the four real-time messages 0xF8, 0xFA, 0xFB, 0xFC) and counted, and the
-  strip shows the count. **Nothing uses them yet.** Recording, transpose, force-to-scale, map learn and the clock follower
-  attach at `InputPath.onMessage` in the waves that own them. The page asks for Web MIDI without the system exclusive
+  strip shows the count. **Only the clock uses them** (see **The MIDI clock**): recording, transpose, force-to-scale and map
+  learn attach at `InputPath.onMessage` in the waves that own them. The page asks for Web MIDI without the system exclusive
   permission, and system exclusive is not delivered without it.
 - **A browser that has Web MIDI and cannot start it** (no MIDI backend on the system) says so and shows the browser's own
   reason, apart from a refusal, which says how to allow it.
@@ -88,16 +89,41 @@ Track zoom lands. Only `pages/app.ts` reads the address (`engine/tests/app_sourc
 
 ## The MIDI clock
 
-The engine can be the clock master (ADR-0009). With `Host.setClock(true)` (the worklet message `clock`, the export
-`octoweb_set_clock`) it sends Start or Continue when the transport starts and a Clock every 8 ticks, which is 24 to the quarter
-note, as kind 5 records in the same events as the notes, in sample order. The scheduler sends each one to **every chosen output,
-once for each device**: a device chosen for both ports hears one clock. It is off until asked for, and with it off nothing about
-the notes changes.
+The strip's **MIDI Clock** chooses one of four states, with the manual's own words (p. 93): **Off**, which is the default
+(nothing is sent and nothing is followed), **Master Clock**, **Slave Clock**, and **Slave Clock with MIDI Clock echo**. One
+sentence says what the state is doing, and it changes only when the state does (it is a live region); the numbers under it
+(tempo, pulses heard, jitter, how far the engine is from the sender's beat) are redrawn four times a second and are not one.
+The state is not saved: Save and Load do not exist yet.
 
-**Nothing in the page turns it on yet.** The clock state belongs in the strip, and it arrives with the follower in P4d. Until
-then the clock is reached from a test or the console, and what reaches a device is pinned in `test/clock-path.test.ts`. A step
-of the pattern is 12 ticks, which is 1.5 pulses; whether that is in time with a drum machine is decision D0 (`WENGE-0012`) and
-not something this page claims.
+- **Master** (ADR-0009). The engine sends Start or Continue when the transport starts and a Clock every 8 ticks, which is 24 to
+  the quarter note, as kind 5 records in the same events as the notes, in sample order. The scheduler sends each one to
+  **every chosen output, once for each device**: a device chosen for both ports hears one clock. With no output chosen it is
+  accepted and says that nothing is sent yet.
+- **Slave**. The clock on the chosen **MIDI In** steers the engine from outside. The engine still ticks on its own sample clock:
+  the page reads the pulses' times (`src/clock-estimator.ts`, a Kalman filter that copes with jitter, a ramp, a step, a missing
+  or doubled pulse and a stall), sets the engine's tempo (the sender's, trimmed by up to 8% to keep the beat in step) and
+  starts and stops the transport (`src/follower.ts`). Start and Continue take effect at the next pulse, Stop at once; a pulse
+  alone never starts the transport. With no pulse for 500 ms the sentence says the clock stopped and the engine plays on at the
+  last tempo. Choosing another input starts the follower again. With no input chosen the state is accepted and says to choose one.
+- **Echo** is slave, and passes the clock, Start, Continue and Stop on to the chosen outputs as they arrive: at once, with no
+  timestamp and no lookahead (the sender timed them). **Do not send the echo to the port the clock comes from.** A virtual
+  port that both receives and sends feeds the clock back to itself, and the tempo runs away; nothing in the page can see that.
+- **Clock offset in milliseconds** is extra lead for the notes while following: positive makes them land earlier. The engine
+  runs ahead of the sender's grid by the lookahead plus this offset, because the scheduler adds the lookahead to everything it
+  plays. It is the constant that Live's "MIDI Clock Sync Delay" corrects, with the opposite sign. Zero is the lookahead alone.
+- **A state that cannot work is refused, in words, and the control goes back to Off**: no Web MIDI, MIDI access refused, or Web
+  MIDI that could not start. Before Start (and while the browser's MIDI prompt is open) the choice is kept and says it waits.
+
+**Not done, and said here so that nobody finds it by surprise.** Song position (0xF2) is read and ignored, so a Continue from the
+middle of a song resumes where this sequencer stopped and not where the sender is; the engine does not rewind on Stop, so Start
+and Continue are the same to it. The Play key on the panel stays the page's own command whatever the clock state, so Play while
+slaved starts the engine on its own and the sender's next Start finds it running. Turning the engine's tempo by hand while slaved
+is overwritten by the follower within a few milliseconds. A step of the pattern is 12 ticks, which is 1.5 pulses; whether that is
+in time with a drum machine is decision D0 (`WENGE-0012`) and not something this page claims.
+
+**Not measured.** The follower has been run only against a simulated sender and a simulated engine, and with the real engine
+and worklet in `test/follower-engine.test.ts`. That Web MIDI's `event.timeStamp` is on `performance.now()`'s clock is an
+assumption, and so is what a real sender's jitter looks like; spike S3 (`spikes/s3/`, `ABLETON.md`) is the measurement.
 
 ## Tab order
 
@@ -105,7 +131,7 @@ Acceptance criterion A8. The order of the elements in the page is the tab order 
 follows the panel from the top left to the bottom right. This section is checked against `layout/panel.layout.json` by
 `test/readme.test.ts`, so it cannot drift.
 
-1. The strip: `start`, `midi-out-1`, `midi-out-2`, `midi-in`, `lookahead`.
+1. The strip: `start`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
 2. The 160 matrix keys in reading order: row 9 (the top row) from column 1 to column 16, then row 8, and so on down to
    row 0 (the bottom row).
 3. The other controls, in the order of the layout file (left to right, row by row):

@@ -1,16 +1,20 @@
-// The app: the panel, the strip, and between them the engine in its worklet, two Web MIDI outputs (one for each port) and one input.
+// The app: the panel, the strip, and between them the engine in its worklet, two Web MIDI outputs (one for each port) and one input,
+// and the clock: the engine as the master (its clock goes out with its notes), or the page as a slave (the input's clock steers the engine
+// from outside: src/follower.ts), with or without the echo.
 // Everything it needs is fetched from the folders the server serves: the control inventory and the tokens (contracts),
 // the layout, the module. `Start` is a button because a browser keeps audio silent until the page has been used.
 import { TRACK_ATTR, layoutFromControls } from "../src/abi.ts";
+import { CLOCK_DEFAULT, decideClock, describeClock, isClockMode, type ClockDecision, type ClockWorld } from "../src/clock-state.ts";
+import { Follower } from "../src/follower.ts";
 import { Host } from "../src/host.ts";
 import { parseLayout, place, type ControlsDoc } from "../src/layout.ts";
-import { InputPath, describeCount, describeInput } from "../src/midi-in.ts";
+import { InputPath, REALTIME_STATUS, describeCount, describeInput } from "../src/midi-in.ts";
 import { describeOutputs, openMidi, type Midi, type OutputChoice } from "../src/midi-access.ts";
 import { ContextTimeMap, MidiScheduler } from "../src/midi-out.ts";
 import { drawPanel } from "../src/panel.ts";
 import { Presses } from "../src/press.ts";
 import { describeRoutes, parseRoute } from "../src/route.ts";
-import { INPUT_COUNT_REFRESH_MS, LOOKAHEAD_MS, OUTPUT_PORTS } from "../src/settings.ts";
+import { CLOCK_DETAIL_REFRESH_MS, CLOCK_OFFSET_MS, INPUT_COUNT_REFRESH_MS, LOOKAHEAD_MS, OUTPUT_PORTS } from "../src/settings.ts";
 import { bindStrip } from "../src/strip.ts";
 import { parseTokens } from "../src/tokens.ts";
 import { wireMidi } from "../src/wire.ts";
@@ -70,11 +74,61 @@ async function main(): Promise<void> {
   strip.lookahead.min = String(LOOKAHEAD_MS.min);
   strip.lookahead.max = String(LOOKAHEAD_MS.max);
   strip.lookahead.value = String(LOOKAHEAD_MS.default);
+  strip.clockOffset.min = String(CLOCK_OFFSET_MS.min);
+  strip.clockOffset.max = String(CLOCK_OFFSET_MS.max);
+  strip.clockOffset.value = String(CLOCK_OFFSET_MS.default);
 
   let scheduler: MidiScheduler | null = null;
   let midi: Midi | null = null;
 
+  // The clock. What was asked for is the select's value; what is in force is `decision`, which refuses what cannot work.
+  let follower: Follower | null = null;
+  let masterOn = false;
+  let outputDevices = 0;
+  let inputName: string | null = null;
+  let decision: ClockDecision = decideClock("off", { started: false, midi: "unknown", outputs: 0, input: null });
+  let shownClock = "";
+  let shownDetail = "";
+  const clockWorld = (): ClockWorld => ({ started: host !== null, midi: midi?.status ?? "unknown", outputs: outputDevices, input: inputName });
+  const offsetNow = (): number => {
+    const ms = Number(strip.clockOffset.value);
+    return Number.isFinite(ms) && ms >= CLOCK_OFFSET_MS.min && ms <= CLOCK_OFFSET_MS.max ? ms : CLOCK_OFFSET_MS.default;
+  };
+  const drawClock = (): void => {
+    const status = follower && decision.follow ? follower.status(performance.now()) : null;
+    const text = describeClock(decision, clockWorld(), status);
+    if (text.status !== shownClock) strip.sayClock((shownClock = text.status));
+    if (text.detail !== shownDetail) strip.sayClockDetail((shownDetail = text.detail));
+  };
+  setInterval(drawClock, CLOCK_DETAIL_REFRESH_MS);
+
   const inputPath = new InputPath();
+  const drawInput = (): void => {
+    if (midi) strip.sayInput(describeInput(inputName, midi.inputMessage, decision.follow));
+  };
+  /** Puts the clock state in force: the engine as master or not, a follower or none, the echo or none, and the words. */
+  const applyClock = (): void => {
+    const asked = isClockMode(strip.clock.value) ? strip.clock.value : CLOCK_DEFAULT;
+    decision = decideClock(asked, clockWorld());
+    if (decision.refused) strip.clock.value = CLOCK_DEFAULT; // a refusal puts the control back to off, and the sentence says why
+    if (host && decision.master !== masterOn) host.setClock((masterOn = decision.master));
+    if (!decision.follow) follower = null;
+    else if (host && !follower) {
+      const engine = host;
+      follower = new Follower(
+        { setTempo: (bpm) => engine.setTempo(bpm), transport: (play) => engine.transport(play) },
+        { lookaheadMs: scheduler?.lookaheadMs ?? LOOKAHEAD_MS.default, offsetMs: offsetNow() },
+      );
+    }
+    drawInput();
+    drawClock();
+  };
+  // What the chosen input sends: the clock steers the engine (slave), and is passed on (echo). Everything else is counted and not used yet.
+  inputPath.onMessage = (message, timeStamp) => {
+    if (message.kind !== "realtime") return;
+    if (decision.follow) follower?.feed(message.message, timeStamp);
+    if (decision.echo) scheduler?.passThrough(REALTIME_STATUS[message.message]);
+  };
   const applyOutputs = (): void => {
     if (!scheduler || !midi) return;
     const chosen: { 1: OutputChoice | null; 2: OutputChoice | null } = { 1: null, 2: null };
@@ -83,7 +137,9 @@ async function main(): Promise<void> {
       scheduler.setOutput(port, device ? device.output : null);
       chosen[port] = device;
     }
+    outputDevices = new Set([chosen[1]?.id, chosen[2]?.id].filter((id) => id !== undefined)).size;
     strip.sayMidi(describeOutputs(chosen, midi.message));
+    applyClock();
   };
   let counted = "";
   const drawCount = (): void => {
@@ -94,17 +150,25 @@ async function main(): Promise<void> {
     if (!midi) return;
     const device = midi.inputs().find((i) => i.id === strip.input.value) ?? null;
     inputPath.select(device ? device.input : null);
-    strip.sayInput(describeInput(device ? device.name : null, midi.inputMessage));
+    inputName = device ? device.name : null;
+    follower = null; // a different sender is a new clock: nothing of the last one's tempo or count is kept
+    applyClock();
     drawCount();
   };
   setInterval(drawCount, INPUT_COUNT_REFRESH_MS);
   const applyLookahead = (): void => {
     const ms = Number(strip.lookahead.value);
-    if (scheduler && Number.isFinite(ms) && ms >= LOOKAHEAD_MS.min && ms <= LOOKAHEAD_MS.max) scheduler.lookaheadMs = ms;
+    if (!scheduler || !Number.isFinite(ms) || ms < LOOKAHEAD_MS.min || ms > LOOKAHEAD_MS.max) return;
+    scheduler.lookaheadMs = ms;
+    follower?.setLookahead(ms); // the engine has to be ahead of the sender's grid by the lookahead the scheduler adds to everything it plays
   };
+  const applyOffset = (): void => follower?.setOffset(offsetNow());
   for (const port of OUTPUT_PORTS) strip.outputs[port].addEventListener("change", applyOutputs);
   strip.input.addEventListener("change", applyInput);
   strip.lookahead.addEventListener("change", applyLookahead);
+  strip.clock.addEventListener("change", applyClock);
+  strip.clockOffset.addEventListener("change", applyOffset);
+  applyClock();
 
   strip.start.addEventListener("click", () => {
     if (host) return;
@@ -120,8 +184,14 @@ async function main(): Promise<void> {
         scheduler = new MidiScheduler(time, LOOKAHEAD_MS.default);
         wireMidi(started, scheduler, time);
         applyLookahead();
+        applyClock(); // a clock state chosen before Start waits for MIDI to be asked for
         started.onPanel = (p) => {
           if (p.leds) panel.paintLeds(p.leds);
+          if (follower) {
+            // Where the engine is, at the page time that holds for: the follower's comparator (src/follower.ts).
+            time.refresh();
+            follower.onPosition({ ticks: p.position, pageTimeMs: time.toPage(p.positionFrame / started.sampleRate) });
+          }
           const state = p.running ? "playing" : "stopped";
           if (main.getAttribute("data-transport") !== state) {
             main.setAttribute("data-transport", state);
@@ -150,6 +220,7 @@ async function main(): Promise<void> {
       strip.setInputs(midi.inputs());
       strip.sayMidi(midi.message);
       applyInput();
+      applyClock();
     })();
   });
 }

@@ -173,3 +173,27 @@ Everything under "What stays out of P4" in section 4, and D0.
 - The Scribe corrects `docs/03` (MIDI in and the clock, "after P2 and P4" per `removal-plan.md`) and `docs/07` once P4c and P4d land.
 - The Panelwright builds the "200" workflow when the owner or a person with an Octopus settles `tech.md` section 9, item 3.
 - The Referee floors the browser tests by name (the P3 request, extended with P4's counts).
+
+## 10. Approval record
+
+**r1, 2026-10-02, 10:54 (Europe/Paris).** The owner had been asked the five questions in section 7 (pull request #27, opened
+at about 10:14 Paris). The owner replied **"Accept p4"**. The agent reads that as *accept this plan with its defaults*: it
+names no change to any decision, and it is the same shape as "Approve O4 plan, all defaults" and "Approve" earlier in
+this series. Chat is not a source of truth, so the reading is written down here. If it is wrong, say so and this record is
+revised. The pull request was **not merged** when this was written.
+
+| Item | What is approved | What is not |
+|---|---|---|
+| D-P4-1 scope | P4 is the transport layer: two ports, the clock out and in, start/stop/continue, the input path with no consumer, the settings view, the Ableton guide and spike S3. Recording, keyboard transpose, force-to-scale, map learn and the effect of program change stay in their waves | Any of those consumers in P4 |
+| D-P4-2 port 2 | The `?route=` stand-in, read once at start, documented as a hook, not drawn, removed when Track zoom exists (F-P4-2) | A settings control that routes tracks; moving A6 |
+| D-P4-3 the clock events | The engine emits them (`Event` variants and `TICKS_PER_CLOCK` in `crates/octocore`), as its own pull request under the Metronome hat with a request filed first | A page timer; derivation in `octoweb` |
+| D-P4-4, D-P4-8 the follower | Tempo and phase follow on the page, a phase lead equal to the lookahead `L` plus a user offset (default 0 ms), echo as a separate pass-through | Host lock (the engine ticking on pulses) unless S3 forces it |
+| D-P4-5 | Four clock states in the settings view; the "200" button workflow stays with the Panelwright | Drawing the "200" button |
+| D-P4-6, D-P4-7 | Port priority and the pipe-full LEDs not in P4; Stop while stopped unchanged (unconditional ALL NOTES OFF) | Making it conditional |
+| D-P4-9 | Web MIDI without SysEx; what a browser delivers without it is measured before anything relies on it | Asking for SysEx |
+| D-P4-10 to D-P4-12 | M4's thresholds are proposed and the owner's to change; A4 is set from S3; the baseline floors the native tests; ABI 2 and ADR-0009 | |
+| Series | P4a to P4e as in section 4. Because each slice builds on the one before (the ADR, then the page, then the engine event that the page sends, then the follower, then the guide), the slices are **stacked**, each pull request carries its predecessors' commits, and each says "merge in order" the way P3c did. Section 4's "none stacked" is revised by this record | A slice merged out of order |
+
+**Not answered by this reply, and still open.** **D0, the tick length** (question 1): P4c is built with M3 `pending`, and nothing in P4
+claims "in time" before D0 is answered. **Question 4**: the owner's runs of S1 and then S3 on real ports. **Merging**: the agent
+merges nothing.

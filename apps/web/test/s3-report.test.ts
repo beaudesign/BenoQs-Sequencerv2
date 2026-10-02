@@ -2,16 +2,16 @@
 // that the report does not lose what the analysis found (the stamps on another clock, the hidden tab, no Start) on the way to the page.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { analyseFollow, analyseLoop, type FollowSample } from "../spikes/s3/analyse.ts";
+import { analyseFollow, analyseLoop, analyseStampMap, type FollowSample } from "../spikes/s3/analyse.ts";
 import { formatFollow, formatSend, readSaved, reanalyse } from "../spikes/s3/format.ts";
 import type { FollowResult, SendResult } from "../spikes/s3/page.ts";
 
-function followResult(over: { age?: number; hiddenFrom?: number; phaseMs?: number; noStart?: boolean } = {}): FollowResult {
+function followResult(over: { age?: number; hiddenFrom?: number; phaseMs?: number; noStart?: boolean; noMap?: boolean; mapJump?: number } = {}): FollowResult {
   const pulses: [number, number][] = [];
   for (let i = 0; i < 1_440; i++) pulses.push([10_000 + i * (2500 / 120), 10_000 + i * (2500 / 120) + (over.age ?? 2)]);
   const samples: FollowSample[] = [];
   for (let i = 0; i < 240; i++) {
-    samples.push({ at: 10_000 + i * 250, phase: "following", bpm: 120, phaseMs: over.phaseMs ?? 1.5, jitterMs: 0.4, pulses: i * 6, running: !over.noStart, hidden: over.hiddenFrom !== undefined && i >= over.hiddenFrom });
+    samples.push({ at: 10_000 + i * 250, phase: "following", bpm: 120, phaseMs: over.phaseMs ?? 1.5, jitterMs: 0.4, pulses: i * 6, running: !over.noStart, hidden: over.hiddenFrom !== undefined && i >= over.hiddenFrom, ...(over.noMap ? {} : { mapMs: 100 + (over.mapJump !== undefined && i >= over.mapJump ? 10 : 0) }) });
   }
   const messages = over.noStart ? [] : [{ name: "start" as const, stamp: 10_000, seen: 10_001 }];
   const asRaw = { pulses: pulses.map(([stamp, seen]) => ({ stamp, seen })), samples, messages };
@@ -33,7 +33,7 @@ function followResult(over: { age?: number; hiddenFrom?: number; phaseMs?: numbe
 }
 
 function sendResult(): SendResult {
-  const sent = [0, 1, 2, 3].map((i) => ({ target: 1_000 + i * 20.833, audioTime: i * 0.0208, hidden: false }));
+  const sent = [0, 1, 2, 3].map((i) => ({ target: 1_000 + i * 20.833, audioTime: i * 0.0208, marginMs: 28, hidden: false }));
   const heard: [number, number][] = sent.map((s) => [s.target + 3, s.target + 3.5]);
   return {
     schema: "wenge.s3.send/1",
@@ -50,6 +50,7 @@ function sendResult(): SendResult {
     transportHeard: [1, 0, 0],
     marginMs: { min: 24, p50: 28, late: 0 },
     loop: analyseLoop(sent, heard.map(([at]) => ({ at }))),
+    stampMap: analyseStampMap(sent, 30),
     heardAsClock: analyseFollow({ pulses: heard.map(([stamp, seen]) => ({ stamp, seen })), samples: [], messages: [] }),
     raw: { sent, heard },
   };
@@ -86,6 +87,14 @@ test("the report keeps what went wrong: stamps on another clock, a phase out of 
   assert.match(formatFollow({ result: followResult({ noStart: true }) }).join("\n"), /No phase was counted/);
 });
 
+test("the report says how the browser's clock map moved, and that a file without one did not record it", () => {
+  const steady = formatFollow({ result: followResult() }).join("\n");
+  assert.match(steady, /Clock map \(the browser's audio-to-page offset, read at each sample\): 0 jumps/);
+  const jumped = formatFollow({ result: followResult({ mapJump: 100 }) }).join("\n");
+  assert.match(jumped, /1 jumps of more than 3 ms between samples, the largest 10\.00 ms/);
+  assert.match(formatFollow({ result: followResult({ noMap: true }) }).join("\n"), /not recorded in this file/);
+});
+
 test("the saved raw records are read again: other settling, and the hidden samples apart from the visible", () => {
   const r = followResult({ hiddenFrom: 120, phaseMs: 2 });
   const all = reanalyse(r, {});
@@ -104,6 +113,7 @@ test("the report of a send run: what was sent and heard, the transport messages,
   assert.match(text, /Start 1 sent, 1 heard/);
   assert.match(text, /Stop 1 sent, 0 heard/);
   assert.match(text, /as a clock/);
+  assert.match(text, /Stamp map .*engine's own tempo from its audio times is \d+\.\d{3} BPM; 0 jumps/);
 });
 
 test("a run whose tab was hidden throughout has nothing visible to read, and is read as a whole, with the hidden time said", () => {
@@ -113,4 +123,12 @@ test("a run whose tab was hidden throughout has nothing visible to read, and is 
   assert.match(text, /All \d+ samples were within a fifth of a step/);
   assert.match(text, /hidden for 60 s of 60/);
   assert.match(text, /tab hidden: counted \d+/);
+});
+
+test("a send run that lost a pulse says that the pairing by order cannot be trusted after it", () => {
+  const r = sendResult();
+  r.loop = analyseLoop(r.raw.sent, r.raw.heard.slice(0, 3).map(([at]) => ({ at })));
+  assert.equal(r.loop.missing, 1);
+  assert.match(formatSend({ result: r }).join("\n"), /missing 1.*cannot be trusted/);
+  assert.doesNotMatch(formatSend({ result: sendResult() }).join("\n"), /cannot be trusted/);
 });

@@ -46,6 +46,13 @@ function phaseLine(label: string, a: FollowAnalysis): string[] {
   ];
 }
 
+/** The browser's map from audio time to page time, which the phase is read through: a jump in it is a jump in the phase, and it is not the sender's. */
+function clockMapLine(a: FollowAnalysis): string {
+  const m = a.clockMap;
+  if (m.samples === 0) return "Clock map (the browser's audio-to-page offset): not recorded in this file.";
+  return `Clock map (the browser's audio-to-page offset, read at each sample): ${m.jumps} jumps of more than 3 ms between samples, the largest ${ms(m.maxJumpMs)}, range ${ms(m.rangeMs)}; samples beyond a fifth of a step within 2 s after a jump: ${a.phase.beyondFifthNearMapJump} of ${a.phase.beyondFifth}`;
+}
+
 function intervalLines(a: FollowAnalysis): string[] {
   const i = a.intervals;
   return [
@@ -75,6 +82,7 @@ export function formatFollow(saved: { simulated?: string; commit?: string; brows
     "Phase (the engine against where the sender's clock says it should be; positive is ahead):",
     ...phaseLine("all samples", all),
     ...(r.hiddenS > 0 ? [...phaseLine("tab visible", visible), ...phaseLine("tab hidden", hidden)] : []),
+    clockMapLine(all),
   ];
   if (all.tempo.meanErrorBpm !== null) lines.push(`Tempo the follower read, less the nominal ${nominal} BPM: mean ${all.tempo.meanErrorBpm.toFixed(3)}, largest ${all.tempo.maxAbsErrorBpm!.toFixed(3)} BPM`);
   lines.push(`The plan's criterion (every phase sample within a fifth of a step, tab visible; a proposal, the owner's to set): ${verdict.met === null ? "not read" : verdict.met ? "MET" : "NOT MET"}`);
@@ -97,6 +105,7 @@ export function formatSend(saved: { simulated?: string; commit?: string; browser
     spreadLine("latency (heard stamp less the time it was sent for; the port's, with the page's clock map in it)", l.latencyMs),
     spreadLine("interval error (heard interval less the interval sent; the jitter a listener hears)", l.intervalErrorMs),
     `  scheduling margin of the pulses: smallest ${ms(r.marginMs.min)}, median ${ms(r.marginMs.p50)}, late ${r.marginMs.late}; scheduler: sent ${r.scheduler.sent}, real-time ${r.scheduler.realtime}, raised for order ${r.scheduler.raised}, invalid ${r.scheduler.invalid}; worklet errors ${r.worklet.errors.length}`,
+    `Stamp map (the offset between the audio clock and the page's, which each pulse's stamp was made with): the engine's own tempo from its audio times is ${r.stampMap.engineBpm.toFixed(3)} BPM; ${r.stampMap.jumps} jumps of more than 3 ms between pulses, the largest ${ms(r.stampMap.maxJumpMs)}, in all ${ms(r.stampMap.totalJumpMs)}, range ${ms(r.stampMap.rangeMs)}; every stamp after a jump carries it, so the tempo below can differ from the engine's by up to that over the run`,
     "The clock as it came back, read as a clock the way a followed one is:",
     ...intervalLines(r.heardAsClock).map((line) => `  ${line}`),
   ];

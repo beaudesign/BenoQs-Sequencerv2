@@ -9,7 +9,7 @@ import type { Browser, Page } from "playwright-core";
 import { launch } from "../../scripts/browser.ts";
 import { serve, type Server } from "../../scripts/serve.ts";
 import { formatFollow, formatSend, reanalyse, readSaved } from "../../spikes/s3/format.ts";
-import { standInScript } from "../../spikes/s3/stand-in.ts";
+import { SCATTER_MS, STAMP_AGE_MS, standInScript } from "../../spikes/s3/stand-in.ts";
 import type { FollowResult, S3, SendResult } from "../../spikes/s3/page.ts";
 
 declare const s3: S3;
@@ -30,7 +30,7 @@ after(async () => {
 
 async function open(): Promise<Page> {
   const context = await browser.newContext({ acceptDownloads: true });
-  await context.addInitScript(standInScript);
+  await context.addInitScript(standInScript, { stampAgeMs: STAMP_AGE_MS, scatterMs: SCATTER_MS });
   const page = await context.newPage();
   page.on("pageerror", (e) => assert.fail(`page error: ${e.message}`));
   await page.goto(`${server.url}/spikes/s3/page.html`);
@@ -73,22 +73,29 @@ test("follow, from the page's own buttons: the clock is heard, followed, recorde
   assert.equal(r.input.realtime.start, 1);
   assert.deepEqual(r.raw.messages.map((m) => m.name), ["start"]);
   assert.equal(r.analysis.all.clockDomain.verdict, "same-clock", r.analysis.all.clockDomain.why);
+  // The stand-in stamps each message 2 ms before the page sees it; a page that read the two the wrong way round would see them 2 ms in the future.
+  assert.ok(Math.abs(r.analysis.all.clockDomain.ageMs.p50 - STAMP_AGE_MS) < 1, `seen less stamped is ${r.analysis.all.clockDomain.ageMs.p50.toFixed(2)} ms; the stand-in makes it ${STAMP_AGE_MS}`);
   assert.ok(Math.abs(r.analysis.all.intervals.tempoBpm.fromRun - 120) < 0.5, `${r.analysis.all.intervals.tempoBpm.fromRun} BPM`);
   assert.deepEqual(r.worklet.errors, []);
 
-  // The follower followed it: samples while running and following, and the phase within a fifth of a step (6.25 ms at 120 BPM).
+  // The follower followed it: samples while running and following, and the phase within a fifth of a step (6.25 ms at 120 BPM) for most of them.
+  // NOT for every one: headless Chromium's map from audio time to page time (`getOutputTimestamp`) jumps by 7 to 33 ms in 5 runs of 16
+  // of ten seconds (handoffs/evidence/p4e-follow-clock-map.txt), and the phase is read through it. What is held is that the median is within a
+  // fifth, and that each sample beyond one follows a jump of the map: an excursion with no jump before it would be the follower's or the engine's.
   const phase = r.analysis.all.phase;
   assert.ok(phase.counted >= 20, `${phase.counted} phase samples counted`);
-  assert.ok(phase.maxAbsMs <= phase.fifthOfStepMs, `the largest phase is ${phase.maxAbsMs.toFixed(2)} ms, a fifth of a step is ${phase.fifthOfStepMs.toFixed(2)}`);
-  assert.equal(phase.beyondFifth, 0);
+  assert.ok(phase.absMs.p50 <= phase.fifthOfStepMs, `the median phase is ${phase.absMs.p50.toFixed(2)} ms, a fifth of a step is ${phase.fifthOfStepMs.toFixed(2)}`);
+  assert.equal(phase.beyondFifthNearMapJump, phase.beyondFifth, `${phase.beyondFifth - phase.beyondFifthNearMapJump} of ${phase.beyondFifth} samples beyond a fifth do not follow a jump of the clock map (largest ${phase.maxAbsMs.toFixed(1)} ms)`);
+  assert.equal(r.analysis.all.clockMap.samples, r.raw.samples.length, "the page recorded the clock map at every sample");
   assert.ok(r.raw.samples.some((s) => s.phase === "following" && s.running), "the follower was following and running");
+  assert.notEqual(r.analysis.all.tempo.meanErrorBpm, null, "the tempo typed in the page is the one the follower is compared with");
   assert.ok(Math.abs(r.analysis.all.tempo.meanErrorBpm!) < 0.2, `the tempo the follower read was ${r.analysis.all.tempo.meanErrorBpm} BPM from 120`);
 
   // The file says the same when it is read again, and the report words it, with the plan's 30 minutes not met by a ten-second run.
   assert.deepEqual(reanalyse(r, { nominalBpm: 120 }), r.analysis.all);
   const report = formatFollow({ result: r }).join("\n");
   assert.match(report, /same-clock/);
-  assert.match(report, /All \d+ samples were within a fifth of a step/);
+  assert.match(report, /Clock map \(the browser's audio-to-page offset/);
   assert.match(report, /shorter than the 30 minutes/);
   await page.close();
 });
@@ -117,7 +124,7 @@ test("follow, and the sender stops: the Stop is recorded with the time it was se
   const r = (await running) as FollowResult;
   assert.deepEqual(r.raw.messages.map((m) => m.name), ["start", "stop"]);
   const stop = r.raw.messages[1]!;
-  assert.ok(Math.abs(stop.seen - stop.stamp) < 5, "a stamp and the time it was seen are the same moment on this clock");
+  assert.ok(Math.abs(stop.seen - stop.stamp - STAMP_AGE_MS) < 1, `a stamp and the time it was seen are ${(stop.seen - stop.stamp).toFixed(2)} ms apart; the stand-in makes it ${STAMP_AGE_MS}`);
   const after = r.raw.samples.filter((s) => s.at > stop.seen + 600);
   assert.ok(after.length >= 4, `${after.length} samples after the Stop`);
   assert.ok(after.every((s) => !s.running && s.phaseMs === null), "after the Stop, not running and no phase");
@@ -143,8 +150,14 @@ test("send, from the page's own buttons: every pulse the engine sent comes back,
   assert.equal(r.marginMs.late, 0, "no pulse reached the scheduler late");
   assert.deepEqual(r.worklet.errors, []);
   assert.equal(r.heardAsClock.clockDomain.verdict, "same-clock", r.heardAsClock.clockDomain.why);
-  // The tempo as it came back, from the run: this machine's timers deliver a pulse a little late now and then, and the run's pulses over its time hold.
-  assert.ok(Math.abs(r.heardAsClock.intervals.tempoBpm.fromRun - 120) < 1, `${r.heardAsClock.intervals.tempoBpm.fromRun} BPM`);
+  assert.ok(Math.abs(r.heardAsClock.clockDomain.ageMs.p50 - STAMP_AGE_MS) < 1, `seen less stamped is ${r.heardAsClock.clockDomain.ageMs.p50.toFixed(2)} ms; the stand-in makes it ${STAMP_AGE_MS}`);
+  // The engine's own tempo, from its audio times, is exact. The tempo as it came back is that less what the browser's clock map did to the stamps:
+  // headless Chromium's map jumps by 7 to 43 ms in about a run in three, and every stamp after a jump carries it (handoffs/evidence/p4e-follow-clock-map.txt),
+  // so over the run the heard tempo can differ from the engine's by the sum of the jumps over its length, and by no more.
+  assert.ok(Math.abs(r.stampMap.engineBpm - 120) < 0.01, `the engine's tempo is ${r.stampMap.engineBpm} BPM`);
+  const heard = r.heardAsClock.intervals.tempoBpm.fromRun;
+  const allowed = (r.stampMap.totalJumpMs / (r.heardAsClock.intervals.periodMs.n * (2500 / 120))) * 120 + 0.05;
+  assert.ok(Math.abs(heard - r.stampMap.engineBpm) <= allowed, `heard ${heard.toFixed(3)} BPM against the engine's ${r.stampMap.engineBpm.toFixed(3)}; the ${r.stampMap.jumps} jumps of the map (${r.stampMap.totalJumpMs.toFixed(1)} ms in all) allow ${allowed.toFixed(3)}`);
   const report = formatSend({ result: r }).join("\n");
   assert.match(report, new RegExp(`sent ${r.loop.sent}, heard ${r.loop.received}, matched ${r.loop.matched}, missing 0, extra 0`));
   await page.close();

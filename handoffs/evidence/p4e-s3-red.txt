@@ -29,3 +29,20 @@ not ok 15 - the verdict says how much of the run the tab was hidden, because the
 # tests 15
 # pass 11
 # fail 4
+
+Fourth red run: the clock map (a jump of the browser's audio-to-page offset between samples, and a phase beyond a fifth of a step after one), 3 tests with a stub that returns zeros:
+----
+not ok 10 - the clock map: a step of the audio-to-page offset between two samples of more than 3 ms is a jump, counted with the largest
+not ok 11 - a phase beyond a fifth of a step within two seconds after a jump of the clock map is attributed to it, and one that is not is not
+not ok 19 - the verdict says when every excursion beyond a fifth of a step follows a jump of the browser's clock map, and when some do not
+# tests 21
+# pass 18
+# fail 3
+
+Fifth red run: the stamp map of the send run (the engine's tempo from its audio times, and the jumps of the clock map in the stamps), 1 test with a stub that returns zeros:
+----
+not ok 22 - the stamp map: the engine's own tempo from its audio times, and the jumps of the clock map the stamps were made with
+# tests 22
+# pass 21
+# fail 1
+(The test's own arithmetic was corrected after that red run: a steady map's range is 9e-13 ms of floating-point noise, not 0, so it is asserted to be under 1e-6.)

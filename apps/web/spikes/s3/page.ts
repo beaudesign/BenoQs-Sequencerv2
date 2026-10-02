@@ -15,7 +15,7 @@ import { InputPath, type InputStats } from "../../src/midi-in.ts";
 import { ContextTimeMap, MidiScheduler, type SchedulerStats } from "../../src/midi-out.ts";
 import { LOOKAHEAD_MS } from "../../src/settings.ts";
 import { wireMidi } from "../../src/wire.ts";
-import { analyseFollow, analyseLoop, type FollowAnalysis, type FollowMessage, type FollowSample, type LoopAnalysis, type SavedPulse } from "./analyse.ts";
+import { analyseFollow, analyseLoop, analyseStampMap, type FollowAnalysis, type FollowMessage, type FollowSample, type LoopAnalysis, type SavedPulse, type StampMapAnalysis } from "./analyse.ts";
 
 export interface PortInfo {
   id: string;
@@ -86,9 +86,11 @@ export interface SendResult {
   /** Each clock pulse's scheduling margin (target less the time of the call), ms: how early the engine's pulses reach the scheduler. */
   marginMs: { min: number; p50: number; late: number };
   loop: LoopAnalysis;
+  /** The engine's own tempo from its audio times, and the jumps of the clock map the pulses were stamped with: what the tempo the loop heard is read against. */
+  stampMap: StampMapAnalysis;
   /** The clock as it came back, read as a followed clock is (the clock domain, the periods, the tempo, the drift). */
   heardAsClock: FollowAnalysis;
-  raw: { sent: { target: number; audioTime: number; hidden: boolean }[]; heard: SavedPulse[] };
+  raw: { sent: { target: number; audioTime: number; marginMs: number; hidden: boolean }[]; heard: SavedPulse[] };
 }
 
 export interface S3 {
@@ -194,7 +196,8 @@ const s3: S3 = {
     const sampling = setInterval(() => {
       const at = performance.now();
       const s = follower.status(at);
-      samples.push({ at: round3(at), phase: s.phase, bpm: s.bpm, phaseMs: s.phaseMs === null ? null : round3(s.phaseMs), jitterMs: round3(s.jitterMs), pulses: s.pulses, running: s.running, hidden: hiddenNow() });
+      // `mapMs` is the clock map as the last position report left it: the follower's phase is read through it, so a jump in it is a jump in the phase.
+      samples.push({ at: round3(at), phase: s.phase, bpm: s.bpm, phaseMs: s.phaseMs === null ? null : round3(s.phaseMs), jitterMs: round3(s.jitterMs), pulses: s.pulses, running: s.running, hidden: hiddenNow(), mapMs: round3(time.toPage(0)) });
     }, SAMPLE_MS);
 
     const end = t0 + config.minutes * 60_000;
@@ -248,6 +251,12 @@ const s3: S3 = {
     wireMidi(host, scheduler, time);
     const errors: string[] = [];
     host.onError = (m) => errors.push(m);
+    // A transport started in the first moments of an audio context meets Chromium's start-up jump in the frame count, which leaves a hole in the
+    // engine's timeline and has put the first pulse more than 100 ms late in 2 runs of 8 (handoffs/evidence/p4e-send-first-pulse.txt). The app
+    // never plays that early (a person presses Start, and then Play), so the run waits until the worklet has been sending its panel for a while.
+    let panels = 0;
+    host.onPanel = () => panels++;
+    for (const stop = performance.now() + 3_000; panels < 8 && performance.now() < stop; ) await sleep(20);
     const sent: SendResult["raw"]["sent"] = [];
     const margins: number[] = [];
     const transportSent = [0, 0, 0];
@@ -256,7 +265,7 @@ const s3: S3 = {
       const status = info.bytes[0] ?? 0;
       if (info.port !== 0 || info.bytes.length !== 1) return;
       if (status === 0xf8) {
-        sent.push({ target: round3(info.timestamp ?? performance.now()), audioTime: info.audioTime, hidden: hiddenNow() });
+        sent.push({ target: round3(info.timestamp ?? performance.now()), audioTime: info.audioTime, marginMs: round3(info.marginMs), hidden: hiddenNow() });
         margins.push(info.marginMs);
       } else if (status in slot) transportSent[slot[status]!]!++;
     };
@@ -301,6 +310,7 @@ const s3: S3 = {
       transportHeard,
       marginMs: { min: sorted[0] ?? 0, p50: sorted[Math.floor(sorted.length / 2)] ?? 0, late: margins.filter((m) => m <= 0).length },
       loop: analyseLoop(sent, heard.map(([stamp]) => ({ at: stamp }))),
+      stampMap: analyseStampMap(sent, config.lookaheadMs),
       heardAsClock: analyseFollow({ pulses: heard.map(([stamp, seen]) => ({ stamp, seen })), samples: [], messages: [] }),
       raw: { sent, heard },
     };

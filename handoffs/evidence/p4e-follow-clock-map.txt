@@ -1,0 +1,134 @@
+P4e: the occasional large phase in the S3 follow run is the browser's clock map jumping, and not the follower, the engine or the sender.
+What was seen: the Chromium test of the follow page failed in 2 of 6 runs with a largest phase of 12 and 30 ms against a fifth of a step of 6.25 ms.
+Headless Chromium 141 on a build container with no sound device, a simulated sender (spikes/s3/stand-in.ts), the real engine, worklet and follower.
+
+1. THE FIRST SUSPECT WAS THE STAND-IN. It stamped each pulse with performance.now() when its own timer fired, so a stall of the page's main thread
+   (a gap of 97 and 78 ms, then a burst of 4 ms gaps) looked like the sender stalling, and the follower lost lock (phase 'settling', 16.8 ms, back
+   within a second). A real port stamps at delivery, in the system, whatever the page's thread is doing. The stand-in now stamps the time the
+   message was due. 14 runs of 10 s before that change (seen-gaps and phases around the excursion in run 7):
+   0 counted 25 max 0.20 bad []
+   1 counted 25 max 1.05 bad []
+   2 counted 25 max 2.50 bad []
+   3 counted 25 max 0.48 bad []
+   4 counted 25 max 0.26 bad []
+   5 counted 25 max 1.09 bad []
+   6 counted 25 max 0.13 bad []
+   7 counted 25 max 16.77 bad [["4.30",16.774,"settling","119.61"],["4.55",9.214,"settling","120.06"]]
+      gaps around the first bad sample: 97.0 77.9 16.2 5.1 4.2 4.6 4.4 4.3 4.3 4.3 6.4 21.3 20.3 21.4 20.3 21.4 20.3 21.3 20.5 21.3 20.3 21.4 20.4
+      samples around: [["3.05","0.02","119.99","following"],["3.30","-0.03","119.99","following"],["3.55","-0.01","120.00","following"],["3.80","-0.02","120.00","following"],["4.09","-0.04","120.00","following"],["4.30","16.77","119.61","settling"],["4.55","9.21","120.06","settling"],["4.80","2.96","119.98","following"],["5.05","0.72","120.02","following"],["5.30","0.26","120.02","following"],["5.55"
+   8 counted 25 max 0.15 bad []
+   9 counted 25 max 0.63 bad []
+   10 counted 25 max 0.17 bad []
+   11 counted 25 max 0.13 bad []
+   12 counted 25 max 0.33 bad []
+   13 counted 25 max 0.80 bad []
+
+2. THE SECOND SUSPECT WAS A SKIPPED BLOCK in the audio thread (which would leave the engine behind for good). scripts/measure-midsession-frames.ts: a
+   made-up worklet, 10 fresh contexts of 8 s with a 50 Hz timer busy on the main thread: 0 skipped blocks in 80 s.
+   # steps of currentFrame between process() calls that are not 128, after the first 20 calls, 10 fresh contexts of 8 s with a 50 Hz timer busy on the main thread
+   run  0: no skipped block  (44100 Hz, 396 timer ticks)
+   run  1: no skipped block  (44100 Hz, 396 timer ticks)
+   run  2: no skipped block  (44100 Hz, 396 timer ticks)
+   run  3: no skipped block  (44100 Hz, 396 timer ticks)
+   run  4: no skipped block  (44100 Hz, 396 timer ticks)
+   run  5: no skipped block  (44100 Hz, 397 timer ticks)
+   run  6: no skipped block  (44100 Hz, 396 timer ticks)
+   run  7: no skipped block  (44100 Hz, 396 timer ticks)
+   run  8: no skipped block  (44100 Hz, 396 timer ticks)
+   run  9: no skipped block  (44100 Hz, 397 timer ticks)
+   # 0 skips in 80 s
+
+3. THE CAUSE. With the stand-in fixed, 16 runs of 10 s, logging at every panel message the clock map's offset (performance.now() less the audio
+   time, from AudioContext.getOutputTimestamp, which the page reads at each batch with no smoothing) beside the follower's phase. In 5 runs of 16
+   the offset jumps, in one step, by 6.8, 10.0, 20.0, 24.2 or 32.7 ms (multiples of about 10 ms, the look of a sink with no device that advances in
+   10 ms quanta), and the phase moves by the same amount, then decays as the follower takes it out at up to 8% (in about a second). The other
+   11 runs: the largest step 2.6 ms and the largest phase 2.6 ms. In every run with a phase beyond 3 ms there was a jump of the offset just before it.
+   Per run: the largest |phase| after the first 3.5 s, the largest jump of the offset, and the panels around the first excursion:
+   0 panels 482 max |phase| 2.07 max offset jump 2.08 ms
+   1 panels 461 max |phase| 0.78 max offset jump 0.79 ms
+   2 panels 451 max |phase| 1.65 max offset jump 1.67 ms
+   3 panels 466 max |phase| 2.59 max offset jump 2.62 ms
+   4 panels 498 max |phase| 32.75 max offset jump 32.72 ms
+       t 9316.7 posFrame 407424 ticks 2790.68 offset 116.03 phase 0.02 bpm 120.00
+       t 9316.9 posFrame 407552 ticks 2791.79 offset 116.03 phase 0.02 bpm 120.00
+       t 9336.6 posFrame 408448 ticks 2799.59 offset 116.04 phase 0.01 bpm 120.00
+       t 9376.7 posFrame 409472 ticks 2808.51 offset 125.98 phase -9.94 bpm 120.00
+       t 9376.9 posFrame 409728 ticks 2810.74 offset 125.98 phase -9.94 bpm 120.00
+       t 9396.8 posFrame 410496 ticks 2817.42 offset 126.07 phase -10.03 bpm 120.00
+       t 9397.0 posFrame 410624 ticks 2818.54 offset 126.07 phase -10.03 bpm 120.00
+       t 9416.6 posFrame 411520 ticks 2826.47 offset 126.00 phase -9.61 bpm 120.00
+       t 9416.7 posFrame 411520 ticks 2826.47 offset 126.00 phase -9.61 bpm 120.00
+       t 9446.9 posFrame 412544 ticks 2835.74 offset 126.07 phase -8.75 bpm 120.00
+       t 9447.1 posFrame 412800 ticks 2838.06 offset 126.07 phase -8.52 bpm 120.00
+       t 9447.3 posFrame 412800 ticks 2838.06 offset 126.07 phase -8.52 bpm 120.00
+       t 9466.6 posFrame 413568 ticks 2845.01 offset 126.04 phase -7.82 bpm 120.00
+   5 panels 440 max |phase| 24.19 max offset jump 24.23 ms
+       t 11931.8 posFrame 522624 ticks 3790.84 offset 121.33 phase -0.04 bpm 120.00
+       t 11961.8 posFrame 523648 ticks 3799.76 offset 121.26 phase 0.04 bpm 120.00
+       t 11961.9 posFrame 524032 ticks 3803.10 offset 121.26 phase 0.04 bpm 120.00
+       t 12006.2 posFrame 524672 ticks 3808.67 offset 145.49 phase -24.19 bpm 120.00
+       t 12006.4 posFrame 524800 ticks 3809.79 offset 145.49 phase -24.19 bpm 120.00
+       t 12021.8 posFrame 525696 ticks 3817.59 offset 141.26 phase -19.95 bpm 120.00
+       t 12021.9 posFrame 525696 ticks 3817.59 offset 141.26 phase -19.95 bpm 120.00
+       t 12052.0 posFrame 526720 ticks 3826.87 offset 141.44 phase -19.20 bpm 120.00
+       t 12052.2 posFrame 527104 ticks 3830.48 offset 141.44 phase -18.50 bpm 120.00
+       t 12052.3 posFrame 527104 ticks 3830.48 offset 141.44 phase -18.50 bpm 120.00
+       t 12071.8 posFrame 527744 ticks 3836.50 offset 141.32 phase -17.22 bpm 120.00
+       t 12072.0 posFrame 528000 ticks 3838.90 offset 141.32 phase -16.76 bpm 120.00
+       t 12072.1 posFrame 528000 ticks 3838.90 offset 141.32 phase -16.76 bpm 120.00
+   6 panels 414 max |phase| 1.90 max offset jump 1.92 ms
+   7 panels 431 max |phase| 2.19 max offset jump 2.30 ms
+   8 panels 419 max |phase| 0.33 max offset jump 0.35 ms
+   9 panels 458 max |phase| 10.00 max offset jump 9.99 ms
+       t 7964.5 posFrame 348032 ticks 2273.06 offset 113.76 phase 0.02 bpm 120.00
+       t 7994.2 posFrame 349056 ticks 2281.97 offset 113.76 phase 0.01 bpm 120.00
+       t 8014.4 posFrame 350080 ticks 2290.89 offset 113.76 phase 0.01 bpm 120.00
+       t 8064.6 posFrame 351104 ticks 2299.80 offset 123.74 phase -9.97 bpm 120.00
+       t 8064.6 posFrame 351104 ticks 2299.80 offset 123.74 phase -9.97 bpm 120.00
+       t 8074.3 posFrame 352128 ticks 2308.72 offset 123.77 phase -10.00 bpm 120.00
+       t 8074.5 posFrame 352384 ticks 2310.95 offset 123.77 phase -10.00 bpm 120.00
+       t 8094.4 posFrame 353152 ticks 2317.86 offset 123.80 phase -9.45 bpm 120.00
+       t 8094.6 posFrame 353280 ticks 2319.02 offset 123.80 phase -9.33 bpm 120.00
+       t 8094.7 posFrame 353280 ticks 2319.02 offset 123.80 phase -9.33 bpm 120.00
+       t 8114.6 posFrame 354176 ticks 2327.13 offset 123.83 phase -8.55 bpm 120.00
+       t 8114.8 posFrame 354176 ticks 2327.13 offset 123.83 phase -8.55 bpm 120.00
+       t 8144.5 posFrame 355200 ticks 2336.39 offset 123.78 phase -7.60 bpm 120.00
+   10 panels 382 max |phase| 1.40 max offset jump 1.41 ms
+   11 panels 454 max |phase| 20.02 max offset jump 20.02 ms
+       t 7868.6 posFrame 343936 ticks 2239.05 offset 107.99 phase 0.03 bpm 120.00
+       t 7868.7 posFrame 344064 ticks 2240.16 offset 107.99 phase 0.03 bpm 120.00
+       t 7888.6 posFrame 344960 ticks 2247.96 offset 108.00 phase 0.01 bpm 120.00
+       t 7938.6 posFrame 345984 ticks 2256.88 offset 128.02 phase -20.01 bpm 120.00
+       t 7938.9 posFrame 346240 ticks 2259.11 offset 128.02 phase -20.01 bpm 120.00
+       t 7958.6 posFrame 347008 ticks 2265.79 offset 128.03 phase -20.02 bpm 120.00
+       t 7978.6 posFrame 348032 ticks 2274.93 offset 128.03 phase -19.46 bpm 120.00
+       t 7978.7 posFrame 348032 ticks 2274.93 offset 128.03 phase -19.46 bpm 120.00
+       t 8008.4 posFrame 349056 ticks 2284.56 offset 128.00 phase -17.57 bpm 120.00
+       t 8008.8 posFrame 349312 ticks 2286.96 offset 128.00 phase -17.11 bpm 120.00
+       t 8008.9 posFrame 349312 ticks 2286.96 offset 128.00 phase -17.11 bpm 120.00
+       t 8028.5 posFrame 350080 ticks 2294.17 offset 128.02 phase -15.77 bpm 120.00
+       t 8028.9 posFrame 350208 ticks 2295.37 offset 128.02 phase -15.54 bpm 120.00
+   12 panels 433 max |phase| 2.48 max offset jump 2.47 ms
+   13 panels 482 max |phase| 6.78 max offset jump 6.82 ms
+       t 7643.8 posFrame 333440 ticks 2144.66 offset 123.10 phase 0.06 bpm 120.00
+       t 7663.8 posFrame 334208 ticks 2151.34 offset 123.13 phase 0.02 bpm 120.00
+       t 7664.0 posFrame 334336 ticks 2152.45 offset 123.13 phase 0.02 bpm 120.00
+       t 7690.8 posFrame 335232 ticks 2160.25 offset 129.92 phase -6.78 bpm 120.00
+       t 7691.0 posFrame 335232 ticks 2160.25 offset 129.92 phase -6.78 bpm 120.00
+       t 7713.7 posFrame 336256 ticks 2169.17 offset 123.10 phase 0.04 bpm 120.00
+       t 7714.1 posFrame 336512 ticks 2171.40 offset 123.10 phase 0.04 bpm 120.00
+       t 7733.7 posFrame 337280 ticks 2178.22 offset 123.12 phase 0.38 bpm 120.00
+       t 7734.0 posFrame 337408 ticks 2179.37 offset 123.12 phase 0.46 bpm 120.00
+       t 7734.2 posFrame 337408 ticks 2179.37 offset 123.12 phase 0.46 bpm 120.00
+       t 7753.6 posFrame 338304 ticks 2187.29 offset 123.03 phase 0.86 bpm 120.00
+       t 7753.7 posFrame 338304 ticks 2187.29 offset 123.03 phase 0.86 bpm 120.00
+       t 7783.7 posFrame 339328 ticks 2196.20 offset 123.09 phase 0.79 bpm 120.00
+   14 panels 447 max |phase| 0.78 max offset jump 0.80 ms
+   15 panels 424 max |phase| 1.40 max offset jump 1.40 ms
+
+WHAT IT MEANS. The follower reads the engine's place through the same map the scheduler stamps the notes with, so a jump in the map moves the
+notes' timestamps too: that is a property of the browser's clock for audio and not of the follower. Whether a real device's output timestamp jumps is
+not measured here; the owner's S1 run (clock-map smoothing is its alpha option) and S3 run will say. The S3 page now records the map at every sample
+(mapMs), and the analysis counts the jumps and says how many samples beyond a fifth of a step follow one, so a run with a real sender can tell the
+browser's clock from the sender's. The Chromium test no longer claims every sample is within a fifth of a step: it holds the median, and that each
+sample beyond a fifth follows a jump of the map, which fails if an excursion has no jump before it.

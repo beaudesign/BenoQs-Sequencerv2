@@ -1,0 +1,34 @@
+P4e: the first pulse of the S3 send run, late by more than 100 ms in some runs, and the fix (apps/web/spikes/s3/page.ts).
+Found by the Chromium test "send, from the page's own buttons" failing 3 times in 6 (`late` 1, expected 0), after it had passed once. The page
+started the transport right after the audio context. Chromium (141, headless, no sound device) starts a context with a jump in the frame
+count (handoffs/evidence/p4d-startup-frame-jump.txt), which leaves a hole in the engine's timeline; a transport started in it has its first
+pulse (audio time 0) stamped for a page time that has already passed. Per-pulse margins are now saved in the file (raw.sent[].marginMs).
+Whether a real device does this is not measured; the app never plays that early (Start, then Play), so this is about this page, not the app.
+
+BEFORE (a script of 8 fresh pages, each a 6 s send run at 120 BPM; the first pulse's margin = its timestamp less the time of the send call;
+steady margins are about 62 ms at a 30 ms lookahead). First batch of 8 and then a second batch of 8, each with the page as it was:
+(first batch, from the run in this session)
+2 sent 289 late [{"k":0,"m":-135.427,"a":0}] first margins -135.4,62.1,63.0,63.8
+5 sent 289 late [{"k":0,"m":-140.651,"a":0.020317460317460317}] first margins -140.7,62.1,62.7,63.9
+(the other six of that batch: no late pulse, first margins 17.7 to 55.6 ms)
+(second batch)
+0 sent 289 late [] first margins 53.4,61.0,61.7,62.5
+1 sent 289 late [] first margins 28.2,60.8,61.6,62.2
+2 sent 288 late [] first margins 58.6,60.0,61.6,61.5
+3 sent 289 late [] first margins 58.1,61.0,61.7,62.7
+4 sent 289 late [{"k":0,"m":-151.494,"a":0}] first margins -151.5,60.4,61.4,62.2
+5 sent 289 late [{"k":0,"m":-137.693,"a":0}] first margins -137.7,62.3,63.0,63.9
+6 sent 288 late [] first margins 58.5,61.0,61.5,62.3
+7 sent 288 late [] first margins 58.9,60.9,61.8,62.6
+
+FIX: the run waits until the worklet has posted its panel 8 times (about 170 ms) before it starts the engine, as the Chromium tests that measure spacing do (pastStartup).
+
+AFTER (the same script, the page as it is now):
+0 sent 288 late [] first margins 58.2,60.8,61.7,62.6
+1 sent 288 late [] first margins 58.7,60.8,61.7,62.5
+2 sent 288 late [] first margins 58.5,60.8,61.6,62.2
+3 sent 288 late [] first margins 59.9,62.5,63.3,64.1
+4 sent 287 late [] first margins 58.1,60.7,61.2,62.3
+5 sent 288 late [] first margins 59.7,62.4,63.4,64.0
+6 sent 287 late [] first margins 58.2,60.8,61.6,62.3
+7 sent 288 late [] first margins 59.2,61.1,62.0,62.9

@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { launch } from "../../scripts/browser.ts";
 import { repoRoot, serve } from "../../scripts/serve.ts";
 import { formatFollow, formatSend } from "./format.ts";
-import { SIMULATED_FOLLOW, SIMULATED_SEND, standInScript } from "./stand-in.ts";
+import { SCATTER_MS, SIMULATED_FOLLOW, SIMULATED_SEND, STAMP_AGE_MS, standInScript } from "./stand-in.ts";
 import type { FollowConfig, FollowResult, S3, SendConfig, SendResult } from "./page.ts";
 
 declare const s3: S3;
@@ -50,7 +50,7 @@ const send: SendConfig = { minutes: SECONDS / 60, bpm: BPM, outputId: "out1", in
 
 async function page(): Promise<import("playwright-core").Page> {
   const context = await browser.newContext();
-  await context.addInitScript(standInScript);
+  await context.addInitScript(standInScript, { stampAgeMs: STAMP_AGE_MS, scatterMs: SCATTER_MS });
   const p = await context.newPage();
   p.on("pageerror", (e) => failures.push(`page error: ${e.message}`));
   await p.goto(`${server.url}/spikes/s3/page.html`);

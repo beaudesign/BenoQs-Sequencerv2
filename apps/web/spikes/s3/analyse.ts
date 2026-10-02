@@ -25,6 +25,8 @@ export interface FollowSample {
   pulses: number;
   running: boolean;
   hidden: boolean;
+  /** The page's idea of the audio clock against its own: `performance.now()` less the audio time, ms, as the clock map last read it. Absent in a file that did not record it. */
+  mapMs?: number | null;
 }
 
 /** A 0xFA, 0xFB or 0xFC as the page saw it. */
@@ -78,7 +80,11 @@ export interface FollowAnalysis {
     beyondFifth: number;
     share: number;
     skipped: { settling: number; lost: number; stopped: number };
+    /** Of the samples beyond a fifth of a step, those within two seconds after a jump of the clock map. */
+    beyondFifthNearMapJump: number;
   };
+  /** How the browser's map from audio time to page time moved between samples. A step of more than 3 ms is a jump. */
+  clockMap: { samples: number; jumps: number; maxJumpMs: number; rangeMs: number };
   tempo: { meanErrorBpm: number | null; maxAbsErrorBpm: number | null };
 }
 
@@ -93,6 +99,10 @@ const FUTURE_TOLERANCE_MS = 5;
 /** ... and 99 of 100 were seen within this long of their stamp (a busy page; a different clock is seconds to years). Proposed. */
 const SAME_CLOCK_P99_MS = 100;
 const DRIFT_BLOCK_MS = 60_000;
+/** A step of the audio-to-page offset between two samples (250 ms apart) of more than this is a jump of the browser's clock map. Normal wander is a tenth of it. Proposed. */
+const MAP_JUMP_MS = 3;
+/** A phase that leaves a fifth of a step within this long after a jump is put down to it: the follower takes about this long to take a jump of 30 ms out. Proposed. */
+const MAP_JUMP_WINDOW_MS = 2_000;
 const DEFAULT_SETTLE_MS = 3_000;
 
 const mean = (v: number[]): number => (v.length === 0 ? 0 : v.reduce((a, b) => a + b, 0) / v.length);
@@ -179,7 +189,23 @@ export function analyseFollow(raw: FollowRaw, options: FollowOptions = {}): Foll
     return found;
   };
 
+  // The browser's clock map, from every sample (not only those the hidden filter keeps): when it jumped.
+  const mapped = raw.samples.filter((s): s is FollowSample & { mapMs: number } => typeof s.mapMs === "number" && Number.isFinite(s.mapMs));
+  const jumps: { at: number; step: number }[] = [];
+  for (let i = 1; i < mapped.length; i++) {
+    const step = mapped[i]!.mapMs - mapped[i - 1]!.mapMs;
+    if (Math.abs(step) > MAP_JUMP_MS) jumps.push({ at: mapped[i]!.at, step });
+  }
+  const mapValues = mapped.map((s) => s.mapMs);
+  const clockMap = {
+    samples: mapped.length,
+    jumps: jumps.length,
+    maxJumpMs: jumps.reduce((m, j) => Math.max(m, Math.abs(j.step)), 0),
+    rangeMs: mapValues.length > 0 ? Math.max(...mapValues) - Math.min(...mapValues) : 0,
+  };
+
   const phases: number[] = [];
+  const phaseAt: number[] = [];
   const tempoErrors: number[] = [];
   const skipped = { settling: 0, lost: 0, stopped: 0 };
   for (const s of raw.samples) {
@@ -200,15 +226,19 @@ export function analyseFollow(raw: FollowRaw, options: FollowOptions = {}): Foll
       continue;
     }
     phases.push(s.phaseMs);
+    phaseAt.push(s.at);
     if (options.nominalBpm !== undefined && s.bpm !== null) tempoErrors.push(s.bpm - options.nominalBpm);
   }
   const absMs = spread(phases.map(Math.abs));
-  const beyondFifth = phases.filter((p) => Math.abs(p) > fifthOfStepMs).length;
+  const beyond = phases.map((p, i) => ({ p, at: phaseAt[i]! })).filter((x) => Math.abs(x.p) > fifthOfStepMs);
+  const beyondFifth = beyond.length;
+  const nearJump = beyond.filter((x) => jumps.some((j) => x.at - j.at >= 0 && x.at - j.at <= MAP_JUMP_WINDOW_MS)).length;
   return {
     pulses: raw.pulses.length,
     clockDomain: clockDomain(raw.pulses),
     intervals: iv,
-    phase: { counted: phases.length, absMs, maxAbsMs: absMs.max, fifthOfStepMs, beyondFifth, share: phases.length > 0 ? beyondFifth / phases.length : 0, skipped },
+    phase: { counted: phases.length, absMs, maxAbsMs: absMs.max, fifthOfStepMs, beyondFifth, share: phases.length > 0 ? beyondFifth / phases.length : 0, skipped, beyondFifthNearMapJump: nearJump },
+    clockMap,
     tempo: tempoErrors.length > 0 ? { meanErrorBpm: mean(tempoErrors), maxAbsErrorBpm: Math.max(...tempoErrors.map(Math.abs)) } : { meanErrorBpm: null, maxAbsErrorBpm: null },
   };
 }
@@ -289,7 +319,55 @@ export function followVerdict(a: FollowAnalysis, runSeconds: number, hiddenSecon
         : `${a.phase.beyondFifth} of ${a.phase.counted} samples were beyond ${fifth}; the largest was ${a.phase.maxAbsMs.toFixed(1)} ms.`,
     );
   }
+  if (met === false && a.clockMap.samples > 0) {
+    const n = a.phase.beyondFifth;
+    const near = a.phase.beyondFifthNearMapJump;
+    const what = `a jump of the browser's clock map (the audio-to-page offset moved by more than ${MAP_JUMP_MS} ms in the 2 s before; ${a.clockMap.jumps} jumps in the run, the largest ${a.clockMap.maxJumpMs.toFixed(1)} ms)`;
+    lines.push(
+      near === n
+        ? `All ${n} of them follow ${what}: the browser's clock, not the sender's, is the likely cause.`
+        : near === 0
+          ? `None of them follows ${what}.`
+          : `${near} of the ${n} follow ${what}; the other ${n - near} do not.`,
+    );
+  }
   if (runSeconds < S3_SECONDS) lines.push(`The run is ${Math.round(runSeconds)} s, shorter than the 30 minutes the plan asks for, so it is not the S3 run.`);
   if (hiddenSeconds > 0) lines.push(`The tab was hidden for ${Math.round(hiddenSeconds)} s of ${Math.round(runSeconds)}. The plan's criterion is for a visible tab: read the visible samples and the hidden ones apart.`);
   return { met, lines };
+}
+
+export interface StampMapAnalysis {
+  /** Pulses that had a stamp (the late ones went at once and have none). */
+  pulses: number;
+  /** The engine's tempo from the audio times of its pulses: exact, with no clock map in it. */
+  engineBpm: number;
+  /** Steps of more than 3 ms in the offset the stamps were made with, between one pulse and the next: jumps of the clock map. */
+  jumps: number;
+  maxJumpMs: number;
+  /** The sum of the sizes of the jumps: the most they can have moved the tempo the loop heard over the run. */
+  totalJumpMs: number;
+  rangeMs: number;
+}
+
+/**
+ * The map the scheduler stamped the pulses with, recovered from the pulses: a stamp is the audio time on the page's clock plus the lookahead,
+ * so the offset between the two clocks that went into it is `target - lookahead - audioTime`. It wanders by a fraction of a millisecond when
+ * the map is steady and jumps when the browser's `getOutputTimestamp` does, and every stamp after a jump carries it.
+ */
+export function analyseStampMap(sent: { target: number; audioTime: number; marginMs: number }[], lookaheadMs: number): StampMapAnalysis {
+  const stamped = sent.filter((s) => s.marginMs > 0);
+  const all = sent.length > 1 ? (2500 * (sent.length - 1)) / ((sent[sent.length - 1]!.audioTime - sent[0]!.audioTime) * 1000) : 0;
+  const offsets = stamped.map((s) => s.target - lookaheadMs - s.audioTime * 1000);
+  let jumps = 0;
+  let maxJump = 0;
+  let total = 0;
+  for (let i = 1; i < offsets.length; i++) {
+    const step = Math.abs(offsets[i]! - offsets[i - 1]!);
+    if (step > MAP_JUMP_MS) {
+      jumps++;
+      maxJump = Math.max(maxJump, step);
+      total += step;
+    }
+  }
+  return { pulses: stamped.length, engineBpm: Number.isFinite(all) ? all : 0, jumps, maxJumpMs: maxJump, totalJumpMs: total, rangeMs: offsets.length > 0 ? Math.max(...offsets) - Math.min(...offsets) : 0 };
 }

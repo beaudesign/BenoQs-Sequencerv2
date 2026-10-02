@@ -11,7 +11,8 @@ panel. SPEC-0002, task WENGE-0014, ADR-0008. Owner: the Forge.
 | `src/abi.ts` | A typed wrapper over the exports. Runs in the worklet and in Node |
 | `src/worklet.ts` | The `AudioWorkletProcessor`: renders 128 frames, posts events and, every 8 blocks, the LED frame and playheads |
 | `src/host.ts` | The page's side: compiles the module, starts the worklet, routes its messages, sends panel input |
-| `src/midi-out.ts`, `src/wire.ts` | Turns events into `MIDIOutput.send(data, timestamp)` calls with a lookahead, and joins them to the host |
+| `src/midi-out.ts`, `src/wire.ts` | Turns events into `MIDIOutput.send(data, timestamp)` calls with a lookahead, one device for each port, and joins them to the host |
+| `src/midi-in.ts`, `src/route.ts` | The input path (decode and count; no consumer yet) and the `?route=` stand-in for port 2 (parses text only) |
 | `pages/app.*` | The app: `app.html` (the strip is written here), `app.css` (names tokens, writes none), `app.ts` (joins the panel, the engine and Web MIDI) |
 | `src/panel.ts`, `src/layout.ts`, `src/press.ts`, `src/strip.ts`, `src/midi-access.ts` | The SVG panel, where each control goes, pointer and key presses, the strip, and Web MIDI as the page needs it |
 | `src/tokens.ts`, `src/tokens-css.ts` | `contracts/design.tokens.json` read and written out as the stylesheet `dist/tokens.css` |
@@ -36,15 +37,27 @@ Chromium comes from `npx playwright-core install chromium`, or from `PLAYWRIGHT_
 
 ## The panel
 
-`pages/app.html` is a strip and a panel. The strip is plain: **Start**, the **MIDI output** to send to, the
-**lookahead** in milliseconds (30 by default), and two sentences that say what the app and the browser's MIDI are doing.
-It never sits on the panel and holds no colour. The panel is one SVG that scales as a whole and never rearranges.
+`pages/app.html` is a strip and a panel. The strip is plain: **Start**, the device for **MIDI Out 1** and for **MIDI Out 2**,
+the device for **MIDI In**, the **lookahead** in milliseconds (30 by default), and sentences that say what the app and the
+browser's MIDI are doing. It never sits on the panel and holds no colour. The panel is one SVG that scales as a whole and
+never rearranges.
 
 - **Start** is a button because a browser keeps audio silent until the page has been used. It starts the engine in its
   worklet and asks the browser for MIDI. Until then a press on the panel only says to press Start.
 - **No Web MIDI** (Safari, Firefox): the page loads and runs, and the strip says the browser has no Web MIDI. A refusal of
   access says that instead. Either way the keys and the LEDs work; nothing is sent.
-- **One output**: it is port 1. Nothing is sent until one is chosen. The second port comes with P4.
+- **Two outputs**: MIDI Out 1 is the engine's port 1 and MIDI Out 2 is port 2 (a track's MIDI channel 1 to 16 is port 1 and
+  17 to 32 is port 2, as the manual has it). Nothing is sent to a port until a device is chosen for it, and a port with no
+  device sends nothing while the other still plays. One device may be chosen for both: it hears both, and the strip says it
+  is one device. Each device keeps its own timestamp ordering (`src/midi-out.ts`), so a device shared by both ports is one
+  ordering. A track gets onto port 2 from Track zoom, which does not exist yet; until then see **The route hook**.
+- **One input**: choose a device for MIDI In and its messages are decoded (`src/midi-in.ts`: Note On and Off, controller,
+  pitch bend, channel pressure, program change and the four real-time messages 0xF8, 0xFA, 0xFB, 0xFC) and counted, and the
+  strip shows the count. **Nothing uses them yet.** Recording, transpose, force-to-scale, map learn and the clock follower
+  attach at `InputPath.onMessage` in the waves that own them. The page asks for Web MIDI without the system exclusive
+  permission, and system exclusive is not delivered without it.
+- **A browser that has Web MIDI and cannot start it** (no MIDI backend on the system) says so and shows the browser's own
+  reason, apart from a refusal, which says how to allow it.
 - **What is drawn**: the 160 matrix keys, and the ten controls the controller acts on (`mode.page`, `mode.step`,
   `mode.play`, `mode.edit`, `keys.esc`, `keys.program`, `mutator.tgl`, `mutator.zom`, `mutator.mute`, `transport.stop`)
   and `transport.play`. The other 76 of the 247 controls arrive with their waves. Their arrangement is provisional
@@ -61,13 +74,25 @@ It never sits on the panel and holds no colour. The panel is one SVG that scales
   stylesheet only names it; the panel's geometry is computed from the tokens. `engine/tests/app_source_rules.rs` fails the
   build on a hex colour, a length, a gradient, a shadow, an easing keyword or a second animation in the app's files.
 
+## The route hook
+
+`?route=0:17,1:3` in the address sets the MIDI channel of tracks for the session: track 0 to channel 17, which is port 2
+channel 1, and track 1 to channel 3, which is port 1 channel 3. The track is the row of the matrix, 0 to 9, as the control
+ids give it (`matrix.r3.c1` is track 3). The channel is 1 to 32. The page reads the address once, when it starts, applies the
+routes after the engine is up, and the strip says what it applied and what it left out and why.
+
+It is a test and demonstration hook, **not a control**: nothing draws it, nothing saves it, and it exists because a track can
+only reach port 2 from Track zoom, which is not built (`specs/SPEC-0002/p4-plan.md` D-P4-2 and F-P4-2). It is removed when
+Track zoom lands. Only `pages/app.ts` reads the address (`engine/tests/app_source_rules.rs` fails if another file under
+`src/` reads `location`); `src/route.ts` only parses text.
+
 ## Tab order
 
 Acceptance criterion A8. The order of the elements in the page is the tab order (nothing has a `tabindex` above 0), and it
 follows the panel from the top left to the bottom right. This section is checked against `layout/panel.layout.json` by
 `test/readme.test.ts`, so it cannot drift.
 
-1. The strip: `start`, `midi-output`, `lookahead`.
+1. The strip: `start`, `midi-out-1`, `midi-out-2`, `midi-in`, `lookahead`.
 2. The 160 matrix keys in reading order: row 9 (the top row) from column 1 to column 16, then row 8, and so on down to
    row 0 (the bottom row).
 3. The other controls, in the order of the layout file (left to right, row by row):

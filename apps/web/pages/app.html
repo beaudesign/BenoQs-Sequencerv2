@@ -12,8 +12,16 @@
   <section id="strip" aria-label="Sequencer settings">
     <button id="start" type="button">Start</button>
     <div class="field">
-      <label for="midi-output">MIDI output</label>
-      <select id="midi-output"><option value="">No output</option></select>
+      <label for="midi-out-1">MIDI Out 1</label>
+      <select id="midi-out-1"><option value="">No output</option></select>
+    </div>
+    <div class="field">
+      <label for="midi-out-2">MIDI Out 2</label>
+      <select id="midi-out-2"><option value="">No output</option></select>
+    </div>
+    <div class="field">
+      <label for="midi-in">MIDI In</label>
+      <select id="midi-in"><option value="">No input</option></select>
     </div>
     <div class="field">
       <label for="lookahead">Lookahead in milliseconds</label>
@@ -21,6 +29,9 @@
     </div>
     <p id="engine-status" role="status">The sequencer has not started.</p>
     <p id="midi-status" role="status">MIDI is asked for when you press Start.</p>
+    <p id="midi-in-status" role="status"></p>
+    <p id="midi-in-count"></p>
+    <p id="route-status" role="status" hidden></p>
   </section>
   <div id="panel-frame"></div>
 </main>

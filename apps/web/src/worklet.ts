@@ -34,6 +34,9 @@ class OctowebProcessor extends AudioWorkletProcessor {
         case "tempo":
           this.engine.setTempo(m.bpm);
           break;
+        case "track":
+          this.engine.setTrack(m.track, m.attr, m.value);
+          break;
         case "reset":
           this.engine.reset();
           break;

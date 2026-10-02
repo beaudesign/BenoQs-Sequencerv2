@@ -20,6 +20,8 @@ pub extern "C" fn octoweb_transport(play: u32) -> u32 { host::transport(play != 
 #[no_mangle]
 pub extern "C" fn octoweb_set_tempo(bpm: f32) -> u32 { host::set_tempo(bpm) }
 #[no_mangle]
+pub extern "C" fn octoweb_set_track(track: u32, attr: u32, value: i32) -> u32 { host::set_track(track, attr, value) }
+#[no_mangle]
 pub extern "C" fn octoweb_render(frames: u32) -> u32 { host::render(frames) }
 #[no_mangle]
 pub extern "C" fn octoweb_events() -> *const u8 { host::events_ptr() }

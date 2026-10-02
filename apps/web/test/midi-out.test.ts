@@ -215,6 +215,49 @@ test("ordering is per output: another output's timestamps do not hold this one b
   assert.ok((b.sent[0]?.timestamp ?? 1e9) < 100, "port 2 keeps its own, earlier, timestamp");
 });
 
+test("one device chosen for both ports is one ordering domain: port 2's timestamps cannot go before port 1's on it", () => {
+  const t = new FakeTime();
+  const both = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, both);
+  s.setOutput(2, both);
+  t.nowMs = 0;
+  s.schedule(1_000, 48_000, record(0, 1, 1, 60, 100, 0)); // port 1, due at 20.8 ms
+  t.offsetMs = -5; // the clock map moves by a little between batches
+  s.schedule(1_000, 48_000, record(1, 2, 1, 60, 0, 0)); // port 2, the same sample: one device, so it must not be stamped earlier
+  assert.equal(both.sent.length, 2);
+  assert.ok((both.sent[1]?.timestamp ?? 0) >= (both.sent[0]?.timestamp ?? 1e9), "the second send keeps the order");
+  assert.equal(s.stats.raised, 1);
+});
+
+test("choosing a different device for a port starts that device's ordering afresh", () => {
+  const t = new FakeTime();
+  const a = new RecordingOutput();
+  const b = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, a);
+  s.schedule(48_000, 48_000, record(0, 1, 1, 60, 100, 0)); // due at 1 s
+  s.setOutput(1, b);
+  s.schedule(0, 48_000, record(0, 1, 1, 61, 100, 0)); // due at 0, on a new device
+  assert.ok((b.sent[0]?.timestamp ?? 1e9) < 100, "the new device is not held back by the old one's last send");
+});
+
+test("choosing a device for the other port does not unseat what this port's device has been promised", () => {
+  const t = new FakeTime();
+  const a = new RecordingOutput();
+  const b = new RecordingOutput();
+  const s = new MidiScheduler(t, 30);
+  s.setOutput(1, a);
+  t.nowMs = 0;
+  s.schedule(1_000, 48_000, record(0, 1, 1, 60, 100, 0)); // due at 20.8 ms, stamped at 50.8
+  s.setOutput(2, b); // a change on the other port
+  s.setOutput(1, a); // the same device again, as the page does when either list changes
+  t.offsetMs = -5;
+  s.schedule(1_000, 48_000, record(1, 1, 1, 60, 0, 0)); // the same sample after the clock map moved: it must still follow
+  assert.ok((a.sent[1]?.timestamp ?? 0) >= (a.sent[0]?.timestamp ?? 1e9));
+  assert.equal(s.stats.raised, 1);
+});
+
 test("ContextTimeMap: audio time to page time from the latest pair of clocks", () => {
   let pair = { contextTime: 10, performanceTime: 5_000 };
   const clock = { now: () => 5_500 };

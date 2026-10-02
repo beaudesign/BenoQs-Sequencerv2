@@ -12,6 +12,7 @@ export type ToWorklet =
   | { type: "input"; nowMs: number; kind: number; control: number; detents: number }
   | { type: "transport"; play: boolean }
   | { type: "tempo"; bpm: number }
+  | { type: "track"; track: number; attr: number; value: number }
   | { type: "reset" };
 
 export type FromWorklet =

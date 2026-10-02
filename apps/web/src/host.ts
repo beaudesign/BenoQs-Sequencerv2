@@ -135,6 +135,11 @@ export class Host implements WorkletSink {
     this.post({ type: "tempo", bpm });
   }
 
+  /** One attribute of one track, in the engine's own numbering (`TRACK_ATTR`). The engine clamps the value; a track or attribute that does not exist comes back as an `onError`. */
+  setTrack(track: number, attr: number, value: number): void {
+    this.post({ type: "track", track, attr, value });
+  }
+
   async close(): Promise<void> {
     this.node.disconnect();
     await this.context.close();

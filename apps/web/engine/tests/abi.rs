@@ -10,6 +10,7 @@ use octoweb::exports::*;
 
 const GREEN_STEADY: u8 = 2; // colour in the low two bits (off 0, red 1, green 2, orange 3), phase above (steady 0, flash 1, shine 2)
 const RED_STEADY: u8 = 1;
+const MIDI_CHANNEL: u32 = 8; // where `TrackAttr::MidiChannel` stands in `TrackAttr::ALL`, which is the number `octoweb_set_track` takes (ABI.md)
 const ORANGE_FLASH: u8 = 3 | (1 << 2);
 const GREEN_FLASH: u8 = 2 | (1 << 2);
 
@@ -61,6 +62,7 @@ fn calls_before_init_do_nothing_and_say_so() {
     assert_eq!(octoweb_input(0.0, 0, 5, 0), 1, "input before init is `not initialised`");
     assert_eq!(octoweb_transport(1), 1);
     assert_eq!(octoweb_set_tempo(120.0), 1);
+    assert_eq!(octoweb_set_track(0, MIDI_CHANNEL, 17), 1);
     assert_eq!(octoweb_render(128), 0, "no events");
     assert_eq!(octoweb_refresh_leds(), 0);
     assert_eq!(octoweb_status(), 0);
@@ -360,5 +362,74 @@ fn a_tempo_the_engine_cannot_use_is_refused() {
     assert_eq!(octoweb_set_tempo(120.0), 0);
     for bpm in [0.0f32, -1.0, f32::NAN, f32::INFINITY, 5000.0] {
         assert_ne!(octoweb_set_tempo(bpm), 0, "{bpm} should be refused");
+    }
+}
+
+#[test]
+fn the_attribute_number_the_page_sends_is_the_engines_own_order() {
+    assert_eq!(octocore::types::TrackAttr::ALL[MIDI_CHANNEL as usize], octocore::types::TrackAttr::MidiChannel);
+    assert_eq!(octocore::types::TrackAttr::ALL.len(), 15, "a new attribute is added at the end, or ABI.md says where it went");
+}
+
+/// The (port, channel) of every Note On in `blocks` blocks of 128 frames.
+fn note_on_routes(abi: &Abi, blocks: usize) -> Vec<(u8, u8)> {
+    let mut routes = Vec::new();
+    for _ in 0..blocks {
+        routes.extend(abi.render(128).into_iter().filter(|e| e[0] == 0).map(|e| (e[1], e[2])));
+    }
+    routes
+}
+
+#[test]
+fn a_track_set_to_a_channel_above_16_plays_on_port_two_and_the_rest_stay_on_port_one() {
+    let abi = Abi::start();
+    abi.click(&abi.matrix(0, 0), 0.0);
+    abi.click(&abi.matrix(1, 0), 100.0);
+    abi.click(&abi.matrix(2, 0), 200.0);
+    assert_eq!(octoweb_set_track(0, MIDI_CHANNEL, 17), 0, "17 is port 2, channel 1");
+    assert_eq!(octoweb_set_track(1, MIDI_CHANNEL, 32), 0, "32 is port 2, channel 16");
+    assert_eq!(octoweb_set_track(2, MIDI_CHANNEL, 3), 0, "3 is port 1, channel 3");
+    assert_eq!(octoweb_set_tempo(240.0), 0);
+    assert_eq!(octoweb_transport(1), 0);
+    let mut routes = note_on_routes(&abi, 600);
+    routes.sort_unstable();
+    routes.dedup();
+    assert_eq!(routes, vec![(1, 3), (2, 1), (2, 16)], "each track on the port and channel its number says, and none on the default");
+}
+
+#[test]
+fn a_track_that_was_never_set_still_plays_on_port_one_channel_one() {
+    let abi = Abi::start();
+    abi.click(&abi.matrix(0, 0), 0.0);
+    octoweb_transport(1);
+    let mut routes = note_on_routes(&abi, 600);
+    routes.dedup();
+    assert_eq!(routes, vec![(1, 1)]);
+}
+
+#[test]
+fn set_track_refuses_a_track_or_an_attribute_that_does_not_exist_and_changes_nothing() {
+    let abi = Abi::start();
+    abi.click(&abi.matrix(0, 0), 0.0);
+    assert_eq!(octoweb_set_track(0, MIDI_CHANNEL, 17), 0);
+    for (track, attr) in [(10, MIDI_CHANNEL), (255, MIDI_CHANNEL), (u32::MAX, MIDI_CHANNEL), (0, 15), (0, 99), (0, u32::MAX)] {
+        assert_eq!(octoweb_set_track(track, attr, 3), 5, "track {track} attribute {attr} is out of range (ABI.md code 5)");
+    }
+    octoweb_transport(1);
+    let mut routes = note_on_routes(&abi, 600);
+    routes.dedup();
+    assert_eq!(routes, vec![(2, 1)], "the refused calls did not touch track 0");
+}
+
+#[test]
+fn a_channel_outside_1_to_32_is_the_engines_to_clamp_not_a_crash() {
+    let abi = Abi::start();
+    abi.click(&abi.matrix(0, 0), 0.0);
+    for v in [i32::MIN, -1, 0, 33, 1000, i32::MAX] {
+        assert_eq!(octoweb_set_track(0, MIDI_CHANNEL, v), 0, "{v}");
+    }
+    octoweb_transport(1);
+    for (port, channel) in note_on_routes(&abi, 600) {
+        assert!((1..=2).contains(&port) && (1..=16).contains(&channel), "port {port} channel {channel}");
     }
 }

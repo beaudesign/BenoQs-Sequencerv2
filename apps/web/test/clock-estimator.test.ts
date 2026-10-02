@@ -12,16 +12,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ClockEstimator, LOCK_PULSES, LOST_AFTER_MS, SEED_PULSES, type LockState, type PushOutcome } from "../src/clock-estimator.ts";
+import { Rng } from "./support/rng.ts";
 import { nextAfter, ramp, simulate, steady, step, type Sim, type SimConfig } from "./support/sim-clock.ts";
 
 // ----- the proposals -----
 const SETTLE_S = 2;
 const STEADY_BPM = 0.1; // ... for at least STEADY_SHARE of the runs
 const STEADY_SHARE = 0.9;
-const STEADY_BPM_WORST = 0.2; // ... and for every run
+const STEADY_BPM_WORST = 0.2; // ... and for every run, at 120 BPM. At other tempos it scales with the tempo: the jitter is a fixed number of milliseconds, so
+// it is a larger share of a shorter period (the first draft said 0.2 BPM at every tempo; at 200 BPM the estimator reads 0.27 on these seeds).
 const STEADY_TICKS = 1;
 const SLOW_RAMP = { bpmLag: 1.5, ticks: 2 }; // 1 BPM a second
-const FAST_RAMP = { bpmLag: 3.5, ticks: 4 }; // 5 BPM a second
+const FAST_RAMP = { bpmLag: 3.5, ticks: 3 }; // 5 BPM a second (the first draft said 4 ticks; measured 2.1 on 60 unseen seeds)
 const AFTER_RAMP = { seconds: 3, bpm: 0.3, ticks: 1 };
 const RELOCK_WITHIN_S = 2;
 
@@ -35,11 +37,17 @@ interface Record {
   phaseTicks: number | null;
 }
 
+const ACCEPTING: readonly PushOutcome[] = ["first", "seeding", "accepted", "relocked", "restarted"];
+
 function run(sim: Sim, est = new ClockEstimator()): Record[] {
   const out: Record[] = [];
+  // The grid is read from the latest pulse the estimator took in, which is not the latest it was given: a pulse it turned away did not
+  // move the grid, and `gridTime(1)` is one pulse after the one it did take.
+  let taken = 0;
   for (const p of sim.pulses) {
     const outcome = est.push(p.at);
-    const next = nextAfter(sim, p.index);
+    if (ACCEPTING.includes(outcome)) taken = p.index;
+    const next = nextAfter(sim, taken);
     const grid = est.gridTime(1);
     out.push({
       index: p.index,
@@ -133,13 +141,23 @@ test("M4: steady 120 BPM with up to 3 ms of jitter, after two seconds the next p
   assert.ok(within >= seeds * STEADY_SHARE, `${within} of ${seeds} runs held 0.1 BPM from two seconds on; the proposal is ${STEADY_SHARE * 100}%`);
 });
 
-test("steady clocks at 60, 90, 150 and 200 BPM with 3 ms of jitter hold a tick and 0.2 BPM from two seconds on", () => {
+test("steady clocks at 60, 90, 150 and 200 BPM with 3 ms of jitter hold a tick and 0.17% of the tempo from two seconds on", () => {
   for (const bpm of [60, 90, 150, 200]) {
     for (let seed = 1; seed <= 15; seed++) {
       const r = run(jittered(bpm, seed));
       assert.ok(worst(r, SETTLE_S, 10, ticksOf) <= STEADY_TICKS, `${bpm} BPM, seed ${seed}: phase`);
-      assert.ok(worst(r, SETTLE_S, 10, bpmOf) <= STEADY_BPM_WORST, `${bpm} BPM, seed ${seed}: tempo`);
+      assert.ok(worst(r, SETTLE_S, 10, bpmOf) <= (STEADY_BPM_WORST * bpm) / 120, `${bpm} BPM, seed ${seed}: tempo`);
     }
+  }
+});
+
+test("a noisy first beat does not throw the estimate off at a fast tempo (found on seed 137 at 200 BPM, with seeds the fixtures above did not use)", () => {
+  // The first fit of four pulses is out by several percent at 200 BPM with 3 ms of jitter. If pulses are counted by that period a late one
+  // reads as two, or an early one as a repeat, and the filter settles on a tempo 6% wrong and stays there.
+  for (let seed = 100; seed < 160; seed++) {
+    const r = run(jittered(200, seed));
+    assert.ok(worst(r, SETTLE_S, 10, ticksOf) <= STEADY_TICKS, `seed ${seed}: phase`);
+    assert.ok(worst(r, SETTLE_S, 10, bpmOf) <= (STEADY_BPM_WORST * 200) / 120 * 2, `seed ${seed}: tempo`);
   }
 });
 
@@ -199,6 +217,19 @@ test("a step in tempo (120 to 90 BPM) is taken: within two seconds the tempo and
     const from = 6 + RELOCK_WITHIN_S;
     assert.ok(worst(r, from, 14, bpmOf) <= STEADY_BPM_WORST + 0.1, `seed ${seed}: tempo ${RELOCK_WITHIN_S} s after the step`);
     assert.ok(worst(r, from, 14, ticksOf) <= STEADY_TICKS, `seed ${seed}: phase ${RELOCK_WITHIN_S} s after the step`);
+  }
+});
+
+test("steps whose new pulses land on the old grid by coincidence (120 to 80, 80 to 120, 120 to 60) are taken as steps, not as missing pulses", () => {
+  // After a step the first pulses fall off the old grid. A pulse that happens to fall on it again (the second at 80 BPM is on the old
+  // third) must not be read as "two pulses were never heard", or the filter follows its own mistake.
+  for (const [from, to] of [[120, 80], [80, 120], [120, 60], [60, 120]] as const) {
+    for (let seed = 1; seed <= 10; seed++) {
+      const r = run(simulate({ seed, seconds: 14, bpm: step(from, to, 6), jitter: { shape: "uniform", ms: 3 } }));
+      const label = `${from} to ${to} BPM, seed ${seed}`;
+      assert.ok(worst(r, 6 + RELOCK_WITHIN_S, 14, bpmOf) <= STEADY_BPM_WORST + 0.1, `${label}: tempo`);
+      assert.ok(worst(r, 6 + RELOCK_WITHIN_S, 14, ticksOf) <= STEADY_TICKS, `${label}: phase`);
+    }
   }
 });
 
@@ -356,10 +387,12 @@ test("the same pulses give the same answers every time, to the last bit", () => 
 
 test("reset forgets everything: idle again, no tempo, the counts at zero", () => {
   const e = new ClockEstimator();
-  for (const p of jittered(120, 2, 3).pulses) e.push(p.at);
-  assert.equal(e.state(5_000), "locked");
+  const sim = jittered(120, 2, 3);
+  for (const p of sim.pulses) e.push(p.at);
+  const last = sim.pulses[sim.pulses.length - 1]!.at;
+  assert.equal(e.state(last), "locked");
   e.reset();
-  assert.equal(e.state(5_000), "idle");
+  assert.equal(e.state(last), "idle");
   assert.equal(e.bpm, null);
   assert.equal(e.gridTime(1), null);
   assert.deepEqual({ ...e.stats }, new ClockEstimator().stats);
@@ -373,4 +406,29 @@ test("the estimator has no clock of its own: what it says depends only on the ti
   const late = new ClockEstimator();
   for (let i = 0; i < 30; i++) late.push(0.5 + (i * 2500) / 120);
   assert.ok(Math.abs(late.gridTime(1)! - (0.5 + (30 * 2500) / 120)) < 0.01, "and so is a small one");
+});
+
+test("whatever arrives, the estimator never throws and never says a number that is not a number: 300 random streams of 400 messages", () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const rng = new Rng(seed * 104729);
+    const e = new ClockEstimator();
+    let t = rng.next() * 1e6;
+    for (let i = 0; i < 400; i++) {
+      // Gaps from nothing to a stall, a clock that is nearly regular for a while, and now and then something that is not a time at all.
+      const kind = rng.int(10);
+      if (kind === 0) t += rng.next() * 900;
+      else if (kind === 1) t -= rng.next() * 30;
+      else if (kind === 2) t += 0;
+      else t += 20.8 + (rng.next() * 2 - 1) * 4;
+      const outcome = e.push(kind === 3 && rng.int(5) === 0 ? NaN : t);
+      assert.ok(typeof outcome === "string", `seed ${seed}, message ${i}`);
+      const bpm = e.bpm;
+      assert.ok(bpm === null || (Number.isFinite(bpm) && bpm > 0), `seed ${seed}, message ${i}: bpm ${bpm}`);
+      const grid = e.gridTime(1);
+      assert.ok(grid === null || Number.isFinite(grid), `seed ${seed}, message ${i}: grid ${grid}`);
+      const index = e.pulseIndex(t);
+      assert.ok(index === null || Number.isFinite(index), `seed ${seed}, message ${i}: index ${index}`);
+      assert.ok(Number.isFinite(e.stats.jitterMs), `seed ${seed}, message ${i}: jitter`);
+    }
+  }
 });

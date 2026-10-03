@@ -3,6 +3,7 @@
 //
 // The numbers are recomputed from the raw records and not taken from the analysis the page stored in the file, so a different settling
 // or a tempo to compare with can be asked for without another 30 minutes.
+import type { EngineBuild } from "./build.ts";
 import type { FollowResult, SendResult } from "./page.ts";
 import { analyseFollow, followVerdict, unpackPulses, type FollowAnalysis, type FollowOptions, type Spread } from "./analyse.ts";
 
@@ -35,6 +36,11 @@ export function reanalyse(result: FollowResult, options: FollowOptions = {}): Fo
 
 const ms = (x: number): string => `${x.toFixed(2)} ms`;
 const spreadLine = (label: string, s: Spread): string => `  ${label}: n ${s.n}, mean ${ms(s.mean)}, sigma ${ms(s.sigma)}, min ${ms(s.min)}, median ${ms(s.p50)}, 99th ${ms(s.p99)}, max ${ms(s.max)}`;
+/** Which engine made the file: for a file read against a later engine, and for a run with Live that is read a week on. */
+const buildLine = (e: EngineBuild | undefined): string =>
+  e === undefined
+    ? "Engine build: not recorded in this file (it was saved before the page recorded it)"
+    : `Engine build: octoweb-abi/${e.abi}, octoweb.wasm ${e.wasmBytes} bytes, sha256 ${e.sha256 ?? "not computed (the page was not served from a secure context: use localhost)"}`;
 const head = (saved: Saved): string[] => (saved.simulated !== undefined ? [`SIMULATED: ${saved.simulated}`] : []);
 const where = (saved: Saved): string => [saved.commit ? `commit ${saved.commit}` : null, saved.browser ?? null].filter(Boolean).join(", ");
 
@@ -77,6 +83,7 @@ export function formatFollow(saved: { simulated?: string; commit?: string; brows
     ...head(saved),
     `Spike S3, follow a clock: input "${r.port}", ${r.durationS.toFixed(0)} s run started ${r.startedAt}, tab hidden ${r.hiddenS.toFixed(1)} s (${Math.max(0, r.visibility.length - 1)} changes of visibility)`,
     `${where(saved)}${where(saved) ? "; " : ""}${r.environment.userAgent}, ${r.environment.platform}; audio ${r.environment.audioSampleRate} Hz, base latency ${r.environment.baseLatencyMs.toFixed(1)} ms, output latency ${r.environment.outputLatencyMs.toFixed(1)} ms; follower lookahead ${r.config.lookaheadMs} ms, offset ${r.config.offsetMs} ms`,
+    buildLine(r.engine),
     `Input path: received ${r.input.received}, decoded ${r.input.decoded}, ignored ${r.input.ignored}, malformed ${r.input.malformed}, timestamps going backwards ${r.input.backwards}; clock ${r.input.realtime.clock}, Start ${r.input.realtime.start}, Continue ${r.input.realtime.continue}, Stop ${r.input.realtime.stop}; worklet errors ${r.worklet.errors.length}`,
     ...intervalLines(all),
     "Phase (the engine against where the sender's clock says it should be; positive is ahead):",
@@ -100,6 +107,7 @@ export function formatSend(saved: { simulated?: string; commit?: string; browser
     ...head(saved),
     `Spike S3, send a clock: output "${r.ports.output}", input "${r.ports.input}", engine at ${r.config.bpm} BPM, ${r.durationS.toFixed(0)} s run started ${r.startedAt}, tab hidden ${r.hiddenS.toFixed(1)} s`,
     `${where(saved)}${where(saved) ? "; " : ""}${r.environment.userAgent}, ${r.environment.platform}; audio ${r.environment.audioSampleRate} Hz, base latency ${r.environment.baseLatencyMs.toFixed(1)} ms, output latency ${r.environment.outputLatencyMs.toFixed(1)} ms; lookahead ${r.config.lookaheadMs} ms`,
+    buildLine(r.engine),
     `Clock pulses: sent ${l.sent}, heard ${l.received}, matched ${l.matched}, missing ${l.missing}, extra ${l.extra}${hasOrderProblem ? " (the pairing is by order, so a pulse lost in the middle shifts every pair after it: the latency and interval figures below cannot be trusted)" : ""}`,
     `Transport messages: Start ${Start} sent, ${startHeard} heard; Continue ${Continue} sent, ${continueHeard} heard; Stop ${Stop} sent, ${stopHeard} heard`,
     spreadLine("latency (heard stamp less the time it was sent for; the port's, with the page's clock map in it)", l.latencyMs),

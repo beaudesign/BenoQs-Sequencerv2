@@ -1,0 +1,29 @@
+Q-M6, the engine build in the saved S3 file (forge/s3-engine-build; the Ableton MCP review, section 6, default taken).
+
+WHAT CHANGED. spikes/s3/build.ts hashes the bytes of octoweb.wasm the page fetched (SHA-256, SubtleCrypto), before they are handed to the host;
+the follow and send results carry `engine: { abi, wasmBytes, sha256 }` (optional in the types, schema stays wenge.s3.*/1, so a file saved
+before this still reads); the report prints "Engine build: ..." as the line after the environment line, and says "not recorded in this file" for
+an older file and "sha256 not computed" where the page has no SubtleCrypto (a page not served from a secure context). No engine, contract or
+threshold change.
+
+RED FIRST (b5bba2c, tests alone). 3 of 12 Node tests in s3-build.test.ts and s3-report.test.ts failed (no build.ts; no Engine build line);
+3 of 5 Chromium tests in s3.browser.test.ts failed (no engine in the saved file or the returned result). A fourth new Node test (the build survives
+the save and the read) passes on the old code, because a JSON round trip keeps any field: it pins the shape, and was not shown failing.
+
+GREEN (1077790). Node 313 of 313 (307 before, 6 new), tsc clean, Chromium s3.browser.test.ts 5 of 5.
+
+AGAINST AN INDEPENDENT HASH. A simulated run (node spikes/s3/run.ts --seconds 10, not written to evidence) printed
+  Engine build: octoweb-abi/2, octoweb.wasm 184056 bytes, sha256 f7911ebb58d9efd05a2487bb342a1e8f7a82447b1457158ae8480922d1ee371c
+in both reports, and sha256sum apps/web/dist/octoweb.wasm gave f7911ebb58d9efd05a2487bb342a1e8f7a82447b1457158ae8480922d1ee371c, 184056 bytes.
+(The Chromium tests make the same comparison on every run, against the file on disk.)
+
+MUTATION, 13 single-line changes to build.ts, format.ts and page.ts, each put back: 13 caught, 0 survived.
+  Node-side (9): hex without zero padding; SHA-1 for SHA-256; the size one short; the injected SubtleCrypto ignored; the ABI number and the size
+    swapped in the line; a file with no build not told apart; the reason for no hash dropped; no build line in the follow report; none in the send report.
+  Page-side, in Chromium (4): no engine in the follow result; none in the send result; the hash of an empty buffer of the same length; the ABI recorded
+    one more than the page's.
+NOT TESTED, and why. A mutant that writes the constant 2 for the ABI number is equivalent while ABI_VERSION is 2, and the Chromium test reads the
+expected number from the same constant, so it would not be told apart; the module's own octoweb_abi() is checked against ABI_VERSION by Host.start
+(src/abi.ts), which is what makes the recorded number the module's.
+
+WHAT THIS DOES NOT SAY. It says which build a file is a run of. It says nothing about Live, a MIDI port, or whether a build is a good one.

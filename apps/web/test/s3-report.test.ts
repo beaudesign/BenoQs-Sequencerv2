@@ -6,6 +6,8 @@ import { analyseFollow, analyseLoop, analyseStampMap, type FollowSample } from "
 import { formatFollow, formatSend, readSaved, reanalyse } from "../spikes/s3/format.ts";
 import type { FollowResult, SendResult } from "../spikes/s3/page.ts";
 
+const BUILD = { abi: 2, wasmBytes: 184_056, sha256: "0123456789abcdef".repeat(4) };
+
 function followResult(over: { age?: number; hiddenFrom?: number; phaseMs?: number; noStart?: boolean; noMap?: boolean; mapJump?: number } = {}): FollowResult {
   const pulses: [number, number][] = [];
   for (let i = 0; i < 1_440; i++) pulses.push([10_000 + i * (2500 / 120), 10_000 + i * (2500 / 120) + (over.age ?? 2)]);
@@ -131,4 +133,27 @@ test("a send run that lost a pulse says that the pairing by order cannot be trus
   assert.equal(r.loop.missing, 1);
   assert.match(formatSend({ result: r }).join("\n"), /missing 1.*cannot be trusted/);
   assert.doesNotMatch(formatSend({ result: sendResult() }).join("\n"), /cannot be trusted/);
+});
+
+test("the report names the engine build the file was made with, next to the environment, for a follow run and a send run", () => {
+  const follow = formatFollow({ result: { ...followResult(), engine: BUILD } });
+  const send = formatSend({ result: { ...sendResult(), engine: BUILD } });
+  for (const lines of [follow, send]) {
+    const at = lines.findIndex((l) => l.startsWith("Engine build:"));
+    assert.ok(at >= 0 && at <= 3, `the build line is at ${at}, with the other lines about where and what the run was`);
+    assert.equal(lines[at], `Engine build: octoweb-abi/2, octoweb.wasm ${BUILD.wasmBytes} bytes, sha256 ${BUILD.sha256}`);
+  }
+});
+
+test("a file with no build in it (saved before this was recorded) says so and is still read; a build with no hash says why there is none", () => {
+  for (const lines of [formatFollow({ result: followResult() }), formatSend({ result: sendResult() })]) {
+    assert.ok(lines.includes("Engine build: not recorded in this file (it was saved before the page recorded it)"), lines.join("\n"));
+  }
+  const noHash = formatFollow({ result: { ...followResult(), engine: { ...BUILD, sha256: null } } }).join("\n");
+  assert.match(noHash, /Engine build: octoweb-abi\/2, octoweb\.wasm 184056 bytes, sha256 not computed \(the page was not served from a secure context: use localhost\)/);
+});
+
+test("the build survives the save and the read, in a file the page wrote and in one the runner wrapped", () => {
+  assert.deepEqual((readSaved(JSON.stringify({ ...followResult(), engine: BUILD })).result as FollowResult).engine, BUILD);
+  assert.deepEqual((readSaved(JSON.stringify({ simulated: "x", commit: "abc", result: { ...sendResult(), engine: BUILD } })).result as SendResult).engine, BUILD);
 });

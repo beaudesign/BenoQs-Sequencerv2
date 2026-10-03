@@ -3,9 +3,11 @@
 // file) and the numbers it records are what the real engine and follower did, so that the owner's run with Live is a run of something that
 // works. The bounds are the plan's proposed criterion (a fifth of a step) applied to a clock that has only a timer's scatter.
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { after, before, test } from "node:test";
 import type { Browser, Page } from "playwright-core";
+import { ABI_VERSION } from "../../src/abi.ts";
 import { launch } from "../../scripts/browser.ts";
 import { serve, type Server } from "../../scripts/serve.ts";
 import { formatFollow, formatSend, reanalyse, readSaved } from "../../spikes/s3/format.ts";
@@ -17,6 +19,10 @@ declare const sender: { start(bpm: number): void; stop(): void };
 
 let server: Server;
 let browser: Browser;
+
+/** The module the page is served, read from disk: what the saved file's build record has to be. */
+const served = readFileSync(new URL("../../dist/octoweb.wasm", import.meta.url));
+const SERVED_BUILD = { abi: ABI_VERSION, wasmBytes: served.length, sha256: createHash("sha256").update(served).digest("hex") };
 
 before(async () => {
   server = await serve();
@@ -66,6 +72,7 @@ test("follow, from the page's own buttons: the clock is heard, followed, recorde
   const file = readSaved(text);
   assert.equal(file.result.schema, "wenge.s3.follow/1");
   const r = file.result as FollowResult;
+  assert.deepEqual(r.engine, SERVED_BUILD, "the saved file names the build of the module the page was served");
 
   // The pulses: a Start, then about 48 a second for the rest of the run, all on the page's own clock (the simulation makes them so).
   assert.ok(r.raw.pulses.length > 8 * 48 * 0.9, `${r.raw.pulses.length} pulses`);
@@ -105,6 +112,7 @@ test("follow with no clock coming in: the run ends, and the record says so and d
   await page.evaluate(() => s3.access());
   const r = (await page.evaluate((c) => s3.follow(c), { minutes: 0.05, inputId: "in1", lookaheadMs: 30, offsetMs: 0, nominalBpm: null })) as FollowResult;
   assert.equal(r.raw.pulses.length, 0);
+  assert.deepEqual(r.engine, SERVED_BUILD, "a run that heard nothing still says what it was a run of");
   assert.equal(r.analysis.all.clockDomain.verdict, "no-data");
   assert.equal(r.analysis.all.phase.counted, 0);
   assert.ok(r.raw.samples.length >= 8, `${r.raw.samples.length} samples in 3 s`);
@@ -142,6 +150,7 @@ test("send, from the page's own buttons: every pulse the engine sent comes back,
   const file = readSaved(await saved(page));
   assert.equal(file.result.schema, "wenge.s3.send/1");
   const r = file.result as SendResult;
+  assert.deepEqual(r.engine, SERVED_BUILD, "the saved file names the build of the module the page was served");
   // 120 BPM is 48 pulses a second; allow for the first moments and the Stop.
   assert.ok(r.loop.sent > 7 * 48 * 0.9, `${r.loop.sent} pulses sent`);
   assert.deepEqual([r.loop.matched, r.loop.missing, r.loop.extra], [r.loop.sent, 0, 0]);

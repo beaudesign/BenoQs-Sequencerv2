@@ -99,7 +99,9 @@ off, the tempo set to 120, something in the set so that Play plays (it is the tr
 3. Leave the tab in front and Live playing for the 30 minutes. The page is silent: it plays the engine to nowhere, and measures only where the
    engine is against Live's pulses.
 4. Press **Save the result as a file**; it is a JSON file of the raw records (each pulse's stamp and the time the page saw it, every
-   Start, Continue and Stop, the follower's status every 250 ms). Then `node spikes/s3/report.ts <the file>`. Put the file and the report in
+   Start, Continue and Stop, the follower's status every 250 ms). Then `node spikes/s3/report.ts <the file>`; its third line, `Engine build`, is
+   the module's ABI number and the SHA-256 of the `octoweb.wasm` the page ran, so the file says which build it is a run of (the page must be
+   served from `localhost` or HTTPS for the hash; the line says when it was not). Put the file and the report in
    `handoffs/evidence/` with the computer, the operating system, the Live version and edition, Live's audio buffer size, the browser
    version, and what else was running.
 

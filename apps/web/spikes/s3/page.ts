@@ -8,13 +8,14 @@
 //
 // The page is for a person to run (a real port) and for `run.ts` to drive with a stand-in. What each run says about itself is in the saved
 // file; the numbers are computed from the raw records, so they can be read again with other thresholds (`report.ts`).
-import { layoutFromControls } from "../../src/abi.ts";
+import { ABI_VERSION, layoutFromControls } from "../../src/abi.ts";
 import { Follower, FOLLOWER } from "../../src/follower.ts";
 import { Host } from "../../src/host.ts";
 import { InputPath, type InputStats } from "../../src/midi-in.ts";
 import { ContextTimeMap, MidiScheduler, type SchedulerStats } from "../../src/midi-out.ts";
 import { LOOKAHEAD_MS } from "../../src/settings.ts";
 import { wireMidi } from "../../src/wire.ts";
+import { engineBuild, type EngineBuild } from "./build.ts";
 import { analyseFollow, analyseLoop, analyseStampMap, type FollowAnalysis, type FollowMessage, type FollowSample, type LoopAnalysis, type SavedPulse, type StampMapAnalysis } from "./analyse.ts";
 
 export interface PortInfo {
@@ -50,6 +51,8 @@ export interface FollowResult {
   startedAt: string;
   config: FollowConfig;
   environment: Environment;
+  /** The engine build the run was made with. A file saved before this was recorded has none. */
+  engine?: EngineBuild;
   port: string;
   durationS: number;
   hiddenS: number;
@@ -74,6 +77,8 @@ export interface SendResult {
   startedAt: string;
   config: SendConfig;
   environment: Environment;
+  /** The engine build the run was made with. A file saved before this was recorded has none. */
+  engine?: EngineBuild;
   ports: { output: string; input: string };
   durationS: number;
   hiddenS: number;
@@ -126,10 +131,12 @@ function environment(host: Host): Environment {
   };
 }
 
-async function startHost(): Promise<Host> {
+async function startHost(): Promise<{ host: Host; engine: EngineBuild }> {
   const controls = (await (await fetch("/contracts/controls.json")).json()) as { controls: Control[] };
   const wasm = await (await fetch("/dist/octoweb.wasm")).arrayBuffer();
-  return Host.start({ wasm, layout: layoutFromControls(controls), workletUrl: "/dist/src/worklet.js", seed: 0n });
+  // The build is read from the bytes the host is given, and the host refuses a module whose ABI is not this page's, so what is recorded is what ran.
+  const engine = await engineBuild(wasm, ABI_VERSION);
+  return { host: await Host.start({ wasm, layout: layoutFromControls(controls), workletUrl: "/dist/src/worklet.js", seed: 0n }), engine };
 }
 
 /** Keeps a record of how long the tab was hidden and each change, from `t0` (page time, ms). */
@@ -167,7 +174,7 @@ const s3: S3 = {
     if (!input) throw new Error("the chosen input is no longer there");
     aborted = false;
 
-    const host = await startHost();
+    const { host, engine } = await startHost();
     const time = new ContextTimeMap(host.context, performance);
     const errors: string[] = [];
     host.onError = (m) => errors.push(m);
@@ -223,6 +230,7 @@ const s3: S3 = {
       startedAt: new Date(Date.now() - (endNow - t0)).toISOString(),
       config,
       environment: environment(host),
+      engine,
       port: input.name ?? input.id,
       durationS: (endNow - t0) / 1000,
       hiddenS: watch.hiddenMs() / 1000,
@@ -244,7 +252,7 @@ const s3: S3 = {
     if (!output || !input) throw new Error("the chosen port is no longer there");
     aborted = false;
 
-    const host = await startHost();
+    const { host, engine } = await startHost();
     const time = new ContextTimeMap(host.context, performance);
     const scheduler = new MidiScheduler(time, config.lookaheadMs);
     scheduler.setOutput(1, output);
@@ -300,6 +308,7 @@ const s3: S3 = {
       startedAt: new Date(Date.now() - (endNow - t0)).toISOString(),
       config,
       environment: environment(host),
+      engine,
       ports: { output: output.name ?? output.id, input: input.name ?? input.id },
       durationS: (endNow - t0) / 1000,
       hiddenS: watch.hiddenMs() / 1000,

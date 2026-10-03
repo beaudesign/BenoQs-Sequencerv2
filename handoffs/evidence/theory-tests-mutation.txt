@@ -1,0 +1,31 @@
+The theory note's engine properties as tests (crates/octocore/tests/theory.rs; request journal/metronome/requests/2026-10-03-theory-tests.md).
+
+WHAT THIS IS. Four tests of what the engine already does, so they pass on the engine as it is and were not red first. Each is shown here to be able to fail:
+9 single-line changes to crates/octocore/src/scale.rs and engine.rs, each made in turn, `cargo test -p octocore --test theory` run, and the change put back
+(git checkout of the file). "Caught" is a test failing; "survived" would be all four passing. A hand-written script that is not committed; each mutant is named
+by what it breaks. The tests, by short name: DIATONIC (shifting_a_tonic_chord...), ENGINE (a_feeder_track_shifting...), TIES (every_pitch_class_halfway...),
+NEARER (a_pitch_nearer_to_a_scale_tone...).
+
+THE EXPECTATIONS are the seven diatonic triads and sevenths of C major spelled by letter, written out in the test file by hand. None is computed by scale.rs or
+any other code in the repository, and no v1 test was ported.
+
+RESULT: 9 of 9 caught, none survived.
+  S1 ties go up (the upward check before the downward)          caught by TIES, ENGINE, DIATONIC
+  S2 never goes up                                              caught by NEARER only (the ties and chord tests do not look at a tone that is nearer above)
+  S3 never goes down                                            caught by NEARER, ENGINE, TIES, DIATONIC
+  S4 a pitch already in the scale is moved                      caught by ENGINE, NEARER, DIATONIC
+  S5 the rule holds only below pitch 84                         caught by TIES (the two-octave-up case)
+  E1 the feeder's offset is not added                           caught by ENGINE
+  E2 the scale is applied before the feeder's offset is added   caught by ENGINE
+  E3 the page scale is not applied                              caught by ENGINE
+  E4 a listener ignores its feeder                              caught by ENGINE
+S2 is the reason NEARER exists: a quantiser that only ever looks down satisfied the first version of the ties test and the chord tests.
+
+WHAT THIS SAYS. That the engine's tie rule (halfway goes down) and the order of the sum and the scale are pinned, and that the property the theory note names (a
+tonic chord shifted by each degree's root and forced to C major is that degree's diatonic chord) holds in the engine and fails if either changes.
+
+WHAT IT DOES NOT SAY.
+  - Nothing about the Octopus. The manual does not say which way a tie goes (Q-M7); the engine says "matching v1". If the instrument breaks ties upward, S1 is the
+    change to make, and the tests say what moves with it (the 2nd, 3rd, 6th and 7th triads).
+  - The chord path (extra_pit in engine.rs, which forces chord notes through the same function) is not covered: the engine test puts one note on each track.
+  - One scale root (C), one feeder, one step. Other roots and several feeders are not tested; the effector's additivity is covered by the conformance fixtures.

@@ -117,7 +117,7 @@ classes [C]. **The engine sends ties down, "matching v1"; the manual does not sa
 > **With ties down, you get the seven diatonic triads and the seven diatonic sevenths exactly.** With ties up, four of seven triads (degrees 2, 3, 6 and 7) come out wrong, and five of seven sevenths [C].
 
 That is why "ties go down" is a musical choice and not a detail: it is what makes parallel chromatic shifting sound diatonic in a major key. **Whether the real instrument does it is an
-Octopus question** (Q-M7 in the review). What is checked is the model of the engine's documented rule; the engine itself has a test for the single case C# to C and none for this property.
+Octopus question** (Q-M7 in the review). What is checked is the model of the engine's documented rule; the engine had a test for the single case C# to C and none for this property until `crates/octocore/tests/theory.rs` (2026-10-03), which says what the engine does and not what the instrument does.
 
 ### 2.4 Functional harmony with the effector
 The effector lets a **feeder** track project step offsets (VEL, PIT, LEN, MCC) onto **listener** tracks in the same page, always from higher tracks to lower, and **the offsets add** [M p.59-61]. The manual's
@@ -172,16 +172,16 @@ you can draw. A useful form rule [G]: repeat a phrase three times and vary the f
 |---|---|---|
 | Euclidean patterns | Bjorklund, ten patterns from [T] | Checked in Python [C]. No generator exists in the engine, so nothing to assert there unless Q-M5 is accepted |
 | A swing of s % starts the even steps `(s/100 - 1/2) x 24` ticks late | Arithmetic in section 1.2 | STA scaling is covered by conformance (`AMBIGUITIES.md`, "LEN/STA scaling tables: resolved"); **the whole-bar swing statement is not asserted** |
-| Force-to-scale puts every emitted pitch in the scale | Set membership | One engine test (`scale_quantization_pulls_pitch_into_scale`, page scale only) |
-| Ties go down | `scale.rs` test `out_of_scale_prefers_downward` | Tested in the engine; **not manual-sourced**, so an Octopus question |
-| **Feeder offsets plus force-to-scale on C major give the seven diatonic triads and sevenths** | Section 2.3 | **New, proposed**: a deterministic engine test; the Python model passes. A change that sends ties up fails it |
+| Force-to-scale puts every emitted pitch in the scale | Set membership | One engine test (`scale_quantization_pulls_pitch_into_scale`, page scale only); and `crates/octocore/tests/theory.rs` (the nearer tone wins where there is no tie; through a feeder and a page scale) |
+| Ties go down | `scale.rs` test `out_of_scale_prefers_downward`, and `theory.rs` (every tie in C major, the pentatonic and the whole-tone scale, two octaves) | Tested in the engine; **not manual-sourced**, so an Octopus question |
+| **Feeder offsets plus force-to-scale on C major give the seven diatonic triads and sevenths** | Section 2.3 | **Built** (2026-10-03): `crates/octocore/tests/theory.rs`, in `scale.rs` alone and through a feeder and a page scale; ties up fails three tests (`handoffs/evidence/theory-tests-mutation.txt`, 9 of 9 breakages caught) |
 | Effector offsets add (+3 -1 -2 -2 = -2) | [M p.60] | Fixture `tests/conformance/effector/feeder_pit.fixture` |
 | Strum offsets match the table | [M p.22] | The engine's table equals the manual's cell for cell [C]; the engine's own tests check three cells (`tables.rs`) |
 | Brownian direction drifts forward at +1/3 a step | Seeded run, binomial bound | Direction 4 assignment confirmed (`AMBIGUITIES.md`); **statistics not asserted** |
 | Loops of a and b steps realign after lcm(a, b) | Property over lengths | Not asserted |
 | The grid holds triplets and not quintuplets | 192 mod n | Changes with D0 only if the tick is redefined |
 
-None of the "proposed" rows is built. Each needs a request to the Metronome (the engine's zone) and, for the Octopus questions, a person with the instrument.
+Of the "proposed" rows, the diatonic one is built (`journal/metronome/requests/2026-10-03-theory-tests.md`); the swing statement, Brownian statistics and lcm are not, and the request says why for each. The Octopus questions need a person with the instrument.
 
 ## 7. What this note did not check
 No instrument was heard. Section 1.7, the progressions in 2.2, the transformation list in 3.1, the idioms, and every [G] claim are conventions from my own knowledge. The Euclidean table follows

@@ -60,6 +60,10 @@ asserted by no fixture; where one is, the entry says so. Each names its question
   as pending and `tech.md` section 4 lists Steady and Flash only, so this is a deviation the owner may want to
   reverse. Reversing it means moving the two fixtures to `pending/`, which needs an ADR, because the ratchet
   holds them (`cargo xtask baseline --remove fixture … --adr`).
+- One detent of the VEL, PIT, LEN or STA knob is one unit, and clockwise is up (Q39). A knob turn outside
+  Step zoom does nothing (Q41). The attribute rows are not drawn, because the manual gives no row order
+  (Q06) and shows velocity and pitch in the numeric quadrant and the inner circle as well (Q42). The single-detent
+  fixtures in `step_attributes/` assert one unit; no fixture asserts the rest.
 - EDIT cycles in Step zoom as it does in Page view. PLAY pressed in Step zoom takes the snapshot and stays
   in Step zoom.
 - A key-up that never arrives leaves the key held, and a held Step Mode turns every press into a zoom. The

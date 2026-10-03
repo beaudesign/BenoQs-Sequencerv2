@@ -1,0 +1,44 @@
+P5b mutation run, 2026-10-03. Hat: Panelwright.
+
+What: 20 deliberate one-line breakages of the P5b code, one at a time, each run with
+`cargo test -p octoface --no-fail-fast`. The mutants are in handoffs/evidence/p5b-mutate.py (set WT to the
+worktree). A mutant is caught if the run fails and the code compiled.
+
+Read this first: my first run used `cargo test -p octoface` without --no-fail-fast. Cargo stops at the first
+failing test binary, and the unit tests run before the fixtures, so for K1, K2, K5, K6 and K7 only the unit
+test was named and the fixtures looked as if they had caught nothing. With --no-fail-fast every layer reports.
+The numbers below are from that second run.
+
+Not tried: removing the `PanelMode::Step` half of the guard in `knob_turn`. It is an equivalent mutant: the
+controller holds a zoom exactly when it is in Step mode, so the guard on the zoom alone behaves the same.
+
+Which layer catches what, by design:
+- The knob's direction, attribute, step, track, command count, detent count and the view's four reads
+  (K1 to K3, K5 to K8, K11, V1 to V4, L1) are caught by the asserting fixtures in
+  tests/conformance/panel/step_attributes/, and for K1, K2, K5, K6 and K7 also by the unit test that asks for the value.
+- What the manual does not say and the controller does (a turn outside Step zoom does nothing, a zero turn
+  and a press of a knob send nothing, an overflow is not a panic: K4, K9, K10, K12) is caught by unit tests only.
+  No fixture asserts it, on purpose (Q41).
+- The runner's own directives (R1 to R3) are caught by the runner's tests and by the fixtures that use them.
+
+[K1 the turn goes the wrong way (a clockwise detent lowers the value)] caught by 12: panel::tests::a_turn_asks_for_the_value_it_wan; all_panel_fixtures_pass; fixture a_knob_changes_only_the_selected_step_; fixture after_selecting_another_step_the_knob_ ...
+[K2 the VEL knob writes the pitch offset] caught by 5: panel::tests::a_turn_asks_for_the_value_it_wan; all_panel_fixtures_pass; fixture a_knob_changes_only_the_selected_step_; fixture vel_knob_clockwise_raises_the_selected ...
+[K3 the LEN knob starts from the velocity offset, not the length] caught by 3: all_panel_fixtures_pass; fixture len_knob_clockwise_adds_one_tick_per_d; fixture len_knob_stops_at_one_tick_and_at_a_wh
+[K4 a knob turn is acted on in Page view too] caught by 2: panel::tests::a_knob_does_nothing_once_step_zo; panel::tests::an_attribute_knob_does_nothing_o
+[K5 the turn edits step 0, not the selected step] caught by 12: panel::tests::a_turn_asks_for_the_value_it_wan; all_panel_fixtures_pass; fixture a_knob_changes_only_the_selected_step_; fixture after_selecting_another_step_the_knob_ ...
+[K6 the turn edits track 0, not the zoomed track] caught by 12: panel::tests::a_turn_asks_for_the_value_it_wan; all_panel_fixtures_pass; fixture a_knob_changes_only_the_selected_step_; fixture after_selecting_another_step_the_knob_ ...
+[K7 a turn sends its command twice] caught by 11: panel::tests::a_knob_does_nothing_once_step_zo; panel::tests::a_turn_asks_for_the_value_it_wan; all_panel_fixtures_pass; fixture a_knob_changes_only_the_selected_step_ ...
+[K8 a detent count is ignored (always one unit)] caught by 9: all_panel_fixtures_pass; fixture after_selecting_another_step_the_knob_; fixture len_knob_clockwise_adds_one_tick_per_d; fixture pit_knob_clockwise_raises_the_selected ...
+[K9 a zero turn still sends a command] caught by 1: panel::tests::in_step_zoom_a_zero_turn_a_press
+[K10 the sum can overflow] caught by 1: panel::tests::a_turn_asks_for_the_value_it_wan
+[K11 the STA knob writes the LEN attribute] caught by 3: all_panel_fixtures_pass; fixture sta_knob_clockwise_pushes_and_counter_; fixture sta_knob_stops_at_five_either_way
+[K12 the knob presses do something (a press of the PIT knob turns it)] caught by 1: panel::tests::in_step_zoom_a_zero_turn_a_press
+[V1 the view reads the length from the start offset] caught by 3: all_panel_fixtures_pass; fixture len_knob_clockwise_adds_one_tick_per_d; fixture len_knob_stops_at_one_tick_and_at_a_wh
+[V2 the view reads the velocity from the pitch offset] caught by 4: all_panel_fixtures_pass; fixture a_knob_changes_only_the_selected_step_; fixture vel_knob_clockwise_raises_the_selected; fixture vel_knob_counter_clockwise_lowers_it_a
+[V3 the view reads the pitch from the velocity offset] caught by 3: all_panel_fixtures_pass; fixture pit_knob_clockwise_raises_the_selected; fixture pit_knob_counter_clockwise_lowers_it_a
+[V4 the view reads the start offset from the length] caught by 2: all_panel_fixtures_pass; fixture sta_knob_clockwise_pushes_and_counter_
+[L1 the VEL knob is the PIT knob's control id] caught by 4: all_panel_fixtures_pass; fixture a_knob_changes_only_the_selected_step_; fixture vel_knob_clockwise_raises_the_selected; fixture vel_knob_counter_clockwise_lowers_it_a
+[R1 the runner reads vel as the pitch offset] caught by 3: all_panel_fixtures_pass; fixture vel_knob_clockwise_raises_the_selected; fixture vel_knob_counter_clockwise_lowers_it_a
+[R2 the runner's given ignores the value] caught by 9: a_fixture_with_a_wrong_expectation_fails_and_t; all_panel_fixtures_pass; fixture a_knob_changes_only_the_selected_step_; fixture len_knob_clockwise_adds_one_tick_per_d ...
+[R3 the runner's expect never compares a number] caught by 1: a_fixture_with_a_wrong_expectation_fails_and_t
+caught 20 of 20

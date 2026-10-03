@@ -1,0 +1,6 @@
+# panel fixture: velocity in the numeric quadrant of the outer circle, pitch in the inner circle
+# manual: p015, p068
+# workflow: Step zoom, step attributes
+# pending: p068 says that in EDIT preview the step velocity is shown and editable in the numeric quadrant of the outer circle and the pitch in the inner circle, and p015 says the same values are shown in their rows of the matrix. Whether both show at once, or one in each mode, is not stated. The controller has no display output yet (the P5 plan, D-P5-5).
+# question: Q42
+# No assertions.

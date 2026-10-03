@@ -31,6 +31,10 @@ code as a provisional choice that names its number.
 | Q36 | Does Program (keep), or stopping the sequencer, end PLAY mode? p066 says Program makes the changes permanent and that stopping loses them; it says PLAY pressed again "exits the PLAY mode". | p066 | pending `program_ends_play_mode`, `stopping_ends_play_mode` |
 | Q37 | What do a chord step and a hyperstep show in Page view? p034 and p038 give an event Orange; p014's Chord/Event and Hyperstep rows are Step zoom's. | p014, p034, p038 | pending `a_chord_step_or_hyperstep_in_page_view` |
 | Q38 | Does a matrix key toggle its step when pressed or when released? p014 skips a step by holding it and clicking MUT, so a toggle on press would flip the step first. | p014 | pending `holding_a_step_and_clicking_mut_skips_it` |
+| Q39 | How far does one detent of an attribute knob move the value? p068 says "every click of the encoder" changes it; nothing says a fast turn moves it further, and a real encoder may accelerate. | p015, p016, p068 | pending `a_detent_may_be_more_than_one_unit`; the single-detent fixtures in `step_attributes/` assert one unit |
+| Q40 | What does LEN do below 1/192? p016 says the last four LEDs light Green and the step is legato (no note off). The engine clamps `LengthTicks` to 1 to 192 and has no legato state. | p016 | pending `a_length_below_one_tick_is_legato` |
+| Q41 | Do the attribute knobs edit a grabbed step in Page view, in which EDIT states, and does a turn play the step again (p068, "with every click of the encoder the steps is re-triggered")? Does Step zoom with EDIT in preview do the same? | p068 | pending `a_grabbed_step_in_page_view_takes_the_knobs` |
+| Q42 | p068 shows the step velocity in the numeric quadrant of the outer circle and the pitch in the inner circle (EDIT preview); p015 shows both in their matrix rows. Both at once, or one in each mode? | p015, p068 | pending `the_numeric_quadrant_and_the_inner_circle_show_velocity_and_pitch` |
 
 ## Provisional choices in the controller
 

@@ -1,0 +1,15 @@
+# panel fixture: the LEN knob turned clockwise lengthens the step by one tick (1/192) per detent
+# manual: p015
+# workflow: Step zoom, step attributes
+# p015: "As you increment the value (turning the knob clock-wise) ... Each Green increment corresponds to 1/192 of a note."
+# The engine counts the same unit as a tick, and a step is 12 of them (the first Red value, 12/192 = 1/16).
+given step 3 5 len = 12
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms turn edit.enc.len 1
+expect command SetStep track=3 step=4 attr=LengthTicks value=13
+expect commands 1
+expect engine step 3 5 len = 13
+at 1500 ms turn edit.enc.len -2
+expect engine step 3 5 len = 11

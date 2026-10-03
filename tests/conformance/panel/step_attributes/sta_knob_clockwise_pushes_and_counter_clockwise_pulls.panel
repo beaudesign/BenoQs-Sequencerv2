@@ -1,0 +1,15 @@
+# panel fixture: the STA knob turned clockwise pushes the step later, counter-clockwise pulls it earlier
+# manual: p016
+# workflow: Step zoom, step attributes
+# p016: clockwise shows a Red bar, "delaying (pushing) the step"; further back shows a Green bar, "pulling the step to the front of the beat".
+# Clockwise is the positive offset, which the Red bar draws.
+given step 3 5 sta = 0
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms turn edit.enc.sta 1
+expect command SetStep track=3 step=4 attr=StartOffset value=1
+expect commands 1
+expect engine step 3 5 sta = 1
+at 1500 ms turn edit.enc.sta -2
+expect engine step 3 5 sta = -1

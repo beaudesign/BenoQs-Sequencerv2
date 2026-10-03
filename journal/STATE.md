@@ -196,5 +196,5 @@ Plan `specs/SPEC-0002/p4-plan.md` ("Accept p4", 2026-10-02 10:54 Paris); decisio
 
 ## Fan-out
 
-Live: the MCP review and theory note are merged (#34); the S3 build record (Q-M6) is merged (#36); four engine tests for the theory note's diatonic-chord and tie-rule results (`crates/octocore/tests/theory.rs`, baseline 507) are in review. P4 is merged. Not started: P5 and later. Engine work meanwhile: attribute-map-factor step events (p.34-37, #3) and the Metronome's requests from P2b. D0 (the tick) blocks O4 step 4b and P4c's acceptance.
+Live: the MCP review and theory note are merged (#34); the S3 build record (Q-M6) is merged (#36); four engine tests for the theory note's diatonic-chord and tie-rule results (`crates/octocore/tests/theory.rs`, baseline 507) are merged (#37). P4 is merged. Not started: P5 and later. Engine work meanwhile: attribute-map-factor step events (p.34-37, #3) and the Metronome's requests from P2b. D0 (the tick) blocks O4 step 4b and P4c's acceptance.
 The panel's next workflows (Track zoom, the direction map, the chase-light) wait on owner answers to Q07, the mutator questions and the chase-light question. `octoffi` is frozen.

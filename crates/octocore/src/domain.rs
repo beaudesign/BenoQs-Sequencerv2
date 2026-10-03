@@ -76,17 +76,6 @@ impl Direction {
             _ => Direction::Forward,
         }
     }
-
-    pub fn to_raw(self) -> u8 {
-        match self {
-            Direction::Forward => 1,
-            Direction::Reverse => 2,
-            Direction::PingPong => 3,
-            Direction::Brownian => 4,
-            Direction::Random => 5,
-            Direction::UserProgrammed(i) => 6 + i,
-        }
-    }
 }
 
 /// One of a custom direction's 16 slices. Ref: CE v5.30 p.56, "Triggers and
@@ -363,14 +352,6 @@ pub struct Track {
 }
 
 impl Track {
-    pub fn multiplier(&self) -> f32 {
-        if self.multiplier_den == 0 {
-            1.0
-        } else {
-            self.multiplier_num as f32 / self.multiplier_den as f32
-        }
-    }
-
     pub fn direction(&self) -> Direction {
         Direction::from_raw(self.direction_raw)
     }
@@ -506,13 +487,6 @@ pub struct ScaleForce {
 }
 
 impl ScaleForce {
-    pub fn major(root: u8) -> Self {
-        let default_intervals: [i8; 7] = [0, 2, 4, 5, 7, 9, 11];
-        let mut intervals = [0i8; MAX_SCALE_INTERVALS];
-        intervals[..7].copy_from_slice(&default_intervals);
-        ScaleForce { enabled: false, locked: false, root, intervals, interval_count: 7 }
-    }
-
     /// Ref: CE v5.30 §4 Page Mode, "Musical scales", p.71: "Coming from the
     /// default state... all scale notes light up, with the exception of upper
     /// C... What you see here is that all notes are selected in the scale, and

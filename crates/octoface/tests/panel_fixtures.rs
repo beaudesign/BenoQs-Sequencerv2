@@ -7,12 +7,14 @@
 //! ```text
 //! # panel fixture: a matrix key turns an off step on     header: title, manual pages, workflow
 //! given step 3 5 on|off|skip|chord|event|hyper           engine state before inputs; step is 1 to 16
+//! given step 3 5 vel|pit|len|sta = <int>                 one step attribute, before inputs
 //! at 0 ms press|release|click <control>                  a click is a press, then a release 40 ms on
 //! at 0 ms turn <control> <detents>
 //! expect led <control> = off | red|green|orange steady|flash|shine
 //! expect mode page|step                                  the controller's mode
 //! expect engine mode page|step                           the engine's mode, after the commands
 //! expect engine step <track> <step> active|skip = true|false
+//! expect engine step <track> <step> vel|pit|len|sta = <int>   the velocity offset, pitch offset, length in ticks, start offset
 //! expect command <text>                                  one of the last input's commands
 //! expect commands <n>                                    how many commands the last input gave
 //! expect intent <text> | expect intents <n>              the same for intents
@@ -28,7 +30,7 @@
 mod support;
 
 use octocore::domain::{Mode, StepEvent, StepEventKind};
-use octocore::types::{Command, ControlId};
+use octocore::types::{Command, ControlId, StepAttr};
 use octocore::Engine;
 use octoface::{Colour, Input, Intent, Led, PageView, Panel, PanelMode, Phase};
 use std::collections::BTreeMap;
@@ -61,6 +63,17 @@ fn show_intent(i: &Intent) -> String {
         Intent::SnapshotTake => "SnapshotTake".to_string(),
         Intent::SnapshotKeep => "SnapshotKeep".to_string(),
         Intent::SnapshotRecall => "SnapshotRecall".to_string(),
+    }
+}
+
+/// The step attributes a fixture can set and read as whole numbers.
+fn number_attr(word: &str) -> Result<StepAttr, String> {
+    match word {
+        "vel" => Ok(StepAttr::VelocityOffset),
+        "pit" => Ok(StepAttr::PitchOffset),
+        "len" => Ok(StepAttr::LengthTicks),
+        "sta" => Ok(StepAttr::StartOffset),
+        other => Err(format!("unknown step attribute `{other}`")),
     }
 }
 
@@ -131,7 +144,17 @@ impl<'a> World<'a> {
     }
 
     fn given(&mut self, words: &[&str]) -> Result<(), String> {
-        let [t, s, flag] = words else { return Err("usage: given step <track> <step> <flag>".to_string()) };
+        if let [t, s, attr, "=", value] = words {
+            let (t, s): (usize, usize) = (t.parse().map_err(|_| "bad track")?, s.parse().map_err(|_| "bad step")?);
+            if t >= 10 || !(1..=16).contains(&s) {
+                return Err("track is 0 to 9 and step is 1 to 16".to_string());
+            }
+            let attr = number_attr(attr)?;
+            let value: i32 = value.parse().map_err(|_| "expected a whole number")?;
+            self.engine.grid.set_step_attr(t as u8, (s - 1) as u8, attr, value);
+            return Ok(());
+        }
+        let [t, s, flag] = words else { return Err("usage: given step <track> <step> <flag>, or given step <track> <step> vel|pit|len|sta = <int>".to_string()) };
         let (t, s): (usize, usize) = (t.parse().map_err(|_| "bad track")?, s.parse().map_err(|_| "bad step")?);
         if t >= 10 || !(1..=16).contains(&s) {
             return Err("track is 0 to 9 and step is 1 to 16".to_string());
@@ -222,6 +245,14 @@ impl<'a> World<'a> {
                 let (t, s): (usize, usize) = (t.parse().map_err(|_| "bad track")?, s.parse().map_err(|_| "bad step")?);
                 if t >= 10 || !(1..=16).contains(&s) {
                     return Err("track is 0 to 9 and step is 1 to 16".to_string());
+                }
+                if let Ok(attr) = number_attr(what) {
+                    let want: i32 = value.parse().map_err(|_| "expected a whole number")?;
+                    let got = self.engine.grid.step_attr(t as u8, (s - 1) as u8, attr);
+                    if got != want {
+                        return Err(format!("engine step {t} {s} {what}: expected {want}, found {got}"));
+                    }
+                    return Ok(());
                 }
                 let step = &self.engine.grid.active_page().tracks[t].steps[s - 1];
                 let got = match *what {
@@ -314,6 +345,12 @@ fn a_fixture_with_a_wrong_expectation_fails_and_the_right_one_passes() {
     assert!(run("expect intent SnapshotTake\n", &inv).is_err());
     assert!(run("expect engine step 3 5 active = true\n", &inv).is_err());
     assert!(run("given step 3 5 on\nexpect engine step 3 5 active = true\n", &inv).is_ok());
+    // A step attribute as a number: set, read, and a wrong value fails.
+    assert!(run("given step 3 5 vel = 10\nexpect engine step 3 5 vel = 10\n", &inv).is_ok());
+    assert!(run("given step 3 5 vel = 10\nexpect engine step 3 5 vel = 11\n", &inv).is_err());
+    assert!(run("given step 3 5 pit = -7\nexpect engine step 3 5 pit = -7\n", &inv).is_ok());
+    assert!(run("given step 3 5 len = 30\nexpect engine step 3 5 len = 30\nexpect engine step 3 6 len = 30\n", &inv).is_err());
+    assert!(run("given step 3 5 sta = 3\nexpect engine step 3 5 sta = 3\n", &inv).is_ok());
 }
 
 #[test]
@@ -327,6 +364,10 @@ fn the_runner_rejects_what_it_does_not_understand() {
         "at 0 ms wiggle step(3,5)\n",
         "given step 3 17 on\n",
         "given step 10 1 on\n",
+        "given step 3 5 vel = fast\n",
+        "given step 3 5 amt = 3\n",
+        "expect engine step 3 5 amt = 3\n",
+        "given step 3 17 vel = 1\n",
     ] {
         assert!(run(bad, &inv).is_err(), "should have been rejected: {bad:?}");
     }

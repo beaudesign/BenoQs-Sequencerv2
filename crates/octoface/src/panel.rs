@@ -1,7 +1,7 @@
 //! The panel controller: a state machine from button presses to engine commands and LED frames.
 //!
-//! Five workflows are built (SPEC-0002 spike S5), each cited to the manual pages that say so and
-//! covered by the fixtures in `tests/conformance/panel/`:
+//! Six workflows are built (the first five are SPEC-0002 spike S5; the sixth is P5b), each cited to the
+//! manual pages that say so and covered by the fixtures in `tests/conformance/panel/`:
 //!
 //! - **Page view step toggle.** With EDIT steady green a matrix key toggles its step [p068]; a
 //!   skipped step is un-skipped by one press [p014].
@@ -12,10 +12,13 @@
 //!   p069]. In preview a key plays the step and sets nothing; in perform it does neither.
 //! - **PLAY mode.** PLAY flashes orange and Program lights red; Program keeps the changes, PLAY
 //!   again or Stop discards them [p066].
+//! - **Step attributes.** In Step zoom the VEL, PIT, LEN and STA knobs edit the selected step, one
+//!   unit a detent (p015, p016; the unit is Q39). The matrix rows that show the values are not drawn:
+//!   which row is which is Q06.
 //!
 //! Where the manual is silent the controller either does nothing or makes a provisional choice
 //! that names its question (`tests/conformance/panel/QUESTIONS.md`); no fixture asserts those.
-//! Time is passed in and unused so far: every gesture built is a press. Holds and double-clicks
+//! Time is passed in and unused so far: every gesture built is a press or a turn. Holds and double-clicks
 //! wait for the answer to Q24.
 
 use crate::layout::{Key, Layout, Role};
@@ -35,7 +38,8 @@ pub enum PanelMode {
 pub enum Input {
     Down(ControlId),
     Up(ControlId),
-    /// Accepted and ignored until a workflow uses it (Step Shift is the first, p015).
+    /// An encoder turned by `detents`, positive clockwise. The VEL, PIT, LEN and STA knobs are used in
+    /// Step zoom (p015, p016); every other control ignores it until a workflow uses it.
     Turn { control: ControlId, detents: i16 },
 }
 
@@ -184,9 +188,32 @@ impl Panel {
                     *slot = false;
                 }
             }
-            Input::Turn { .. } => {}
+            Input::Turn { control, detents } => {
+                if let Some(Key::Role(role)) = self.layout.key(control) {
+                    self.knob_turn(role, detents, view, &mut out);
+                }
+            }
         }
         out
+    }
+
+    /// An attribute knob turned in Step zoom edits the selected step [p015, p016]. A detent is one unit
+    /// (Q39), clockwise is up (p015), and the engine owns the limits (it clamps), so the controller
+    /// asks for the value it wants. Outside Step zoom a turn does nothing (Q41).
+    fn knob_turn(&mut self, role: Role, detents: i16, view: &PageView, out: &mut Out) {
+        let (PanelMode::Step, Some(z)) = (self.mode, self.zoom) else { return };
+        if detents == 0 {
+            return;
+        }
+        let s = view.step(z.track as usize, z.step as usize);
+        let (attr, now) = match role {
+            Role::VelKnob => (StepAttr::VelocityOffset, s.velocity_offset),
+            Role::PitKnob => (StepAttr::PitchOffset, s.pitch_offset),
+            Role::LenKnob => (StepAttr::LengthTicks, s.length_ticks),
+            Role::StaKnob => (StepAttr::StartOffset, s.start_offset),
+            _ => return,
+        };
+        out.commands.push(Command::SetStep { track: z.track, step: z.step, attr, value: now.saturating_add(i32::from(detents)) });
     }
 
     fn matrix_down(&mut self, row: u8, step: u8, view: &PageView, out: &mut Out) {
@@ -265,6 +292,8 @@ impl Panel {
                     out.intents.push(Intent::SnapshotKeep);
                 }
             }
+            // The knobs are encoders: they act on a turn (`knob_turn`) and a press of one does nothing.
+            Role::VelKnob | Role::PitKnob | Role::LenKnob | Role::StaKnob => {}
             Role::Stop => {
                 out.commands.push(Command::Stop);
                 if self.play_mode {
@@ -356,6 +385,64 @@ mod tests {
         assert_eq!(p.input(0, Input::Down(ControlId(511)), &v), Out::default());
         assert_eq!(p.input(0, Input::Down(ControlId(u32::MAX)), &v), Out::default());
         assert_eq!(p.input(0, Input::Up(ControlId(u32::MAX)), &v), Out::default());
+    }
+
+    /// Zoomed into track 3, step 5 (index 4), the gesture of p013.
+    fn zoomed(p: &mut Panel, l: &Layout, v: &PageView) {
+        p.input(0, Input::Down(l.role(Role::StepMode)), v);
+        p.input(10, Input::Down(l.matrix(3, 4)), v);
+        p.input(20, Input::Up(l.role(Role::StepMode)), v);
+        assert_eq!(p.mode(), PanelMode::Step);
+    }
+
+    fn turn(l: &Layout, role: Role, detents: i16) -> Input {
+        Input::Turn { control: l.role(role), detents }
+    }
+
+    #[test]
+    fn an_attribute_knob_does_nothing_outside_step_zoom() {
+        // p068 says a grabbed step takes the knobs in Page view; which states and how is Q41, so nothing is built.
+        let (mut p, l) = panel();
+        let v = PageView::default();
+        for role in [Role::VelKnob, Role::PitKnob, Role::LenKnob, Role::StaKnob] {
+            assert_eq!(p.input(0, turn(&l, role, 2), &v), Out::default(), "{role:?}");
+        }
+    }
+
+    #[test]
+    fn in_step_zoom_a_zero_turn_a_press_and_other_controls_send_nothing() {
+        let (mut p, l) = panel();
+        let v = PageView::default();
+        zoomed(&mut p, &l, &v);
+        assert_eq!(p.input(30, turn(&l, Role::VelKnob, 0), &v), Out::default());
+        assert_eq!(p.input(40, Input::Down(l.role(Role::PitKnob)), &v), Out::default());
+        assert_eq!(p.input(50, Input::Turn { control: l.matrix(5, 5), detents: 2 }, &v), Out::default());
+        assert_eq!(p.input(60, turn(&l, Role::Esc, 2), &v), Out::default());
+    }
+
+    #[test]
+    fn a_knob_does_nothing_once_step_zoom_is_left() {
+        let (mut p, l) = panel();
+        let v = PageView::default();
+        zoomed(&mut p, &l, &v);
+        assert_eq!(p.input(30, turn(&l, Role::StaKnob, 1), &v).commands.len(), 1);
+        p.input(40, Input::Down(l.role(Role::Esc)), &v);
+        assert_eq!(p.mode(), PanelMode::Page);
+        assert_eq!(p.input(50, turn(&l, Role::StaKnob, 1), &v), Out::default());
+    }
+
+    #[test]
+    fn a_turn_asks_for_the_value_it_wants_even_at_the_edge_of_what_the_integer_holds() {
+        // The engine owns the limits (it clamps). The controller must not overflow on the way there.
+        let (mut p, l) = panel();
+        let mut v = PageView::default();
+        v.steps[3][4].velocity_offset = i32::MAX;
+        v.steps[3][4].pitch_offset = i32::MIN;
+        zoomed(&mut p, &l, &v);
+        let up = p.input(30, turn(&l, Role::VelKnob, 5), &v);
+        assert_eq!(up.commands, vec![Command::SetStep { track: 3, step: 4, attr: StepAttr::VelocityOffset, value: i32::MAX }]);
+        let down = p.input(40, turn(&l, Role::PitKnob, -5), &v);
+        assert_eq!(down.commands, vec![Command::SetStep { track: 3, step: 4, attr: StepAttr::PitchOffset, value: i32::MIN }]);
     }
 
     #[test]

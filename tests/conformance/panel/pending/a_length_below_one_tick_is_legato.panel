@@ -1,0 +1,6 @@
+# panel fixture: turning LEN below 1/192 sets legato
+# manual: p016
+# workflow: Step zoom, step attributes
+# pending: p016 says a decrement beyond the minimum 1/192 lights the last four LEDs Green and sets the step to legato, with no note off sent for it. The engine has no legato state for a step: LengthTicks is clamped to 1 to 192 (crates/octocore/src/attrs.rs), so this needs an engine change and a ruling on how a legato step ends.
+# question: Q40
+# No assertions. A turn below 1 tick leaves the length at 1 tick.

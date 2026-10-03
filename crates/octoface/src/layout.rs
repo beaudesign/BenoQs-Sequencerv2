@@ -30,10 +30,18 @@ pub enum Role {
     Mute,
     /// Transport Stop button [p049].
     Stop,
+    /// VEL edit knob [p015].
+    VelKnob,
+    /// PIT edit knob [p015].
+    PitKnob,
+    /// LEN edit knob [p015].
+    LenKnob,
+    /// STA edit knob [p016].
+    StaKnob,
 }
 
 impl Role {
-    pub const ALL: [Role; 10] = [
+    pub const ALL: [Role; 14] = [
         Role::PageMode,
         Role::StepMode,
         Role::Play,
@@ -44,6 +52,10 @@ impl Role {
         Role::Zom,
         Role::Mute,
         Role::Stop,
+        Role::VelKnob,
+        Role::PitKnob,
+        Role::LenKnob,
+        Role::StaKnob,
     ];
 
     /// The `id` of this control in `contracts/controls.json`.
@@ -59,6 +71,10 @@ impl Role {
             Role::Zom => "mutator.zom",
             Role::Mute => "mutator.mute",
             Role::Stop => "transport.stop",
+            Role::VelKnob => "edit.enc.vel",
+            Role::PitKnob => "edit.enc.pit",
+            Role::LenKnob => "edit.enc.len",
+            Role::StaKnob => "edit.enc.sta",
         }
     }
 

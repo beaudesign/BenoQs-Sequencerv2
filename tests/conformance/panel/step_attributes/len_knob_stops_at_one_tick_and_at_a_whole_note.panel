@@ -1,0 +1,14 @@
+# panel fixture: the LEN knob stops at the shortest step, 1/192, and at the natural maximum, 192/192
+# manual: p015, p016
+# workflow: Step zoom, step attributes
+# p016: "The minimum step length is 1/192." "The natural maximum length of a step is one full note - 192/192."
+# A decrement beyond the minimum is legato (p016): that is pending, Q40.
+given step 3 5 len = 2
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms turn edit.enc.len -1
+expect engine step 3 5 len = 1
+given step 3 5 len = 191
+at 1500 ms turn edit.enc.len 5
+expect engine step 3 5 len = 192

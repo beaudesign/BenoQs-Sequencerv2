@@ -1,0 +1,6 @@
+# panel fixture: how far one detent of an attribute knob moves the value
+# manual: p015, p016, p068
+# workflow: Step zoom, step attributes
+# pending: The manual says every click of the encoder changes the value (p068) and does not say whether a fast turn moves it further. The controller treats a detent as one unit and the page decides how many detents a drag makes. A real encoder may accelerate.
+# question: Q39
+# No assertions. The single-detent fixtures in step_attributes/ assert one unit per detent, as the manual's words read.

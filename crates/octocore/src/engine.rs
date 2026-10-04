@@ -121,6 +121,20 @@ struct ScheduledRealtime {
     order: (i64, u8, u64),
 }
 
+/// What a Stop holds for the Play that follows it (ADR-0009 amendment 3). The engine steps its tracks up to `MAX_EARLY_TICKS` ahead of the
+/// audio, so at a Stop the next step's note is already scheduled. Stop keeps those events, and `set_running(true)` puts them back the same
+/// distance from the Play, so that Play carries on from the point the sound stopped and not from the point the engine had reached.
+#[derive(Clone, Copy, Debug)]
+struct Resume {
+    /// The sample at which the transport stopped: `sample_clock` at the Stop.
+    stopped_at: f64,
+    /// The first tick that had not sounded at the Stop, which is the tick the stream carries on from. The ticks from here to `global_tick`
+    /// were stepped ahead of the audio and are held in the queue.
+    tick: u64,
+    /// `tick_position()` at the Stop, which is what it reads until the next Play.
+    position: f64,
+}
+
 #[derive(Clone, Copy, Debug)]
 enum RawEvent {
     NoteOn { port: u8, ch: u8, note: u8, vel: u8 },
@@ -423,6 +437,9 @@ pub struct Engine {
     rt_dropped: u32,
     /// The due sample of each of the last `TICK_RING` ticks, by tick number modulo the ring, for `tick_position`.
     tick_due: [f64; TICK_RING],
+    /// Set by a Stop of a running transport, taken by the Play after it, cleared by `reset`. While it is set the queue holds the events the
+    /// engine had scheduled ahead of the audio at the Stop, and `render` does not emit them.
+    resume: Option<Resume>,
 }
 
 impl Engine {
@@ -458,6 +475,7 @@ impl Engine {
             rt_out_len: 0,
             rt_dropped: 0,
             tick_due: [0.0; TICK_RING],
+            resume: None,
         }
     }
 
@@ -527,14 +545,27 @@ impl Engine {
 
     pub fn set_running(&mut self, running: bool) {
         if !self.running && running {
-            // Play starts from now. While stopped, `render` advances `sample_clock` but no
-            // ticks run, so `next_tick_due` still points at the moment the transport
-            // stopped. Left alone, Play would replay every idle tick in one call.
-            self.next_tick_due = self.sample_clock;
-            self.rt_transport_started();
+            match self.resume.take() {
+                // Play after a Stop carries on from the point the sound stopped (ADR-0009 amendment 3): what Stop held goes back into the
+                // timeline, the same distance from now as it was from the Stop, and the stepping goes on from the tick after the last
+                // one stepped.
+                Some(r) => {
+                    self.carry_on(r);
+                    self.rt_transport_started(r.tick);
+                    self.rt_pulses_ahead(r.tick);
+                }
+                // Play starts from now. While stopped, `render` advances `sample_clock` but no ticks run, so `next_tick_due` still points
+                // at the moment the transport stopped. Left alone, Play would replay every idle tick in one call.
+                None => {
+                    self.next_tick_due = self.sample_clock;
+                    self.rt_transport_started(self.global_tick);
+                }
+            }
         }
         if self.running && !running {
-            self.all_notes_off_now();
+            let position = self.tick_position();
+            self.resume = Some(Resume { stopped_at: self.sample_clock, tick: self.first_unsounded_tick(), position });
+            self.hold_unsounded_events();
             // Ref: CE v5.30 p.40: "DIR will default to the Track attribute
             // amount when the sequencer stops" / "MCH will also default to
             // the Track attribute amount when the sequencer stops" — POS is
@@ -549,6 +580,35 @@ impl Engine {
         self.running = running;
     }
 
+    /// The first tick that had not sounded at `sample_clock`: the first whose due sample is not before it. Every tick from there to
+    /// `global_tick` was stepped ahead of the audio (at most `MAX_EARLY_TICKS` and one more, so inside `TICK_RING`).
+    fn first_unsounded_tick(&self) -> u64 {
+        let oldest = self.global_tick.saturating_sub(TICK_RING as u64);
+        let mut k = self.global_tick;
+        while k > oldest && self.tick_due[((k - 1) % TICK_RING as u64) as usize] >= self.sample_clock {
+            k -= 1;
+        }
+        k
+    }
+
+    /// Play after a Stop: moves everything that was in the timeline at the Stop by the time the transport stood still, which is a whole
+    /// number of samples, so the order the events leave in, and every sample they land on relative to one another, is the one they had.
+    fn carry_on(&mut self, r: Resume) {
+        let gap = (self.sample_clock - r.stopped_at).max(0.0);
+        if gap > 0.0 {
+            for held in self.queue[..self.queue_len].iter_mut().flatten() {
+                held.due_sample += gap;
+                held.order.0 = held.due_sample.floor() as i64;
+            }
+            // The last tick that sounded is moved with the ones held, so `tick_position` is continuous across the Stop: how far into the
+            // next tick the audio is stays what it was.
+            for k in r.tick.saturating_sub(1).max(self.global_tick.saturating_sub(TICK_RING as u64))..self.global_tick {
+                self.tick_due[(k % TICK_RING as u64) as usize] += gap;
+            }
+        }
+        self.next_tick_due = (self.next_tick_due + gap).max(self.sample_clock);
+    }
+
     /// Makes the engine a MIDI clock master, or not (ADR-0009). Off by default. Turned on while the transport runs, it first says
     /// where the sequencer is (`Start` at tick 0, `Continue` anywhere else) and the pulses follow; turned off, it drops the
     /// messages still waiting and sends nothing.
@@ -560,7 +620,7 @@ impl Engine {
         self.rt_queue_len = 0;
         self.rt_queue = [None; RT_QUEUE_CAP];
         if on && self.running {
-            self.rt_transport_started();
+            self.rt_transport_started(self.global_tick);
         }
     }
 
@@ -583,8 +643,13 @@ impl Engine {
     /// and the fraction is how far into the next one. While the transport runs this is the audio's position and not `tick()`, which
     /// is up to `MAX_EARLY_TICKS` ahead of it; while stopped it is `tick()`. A read: it changes nothing.
     pub fn tick_position(&self) -> f64 {
-        if !self.running || self.global_tick == 0 {
-            return self.global_tick as f64;
+        if !self.running {
+            // Where the audio was when it stopped, which is where the Play will carry on from. After a `reset`, or before the first Play,
+            // the engine's own count.
+            return self.resume.map_or(self.global_tick as f64, |r| r.position);
+        }
+        if self.global_tick == 0 {
+            return 0.0;
         }
         let t = self.sample_clock;
         let newest = self.global_tick - 1;
@@ -605,13 +670,26 @@ impl Engine {
         }
     }
 
-    /// The transport has started: with the clock on, `Start` if the sequencer is at its beginning (tick 0, as after `new` or
-    /// `Reset`) and `Continue` otherwise, at the sample of the first tick. The engine resumes where it stopped, so a resume is a
-    /// `Continue` (ADR-0009 amendment 1).
-    fn rt_transport_started(&mut self) {
+    /// The transport has started at `at_tick`: with the clock on, `Start` if the sequencer is at its beginning (tick 0, as after `new` or
+    /// `Reset`) and `Continue` otherwise, at the sample the transport starts. After a Stop, `at_tick` is the tick the stream carries on
+    /// from, so a resume is a `Continue` (ADR-0009 amendment 1), and it is `Start` only if nothing had sounded when it stopped.
+    fn rt_transport_started(&mut self, at_tick: u64) {
         if self.clock_master {
-            let msg = if self.global_tick == 0 { Realtime::Start } else { Realtime::Continue };
+            let msg = if at_tick == 0 { Realtime::Start } else { Realtime::Continue };
             self.rt_schedule(self.sample_clock, msg);
+        }
+    }
+
+    /// After a Stop and a Play, the pulses of the ticks that were stepped before the Stop and had not sounded (`from_tick` up to the last
+    /// stepped), at their moved due samples. The ones scheduled when those ticks were stepped went with the Stop (`rt_transport_stopped`).
+    fn rt_pulses_ahead(&mut self, from_tick: u64) {
+        if !self.clock_master {
+            return;
+        }
+        for k in from_tick.max(self.global_tick.saturating_sub(TICK_RING as u64))..self.global_tick {
+            if k % TICKS_PER_CLOCK as u64 == 0 {
+                self.rt_schedule(self.tick_due[(k % TICK_RING as u64) as usize], Realtime::Clock);
+            }
         }
     }
 
@@ -718,6 +796,8 @@ impl Engine {
         self.track_rt = [TrackRuntime::default(); TRACK_COUNT];
         self.queue = [None; QUEUE_CAP];
         self.queue_len = 0;
+        // What a Stop was holding for the Play goes with the queue: after a Reset the next Play is a new run.
+        self.resume = None;
         self.deferred_actions = [None; TRACK_COUNT];
         self.measure_deferred = [None; TRACK_COUNT];
         self.rt_queue = [None; RT_QUEUE_CAP];
@@ -770,24 +850,28 @@ impl Engine {
         self.queue_len -= 1;
         if self.queue_len > 0 {
             self.queue[0] = self.queue[self.queue_len].take();
-            let mut i = 0;
-            loop {
-                let (l, r) = (2 * i + 1, 2 * i + 2);
-                let mut smallest = i;
-                if l < self.queue_len && self.order_at(l) < self.order_at(smallest) {
-                    smallest = l;
-                }
-                if r < self.queue_len && self.order_at(r) < self.order_at(smallest) {
-                    smallest = r;
-                }
-                if smallest == i {
-                    break;
-                }
-                self.queue.swap(i, smallest);
-                i = smallest;
-            }
+            self.heap_sift_down(0);
         }
         top
+    }
+
+    /// Moves the entry at `i` down until neither child is earlier than it.
+    fn heap_sift_down(&mut self, mut i: usize) {
+        loop {
+            let (l, r) = (2 * i + 1, 2 * i + 2);
+            let mut smallest = i;
+            if l < self.queue_len && self.order_at(l) < self.order_at(smallest) {
+                smallest = l;
+            }
+            if r < self.queue_len && self.order_at(r) < self.order_at(smallest) {
+                smallest = r;
+            }
+            if smallest == i {
+                break;
+            }
+            self.queue.swap(i, smallest);
+            i = smallest;
+        }
     }
 
     /// Queues a note: its NoteOn at `on` and its NoteOff at `off`, both or neither. Room for
@@ -802,13 +886,45 @@ impl Engine {
         self.schedule(off, RawEvent::NoteOff { port, ch, note });
     }
 
-    /// Drops everything still scheduled and asks the next `render` to turn off every note
-    /// that is sounding (a NoteOff per NoteOn still owed, then CC 123 on each channel that
-    /// had one). Until SPEC-0001 O1 this only cleared the queue, so a note whose NoteOff was
-    /// still queued stayed on in the receiver forever.
-    fn all_notes_off_now(&mut self) {
-        self.queue = [None; QUEUE_CAP];
-        self.queue_len = 0;
+    /// The Stop of a running transport: asks the next `render` to turn off every note that is sounding (a NoteOff per NoteOn still owed, then
+    /// CC 123 on each channel that had one), and keeps what is scheduled but has not sounded, for the Play after it (`Resume`). Until
+    /// SPEC-0001 O1 a Stop only cleared the queue, so a note whose NoteOff was still queued stayed on in the receiver forever; until
+    /// ADR-0009 amendment 3 it cleared the queue and so lost the note of the next step, already scheduled.
+    ///
+    /// What is dropped is each NoteOff whose NoteOn has been emitted: the flush ends that note, and a NoteOff left in the queue would
+    /// land after the Play and cut a note short, or be sent for a note that is not sounding. A note is scheduled as its NoteOn and then
+    /// its NoteOff (`schedule_note`), so a NoteOff's NoteOn is the event made just before it, and a NoteOff is the Stop's to drop when that
+    /// NoteOn is no longer in the queue.
+    fn hold_unsounded_events(&mut self) {
+        let mut note_ons = [0u64; QUEUE_CAP];
+        let mut n = 0;
+        for held in self.queue[..self.queue_len].iter().flatten() {
+            if matches!(held.event, RawEvent::NoteOn { .. }) {
+                note_ons[n] = held.order.2;
+                n += 1;
+            }
+        }
+        note_ons[..n].sort_unstable();
+        let mut kept = 0;
+        for i in 0..self.queue_len {
+            let held = self.queue[i];
+            let keep = match held {
+                Some(Scheduled { event: RawEvent::NoteOff { .. }, order, .. }) => order.2 > 0 && note_ons[..n].binary_search(&(order.2 - 1)).is_ok(),
+                _ => true,
+            };
+            if keep {
+                self.queue[kept] = held;
+                kept += 1;
+            }
+        }
+        for slot in self.queue[kept..self.queue_len].iter_mut() {
+            *slot = None;
+        }
+        self.queue_len = kept;
+        // Taking entries out of the array breaks the heap. Their order is unchanged, so it is rebuilt from the bottom.
+        for i in (0..self.queue_len / 2).rev() {
+            self.heap_sift_down(i);
+        }
         self.flush_pending = true;
     }
 
@@ -835,7 +951,7 @@ impl Engine {
         }
     }
 
-    /// Emits the flush requested by `all_notes_off_now`, `reset` or a Stop while stopped, at
+    /// Emits the flush requested by `hold_unsounded_events`, `reset` or a Stop while stopped, at
     /// sample 0 of this buffer. If the buffer fills, it returns with `flush_pending` still
     /// set and the table still holding what is left, so the next render carries on. (If the
     /// transport restarts before then, notes the new run has started are flushed too. That
@@ -939,7 +1055,10 @@ impl Engine {
                 }
             }
 
-            self.drain_due(chunk_end, buffer_start, ctx.buffer_len, out);
+            // The events a Stop is holding for the Play are not due while the transport stands still.
+            if self.resume.is_none() {
+                self.drain_due(chunk_end, buffer_start, ctx.buffer_len, out);
+            }
             self.drain_realtime(chunk_end, buffer_start, ctx.buffer_len);
         }
 

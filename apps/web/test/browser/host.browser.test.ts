@@ -220,3 +220,26 @@ test("a worklet that is given a layout the controller refuses reports it instead
   assert.match(message, /could not start/, `reported by the processor error, not by the timeout: ${message}`);
   await page.close();
 });
+
+test("C8: the click is audible in a real browser: the worklet's output is silent with the metronome off and carries a click when it is on, and Stop ends it", async () => {
+  const page = await open();
+  await page.evaluate(() => harness.start());
+  await pastStartup(page);
+  await page.evaluate(() => {
+    harness.tempo(240);
+    harness.transport(true);
+  });
+  await page.waitForTimeout(1_200);
+  assert.equal(await page.evaluate(() => harness.peak()), 0, "the metronome is off: the output is exactly silent");
+  await page.evaluate(() => harness.metronome(true));
+  await page.waitForFunction(() => harness.peak() > 0.05, null, { timeout: 4_000 });
+  const peak = await page.evaluate(() => harness.peak());
+  assert.ok(peak > 0.05 && peak < 0.5, `a click, at ${peak}`);
+  await page.evaluate(() => harness.transport(false));
+  await page.waitForTimeout(400); // the click that was ringing finishes
+  await page.evaluate(() => harness.resetPeak());
+  await page.waitForTimeout(700); // more than two beats at 240 BPM
+  assert.equal(await page.evaluate(() => harness.peak()), 0, "stopped: no click");
+  assert.deepEqual(await page.evaluate(() => harness.errors), []);
+  await page.close();
+});

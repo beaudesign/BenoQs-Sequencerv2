@@ -151,6 +151,11 @@ export class Host implements WorkletSink {
     this.post({ type: "clock", master });
   }
 
+  /** Switches the click on or off. It sounds in the node's own output, once a quarter note while the transport runs, and is not MIDI. */
+  setMetronome(on: boolean): void {
+    this.post({ type: "metronome", on });
+  }
+
   async close(): Promise<void> {
     this.node.disconnect();
     await this.context.close();

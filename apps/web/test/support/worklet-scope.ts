@@ -20,7 +20,7 @@ class FakePort {
 
 interface Processor {
   port: FakePort;
-  process(): boolean;
+  process(inputs?: Float32Array[][], outputs?: Float32Array[][]): boolean;
 }
 type ProcessorClass = new (options: { processorOptions: WorkletOptions }) => Processor;
 
@@ -52,6 +52,7 @@ export class WorkletRig {
   /** The `currentFrame` the next block will see. */
   frame = 0;
   private read = 0;
+  private readonly chunks: Float32Array[] = [];
 
   constructor(options: RigOptions = {}) {
     this.sampleRate = options.sampleRate ?? 48_000;
@@ -71,13 +72,25 @@ export class WorkletRig {
     this.processor.port.onmessage?.({ data: message });
   }
 
-  /** Runs one 128-frame quantum. Returns the messages the processor posted since the last call to `take`. */
+  /**
+   * Runs one 128-frame quantum, handing the processor the one mono output the page's node has, as the browser does. Returns the messages
+   * the processor posted since the last call to `take`. What it wrote to the output is kept: see `audio`.
+   */
   block(): Posted[] {
     scope["sampleRate"] = this.sampleRate;
     scope["currentFrame"] = this.frame;
-    if (!this.processor.process()) throw new Error("process() returned false: the node would be dropped");
+    const out = new Float32Array(RENDER_FRAMES);
+    if (!this.processor.process([], [[out]])) throw new Error("process() returned false: the node would be dropped");
+    this.chunks.push(out);
     this.frame += RENDER_FRAMES;
     return this.take();
+  }
+
+  /** Everything the processor has written to its output so far, one frame per frame since the rig started: frame `i` is `audio()[i]`. */
+  audio(): Float32Array {
+    const all = new Float32Array(this.chunks.length * RENDER_FRAMES);
+    this.chunks.forEach((c, i) => all.set(c, i * RENDER_FRAMES));
+    return all;
   }
 
   /** Messages posted since the last call. */

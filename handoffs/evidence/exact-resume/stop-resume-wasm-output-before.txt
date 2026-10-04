@@ -1,0 +1,4 @@
+bpm 60, stop after 100 blocks: 8 Note Ons after the Play, 8 expected; first got 19670,22670,25670 want 19870,22870,25870
+bpm 60, stop after 101 blocks: 8 Note Ons after the Play, 8 expected; first got 19798,22798,25798 want 19870,22870,25870
+bpm 60, stop after 102 blocks: 8 Note Ons after the Play, 8 expected; first got 19676,22676,25676 want 19870,22870,25870
+through the wasm: 92 of 94 stop positions differ from the uninterrupted run with the gap taken out (0 notes missing)

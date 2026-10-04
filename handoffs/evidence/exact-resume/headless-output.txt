@@ -1,0 +1,20 @@
+== A. tempo changes the speed of the MIDI (16 steps, 3 s rendered)
+bpm  60:  48 note-ons; step gap  3000.0 samples =  62.50 ms; range 3000..3000
+bpm 120:  96 note-ons; step gap  1500.0 samples =  31.25 ms; range 1500..1500
+bpm 240: 192 note-ons; step gap   750.0 samples =  15.62 ms; range 750..750
+gap ratio 60/120 = 2.0, 120/240 = 2.0 (a clean 2.0 each)
+a 16th note at 120 BPM lasts 125 ms; the engine's 12-tick step at 120 BPM lasts 31.25 ms (D0, WENGE-0012)
+
+== B. Stop at 0.9 s, silent 0.7 s, Play, 2.1 s more (16 steps, 120 BPM)
+note sequence: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7]
+note-ons while stopped: 0
+steps skipped across the Stop: 0 ; repeated: 0
+
+== C. how often a Stop loses a note, over where in the gap between two notes the Stop lands
+every step (16 notes a bar)      bpm  60:  0 of 40 stop positions lost a note (0%)
+every step (16 notes a bar)      bpm 120:  0 of 41 stop positions lost a note (0%)
+every step (16 notes a bar)      bpm 240:  0 of 42 stop positions lost a note (0%)
+every 4th step (4 notes a bar)   bpm  60:  0 of 40 stop positions lost a note (0%)
+every 4th step (4 notes a bar)   bpm 120:  0 of 40 stop positions lost a note (0%)
+every 4th step (4 notes a bar)   bpm 240:  0 of 40 stop positions lost a note (0%)
+(the engine steps 12 ticks ahead of the audio, MAX_EARLY_TICKS. Before ADR-0009 amendment 3 Stop dropped what was scheduled in that window and Play resumed after it: 100% and 25% at these patterns; this run is after the change)

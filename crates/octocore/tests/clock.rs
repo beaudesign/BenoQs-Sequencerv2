@@ -240,26 +240,28 @@ fn stop_while_stopped_sends_no_realtime_and_keeps_its_all_notes_off() {
 }
 
 #[test]
-fn play_after_a_stop_sends_continue_and_the_pulses_stay_on_the_grid_the_pattern_is_on() {
-    // The engine resumes where it stopped (`set_running`: Play and Continue are one thing, and position is not rewound), so
-    // the message is Continue, and the pulses stay on every eighth tick of the engine's own count, not of the run.
+fn play_after_a_stop_sends_continue_and_the_pulses_carry_on_from_where_the_sound_stopped() {
+    // Play after a Stop carries on from the point the sound stopped (ADR-0009 amendment 3; before it, from the tick the engine had stepped
+    // to, up to a step further on). So the message is Continue, and the pulses stay on every eighth tick of the engine's own count, not of
+    // the run, with the first one as far from the Play as it was from the Stop.
     let (bpm, sr) = (120.0f32, 48_000.0f32);
     let mut r = Rig::new(engine_with_notes(), bpm, sr);
     r.e.set_clock_master(true);
     r.playing = true;
-    r.run(10_000, 128);
+    r.run(10_000 + 3 * 125 + 60, 128); // tick 83 and a half
     r.e.handle_command(Command::Stop);
     r.playing = false;
     r.run(2_000, 128);
-    let g = r.e.tick(); // the tick the engine will step next
+    let p = r.e.tick_position(); // where the audio stopped, in ticks
+    assert!((p - (83.0 + 60.0 / 125.0)).abs() < 1e-9, "the position the sound stopped at, not the engine's own count ({})", r.e.tick());
     r.e.handle_command(Command::Play);
     r.playing = true;
     let play_at = r.at;
     let (rt, _) = r.render(1_000); // a pulse is at most 7 ticks, 875 samples, from the first tick
     assert_eq!(rt[0], (play_at, Realtime::Continue), "not Start: the engine is not at its beginning");
-    let wait_ticks = (TICKS_PER_CLOCK as u64 - g % TICKS_PER_CLOCK as u64) % TICKS_PER_CLOCK as u64;
+    let next_pulse_tick = (p / TICKS_PER_CLOCK as f64).ceil() * TICKS_PER_CLOCK as f64;
     let first_clock = rt.iter().find(|(_, m)| *m == Realtime::Clock).expect("a clock in the first block").0;
-    assert_eq!(first_clock, play_at + (wait_ticks as f64 * spt(bpm, sr)) as u64, "the first pulse is on the engine's own grid (tick {g} next, {wait_ticks} ticks to a pulse)");
+    assert_eq!(first_clock, play_at + ((next_pulse_tick - p) * spt(bpm, sr)).round() as u64, "the first pulse is on the engine's own grid (tick {next_pulse_tick}), {} ticks after the position it stopped at", next_pulse_tick - p);
 }
 
 #[test]
@@ -421,7 +423,7 @@ fn tick_position_never_goes_back_over_blocks_and_tempo_changes() {
 }
 
 #[test]
-fn tick_position_while_stopped_is_the_engines_own_count_and_reading_it_changes_nothing() {
+fn tick_position_while_stopped_is_where_the_audio_stopped_and_reading_it_changes_nothing() {
     let mut a = Rig::new(engine_with_notes(), 120.0, 48_000.0);
     let mut b = Rig::new(engine_with_notes(), 120.0, 48_000.0);
     a.playing = true;
@@ -432,12 +434,26 @@ fn tick_position_while_stopped_is_the_engines_own_count_and_reading_it_changes_n
         b.render(128);
     }
     assert_eq!(a.events, b.events, "a read is a read");
+    let playing = a.e.tick_position();
     a.playing = false;
     a.render(128);
     let stopped = a.e.tick_position();
     a.render(128);
     assert_eq!(a.e.tick_position(), stopped, "frozen while stopped");
-    assert_eq!(stopped, a.e.tick() as f64);
+    assert_eq!(stopped, playing, "where the audio was when it stopped, not the engine's own count, which is stepped ahead of it");
+    assert!((a.e.tick() as f64) > stopped);
+
+    // And Play carries on from there: no jump forward or back, however long it was stopped.
+    a.run(5 * 128, 128);
+    a.playing = true;
+    a.render(125);
+    assert!((a.e.tick_position() - (stopped + 1.0)).abs() < 1e-9, "one tick of audio after the Play, one tick on from where it stopped ({} from {stopped})", a.e.tick_position());
+
+    // After a Reset it is the engine's own count again.
+    a.e.handle_command(Command::Reset);
+    a.playing = false;
+    a.render(128);
+    assert_eq!(a.e.tick_position(), 0.0);
 }
 
 // ------------------------------------------------------------------------------------------------ pending on D0

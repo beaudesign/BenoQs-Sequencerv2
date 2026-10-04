@@ -146,10 +146,12 @@ struct Stop {
 }
 
 type Slot = (u8, u8, u8);
+/// The events and the real-time messages a run emitted, each with its absolute sample.
+type Stream = (Vec<(u64, Event)>, Vec<(u64, Realtime)>);
 
 /// What the stopped-and-played run must emit, written from the uninterrupted run alone (the property in the module comment). Returns
 /// the events and the real-time messages, in the order they leave. `end` is how many samples the run has played in all.
-fn oracle(uninterrupted_events: &[(u64, Event)], uninterrupted_realtime: &[(u64, Realtime)], stops: &[Stop], end: u64, clock: bool) -> (Vec<(u64, Event)>, Vec<(u64, Realtime)>) {
+fn oracle(uninterrupted_events: &[(u64, Event)], uninterrupted_realtime: &[(u64, Realtime)], stops: &[Stop], end: u64, clock: bool) -> Stream {
     let mut events: Vec<(u64, Event)> = vec![];
     let mut realtime: Vec<(u64, Realtime)> = vec![];
     // What the receiver holds, as the stopped run's own output has left it. And the Note Offs of notes already ended by a flush, still to
@@ -240,8 +242,8 @@ struct Scenario {
 
 fn scenario(seed: u64) -> Scenario {
     let mut rng = Rng::new(seed + 7000);
-    let via_commands = seed % 2 == 0;
-    let clock = seed % 3 != 0;
+    let via_commands = seed.is_multiple_of(2);
+    let clock = !seed.is_multiple_of(3);
     let n = 1 + rng.next_below(4) as usize;
     let mut stops = vec![];
     let mut plays = vec![];
@@ -306,6 +308,7 @@ fn play_after_a_stop_is_the_stream_that_stopped_with_the_gap_taken_out() {
     let mut worst = String::new();
     let mut failed = 0;
     let mut stops_checked = 0;
+    let mut flushes = 0usize;
     for seed in 0..SEEDS {
         let sc = scenario(seed);
         let mut buffers = Rng::new(seed + 9000);
@@ -319,6 +322,7 @@ fn play_after_a_stop_is_the_stream_that_stopped_with_the_gap_taken_out() {
 
         let (want_events, want_realtime) = oracle(&a.events, &a.realtime, &sc.stops, end, sc.clock);
         stops_checked += sc.stops.len();
+        flushes += b.events.iter().filter(|(_, e)| matches!(e, Event::Cc { cc: 123, .. })).count();
         if b.events != want_events || b.realtime != want_realtime {
             failed += 1;
             if worst.is_empty() {
@@ -340,6 +344,25 @@ fn play_after_a_stop_is_the_stream_that_stopped_with_the_gap_taken_out() {
         }
     }
     assert_eq!(failed, 0, "{failed} of {SEEDS} scenarios ({stops_checked} stops) differ from the uninterrupted stream with the gaps taken out. First: {worst}");
+    // The sweep is worth something only if the Stops fall on sounding notes: most of them, in these patterns, do.
+    assert!(flushes * 3 >= stops_checked * 2, "only {flushes} of {stops_checked} stops found a note sounding, so the sweep barely tests the flush");
+}
+
+#[test]
+fn a_stop_exactly_on_a_pulse_tick_neither_loses_that_pulse_nor_sends_it_twice() {
+    // 120 BPM at 48 kHz: tick 88 is a pulse tick (88 = 11 x 8) and falls on sample 11,000. The Stop comes on that sample, so the tick has
+    // not sounded: its pulse is the Play's to send, on the Play's own sample, once, after the Continue.
+    let mut h = Host::new(one_track(&[(0, 6), (3, 6)]), 120.0, true);
+    h.run(11_000, 128, true);
+    h.e.handle_command(Command::Stop);
+    h.run(777, 128, false);
+    let played_at = h.at;
+    h.e.handle_command(Command::Play);
+    h.run(1_200, 128, true);
+    let after: Vec<(u64, Realtime)> = h.realtime.iter().filter(|(s, _)| *s >= 11_000).copied().collect();
+    assert_eq!(after[..4], [(11_000, Realtime::Stop), (played_at, Realtime::Continue), (played_at, Realtime::Clock), (played_at + 8 * 125, Realtime::Clock)], "{after:?}");
+    let before: Vec<(u64, Realtime)> = h.realtime.iter().filter(|(s, m)| *s < 11_000 && *m == Realtime::Clock).copied().collect();
+    assert_eq!(before.last(), Some(&(10_000, Realtime::Clock)), "the last pulse before the Stop is tick 80's, not tick 88's");
 }
 
 // ------------------------------------------------------------------------------------------------ the cases the sweep cannot build

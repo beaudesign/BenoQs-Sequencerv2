@@ -181,3 +181,15 @@ test("switching off lets the ringing click finish, and switching on mid-beat wai
   quiet.render(tail, 380, 390, true);
   assert.notEqual(tail.findIndex((x) => x !== 0), -1, "and the next beat (tick 384) sounds");
 });
+
+test("the metronome keeps no count: a position that goes back to the start clicks the first beat again", () => {
+  // The engine's own Reset puts its tick position at 0. Nothing here has to be told: where the position is, is where the beat is.
+  const m = new Metronome(RATE);
+  m.on = true;
+  const late = new Float32Array(RENDER_FRAMES);
+  m.render(late, 5_000, 5_016, true);
+  assert.ok(late.every((x) => x === 0), "no beat in 5000 to 5016");
+  const again = new Float32Array(RENDER_FRAMES);
+  m.render(again, 0, 16, true);
+  assert.equal(again.findIndex((x) => x !== 0), 0, "beat 0 is the first frame");
+});

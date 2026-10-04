@@ -170,6 +170,14 @@ async function main(): Promise<void> {
   strip.clockOffset.addEventListener("change", applyOffset);
   applyClock();
 
+  // The click. A choice made before Start is kept and goes to the worklet when there is one; after that each change goes at once.
+  let metronomeOn = false;
+  strip.metronome.addEventListener("click", () => {
+    metronomeOn = !metronomeOn;
+    strip.showMetronome(metronomeOn);
+    host?.setMetronome(metronomeOn);
+  });
+
   strip.start.addEventListener("click", () => {
     if (host) return;
     void (async () => {
@@ -180,6 +188,7 @@ async function main(): Promise<void> {
         // A fixed seed: the same session plays the same way until Save and Load exist.
         const started = await Host.start({ wasm, layout: layoutFromControls(controls), workletUrl: "/dist/src/worklet.js", seed: 0n });
         host = started;
+        if (metronomeOn) started.setMetronome(true);
         const time = new ContextTimeMap(started.context, performance);
         scheduler = new MidiScheduler(time, LOOKAHEAD_MS.default);
         wireMidi(started, scheduler, time);

@@ -457,7 +457,7 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
       return { display: s.display, stroke: s.stroke, width: s.strokeWidth };
     });
   assert.equal((await ring("matrix.r9.c1", "outer")).display, "none");
-  for (const _stop of ["start", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
+  for (const _stop of ["start", "metronome", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
   await page.keyboard.press("Tab"); // r9.c1
   const outer = await ring("matrix.r9.c1", "outer");
   const inner = await ring("matrix.r9.c1", "inner");

@@ -180,22 +180,6 @@ test("C5: a Stop and Play on a beat's exact frame does not lose the beat and doe
   assert.equal(all[2], playFrame, "beat 2 sounds at the Play's first frame");
 });
 
-test("C5: after a Reset the next Play starts a new count, with a click on its first frame", () => {
-  const rig = new WorkletRig();
-  rig.send({ type: "metronome", on: true });
-  rig.send({ type: "transport", play: true });
-  run(rig, 300);
-  rig.send({ type: "transport", play: false });
-  run(rig, 400);
-  rig.send({ type: "reset" });
-  run(rig, 10);
-  const playFrame = rig.frame;
-  rig.send({ type: "transport", play: true });
-  run(rig, 60);
-  const found = onsets(rig.audio());
-  assert.equal(found.at(-1), playFrame, `${found}`);
-});
-
 test("C6: the click follows the MIDI clock: it is at the frame of pulse 24 k, at 240 BPM as at 120, and through a change of tempo", () => {
   const rig = new WorkletRig();
   rig.send({ type: "metronome", on: true });
@@ -258,4 +242,12 @@ test("a processor called with no output at all, as a browser may call a node tha
   assert.equal(rig.processor.process([], []), true);
   assert.equal(rig.processor.process([], [[]]), true, "an output with no channel");
   assert.deepEqual(only(rig.take(), "error"), []);
+});
+
+test("a metronome message is audio the worklet makes and nothing the panel shows: it posts nothing", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  rig.send({ type: "metronome", on: true });
+  rig.send({ type: "metronome", on: false });
+  assert.deepEqual(rig.take(), []);
 });

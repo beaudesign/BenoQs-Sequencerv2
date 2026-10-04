@@ -29,7 +29,9 @@ output at the sample where each falls, by linear interpolation inside the block.
 - It follows the tempo because the position does: a tempo change moves where the next beat falls, with no rule of its own.
 - It follows the transport because a stopped engine's position does not move, so there is nothing to find; and after a Play it
   carries on from where the position was, which is exactly where the exact resume (#41) put it. A Stop then Play clicks the beat
-  it had not yet reached, not a new one. Reset sets the position to 0 and the first beat is the next Play's first sample.
+  it had not yet reached, not a new one. The engine's own Reset sets the position to 0 and the first beat is then the next Play's first
+  frame, with nothing here told of it. (The worklet's `reset` message is not that: it drops the engine, `octoweb_reset`, and the page
+  never sends it.)
 - There is **no state to get wrong**: the beats of one block and the next are `[p0, p1)` and `[p1, p2)`, so none is clicked twice
   and none is skipped, including when a beat falls exactly on a block edge (the `<` is strict).
 
@@ -56,7 +58,7 @@ scheduler and the SMF export read, which is a contract and a golden file. A clic
 | C2 | The offset of a beat in a block is its interpolated frame, clamped to the block | same |
 | C3 | The voice is silent before its onset, its first sample is not zero, it peaks, it decays to nothing and then stops being active; the same samples whatever the block size | same |
 | C4 | Off by default: a run of blocks is silent. On and playing at 120 BPM and 48 kHz: onsets at frames 0, 24000, 48000, ... within one frame | `test/worklet.test.ts` |
-| C5 | Stop silences it; Play carries on from the point it stopped (the beat it had not reached, its distance from Stop unchanged); Reset clicks again from the start | same |
+| C5 | Stop silences it; Play carries on from the point it stopped (the beat it had not reached, its distance from Stop unchanged), including a Stop that lands exactly on a beat; a position that goes back to 0 clicks beat 0 again | same, and `test/click.test.ts` |
 | C6 | Tempo 240 puts the onsets half as far apart; a tempo change mid-run moves the next onset | same |
 | C7 | The MIDI events of a run are identical bytes with the click on and off | same |
 | C8 | The page has one button, `Metronome`, `aria-pressed` false then true, reachable by keyboard, with no colour of its own; and in a real browser the page's output carries signal when on and none when off | `test/app-css.test.ts`, `test/browser/` |

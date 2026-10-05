@@ -421,17 +421,20 @@ fn a_reset_after_a_stop_forgets_the_notes_held_for_the_play() {
     // Reset is "back to the start". What Stop held for the Play is part of the position, so Reset drops it, and the next Play is a new run.
     let spt = 125u64;
     let steps: Vec<(usize, u8)> = (0..16).map(|s| (s, 6)).collect();
-    let mut h = Host::new(one_track(&steps), 120.0, false);
+    let mut h = Host::new(one_track(&steps), 120.0, true);
     h.run(10 * spt, 128, true); // step 0's note, at tick 11, is stepped and not yet sounded: Stop holds it
     h.e.handle_command(Command::Stop);
     h.run(500, 128, false);
     h.e.handle_command(Command::Reset);
     h.run(500, 128, false);
+    assert_eq!(h.e.tick_position(), 0.0, "back at the start, not where the sound had stopped");
     let played_at = h.at;
     h.e.handle_command(Command::Play);
     h.run(30 * spt, 128, true);
+    let first_message = h.realtime.iter().find(|(s, _)| *s >= played_at).copied();
+    assert_eq!(first_message, Some((played_at, Realtime::Start)), "a new run starts with Start, not Continue");
 
-    let mut fresh = Host::new(one_track(&steps), 120.0, false);
+    let mut fresh = Host::new(one_track(&steps), 120.0, true);
     fresh.run(30 * spt, 128, true);
     // Nothing was sounding at tick 10, so there is no flush to account for: what leaves after the Play is a fresh engine's stream.
     let got: Vec<(u64, Event)> = h.events.iter().filter(|(s, _)| *s >= played_at).copied().collect();

@@ -264,3 +264,48 @@ drafts were tightened). `p4d-follower-measured.txt` holds the tables.
   not correct and slave mode would. That is a question for the Metronome and the owner, not decided here.
 - The 11-tick lag of the engine's notes behind its pulses (amendment 1, item 3) is **unchanged**, and the follower lands the *pulses* on the sender's grid: a pattern's notes
   sit 11 ticks after it, at any tempo. With D0 (the tick length) still open, **M3 stays `pending`** and nothing here claims a pattern is in time with a clock.
+
+
+### Amendment 3 (2026-10-04, Conductor on the owner's ruling, built by the Metronome): Play after a Stop carries on from the point the sound stopped
+
+**The ruling.** On Sun 2026-10-04 at 11:07 London the owner wrote "metronome must stop and play at the point of which it's stopped on the sequence". The manual says Stop then
+Play re-aligns (CE v5.30 p.86); this is a deliberate departure from it, recorded in `docs/10-risks-and-decisions.md` section 3. It reverses what `tests/conformance/AMBIGUITIES.md`
+("lookahead, Stop and commands") had chosen knowingly: that a Stop leaves up to 12 ticks of the pattern consumed and Play resumes up to a step further on. The engine steps up to
+`MAX_EARLY_TICKS` ahead of the audio, so at a Stop the next step's note is already scheduled; Stop used to drop it. Measured before the change (`handoffs/evidence/scorecard-2026-10-04/`):
+at 60, 120 and 240 BPM Play after a Stop skipped a note after every stop position with every step on, and after one in four with notes four steps apart.
+
+**What is decided.**
+
+1. **Stop keeps what has been scheduled and not sounded, and Play puts it back.** At a Stop the engine keeps every queued event except the Note Off of a note whose Note On has already
+   gone out (the flush ends that note, and its Note Off would otherwise land after the Play and cut a note short, or be sent for a note that is not sounding). At the Play it moves the kept
+   events, the tick clock and the ring of ticks by the time the transport stood still, a whole number of samples, so every event keeps its distance from the Play that it had from the
+   Stop, and stepping goes on from the tick after the last one stepped. Nothing is rewound: the random and direction state, the groove's delays and the phrase draws are already
+   where the held ticks left them. (The other design in the request, rewinding the tracks, was not chosen for that reason: it must restore every piece of per-track state a tick advances.)
+2. **The stream after a Play is the stream the run would have had, with the gap taken out.** `crates/octocore/tests/resume.rs` states it as one property over 60 patterns with one to four
+   Stops each, at 60, 120 and 240 BPM, the Stop and Play given as commands or as the host's flag, the clock on and off, blocks of 1 to 4,096 samples and gaps from nothing to a second
+   (written first, red on `31d9c02` in 60 of 60). The only differences from the uninterrupted stream are the flush at each Stop (unchanged: a Note Off for each note held, then CC 123, at the
+   sample the Stop took effect) and the Note Off the flush replaced.
+3. **The clock follows.** `Continue` is on the Play's sample (this amends item 2 of amendment 1: it said `Continue` was on the first tick's sample, which was true while the first tick was at
+   the Play). The pulses of the ticks that were stepped before the Stop and had not sounded are sent again at their moved samples, so the first `Clock` after the Play is as far from the Play as it
+   would have been from the Stop. Pulses are still on every eighth tick of the global count. `Start` is for a Play with nothing sounded (the tick the stream carries on from is 0); after a `Reset`
+   it is `Start` as before.
+4. **`tick_position()` while stopped is where the audio stopped, not the engine's own count.** This amends item 5 of amendment 1 ("the plain tick count while stopped"), which is up to 12 ticks
+   ahead of where the sound will carry on. It is still frozen while stopped and a read changes nothing, and it is continuous across the Play: one tick of audio after a Play it reads one tick
+   on from the Stop. After a `Reset` it is 0 as before. `octoweb_tick_position`'s description in `apps/web/engine/ABI.md` ("it stands still while the transport is stopped") is unchanged; the
+   ABI does not change and its version stays 2.
+5. **Held events are not emitted while stopped, and Reset drops them.** A stopped engine is silent but for the flush, as `invariants.rs` says. `Reset` is "back to the start": what Stop was
+   holding is part of the position, so Reset forgets it and the next Play is a new run. A second Stop while stopped keeps its CC 123 on all 32 channels and holds nothing more.
+6. **The price, stated.** The ticks stepped before the Stop have already decided what they play. An edit made while stopped to the step that is about to come is heard from the first tick the
+   engine had not yet stepped, up to 12 ticks (one step) later, not at once. `resume.rs` pins it by name (`an_edit_made_while_stopped_is_heard_from_the_first_tick_the_engine_had_not_yet_stepped`),
+   and the test changes if a design that rewinds is ever chosen. The same lag exists while running.
+
+**What does not change.** The ABI, the wire format, every contract, the flush at a Stop, the first note's 11 ticks after `Start` (amendment 1, item 3), D0, and every golden but one:
+`examples/golden/mcc_and_transport.sha256`, the only example that stops and plays, is re-derived. Its log is the same events shifted to where the stream had them from the first Play on.
+
+**The ratchet.** One baseline entry is removed under this amendment, because its subject is exactly what item 4 changes:
+`clock::tick_position_while_stopped_is_the_engines_own_count_and_reading_it_changes_nothing`. `clock::tick_position_while_stopped_is_where_the_audio_stopped_and_reading_it_changes_nothing`
+replaces it and asserts the new number, with a further assertion for the continuity across a Play, so the floor does not loosen: it rises by `resume.rs`'s six tests (`harness/baseline.txt`,
+`removed test ... ADR-0009`). The test `clock::play_after_a_stop_sends_continue_and_the_pulses_stay_on_the_grid_the_pattern_is_on` keeps its name and its claim (Continue, and pulses on the
+global grid) and measures the first pulse from the position the sound stopped at.
+
+**Mutation.** 20 single-place breakages of the new code (`handoffs/evidence/exact-resume-mutate.py`, `exact-resume-mutation-run.txt`): 19 caught and 1 equivalent. Two survived the first run, a weak position test and a missing Stop-Reset-Play case, and both tests were strengthened and the two mutants rerun and caught.

@@ -1,0 +1,36 @@
+# Mutation run for exact resume after Stop (WENGE-0016, Metronome hat). Script: handoffs/evidence/exact-resume-mutate.py.
+# First run, against the tests as first committed (a327d1c):
+
+[R1 Stop drops every held event, as it did before] caught by 4: stop_play_cycles_never_leak_notes_and_stopped_means_silent; an_edit_made_while_stopped_is_heard_from_the_first_tick_the_; two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_st; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R2 Stop keeps every Note Off, including those of notes the flush has ended] caught by 6: stop_play_cycles_never_leak_notes_and_stopped_means_silent; two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_st; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta; a_pattern_gives_identical_bytes_every_time ...
+[R3 Stop drops every Note Off, including those of notes still to start] caught by 3: stop_play_cycles_never_leak_notes_and_stopped_means_silent; two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_st; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R4 a Note Off is paired with the event made after it, not before] caught by 3: stop_play_cycles_never_leak_notes_and_stopped_means_silent; two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_st; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R5 the queue is not rebuilt as a heap after Stop took entries out] caught by 3: stop_play_cycles_never_leak_notes_and_stopped_means_silent; a_hundred_stops_and_plays_do_not_pile_events_up; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R6 Play does not move the held events by the time stopped] caught by 4: an_edit_made_while_stopped_is_heard_from_the_first_tick_the_; a_hundred_stops_and_plays_do_not_pile_events_up; two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_st; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R7 Play moves the held events but not their sort key] caught by 2: a_hundred_stops_and_plays_do_not_pile_events_up; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R8 stepping goes on from the Play, as it did before, not from the tick after the last one stepped] caught by 5: play_after_a_stop_sends_continue_and_the_pulses_carry_on_fro; tick_position_while_stopped_is_where_the_audio_stopped_and_r; a_stop_exactly_on_a_pulse_tick_neither_loses_that_pulse_nor_; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta ...
+[R9 the tick ring is not moved with the held ticks] caught by 4: play_after_a_stop_sends_continue_and_the_pulses_carry_on_fro; tick_position_while_stopped_is_where_the_audio_stopped_and_r; a_stop_exactly_on_a_pulse_tick_neither_loses_that_pulse_nor_; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R10 the last tick that sounded is not moved with the held ones] SURVIVED
+[R11 held events are emitted while stopped] caught by 14: engine::tests::retriggered_pitch_gets_one_noteoff_per_noteon; every_note_on_has_a_velocity_of_at_least_1_however_quiet_the; overload_is_counted_and_refuses_whole_notes_never_half; stop_at_any_point_leaves_no_note_sounding ...
+[R12 a tick due on the very sample of the Stop counts as sounded] caught by 1: a_stop_exactly_on_a_pulse_tick_neither_loses_that_pulse_nor_
+[R13 the pulses of the held ticks are not sent after the Play] caught by 3: play_after_a_stop_sends_continue_and_the_pulses_carry_on_fro; a_stop_exactly_on_a_pulse_tick_neither_loses_that_pulse_nor_; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R14 the pulse of the first held tick is not sent] caught by 2: a_stop_exactly_on_a_pulse_tick_neither_loses_that_pulse_nor_; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R15 pulses of held ticks are sent with the clock off] caught by 1: play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+[R16 tick_position while stopped is the engine's own count] caught by 2: play_after_a_stop_sends_continue_and_the_pulses_carry_on_fro; tick_position_while_stopped_is_where_the_audio_stopped_and_r
+[R17 the position is read after the engine has stepped ahead, not where the audio is] caught by 2: play_after_a_stop_sends_continue_and_the_pulses_carry_on_fro; tick_position_while_stopped_is_where_the_audio_stopped_and_r
+[R18 Reset keeps what Stop was holding] SURVIVED
+[R19 Start or Continue is chosen from the engine's count, not the tick it carries on from] SURVIVED
+[R20 Play after a Stop starts from now with the held events dropped, as before] caught by 3: an_edit_made_while_stopped_is_heard_from_the_first_tick_the_; two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_st; play_after_a_stop_is_the_stream_that_stopped_with_the_gap_ta
+caught 17 of 20
+
+# Two survived. R10 was a weak test: tick_position was checked one whole tick after a Play, by which time the held tick's own moved sample had taken over. The test now reads it 50 samples after the Play,
+# before that tick, and the mutant fails it. R18 was a missing case: after a Stop, a Reset and a Play the held state was ignored by every observable except the Start message and tick_position() while
+# stopped. resume.rs now checks both, with the clock on. Rerun with ONLY=R10,R18 against the strengthened tests:
+[R10 the last tick that sounded is not moved with the held ones] caught by 1: tick_position_while_stopped_is_where_the_audio_stopped_and_reading_it_changes_nothing
+[R18 Reset keeps what Stop was holding] caught by 1: a_reset_after_a_stop_forgets_the_notes_held_for_the_play
+caught 2 of 2
+
+# R19 survives and is an equivalent mutant: the tick the stream carries on from is 0 only while the engine has stepped no tick (nothing has been rendered since the first Play), and then the engine's
+# own count is 0 as well, so Start or Continue is the same whichever is read. The code reads the tick it carries on from because that is what the message means.
+
+# Total: 19 of 20 caught, 1 equivalent (R19).

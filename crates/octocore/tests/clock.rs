@@ -240,7 +240,7 @@ fn stop_while_stopped_sends_no_realtime_and_keeps_its_all_notes_off() {
 }
 
 #[test]
-fn play_after_a_stop_sends_continue_and_the_pulses_carry_on_from_where_the_sound_stopped() {
+fn play_after_a_stop_sends_continue_and_the_pulses_stay_on_the_grid_the_pattern_is_on() {
     // Play after a Stop carries on from the point the sound stopped (ADR-0009 amendment 3; before it, from the tick the engine had stepped
     // to, up to a step further on). So the message is Continue, and the pulses stay on every eighth tick of the engine's own count, not of
     // the run, with the first one as far from the Play as it was from the Stop.
@@ -446,7 +446,9 @@ fn tick_position_while_stopped_is_where_the_audio_stopped_and_reading_it_changes
     // And Play carries on from there: no jump forward or back, however long it was stopped.
     a.run(5 * 128, 128);
     a.playing = true;
-    a.render(125);
+    a.render(50); // less than the time to the next tick, which is where the position is easiest to get wrong
+    assert!((a.e.tick_position() - (stopped + 50.0 / 125.0)).abs() < 1e-9, "50 samples after the Play, 0.4 of a tick on from where it stopped ({} from {stopped})", a.e.tick_position());
+    a.render(75);
     assert!((a.e.tick_position() - (stopped + 1.0)).abs() < 1e-9, "one tick of audio after the Play, one tick on from where it stopped ({} from {stopped})", a.e.tick_position());
 
     // After a Reset it is the engine's own count again.

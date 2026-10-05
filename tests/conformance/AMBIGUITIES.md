@@ -415,9 +415,17 @@ has already stepped the tick that fires it, so `render` steps ticks up to `MAX_E
 (12, the STA table's reach) ahead of the buffer's end.
 **Consequences, chosen knowingly:** a command that reaches the engine between renders takes
 effect on ticks that have not been stepped yet, so up to 12 ticks (one step, 31 ms at 120 BPM)
-later than without lookahead. A Stop can leave up to 12 ticks of pattern position already
-consumed, so Play after Stop resumes up to one step further on. Neither affects the notes
-that were already sent, and Stop still silences everything.
+later than without lookahead. Stop still silences everything. **Amended 2026-10-04 (ADR-0009
+amendment 3, the owner's ruling "metronome must stop and play at the point of which it's
+stopped on the sequence"):** this used to say a Stop leaves up to 12 ticks of pattern position
+consumed and Play resumes up to one step further on, losing the note scheduled in that
+lookahead. It no longer does: Stop keeps the events scheduled and not yet sounded (all but the
+Note Off of a note already sounded, which the flush ends) and Play puts them back the same
+distance from the Play, stepping on from the tick after the last one stepped, so the stream
+after a Play is the stream the run would have had with the gap taken out
+(`crates/octocore/tests/resume.rs`). The manual's p.86 says Stop then Play re-aligns; the engine
+does not, by the owner's choice. The price: an edit made while stopped to the step about to
+come is heard from the first tick not yet stepped, up to one step later.
 **Also chosen knowingly (review finding 16):** the ticks stepped ahead are timed with the
 tempo in force when they are stepped. If the host slows the tempo inside that lookahead, a
 note already scheduled with the old tempo keeps its old time. After a tempo decrease with an
@@ -428,8 +436,9 @@ after a tempo ramp or jump the offset does not recover (a 60 to 120 BPM ramp lea
 note 23.9 ms late; `handoffs/evidence/o4-baseline-c-s-f.txt`), and at tempos where samples
 per tick is not a binary fraction (110 BPM) some ticks land one sample early
 (`handoffs/evidence/o4-golden-floor.txt`). See `specs/SPEC-0001/o4-release-plan.md` section 1.
-**Alternative:** rewind the position on Stop, or delay all output by 12 ticks and report it as
-latency (its cost changes with tempo). Neither is done.
+**Alternative:** rewind the position on Stop (not chosen for Play after Stop: it would have to
+restore the random, direction and groove state each tick advances), or delay all output by 12
+ticks and report it as latency (its cost changes with tempo). Neither is done.
 **Fixture:** `tests/invariants.rs::event_times_do_not_depend_on_the_hosts_buffer_size`,
 `engine::tests::max_early_ticks_covers_every_table_and_is_tight`.
 

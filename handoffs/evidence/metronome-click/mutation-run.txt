@@ -1,0 +1,36 @@
+# Mutation run for the metronome click, 2026-10-04. Node suite (mutate.py), then the Chromium tests (mutate-browser.py).
+# K3 is an equivalent mutant: with p0 = p1 the loop's first test, k * 192 < p1 with k the first beat at or after p0, is false whichever way the guard is written, so both return no beats (a NaN does the same).
+# K19 survived the first run (no test said a metronome message posts nothing); the test was added and catches it (journal/forge/2026-10-04.md).
+# K21 to K23 are in the page and are seen by the Chromium tests, as the second part shows.
+
+[K1 a beat on the end of a block is in it (the end is not strict)] CAUGHT (3 failed): not ok 39 - C1: the beats of a span are the multiples of a quarter in it, a beat on the start is in 
+[K2 a beat on the start of a block is not in it] CAUGHT (12 failed): not ok 39 - C1: the beats of a span are the multiples of a quarter in it, a beat on the start is in 
+[K3 a span that does not move holds a beat] SURVIVED by the node suite
+[K4 the beat's frame is cut down and not rounded] CAUGHT (2 failed): not ok 41 - C2: a beat sounds at the frame of the block where its tick falls, by interpolation, and 
+[K5 the beat's frame can fall outside the block] CAUGHT (1 failed): not ok 41 - C2: a beat sounds at the frame of the block where its tick falls, by interpolation, and 
+[K6 a click is a quarter of the clock's beat] CAUGHT (9 failed): not ok 38 - a click is a quarter note of the MIDI clock: 24 pulses, and the engine's own ticks to a 
+[K7 the first frame of a click is silence] CAUGHT (7 failed): not ok 42 - C3: a click is silent until its frame, not zero at it, peaks within a few milliseconds, 
+[K8 the click never ends] CAUGHT (6 failed): not ok 42 - C3: a click is silent until its frame, not zero at it, peaks within a few milliseconds, 
+[K9 the click does not decay] CAUGHT (1 failed): not ok 42 - C3: a click is silent until its frame, not zero at it, peaks within a few milliseconds, 
+[K10 a new click adds to the one that is ringing] CAUGHT (1 failed): not ok 45 - a click started again while it rings starts over, and does not add to itself
+[K11 the block's old content is kept] CAUGHT (1 failed): not ok 46 - the metronome writes silence when it is off, and when it is on but the transport is stop
+[K12 the metronome clicks while it is off] CAUGHT (4 failed): not ok 46 - the metronome writes silence when it is off, and when it is on but the transport is stop
+[K13 the metronome clicks while stopped] CAUGHT (1 failed): not ok 46 - the metronome writes silence when it is off, and when it is on but the transport is stop
+[K14 switching off cuts the ringing click] CAUGHT (2 failed): not ok 48 - switching off lets the ringing click finish, and switching on mid-beat waits for the nex
+[K15 the tail of a click is not written into the next block] CAUGHT (12 failed): not ok 47 - the metronome puts a click at the frame the beat falls in, once, and the tail runs on in
+[K16 the worklet reads the position after the render for both ends] CAUGHT (8 failed): not ok 160 - C4: on and playing at 120 BPM, a click on every quarter: at the Play, then every 24000 
+[K17 the worklet asks whether the transport runs after the render, not before] CAUGHT (28 failed, types): not ok 102 - a steady sender: the engine's pulses reach the device on the sender's, to within a tick
+[K18 the metronome message is ignored] CAUGHT (9 failed): not ok 160 - C4: on and playing at 120 BPM, a click on every quarter: at the Play, then every 24000 
+[K19 the metronome message makes the panel message and the engine is told nothing else] SURVIVED by the node suite
+[K20 the worklet writes the click to the wrong end of the block] CAUGHT (9 failed): not ok 160 - C4: on and playing at 120 BPM, a click on every quarter: at the Play, then every 24000 
+[K21 a choice made before Start is not sent at Start] SURVIVED by the node suite
+[K22 the button does not tell the worklet] SURVIVED by the node suite
+[K23 the button does not say which way it is] SURVIVED by the node suite
+caught 18 of 23, survived 5, pattern missing 0
+
+[K21 a choice made before Start is not sent at Start] CAUGHT (1 failed): not ok 4 - C8: the choice reaches the worklet: one metronome message each time it changes once the sequencer h
+[K22 the button does not tell the worklet] CAUGHT (1 failed): not ok 4 - C8: the choice reaches the worklet: one metronome message each time it changes once the sequencer h
+[K23 the button does not say which way it is] CAUGHT (4 failed): not ok 1 - C8: the strip has a Metronome button: off at the start, a toggle that says which way it is, and not
+[K24 the click is not written to the output] CAUGHT (1 failed): not ok 5 - C8: the click is audible in a real browser: the worklet's output is silent with the metronome off a
+
+result: 24 mutants, 23 caught (K19 after its test was added), 1 equivalent (K3).

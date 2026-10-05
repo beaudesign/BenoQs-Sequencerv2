@@ -60,7 +60,9 @@ main {
   cursor: pointer;
 }
 
-#strip button:active {
+/* Pressed, and a toggle that is on: the ink and the ground change places. Emphasis is contrast, not a colour. */
+#strip button:active,
+#strip button[aria-pressed="true"] {
   background: var(--colour-ink);
   color: var(--colour-surface);
 }

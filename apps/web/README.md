@@ -127,13 +127,35 @@ in time with a drum machine is decision D0 (`WENGE-0012`) and not something this
 and worklet in `test/follower-engine.test.ts`. That Web MIDI's `event.timeStamp` is on `performance.now()`'s clock is an
 assumption, and so is what a real sender's jitter looks like; spike S3 (`spikes/s3/`, `ABLETON.md`) is the measurement.
 
+## The metronome
+
+The strip's **Metronome** button switches a click on and off (`aria-pressed` says which). It is the page's own control: the Octopus has
+no metronome key, so it is not on the panel and no contract holds it. It is **off until it is pressed**, and a choice made before
+Start is kept and takes effect at Start. `specs/SPEC-0002/p5d-metronome-click.md` is the plan; the defaults it lists (M-1 to M-7)
+are the owner's to overturn.
+
+- **One click for each quarter note** of the tempo set: 24 MIDI clock pulses, which is 24 times `TICKS_PER_CLOCK` ticks. That is the
+  beat a device counts from the engine's clock, and it does not depend on what a "tick" is in the manual (D0).
+- **It follows the transport and the tempo.** The worklet reads the engine's tick position before and after each block and clicks
+  the beats between, at the frame the position puts them (`src/click.ts`). A stopped engine's position does not move, so there is
+  no click while stopped; a Play after a Stop carries on from the point it stopped (the engine does, exactly, ADR-0009 amendment 3),
+  so the click is the beat it had not reached. A change of tempo, or a clock it is slaved to, moves the clicks because it moves the
+  position. `test/metronome.test.ts` checks each click against the engine's own MIDI clock pulse 24 k.
+- **It is not MIDI.** It is written to the node's own audio output, a damped sine at 1 kHz that is over in 37 ms, and it is not in
+  the events, so a run's MIDI is the same bytes with it on and off. Nothing is played to a device by it.
+- Switching it off lets the click that is ringing finish. There is no accent on the bar, no count-in, and no volume or tone: none of
+  them has an owner's answer yet.
+
+**Not measured.** Audio goes out the audio device and MIDI out the MIDI device, and each has its own latency, so against external
+gear the click is early or late by the difference. It is not trimmed. Only a measurement on the owner's setup can say by how much.
+
 ## Tab order
 
 Acceptance criterion A8. The order of the elements in the page is the tab order (nothing has a `tabindex` above 0), and it
 follows the panel from the top left to the bottom right. This section is checked against `layout/panel.layout.json` by
 `test/readme.test.ts`, so it cannot drift.
 
-1. The strip: `start`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
+1. The strip: `start`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
 2. The 160 matrix keys in reading order: row 9 (the top row) from column 1 to column 16, then row 8, and so on down to
    row 0 (the bottom row).
 3. The other controls, in the order of the layout file (left to right, row by row):

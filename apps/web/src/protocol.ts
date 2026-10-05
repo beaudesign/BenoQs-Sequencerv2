@@ -15,6 +15,8 @@ export type ToWorklet =
   | { type: "track"; track: number; attr: number; value: number }
   /** Makes the engine the MIDI clock master (ADR-0009), or not. */
   | { type: "clock"; master: boolean }
+  /** The click (specs/SPEC-0002/p5d-metronome-click.md): on or off. It is audio the worklet makes, and is not in the events. */
+  | { type: "metronome"; on: boolean }
   | { type: "reset" };
 
 export type FromWorklet =

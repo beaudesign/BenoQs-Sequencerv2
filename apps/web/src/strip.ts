@@ -5,6 +5,10 @@ import type { OutputPort } from "./settings.ts";
 
 export interface Strip {
   start: HTMLButtonElement;
+  /** The click, a toggle: `aria-pressed` says which way it is. It is the page's own, and is not on the panel. */
+  metronome: HTMLButtonElement;
+  /** Shows the metronome as on or off. */
+  showMetronome(on: boolean): void;
   /** One list of devices for each of the engine's two output ports. */
   outputs: Record<OutputPort, HTMLSelectElement>;
   input: HTMLSelectElement;
@@ -57,6 +61,7 @@ function fill(doc: Document, select: HTMLSelectElement, none: string, choices: P
 
 export function bindStrip(doc: Document): Strip {
   const start = find<HTMLButtonElement>(doc, "#start");
+  const metronome = find<HTMLButtonElement>(doc, "#metronome");
   const outputs = { 1: find<HTMLSelectElement>(doc, "#midi-out-1"), 2: find<HTMLSelectElement>(doc, "#midi-out-2") };
   const input = find<HTMLSelectElement>(doc, "#midi-in");
   const clock = find<HTMLSelectElement>(doc, "#clock-state");
@@ -71,6 +76,8 @@ export function bindStrip(doc: Document): Strip {
   const clockDetail = find<HTMLElement>(doc, "#clock-detail");
   return {
     start,
+    metronome,
+    showMetronome: (on) => metronome.setAttribute("aria-pressed", on ? "true" : "false"),
     outputs,
     input,
     clock,

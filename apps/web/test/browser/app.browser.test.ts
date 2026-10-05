@@ -434,7 +434,7 @@ test("E8: the browser's own accessibility tree finds each control by its manual 
 test("E8: Tab walks the strip, then the matrix in reading order, then the other controls in the layout's order", async () => {
   const page = await open();
   const seen: string[] = [];
-  const total = 7 + geometry.placements.length;
+  const total = 8 + geometry.placements.length;
   for (let i = 0; i < total; i++) {
     await page.keyboard.press("Tab");
     seen.push(await page.evaluate(() => {
@@ -442,7 +442,7 @@ test("E8: Tab walks the strip, then the matrix in reading order, then the other 
       return el?.getAttribute("data-id") ?? el?.id ?? "";
     }));
   }
-  assert.deepEqual(seen, ["start", "midi-out-1", "midi-out-2", "midi-in", "clock-state", "clock-offset", "lookahead", ...tabOrder(geometry)]);
+  assert.deepEqual(seen, ["start", "metronome", "midi-out-1", "midi-out-2", "midi-in", "clock-state", "clock-offset", "lookahead", ...tabOrder(geometry)]);
   await page.keyboard.press("Tab");
   const after = await page.evaluate(() => (document.activeElement as HTMLElement).tagName);
   assert.notEqual(after, "G", "the next Tab leaves the panel");
@@ -457,7 +457,7 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
       return { display: s.display, stroke: s.stroke, width: s.strokeWidth };
     });
   assert.equal((await ring("matrix.r9.c1", "outer")).display, "none");
-  for (const _stop of ["start", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
+  for (const _stop of ["start", "metronome", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
   await page.keyboard.press("Tab"); // r9.c1
   const outer = await ring("matrix.r9.c1", "outer");
   const inner = await ring("matrix.r9.c1", "inner");
@@ -480,12 +480,86 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
 
 test("E8: the strip's own controls are labelled and the strip does not sit on the panel", async () => {
   const page = await open();
-  for (const [role, name] of [["button", "Start"], ["combobox", "MIDI Out 1"], ["combobox", "MIDI Out 2"], ["combobox", "MIDI In"], ["combobox", "MIDI Clock"], ["spinbutton", "Clock offset in milliseconds"], ["spinbutton", "Lookahead in milliseconds"]] as const) {
+  for (const [role, name] of [["button", "Start"], ["button", "Metronome"], ["combobox", "MIDI Out 1"], ["combobox", "MIDI Out 2"], ["combobox", "MIDI In"], ["combobox", "MIDI Clock"], ["spinbutton", "Clock offset in milliseconds"], ["spinbutton", "Lookahead in milliseconds"]] as const) {
     assert.equal(await page.getByRole(role, { name, exact: true }).count(), 1, name);
   }
   const strip = await page.$eval("#strip", (el) => el.getBoundingClientRect().toJSON() as DOMRect);
   const panel = await page.$eval("svg#panel", (el) => el.getBoundingClientRect().toJSON() as DOMRect);
   assert.ok(strip.bottom <= panel.top + 0.5 || panel.bottom <= strip.top + 0.5, "the strip and the panel do not overlap");
+  await page.close();
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// The metronome (specs/SPEC-0002/p5d-metronome-click.md, C8)
+// ---------------------------------------------------------------------------------------------------------------
+
+declare global {
+  interface Window {
+    /** What the page posted to the worklet whose `type` is "metronome", in order. Recorded by `recordMetronomeMessages`. */
+    __metronome: { posted: { type: string; on: boolean }[] };
+  }
+}
+
+/** Records the metronome messages the page posts to any port, without changing them. */
+function recordMetronomeMessages(): void {
+  const posted: { type: string; on: boolean }[] = [];
+  window.__metronome = { posted };
+  const original = MessagePort.prototype.postMessage;
+  MessagePort.prototype.postMessage = function (this: MessagePort, message: unknown, ...rest: unknown[]) {
+    const m = message as { type?: string; on?: boolean } | null;
+    if (m && m.type === "metronome") posted.push({ type: m.type, on: m.on === true });
+    return (original as (...a: unknown[]) => void).call(this, message, ...rest);
+  } as typeof MessagePort.prototype.postMessage;
+}
+
+test("C8: the strip has a Metronome button: off at the start, a toggle that says which way it is, and not on the panel", async () => {
+  const page = await open();
+  const button = page.getByRole("button", { name: "Metronome", exact: true });
+  assert.equal(await button.count(), 1);
+  assert.equal(await button.getAttribute("aria-pressed"), "false", "off until it is pressed");
+  assert.equal(await page.$eval("#metronome", (el) => el.closest("#strip") !== null && el.closest("svg") === null), true, "in the strip, not on the panel");
+  assert.equal(await page.$eval("#metronome", (el) => (el as HTMLButtonElement).disabled), false, "usable before Start");
+  await button.click();
+  assert.equal(await button.getAttribute("aria-pressed"), "true");
+  await button.click();
+  assert.equal(await button.getAttribute("aria-pressed"), "false");
+  await page.close();
+});
+
+test("C8: the Metronome button is pressed from the keyboard, with Space and with Enter", async () => {
+  const page = await open();
+  await page.focus("#metronome");
+  await page.keyboard.press("Space");
+  assert.equal(await page.getAttribute("#metronome", "aria-pressed"), "true");
+  await page.keyboard.press("Enter");
+  assert.equal(await page.getAttribute("#metronome", "aria-pressed"), "false");
+  await page.close();
+});
+
+test("C8: a button that is on shows it by contrast alone: ink on the surface turns round, and no colour is added", async () => {
+  const page = await open();
+  const look = async (): Promise<{ background: string; color: string }> => page.$eval("#metronome", (el) => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color }));
+  const off = await look();
+  await page.click("#metronome");
+  await page.mouse.move(0, 0);
+  const on = await look();
+  assert.notEqual(on.background, off.background, "the pressed button looks different");
+  assert.equal(on.background, off.color, "the ground is the ink it had");
+  assert.equal(on.color, off.background, "and the ink is the ground it had");
+  await page.close();
+});
+
+test("C8: the choice reaches the worklet: one metronome message each time it changes once the sequencer has started, and a choice made before Start is sent at Start", async () => {
+  const page = await open(recordMetronomeMessages);
+  await page.click("#metronome");
+  assert.deepEqual(await page.evaluate(() => window.__metronome.posted), [], "nothing to send it to before Start");
+  await start(page);
+  await page.waitForFunction(() => window.__metronome.posted.length >= 1, null, { timeout: 5_000 });
+  assert.deepEqual(await page.evaluate(() => window.__metronome.posted), [{ type: "metronome", on: true }], "the choice made before Start is in force at Start");
+  await page.click("#metronome");
+  await page.click("#metronome");
+  assert.deepEqual(await page.evaluate(() => window.__metronome.posted.map((m) => m.on)), [true, false, true]);
+  assert.equal(await page.getAttribute("#metronome", "aria-pressed"), "true");
   await page.close();
 });
 

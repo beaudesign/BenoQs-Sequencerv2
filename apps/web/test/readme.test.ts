@@ -20,8 +20,8 @@ function section(title: string): string {
 
 test("the README's tab order lists the strip, then the matrix in reading order, then the other controls in the layout's order", () => {
   const text = section("Tab order");
-  const strip = /`start`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`/.exec(text);
-  assert.ok(strip, "the strip's seven stops");
+  const strip = /`start`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`/.exec(text);
+  assert.ok(strip, "the strip's eight stops");
   assert.match(text, /row 9 \(the top row\) from column 1 to column 16, then row 8/);
   assert.match(text, /row 0 \(the bottom row\)/);
   const listed = [...text.matchAll(/^\s+\d+\.\s+`([a-z0-9_.]+)`\s*$/gm)].map((m) => m[1]);
@@ -40,4 +40,14 @@ test("the README says what the route hook is, and that it is a hook and not a co
   assert.match(text, /not a control/);
   assert.match(text, /Track zoom/);
   assert.match(text, /matrix\.r3\.c1/, "the track is the row the control ids give");
+});
+
+test("the README says what the metronome is, what it follows, and that its latency is not measured or trimmed", () => {
+  const text = section("The metronome");
+  assert.match(text, /off until it is pressed/);
+  assert.match(text, /quarter note/);
+  assert.match(text, /not MIDI/);
+  assert.match(text, /not on the panel/);
+  assert.match(text, /not measured/i);
+  assert.match(text, /not trimmed/);
 });

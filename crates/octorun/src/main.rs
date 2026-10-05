@@ -1,6 +1,6 @@
 //! `octorun PATTERN [--out DIR] [--stdout] [--golden]`. See `just run`.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 const USAGE: &str = "\
@@ -75,7 +75,7 @@ fn run() -> Result<(), String> {
         out.samples as f64 / 48_000.0,
         out.ndjson_sha256(),
         out.smf_sha256(),
-        Path::new(&out_dir).display()
+        out_dir.display()
     );
     Ok(())
 }

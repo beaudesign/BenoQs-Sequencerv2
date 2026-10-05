@@ -46,7 +46,7 @@ fn compress(h: &mut [u32; 8], block: &[u8]) {
     }
 }
 
-pub fn sha256(data: &[u8]) -> [u8; 32] {
+fn sha256(data: &[u8]) -> [u8; 32] {
     let mut h = H0;
     let mut blocks = data.chunks_exact(64);
     for block in &mut blocks {
@@ -69,7 +69,7 @@ pub fn sha256(data: &[u8]) -> [u8; 32] {
     out
 }
 
-pub fn hex(bytes: &[u8]) -> String {
+fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 

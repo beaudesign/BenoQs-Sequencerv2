@@ -16,6 +16,14 @@ pub struct StepView {
     /// status [p014], except its footnote, which names events only.
     pub event: bool,
     pub hyperstep: bool,
+    /// The step's velocity offset, from the engine's `StepAttr::VelocityOffset` (p015).
+    pub velocity_offset: i32,
+    /// The step's pitch offset, `StepAttr::PitchOffset` (p015).
+    pub pitch_offset: i32,
+    /// The step's length in ticks, `StepAttr::LengthTicks` (p015: the manual's 1/192).
+    pub length_ticks: i32,
+    /// The step's start offset, `StepAttr::StartOffset` (p016).
+    pub start_offset: i32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -41,6 +49,10 @@ impl PageView {
                     chord: step.chord.count > 0,
                     event: step.event.is_some(),
                     hyperstep: step.hyperstep,
+                    velocity_offset: i32::from(step.velocity_offset),
+                    pitch_offset: i32::from(step.pitch_offset),
+                    length_ticks: i32::from(step.length_ticks),
+                    start_offset: i32::from(step.start_offset),
                 };
             }
         }

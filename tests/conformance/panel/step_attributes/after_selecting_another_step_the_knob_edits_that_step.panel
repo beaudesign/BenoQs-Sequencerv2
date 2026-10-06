@@ -1,0 +1,16 @@
+# panel fixture: after another step of the track is selected, the knob edits that step
+# manual: p013, p015
+# workflow: Step zoom, step attributes
+# p013: a row 0 key switches the view to that step of the same track.
+given step 3 5 pit = 0
+given step 3 7 pit = 0
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms click step(0,7)
+expect commands 0
+at 2000 ms turn edit.enc.pit 2
+expect command SetStep track=3 step=6 attr=PitchOffset value=2
+expect commands 1
+expect engine step 3 7 pit = 2
+expect engine step 3 5 pit = 0

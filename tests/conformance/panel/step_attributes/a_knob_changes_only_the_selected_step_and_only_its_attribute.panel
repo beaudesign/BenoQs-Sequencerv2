@@ -1,0 +1,20 @@
+# panel fixture: a knob changes one attribute of the selected step and nothing else
+# manual: p015, p016
+# workflow: Step zoom, step attributes
+given step 3 5 vel = 1
+given step 3 5 pit = 2
+given step 3 5 len = 3
+given step 3 5 sta = 4
+given step 3 6 vel = 9
+given step 4 5 vel = 9
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms turn edit.enc.vel 1
+expect commands 1
+expect engine step 3 5 vel = 2
+expect engine step 3 5 pit = 2
+expect engine step 3 5 len = 3
+expect engine step 3 5 sta = 4
+expect engine step 3 6 vel = 9
+expect engine step 4 5 vel = 9

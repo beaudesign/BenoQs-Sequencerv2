@@ -1,0 +1,9 @@
+untouched      : {"on":{"note":69,"vel":100,"at":1375},"firstOff":2875,"count":3}
+PIT +3                        : note 69->72 (+3), velocity 100->100, first note-on at sample 1375->1375 (0), length 1500->1500 samples (0)
+PIT -5                        : note 69->64 (-5), velocity 100->100, first note-on at sample 1375->1375 (0), length 1500->1500 samples (0)
+VEL +10                       : note 69->69 (+0), velocity 100->110, first note-on at sample 1375->1375 (0), length 1500->1500 samples (0)
+VEL -20                       : note 69->69 (+0), velocity 100->80, first note-on at sample 1375->1375 (0), length 1500->1500 samples (0)
+LEN +12 (ticks)               : note 69->69 (+0), velocity 100->100, first note-on at sample 1375->1375 (0), length 1500->3000 samples (1500)
+STA +3                        : note 69->69 (+0), velocity 100->100, first note-on at sample 1375->1750 (375), length 1500->1500 samples (0)
+STA +9 (clamps at 5)          : note 69->69 (+0), velocity 100->100, first note-on at sample 1375->2000 (625), length 1500->1500 samples (0)
+PIT +2 then +2 in two turns   : note 69->73 (+4), velocity 100->100, first note-on at sample 1375->1375 (0), length 1500->1500 samples (0)

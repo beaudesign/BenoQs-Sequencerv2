@@ -1,0 +1,13 @@
+# panel fixture: the VEL knob turned clockwise raises the selected step's velocity offset, one per detent
+# manual: p015
+# workflow: Step zoom, step attributes
+given step 3 5 vel = 10
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms turn edit.enc.vel 1
+expect command SetStep track=3 step=4 attr=VelocityOffset value=11
+expect commands 1
+expect engine step 3 5 vel = 11
+at 1500 ms turn edit.enc.vel 3
+expect engine step 3 5 vel = 14

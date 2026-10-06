@@ -1,0 +1,12 @@
+# panel fixture: the STA knob stops at a push of 5/192 and a pull of 5/192
+# manual: p016
+# workflow: Step zoom, step attributes
+# p016: "The maximum push is 5/192." "The current maximum pull is 5/192."
+given step 3 5 sta = 4
+at 0 ms press mode.step
+at 200 ms click step(3,5)
+at 400 ms release mode.step
+at 1000 ms turn edit.enc.sta 3
+expect engine step 3 5 sta = 5
+at 1500 ms turn edit.enc.sta -20
+expect engine step 3 5 sta = -5

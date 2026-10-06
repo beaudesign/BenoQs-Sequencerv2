@@ -1,0 +1,6 @@
+# panel fixture: which matrix row shows VEL, PIT, LEN and STA in Step zoom, and how a value is drawn there
+# manual: p015, p016
+# workflow: Step zoom, step attributes
+# pending: The manual says what a row looks like and not which row it is: VEL as tens in Red and the ones digit as one Green LED, a negative offset with the three LEDs in columns 14 to 16 Green (p015); LEN as a Green dot to 11 and then Red counting twelves, and the last four LEDs Green for legato (p015, p016); STA as a Red bar for a push and a Green bar from column 16 for a pull (p016). None of the pages gives the row order, or where the Green LED of a ones digit of 0 points.
+# question: Q06
+# No assertions. The controller draws no attribute row until the row order is settled (findings.md section 6, item 6).

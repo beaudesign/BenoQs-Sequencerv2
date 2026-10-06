@@ -1,0 +1,6 @@
+uninterrupted, first 20 pitch offsets: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0
+stop after 330 blocks: pitch offsets around the stop: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0 1 2 3 4 5 6 7 8 9 10 11 13 14 15 0 1 2 3 4 5 6 7 8  skips=1 other=0
+stop after 331 blocks: pitch offsets around the stop: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0 1 2 3 4 5 6 7 8 9 10 11 13 14 15 0 1 2 3 4 5 6 7 8  skips=1 other=0
+stop after 332 blocks: pitch offsets around the stop: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0 1 2 3 4 5 6 7 8 9 10 11 13 14 15 0 1 2 3 4 5 6 7 8  skips=1 other=0
+stop after 333 blocks: pitch offsets around the stop: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0 1 2 3 4 5 6 7 8 9 10 11 13 14 15 0 1 2 3 4 5 6 7 8  skips=1 other=0
+through the wasm: 12 of 12 stop positions lost a note across Stop then Play

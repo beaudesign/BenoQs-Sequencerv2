@@ -1,0 +1,6 @@
+# panel fixture: in Page view, grab a step and turn an attribute knob
+# manual: p068
+# workflow: Step attributes in Page view
+# pending: p068 says to grab a step in the EDIT state and tweak its attributes, and that with every click of the encoder the step is played again so the change can be heard. Whether this works in Page view in the other EDIT states, whether it needs the step held, and whether Step zoom with EDIT in preview plays the step on a turn, is not stated. The controller ignores knob turns outside Step zoom.
+# question: Q41
+# No assertions.

@@ -14,6 +14,7 @@ import {
   RENDER_FRAMES,
   TICKS_PER_CLOCK,
   OctowebError,
+  STEP_ATTR,
   TRACK_ATTR,
   asciiToString,
   decodeEvents,
@@ -79,6 +80,7 @@ test("the shipped module exports exactly the documented functions, and none of t
     "octoweb_reset",
     "octoweb_scratch",
     "octoweb_set_clock",
+    "octoweb_set_step",
     "octoweb_set_tempo",
     "octoweb_set_track",
     "octoweb_status",
@@ -317,6 +319,53 @@ test("set_track: a track or an attribute that does not exist is code 5, and befo
   }
   const bare = new Octoweb(instantiate());
   assert.throws(() => bare.setTrack(0, TRACK_ATTR.midiChannel, 17), (err: unknown) => err instanceof OctowebError && err.code === 1);
+});
+
+test("set_step: a step written through the wrapper is lit on the panel and plays the track's pitch plus its offset, with the attributes numbered as ABI.md says", () => {
+  const e = start();
+  e.setTrack(2, TRACK_ATTR.pitch, 40);
+  e.setStep(2, 3, STEP_ATTR.active, 1);
+  e.setStep(2, 3, STEP_ATTR.pitchOffset, 12);
+  e.refreshLeds();
+  const n = controlNumbers().get(matrixId(2, 3))!;
+  assert.equal(e.ledBytes()[n], 2, "an active step is green");
+  e.transport(true);
+  const notes = new Set<number>();
+  for (let b = 0; b < 600; b++) {
+    const c = e.render(RENDER_FRAMES);
+    for (const ev of decodeEvents(e.eventBytes(c))) if (ev.kind === 0) notes.add(ev.d1);
+  }
+  assert.deepEqual([...notes], [52], "40 and 12 above it");
+});
+
+test("set_step: a track, a step or an attribute that does not exist is code 5, and before init it is code 1", () => {
+  const e = start();
+  for (const [track, step, attr] of [[10, 0, 0], [-1, 0, 0], [0, 16, 0], [0, -1, 0], [0, 0, 12], [0, 0, -1]] as const) {
+    assert.throws(() => e.setStep(track, step, attr, 1), (err: unknown) => err instanceof OctowebError && err.code === 5, `track ${track} step ${step} attribute ${attr}`);
+  }
+  const bare = new Octoweb(instantiate());
+  assert.throws(() => bare.setStep(0, 0, STEP_ATTR.active, 1), (err: unknown) => err instanceof OctowebError && err.code === 1);
+});
+
+test("STEP_ATTR and TRACK_ATTR.pitch name the numbers ABI.md gives, and ABI.md gives the engine's lists in their order", () => {
+  const doc = readFileSync(`${repoRoot}/apps/web/engine/ABI.md`, "utf8");
+  const row = doc.split("\n").find((l) => l.startsWith("| `octoweb_set_step("));
+  assert.ok(row, "ABI.md has a row for octoweb_set_step");
+  const list = /engine's list: (.*?)\. A track/.exec(row)?.[1];
+  assert.ok(list, "the row gives the list of attributes");
+  const listed = [...list.matchAll(/(\d+) (\w+)/g)].map((m) => [Number(m[1]), m[2]] as const);
+  assert.deepEqual(
+    listed.map(([, name]) => name),
+    ["Active", "Skip", "PitchOffset", "VelocityOffset", "LengthTicks", "LengthMultiplier", "StartOffset", "Amount", "Strum", "Hyperstep", "Phrase", "PhrasePos"],
+  );
+  listed.forEach(([n], i) => assert.equal(n, i));
+  assert.equal(STEP_ATTR.active, 0);
+  assert.equal(STEP_ATTR.skip, 1);
+  assert.equal(STEP_ATTR.pitchOffset, 2);
+  assert.equal(STEP_ATTR.velocityOffset, 3);
+  assert.equal(STEP_ATTR.lengthTicks, 4);
+  assert.equal(TRACK_ATTR.pitch, 0);
+  assert.equal(TRACK_ATTR.velocity, 1);
 });
 
 test("TRACK_ATTR names the attribute numbers ABI.md gives, and ABI.md gives the engine's list in its order", () => {

@@ -4,7 +4,15 @@ import type { InputChoice, OutputChoice } from "./midi-access.ts";
 import type { OutputPort } from "./settings.ts";
 
 export interface Strip {
-  start: HTMLButtonElement;
+  /** The one Play: the first press starts the engine and plays; after that it is Play and Stop. */
+  play: HTMLButtonElement;
+  /** Says what the next press does: `Play`, or `Stop` while the transport runs. */
+  showPlay(running: boolean): void;
+  /** The tempo, in beats per minute. */
+  tempo: HTMLInputElement;
+  /** The built-in sound (src/monitor.ts), a toggle: `aria-pressed` says which way it is. */
+  monitor: HTMLButtonElement;
+  showMonitor(on: boolean): void;
   /** The click, a toggle: `aria-pressed` says which way it is. It is the page's own, and is not on the panel. */
   metronome: HTMLButtonElement;
   /** Shows the metronome as on or off. */
@@ -60,7 +68,9 @@ function fill(doc: Document, select: HTMLSelectElement, none: string, choices: P
 }
 
 export function bindStrip(doc: Document): Strip {
-  const start = find<HTMLButtonElement>(doc, "#start");
+  const play = find<HTMLButtonElement>(doc, "#play");
+  const tempo = find<HTMLInputElement>(doc, "#tempo");
+  const monitor = find<HTMLButtonElement>(doc, "#monitor");
   const metronome = find<HTMLButtonElement>(doc, "#metronome");
   const outputs = { 1: find<HTMLSelectElement>(doc, "#midi-out-1"), 2: find<HTMLSelectElement>(doc, "#midi-out-2") };
   const input = find<HTMLSelectElement>(doc, "#midi-in");
@@ -75,7 +85,11 @@ export function bindStrip(doc: Document): Strip {
   const clockStatus = find<HTMLElement>(doc, "#clock-status");
   const clockDetail = find<HTMLElement>(doc, "#clock-detail");
   return {
-    start,
+    play,
+    showPlay: (running) => void (play.textContent = running ? "Stop" : "Play"),
+    tempo,
+    monitor,
+    showMonitor: (on) => monitor.setAttribute("aria-pressed", on ? "true" : "false"),
     metronome,
     showMetronome: (on) => metronome.setAttribute("aria-pressed", on ? "true" : "false"),
     outputs,

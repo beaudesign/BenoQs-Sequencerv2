@@ -1,6 +1,5 @@
-//! The command/event/snapshot interfaces, ported verbatim (field-for-field) from
-//! docs/03-sequencer-core.md §5-6. This is the FFI-facing surface: `octoffi` wraps
-//! these `#[repr(C)]` types for the Swift side once it exists.
+//! The command/event/snapshot interfaces of docs/03-sequencer-core.md §5-6. This is the
+//! FFI-facing surface: `octoffi` wraps these `#[repr(C)]` types.
 
 /// Identifies a control on the front panel: the `n` of a control in
 /// `contracts/controls.json` (ADR-0007). `n` is unique, assigned once and never reused, and
@@ -152,7 +151,7 @@ pub struct RealtimeEvent {
     pub at_sample: u32,
 }
 
-/// Maximum events emitted by a single `Engine::tick_samples` call. Sized for "full
+/// Maximum events emitted by a single `Engine::render` call. Sized for "full
 /// density" (docs §7): ten tracks, max chord polyphony, all firing at once, each
 /// producing a note-on and a matched note-off.
 pub const MAX_EVENTS_PER_TICK: usize = 256;
@@ -169,9 +168,7 @@ pub struct LedColor {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Led {
     pub color: LedColor,
-    /// The commanded target, not the currently-displayed value — docs §6: "the
-    /// renderer runs the rise/decay simulation itself at frame rate... the core
-    /// says 'on', the renderer says how 'on' looks 4.2ms later."
+    /// The commanded target, not the currently-displayed value (docs §6).
     pub target: f32,
 }
 

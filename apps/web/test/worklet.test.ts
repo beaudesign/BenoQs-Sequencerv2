@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { EVENT_BYTES, KIND_DOWN, KIND_UP, LED_COUNT, RENDER_FRAMES, decodeEvents } from "../src/abi.ts";
+import { QUARTER_TICKS } from "../src/click.ts";
 import { routeFromWorklet, type PanelFrame, type WorkletSink } from "../src/host.ts";
 import { PANEL_EVERY_BLOCKS, type FromWorklet } from "../src/protocol.ts";
 import { controlNumbers, layoutBytes, matrixId } from "./support/module.ts";
@@ -224,7 +225,7 @@ test("a clock message turns the engine's clock on and off: Start and pulses reac
   rig.send({ type: "transport", play: true });
   assert.deepEqual(clockRecords(100), [], "off by default");
   rig.send({ type: "clock", master: true });
-  const on = clockRecords(100);
+  const on = clockRecords(400); // a pulse every 1000 frames at 120 BPM (a quarter note of 24000 frames, 24 pulses): about 51 in 400 blocks of 128
   assert.equal(on[0]?.d1, 0xfb, "turned on while running: the engine says where it is, and it is not at tick 0, so Continue");
   assert.ok(on.slice(1).every((e) => e.d1 === 0xf8 && e.port === 0 && e.channel === 0), "then pulses");
   assert.ok(on.length > 10);
@@ -244,7 +245,7 @@ test("a clock message after reset is reported as an error, like any call the mod
 
 // ----- the engine's position, for the clock follower (SPEC-0002 P4d, ADR-0009 decision 4) -----
 
-const TICKS_PER_SECOND_120 = 384; // 120 BPM, 192 ticks to the quarter note
+const TICKS_PER_SECOND_120 = (2 * QUARTER_TICKS); // 120 BPM is two quarter notes a second; the engine counts QUARTER_TICKS (48) to the quarter note, so 96 a second (D0: 192 to the whole note, as the manual does)
 
 test("the panel message carries the engine's tick position and the frame it holds at: the end of the block, or the frame of a message between blocks", () => {
   const rig = new WorkletRig();
@@ -270,7 +271,7 @@ test("the position is 0 and stands still while the transport is stopped, and the
   assert.ok(seen.every((s, i) => i === 0 || s.positionFrame > seen[i - 1]!.positionFrame));
 });
 
-test("the position runs at the tick rate while playing: 384 ticks a second at 120 BPM, to within half a percent", () => {
+test("the position runs at the tick rate while playing: 96 ticks a second at 120 BPM (two quarter notes a second), to within half a percent", () => {
   const rig = new WorkletRig();
   rig.take();
   rig.send({ type: "tempo", bpm: 120 });

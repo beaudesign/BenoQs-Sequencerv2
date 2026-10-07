@@ -8,8 +8,8 @@ export const LED_COUNT = 512;
 export const TRACK_COUNT = 10;
 /** The frames in one AudioWorklet render quantum. */
 export const RENDER_FRAMES = 128;
-/** Engine ticks in one MIDI clock pulse: `TICKS_PER_QUARTER / 24` in `crates/octocore/src/domain.rs`, which test/abi.test.ts reads to check this. */
-export const TICKS_PER_CLOCK = 8;
+/** Engine ticks in one MIDI clock pulse: `TICKS_PER_QUARTER / 24` in `crates/octocore/src/domain.rs` (48 to the quarter note, so 2: the manual counts 192 ticks to the whole note, D0), which test/abi.test.ts reads to check this. */
+export const TICKS_PER_CLOCK = 2;
 
 export type LedColour = "off" | "red" | "green" | "orange";
 export type LedPhase = "steady" | "flash" | "shine";

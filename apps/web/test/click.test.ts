@@ -10,19 +10,21 @@ const RATE = 48_000;
 
 test("a click is a quarter note of the MIDI clock: 24 pulses, and the engine's own ticks to a pulse", () => {
   assert.equal(QUARTER_TICKS, 24 * TICKS_PER_CLOCK);
-  assert.equal(QUARTER_TICKS, 192);
+  // D0: the tick is 48 to the quarter note (the manual's 192 are to the whole note).
+  assert.equal(QUARTER_TICKS, 48);
 });
 
 test("C1: the beats of a span are the multiples of a quarter in it, a beat on the start is in and a beat on the end is not", () => {
-  assert.deepEqual(beatsIn(0, 192), [0]);
-  assert.deepEqual(beatsIn(0.001, 192), [], "beat 0 has gone by, and beat 1 is exactly at the end");
-  assert.deepEqual(beatsIn(192, 384), [1]);
-  assert.deepEqual(beatsIn(191.5, 192.5), [1]);
-  assert.deepEqual(beatsIn(0, 1000), [0, 1, 2, 3, 4, 5]);
+  const Q = QUARTER_TICKS;
+  assert.deepEqual(beatsIn(0, Q), [0]);
+  assert.deepEqual(beatsIn(0.001, Q), [], "beat 0 has gone by, and beat 1 is exactly at the end");
+  assert.deepEqual(beatsIn(Q, 2 * Q), [1]);
+  assert.deepEqual(beatsIn(Q - 0.5, Q + 0.5), [1]);
+  assert.deepEqual(beatsIn(0, 5.2 * Q), [0, 1, 2, 3, 4, 5]);
   assert.deepEqual(beatsIn(5, 5), []);
   assert.deepEqual(beatsIn(10, 5), [], "a position that went backwards finds nothing");
   assert.deepEqual(beatsIn(0, 0), [], "an empty span at a beat holds nothing: the beat is the next span's");
-  assert.deepEqual(beatsIn(192, 192), []);
+  assert.deepEqual(beatsIn(Q, Q), []);
 });
 
 test("C1: however a run is cut into blocks, every beat is found once and none twice (200 random cuts, strict at every edge)", () => {
@@ -47,11 +49,12 @@ test("C1: however a run is cut into blocks, every beat is found once and none tw
 
 test("C2: a beat sounds at the frame of the block where its tick falls, by interpolation, and never outside the block", () => {
   assert.equal(beatFrame(0, 0, 16, RENDER_FRAMES), 0, "a beat on the first tick is the first frame");
-  assert.equal(beatFrame(1, 184, 200, RENDER_FRAMES), 64, "half way through the block");
-  assert.equal(beatFrame(1, 180, 200, RENDER_FRAMES), 77, "12 of 20 ticks in: 76.8 rounds to 77");
-  assert.equal(beatFrame(1, 100, 192.000001, RENDER_FRAMES), RENDER_FRAMES - 1, "a beat at the very end is the last frame, not the one after the block");
-  assert.equal(beatFrame(3, 576, 592.5, RENDER_FRAMES), 0, "a beat on the start of the block is its first frame");
-  assert.equal(beatFrame(1, 192, 200, 64), 0);
+  // D0: a quarter note is 48 ticks, so beat 1 is tick 48, beat 3 is tick 144.
+  assert.equal(beatFrame(1, 40, 56, RENDER_FRAMES), 64, "half way through the block");
+  assert.equal(beatFrame(1, 36, 56, RENDER_FRAMES), 77, "12 of 20 ticks in: 76.8 rounds to 77");
+  assert.equal(beatFrame(1, 25, 48.000001, RENDER_FRAMES), RENDER_FRAMES - 1, "a beat at the very end is the last frame, not the one after the block");
+  assert.equal(beatFrame(3, 144, 160.5, RENDER_FRAMES), 0, "a beat on the start of the block is its first frame");
+  assert.equal(beatFrame(1, 48, 56, 64), 0);
 });
 
 /** Everything the voice writes for `frames` frames starting at `at`, cut into blocks of `block`. */
@@ -150,11 +153,11 @@ test("the metronome puts a click at the frame the beat falls in, once, and the t
   const m = new Metronome(RATE);
   m.on = true;
   const a = new Float32Array(RENDER_FRAMES);
-  m.render(a, 180, 200, true); // beat 1 (tick 192) is 12 of 20 ticks in
+  m.render(a, 36, 56, true); // beat 1 (tick 48) is 12 of 20 ticks in
   const onset = a.findIndex((x) => x !== 0);
   assert.equal(onset, 77);
   const b = new Float32Array(RENDER_FRAMES);
-  m.render(b, 200, 216, true);
+  m.render(b, 56, 72, true);
   assert.notEqual(b[0], 0, "the click is still ringing in the next block");
   assert.equal(a.slice(0, onset).every((x) => x === 0), true);
 });
@@ -163,23 +166,23 @@ test("switching off lets the ringing click finish, and switching on mid-beat wai
   const m = new Metronome(RATE);
   m.on = true;
   const first = new Float32Array(RENDER_FRAMES);
-  m.render(first, 190, 194, true); // a beat at 192, half way through
+  m.render(first, 46, 50, true); // a beat at 48, half way through
   m.on = false;
   const after = new Float32Array(RENDER_FRAMES);
-  m.render(after, 194, 195, true);
+  m.render(after, 50, 51, true);
   assert.notEqual(after[0], 0, "off: the tail goes on");
   m.on = true;
   const mid = new Float32Array(RENDER_FRAMES);
   const tail = new Float32Array(RENDER_FRAMES);
-  m.render(mid, 195, 200, true);
+  m.render(mid, 51, 56, true);
   assert.notEqual(mid[0], 0, "still the old tail");
   const quiet = new Metronome(RATE);
   quiet.on = true;
   const q = new Float32Array(RENDER_FRAMES);
-  quiet.render(q, 195, 200, true);
+  quiet.render(q, 51, 56, true);
   assert.ok(q.every((x) => x === 0), "switched on in the middle of a beat: nothing until the next beat");
-  quiet.render(tail, 380, 390, true);
-  assert.notEqual(tail.findIndex((x) => x !== 0), -1, "and the next beat (tick 384) sounds");
+  quiet.render(tail, 92, 102, true);
+  assert.notEqual(tail.findIndex((x) => x !== 0), -1, "and the next beat (tick 96) sounds");
 });
 
 test("the metronome keeps no count: a position that goes back to the start clicks the first beat again", () => {

@@ -23,8 +23,8 @@ track 0 step 4 active 1
 track 0 step 8 active 1
 track 0 step 12 active 1
 play
-render 6 s buffer=64
+render 24 s buffer=64
 stop
-render 1 s buffer=64
+render 4 s buffer=64
 expect event on
 expect balance

@@ -413,7 +413,7 @@ mod tests {
             assert!(octocore_step_set_i32(e, 0, 0, OctoStepAttr::PitchOffset, 3));
             octocore_engine_handle_command(e, Command::Play);
 
-            let params = OctoRenderParams { sample_rate: 48_000.0, buffer_len: 4096, bpm: 120.0, playing: true };
+            let params = OctoRenderParams { sample_rate: 48_000.0, buffer_len: 8192, bpm: 120.0, playing: true }; // 8192: the first note sounds 5,500 samples after Play at 120 BPM (D0)
             let mut events = [Event::Cc { port: 0, ch: 0, cc: 0, val: 0, at_sample: 0 }; 64];
             let mut count: usize = 0;
             octocore_engine_render(e, params, events.as_mut_ptr(), events.len(), &mut count);
@@ -970,18 +970,19 @@ mod tests {
             assert!(octocore_sender_push(s, Command::SetStep { track: 0, step: 0, attr: StepAttr::Active, value: 1 }));
             assert!(octocore_sender_push(s, Command::SetMode { mode: octocore::domain::Mode::Step }));
             let mut events = Vec::new();
-            for _ in 0..8 {
+            const RENDERS: u64 = 28; // 256 samples each: the first note sounds 5,500 samples after Play (D0)
+            for _ in 0..RENDERS {
                 events.extend(render_once(e, PARAMS));
             }
             assert!(events.iter().any(|ev| matches!(ev, Event::NoteOn { note: 61, .. })), "the note the ring programmed sounded: {events:?}");
 
             let snap = octocore_reader_claim(r);
             assert_eq!(snap, before, "the same pointer every time");
-            assert_eq!((*snap).generation, 8);
+            assert_eq!((*snap).generation, RENDERS);
             assert!((*snap).transport.playing);
             assert_eq!((*snap).mode, octocore::domain::Mode::Step);
             let again = octocore_reader_claim(r);
-            assert_eq!((*again).generation, 8, "nothing new: the last snapshot again");
+            assert_eq!((*again).generation, RENDERS, "nothing new: the last snapshot again");
 
             let mut st = OctoLinkStats::default();
             assert_eq!(octocore_sender_stats(s, &mut st), 0);

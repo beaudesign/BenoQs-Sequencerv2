@@ -4,7 +4,9 @@
 // change; where they were set from a measurement it is said, and the measurement is in handoffs/evidence/p4d-follower-measured.txt.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { TICKS_PER_CLOCK } from "../src/abi.ts";
 import { BLOCK_MS, closedLoop, pulseErrors, worst } from "./support/engine-loop.ts";
+import { HEARD_TICKS_PER_PULSE } from "./support/loop.ts";
 import { ramp, steady, step } from "./support/sim-clock.ts";
 
 test("a steady sender: the engine's pulses reach the device on the sender's, to within a tick, after the catch-up; and the first one is the first", () => {
@@ -20,19 +22,31 @@ test("a steady sender: the engine's pulses reach the device on the sender's, to 
   }
 });
 
-/** The engine's first note, and every one after it, sounds 11 ticks after the pulse of its step: a fact of the engine, not of the clock (crates/octocore/tests/clock.rs, AMBIGUITIES.md "the first note after Play"), and a question for the owner. */
-const NOTE_LAG_TICKS = 11;
+// D0: tick is 48 to the quarter note, so an engine tick is now half a pulse (10.4 ms at 120 BPM). The "ticks" the tolerances in this file
+// are in are NOT engine ticks: they are the heard error's unit, an eighth of a pulse (HEARD_TICKS_PER_PULSE; engine-loop.ts's `period / 8`),
+// which is what they were in time before D0, when it was also one engine tick. The numbers are unchanged; in engine ticks they would be four
+// times looser. Only the engine's own constants below are in engine ticks.
+
+/** The engine's default step, in engine ticks (`DEFAULT_STEP_TICKS`, crates/octocore/src/domain.rs): a sixteenth note, 6 pulses. D0: it was 1.5 pulses. */
+const STEP_TICKS = 12;
+/** The engine's first note, and every one after it, sounds 11 ticks after the pulse of its step: a fact of the engine, not of the clock (crates/octocore/tests/clock.rs, AMBIGUITIES.md "the first note after Play"), and a question for the owner. D0: 11 engine ticks is now 5.5 pulses, 115 ms at 120 BPM (it was 1.4 pulses, 29 ms). */
+const NOTE_LAG_TICKS = STEP_TICKS - 1;
+/** The same lag in the heard unit (an eighth of a pulse), which is what the error is counted in here. */
+const NOTE_LAG_HEARD = (NOTE_LAG_TICKS * HEARD_TICKS_PER_PULSE) / TICKS_PER_CLOCK;
+/** Steps 1 and 9 are eight steps apart: the sender's pulses 0 and 48 of every 96. D0: it was 12 of 24. */
+const PULSES_BETWEEN_NOTES = (8 * STEP_TICKS) / TICKS_PER_CLOCK;
 
 test("the notes land where the pulses do, which is the engine's own 11 ticks after the sender's pulse of their step, within a tick and a half", () => {
-  const run = closedLoop({ seconds: 10, bpm: steady(120) }, { seed: 2 });
+  // D0: tick is 48 to the quarter note, so the two notes of the pattern are 48 pulses apart and not 12: 40 s (it was 10) keeps the same ~40 notes.
+  const run = closedLoop({ seconds: 40, bpm: steady(120) }, { seed: 2 });
   assert.ok(run.notes.length >= 8, `${run.notes.length} notes`);
-  // A note on step 1 and one on step 9: the sender's pulses 0 and 12 of every 24.
-  const settled = run.notes.map((at, m) => ({ at, pulse: 12 * m })).filter((n) => n.at - run.startAt > 3_000 && n.pulse < run.sim.truth.length - 1);
+  // A note on step 1 and one on step 9: the sender's pulses 0 and 48 of every 96 (D0: tick is 48 to the quarter note).
+  const settled = run.notes.map((at, m) => ({ at, pulse: PULSES_BETWEEN_NOTES * m })).filter((n) => n.at - run.startAt > 3_000 && n.pulse < run.sim.truth.length - 1);
   assert.ok(settled.length >= 6, `${settled.length} notes after the catch-up`);
   for (const n of settled) {
     const period = run.sim.truth[n.pulse + 1]! - run.sim.truth[n.pulse]!;
-    const ticks = (n.at - run.sim.truth[n.pulse]!) / (period / 8);
-    assert.ok(Math.abs(ticks - NOTE_LAG_TICKS) <= 1.5, `note ${n.pulse / 12} is ${ticks.toFixed(2)} ticks after the sender's pulse ${n.pulse}; the engine puts it ${NOTE_LAG_TICKS} after`);
+    const heard = (n.at - run.sim.truth[n.pulse]!) / (period / HEARD_TICKS_PER_PULSE);
+    assert.ok(Math.abs(heard - NOTE_LAG_HEARD) <= 1.5, `note ${n.pulse / PULSES_BETWEEN_NOTES} is ${heard.toFixed(2)} eighths of a pulse after the sender's pulse ${n.pulse}; the engine puts it ${NOTE_LAG_HEARD} after (${NOTE_LAG_TICKS} ticks)`);
   }
 });
 

@@ -285,7 +285,8 @@ mod tests {
     }
 
     /// R1d. The 159 reduced multipliers up to 16 that the baseline measured (F), for 10^6 ticks
-    /// (43 minutes at 120 BPM: 384 ticks a second, and the baseline's 30 minutes is 691,200):
+    /// (2.9 hours at 120 BPM now: 96 ticks a second since D0, `p6a-tick-length.md`; it was 43 minutes at the old 384 a second, and the baseline's 691,200 ticks
+    /// were its 30 minutes):
     /// every step on the exact tick. The 10^7-tick run the plan names is the ignored soak below.
     #[test]
     fn r1d_the_159_reduced_multipliers_up_to_16_stay_exact_for_a_million_ticks() {

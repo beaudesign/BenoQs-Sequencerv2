@@ -21,6 +21,7 @@ import {
   layoutFromControls,
   type Exports,
 } from "../src/abi.ts";
+import { QUARTER_TICKS } from "../src/click.ts";
 import { compile, controlNumbers, controlsDoc, instantiate, layoutBytes, matrixId, repoRoot, start } from "./support/module.ts";
 
 const n = controlNumbers();
@@ -388,7 +389,9 @@ test("set_clock before init is code 1, and tick_position before init is 0", () =
   assert.equal(e.tickPosition(), 0);
 });
 
-test("tick_position: 0 before play, then the audio's place on the tick grid: 125 samples a tick at 120 BPM and 48 kHz", () => {
+const SAMPLES_PER_TICK = 24_000 / QUARTER_TICKS; // 120 BPM at 48 kHz: 24000 samples to the quarter note
+
+test("tick_position: 0 before play, then the audio's place on the tick grid: 500 samples a tick at 120 BPM and 48 kHz (a quarter note is 24000 samples and 48 ticks)", () => {
   const e = start();
   assert.equal(e.tickPosition(), 0);
   e.transport(true);
@@ -396,7 +399,7 @@ test("tick_position: 0 before play, then the audio's place on the tick grid: 125
   for (let b = 1; b <= 50; b++) {
     e.render(RENDER_FRAMES);
     const p = e.tickPosition();
-    assert.ok(Math.abs(p - (b * RENDER_FRAMES) / 125) < 1e-6, `after ${b} blocks the position is ${p}`);
+    assert.ok(Math.abs(p - (b * RENDER_FRAMES) / SAMPLES_PER_TICK) < 1e-6, `after ${b} blocks the position is ${p}`);
     assert.ok(p >= last);
     last = p;
   }

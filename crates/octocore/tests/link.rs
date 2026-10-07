@@ -133,17 +133,17 @@ fn c3_edits_through_the_ring_sound_exactly_like_the_same_edits_made_directly() {
 #[test]
 fn c4_commands_in_the_first_drain_take_effect_before_the_first_tick_is_stepped() {
     // The engine steps 12 ticks ahead of the audio (`MAX_EARLY_TICKS`), so the first note of
-    // a fresh engine is decided in the very first render, though it sounds about 1,400
-    // samples later. A command that arrives in that first drain must be in time for it.
+    // a fresh engine is decided in the very first render, though it sounds about 5,500
+    // samples later (11 ticks of 500 samples at 120 BPM, D0). A command that arrives in that first drain must be in time for it.
     let mut quiet = Engine::new(3);
     let mut h = Host::new();
-    h.render(&mut quiet, 8, true);
-    assert_eq!(note_ons(&h.events), 0, "control: an untouched engine plays nothing in eight buffers");
+    h.render(&mut quiet, 28, true);
+    assert_eq!(note_ons(&h.events), 0, "control: an untouched engine plays nothing in 28 buffers");
 
     let mut direct = Engine::new(3);
     direct.grid.set_step_attr(0, 0, StepAttr::Active, 1);
     let mut want = Host::new();
-    want.render(&mut direct, 8, true);
+    want.render(&mut direct, 28, true);
     assert!(note_ons(&want.events) >= 1, "control: the same edit made directly sounds");
 
     let mut e = Engine::new(3);
@@ -151,7 +151,7 @@ fn c4_commands_in_the_first_drain_take_effect_before_the_first_tick_is_stepped()
     tx.push(Command::SetStep { track: 0, step: 0, attr: StepAttr::Active, value: 1 });
     tx.push(Command::Play);
     let mut h = Host::new();
-    h.render(&mut e, 8, true);
+    h.render(&mut e, 28, true);
     assert_eq!(h.events, want.events, "the ring edit lands on exactly the sample the direct edit does");
 }
 
@@ -212,7 +212,7 @@ fn c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_comm
 
     let mut direct = scene();
     let mut a = Host::new();
-    a.render(&mut direct, 8, true);
+    a.render(&mut direct, 28, true);
     let before = a.events.len();
     direct.handle_command(Command::Stop);
     // The host still says "playing", so the only thing that can flush the notes is the Stop
@@ -222,7 +222,7 @@ fn c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_comm
     let mut linked = scene();
     let (mut tx, _rx) = linked.open_link().unwrap();
     let mut b = Host::new();
-    b.render(&mut linked, 8, true);
+    b.render(&mut linked, 28, true);
     tx.push(Command::Stop);
     b.render(&mut linked, 4, true);
 

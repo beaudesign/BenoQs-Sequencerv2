@@ -11,9 +11,14 @@
 // (handoffs/evidence/p4d-follower-measured.txt).
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { TICKS_PER_CLOCK } from "../src/abi.ts";
 import { Follower, type FollowerActions } from "../src/follower.ts";
 import { ramp, simulate, steady, step } from "./support/sim-clock.ts";
-import { runLoop, worstTicks } from "./support/loop.ts";
+import { HEARD_TICKS_PER_PULSE, runLoop, worstTicks } from "./support/loop.ts";
+
+// D0: tick is 48 to the quarter note, so an engine tick is now half a pulse (10.4 ms at 120 BPM). The "ticks" the tolerances below are in are
+// NOT engine ticks: they are the heard error's unit, an eighth of a pulse (HEARD_TICKS_PER_PULSE in support/loop.ts), which is what they
+// were in time before D0 (when it was also one engine tick). The numbers are unchanged; in engine ticks they would be four times looser.
 
 // ----- the proposals -----
 const STEADY_TICKS = 1; // from SETTLE_S after Start (the plan's "within one tick"; the first draft said 1.5, and it was tightened to this once it was measured on 40 seeds the tests do not use)
@@ -257,7 +262,7 @@ test("the trim is at most 8% either way, and it is used in full when the engine 
   for (const [direction, expected] of [[-1, 1.08], [1, 0.92]] as const) {
     const r = new Recorder();
     const f = new Follower(r);
-    f.onPosition({ ticks: 800, pageTimeMs: 900 }); // the engine is at pulse 100 when the Start comes
+    f.onPosition({ ticks: 100 * TICKS_PER_CLOCK, pageTimeMs: 900 }); // the engine is at pulse 100 when the Start comes (D0: tick is 48 to the quarter note, a pulse is 2 ticks, not 8)
     let t = feedPulses(f, r, 1_000, 30);
     f.onStart(t);
     r.now = t + 1;
@@ -266,7 +271,7 @@ test("the trim is at most 8% either way, and it is used in full when the engine 
     const at = t + 20;
     const grid = f.estimator.pulseIndex(at + 30)!; // the sender's pulse the engine should be at, with the default 30 ms lookahead
     const shouldBe = 100 + (grid - 30); // the engine was anchored at pulse 100 on the sender's pulse 30, the one that came after the Start
-    f.onPosition({ ticks: (shouldBe + direction * 5) * 8, pageTimeMs: at });
+    f.onPosition({ ticks: (shouldBe + direction * 5) * TICKS_PER_CLOCK, pageTimeMs: at }); // D0: tick is 48 to the quarter note, a pulse is 2 ticks, not 8
     const ratio = r.tempos[r.tempos.length - 1]! / f.estimator.bpm!;
     assert.ok(Math.abs(ratio - expected) < 1e-9, `${direction > 0 ? "ahead" : "behind"}: the tempo was ${ratio.toFixed(4)} times the sender's, not ${expected}`);
   }
@@ -412,7 +417,7 @@ test("M5: a Stop and a Continue (the sender goes on sending its clock): the engi
     plant: { seed: 9 },
     script: [
       { at: stopAt, run: (f) => f.onStop(stopAt) },
-      { at: continueAt - 1, run: (f, plant) => { engineOffset = Math.round(plant.ticks / 8) - 480; f.onContinue(continueAt - 1); } },
+      { at: continueAt - 1, run: (f, plant) => { engineOffset = Math.round(plant.ticks / TICKS_PER_CLOCK) - 480; f.onContinue(continueAt - 1); } },
     ],
   });
   assert.deepEqual(out.calls.filter((c) => c.what === "transport").map((c) => c.value), [true, false, true]);
@@ -421,8 +426,9 @@ test("M5: a Stop and a Continue (the sender goes on sending its clock): the engi
   // that restarted it: the fine placement is what is measured.
   const resumed = out.samples.filter((s) => s.running && s.at >= continueAt + 2_000);
   const fine = resumed.map((s) => {
-    const wholeOffset = s.heardMs / (s.tickMs * 8);
-    return (wholeOffset - Math.round(wholeOffset)) * 8;
+    // D0: the heard unit is an eighth of a pulse and not an engine tick (support/loop.ts), so a pulse is still 8 of them.
+    const wholeOffset = s.heardMs / (s.tickMs * HEARD_TICKS_PER_PULSE);
+    return (wholeOffset - Math.round(wholeOffset)) * HEARD_TICKS_PER_PULSE;
   });
   assert.ok(Math.max(...fine.map(Math.abs)) <= STEADY_TICKS, `fine placement after the Continue: ${Math.max(...fine.map(Math.abs)).toFixed(2)} ticks (engine pulses ${engineOffset} from the sender's)`);
 });

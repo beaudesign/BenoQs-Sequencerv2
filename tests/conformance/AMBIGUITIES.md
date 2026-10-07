@@ -481,7 +481,7 @@ and it delivers commands in order and before any tick, so the answer will not de
 **Fixture:** none yet. `tests/link.rs::c6_stop_through_the_ring_flushes_sounding_notes_like_stop_through_handle_command`
 shows the two paths agree.
 
-## tick resolution: 192 ticks per quarter note or per whole note
+## tick resolution: 192 ticks per quarter note or per whole note (decided: whole note)
 
 **Manual reference:** CE v5.30 p.15 ("Each Green increment corresponds to 1/192 of a note and
 each Red value corresponds to 12/192 = 1/16 of a note"), p.16 ("The natural maximum length of a
@@ -494,14 +494,13 @@ in quarter notes is the only ordinary reading.
 125 ms and 16 steps last 2 s. B) 192 ticks per quarter note (what the code has,
 `TICKS_PER_QUARTER` in `domain.rs`, "192 PPQN" in `docs/02` §5, `docs/03` lines 18, 43 and
 220, `AGENTS.md`, `SPEC.md`): a step at 120 BPM lasts 31.25 ms and 16 steps last 0.5 s.
-**Chosen:** none. **Observed, not changed:** the engine implements B, and `docs/03` line 43
-says both "PPQN 192" and "12 ticks = 1/16", which are only compatible under A. The engine is
-untouched because every golden hash, every millisecond figure and the 12-tick lookahead depend
-on it. Triaged as `WENGE-0012` (`handoffs/WENGE-0012.ndjson`); the owner decides (D0 in
-`specs/SPEC-0001/o4-release-plan.md`). A real Octopus settles it: at 120 BPM, does a 16-step
-pattern at x1 with default step lengths take 2 s or 0.5 s?
-**Fixture:** none yet. A test that plays 16 steps at 120 BPM and asserts the length belongs to
-`WENGE-0012` once the owner has decided.
+**Chosen: A, by default (`WENGE-0012`, `specs/SPEC-0002/p6a-tick-length.md`, 2026-10-07).** `TICKS_PER_QUARTER` is 48: 192 ticks are a whole note, a default step of 12 is
+a sixteenth, 125 ms at 120 BPM, and 16 steps are 2 s. The engine had implemented B, which played every step four times too fast; the owner's review of the running page on 2026-10-07 made
+it blocking, and it is built as a draft pull request that the owner's merge approves. A real Octopus still settles it: at 120 BPM, does a 16-step pattern at x1 with default step lengths
+take 2 s or 0.5 s? `docs/02` (line 179), `docs/03` (lines 18 and 43), `AGENTS.md` and `specs/SPEC-0001/tech.md` still say "192 PPQN" and are the Scribe's and the Conductor's to correct (request
+`journal/metronome/requests/2026-10-07-d0-decided-by-default.md`); `docs/03` line 43 said both "PPQN 192" and "12 ticks = 1/16", which are only compatible under A.
+**Fixture:** `crates/octocore/tests/tick_length.rs` plays 16 steps at 120 BPM and asserts 96,000 samples, a step 6000, and six clock pulses between two steps. The manual's numbers are written in
+it as numbers, so a change to the constant cannot move them.
 
 ## locate, loop and a frozen host position
 

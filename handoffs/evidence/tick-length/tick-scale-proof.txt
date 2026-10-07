@@ -1,0 +1,5 @@
+chords_and_strums.pattern       600 events: the same notes in the same order, every time x4 (worst 3 samples)
+effector.pattern                563 events: the same notes in the same order, every time x4 (worst 3 samples)
+hello.pattern                    64 events: the same notes in the same order, every time x4 (worst 0 samples)
+mcc_and_transport.pattern       272 events: the same notes in the same order, every time x4 (worst 3 samples)
+phrases.pattern                 198 events: the same notes in the same order, every time x4 (worst 3 samples)

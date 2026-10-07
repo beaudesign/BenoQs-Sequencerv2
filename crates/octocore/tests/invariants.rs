@@ -389,7 +389,8 @@ fn run_stress(dense: bool, seconds: f64) -> (Host, Diagnostics) {
 /// says 1,024, which leaves it under half full. Nothing may be refused, deferred or late.
 #[test]
 fn a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full() {
-    let (host, d) = run_stress(false, 10.0);
+    // 40 seconds: since D0 a tick lasts four times longer, so the same load takes four times the time (it was 10 seconds).
+    let (host, d) = run_stress(false, 40.0);
     assert!(host.events.len() > 50_000, "the scene should be busy, got {} events", host.events.len());
     assert_eq!((d.queue_overflows, d.deferred_events, d.late_events), (0, 0, 0), "{d:?}");
     assert!(
@@ -405,7 +406,7 @@ fn a_heavy_chord_pattern_leaves_the_event_queue_at_most_half_full() {
 /// emit an event late because of it.
 #[test]
 fn overload_is_counted_and_refuses_whole_notes_never_half() {
-    let (host, d) = run_stress(true, 5.0);
+    let (host, d) = run_stress(true, 20.0); // the same load as the 5 seconds it was before D0
     assert!(d.queue_overflows > 0, "the overload scene should overflow the queue: {d:?}");
     assert_eq!(d.queue_high_water as usize, QUEUE_CAP, "{d:?}");
     assert_eq!(d.late_events, 0, "{d:?}");

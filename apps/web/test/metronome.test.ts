@@ -6,9 +6,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { KIND_DOWN, KIND_REALTIME, KIND_UP, RENDER_FRAMES, decodeEvents } from "../src/abi.ts";
+import { QUARTER_TICKS } from "../src/click.ts";
 import type { FromWorklet } from "../src/protocol.ts";
 import { controlNumbers, matrixId } from "./support/module.ts";
 import { WorkletRig, type Posted } from "./support/worklet-scope.ts";
+
+/** 120 BPM at 48 kHz: a quarter note is 24000 frames and QUARTER_TICKS (48) ticks, so 500 frames a tick. */
+const SAMPLES_PER_TICK = 24_000 / QUARTER_TICKS;
 
 const numbers = controlNumbers();
 const key = (id: string): number => {
@@ -141,11 +145,11 @@ test("C5: Stop silences it. Play carries on from the point it stopped, the same 
   rig.send({ type: "tempo", bpm: 120 });
   const firstPlay = rig.frame;
   rig.send({ type: "transport", play: true });
-  run(rig, 235); // 30080 frames: beat 0 and beat 1 have sounded, and the audio is at tick 240.64
+  run(rig, 235); // 30080 frames: beat 0 and beat 1 have sounded, and the audio is at tick 60.16
   const stopFrame = rig.frame;
   rig.send({ type: "transport", play: false });
   const stopped = only(rig.take(), "panel").at(-1)!;
-  near(stopped.position, (stopFrame - firstPlay) / 125, 0.5, "the audio's tick position at the Stop");
+  near(stopped.position, (stopFrame - firstPlay) / SAMPLES_PER_TICK, 0.5, "the audio's tick position at the Stop");
   run(rig, secondsToBlocks(rig, 1.5));
   const beforePlay = onsets(rig.audio());
   assert.deepEqual(beforePlay.length, 2, `two clicks before the Stop and none after: ${beforePlay}`);
@@ -156,20 +160,20 @@ test("C5: Stop silences it. Play carries on from the point it stopped, the same 
   run(rig, secondsToBlocks(rig, 0.9));
   const all = onsets(rig.audio());
   assert.ok(all.length >= 3, `${all}`);
-  // Beat 2 is at tick 384; the Play is at tick 240.64, so it is 143.36 ticks of 125 frames on.
-  near(all[2]!, playFrame + (384 - stopped.position) * 125, 1, "the third click");
+  // Beat 2 is at tick 96 (two quarters of 48); the Play is at tick 60.16, so it is 35.84 ticks of 500 frames on.
+  near(all[2]!, playFrame + (2 * QUARTER_TICKS - stopped.position) * SAMPLES_PER_TICK, 1, "the third click");
 });
 
 test("C5: a Stop and Play on a beat's exact frame does not lose the beat and does not click it twice", () => {
-  // The Stop lands where the audio is exactly on tick 384, beat 2: the beat is not in the block that ended there, so it is the Play's first frame.
+  // The Stop lands where the audio is exactly on tick 96, beat 2: the beat is not in the block that ended there, so it is the Play's first frame.
   const rig = new WorkletRig();
   rig.send({ type: "metronome", on: true });
   rig.send({ type: "tempo", bpm: 120 });
   rig.send({ type: "transport", play: true });
-  run(rig, 375); // 48000 frames: the audio is on tick 384 (beat 2), at a block edge
+  run(rig, 375); // 48000 frames: the audio is on tick 96 (beat 2), at a block edge
   rig.send({ type: "transport", play: false });
   const stopped = only(rig.take(), "panel").at(-1)!;
-  near(stopped.position, 384, 0.01, "the Stop is on beat 2");
+  near(stopped.position, 2 * QUARTER_TICKS, 0.01, "the Stop is on beat 2");
   assert.equal(onsets(rig.audio()).length, 2, `beats 0 and 1 have sounded, and beat 2 has not: ${onsets(rig.audio())}`);
   run(rig, 100);
   const playFrame = rig.frame;

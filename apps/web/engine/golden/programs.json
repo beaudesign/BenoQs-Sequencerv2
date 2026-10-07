@@ -8,7 +8,7 @@
   "pressed": {
    "seed": 7,
    "bpm": 133,
-   "blocks": 1500,
+   "blocks": 6000,
    "steps": [
     [
      0,
@@ -35,12 +35,12 @@
      10
     ]
    ],
-   "digest": "fnv1a64:e419310a73bd6208"
+   "digest": "fnv1a64:d434d080406aea65"
   },
   "dense": {
    "seed": 3,
    "bpm": 240,
-   "blocks": 3000,
+   "blocks": 12000,
    "steps": [
     [
      0,
@@ -683,7 +683,7 @@
      15
     ]
    ],
-   "digest": "fnv1a64:eb3418485dd2eba1"
+   "digest": "fnv1a64:6e92368808111495"
   }
  }
 }

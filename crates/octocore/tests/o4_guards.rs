@@ -104,7 +104,7 @@ fn check_constant_tempo(label: &str, host: &NullHost, bpm: f32, sample_rate: f32
 /// G1, fixed buffer sizes. Constant tempo: every note lands within a sample of the analytic
 /// time, and the size of the host's buffer does not matter. Passes on `c1e04c1`: worst 0.995
 /// samples over the 44 runs in `handoffs/evidence/o4-guards-pass.txt`. Where a tick is a whole
-/// number of samples (120 BPM at 48 kHz: 125; 200 BPM at 96 kHz: 150) the deviation is exactly 0;
+/// number of samples (120 BPM at 48 kHz: 500; 200 BPM at 96 kHz: 600) the deviation is exactly 0;
 /// where it is not (133 BPM at 44.1 kHz, 97.3 BPM at 48 kHz) it is the floor of a fraction, which
 /// has a spread of 1/sqrt(12) = 0.289 samples for any engine that emits whole samples. That is
 /// why the fence is 0.3, and why those two pairs are the ones that carry the guard. This is the
@@ -114,7 +114,8 @@ fn g1_constant_tempo_timing_is_within_a_sample_at_every_buffer_size() {
     let mut failing = Vec::new();
     for (bpm, sr) in PAIRS {
         for buffer in [1u32, 7, 64, 480, 1024, 4096] {
-            let seconds = if buffer == 1 { 3.0 } else { 10.0 };
+            // Four times what it was before D0 (3 and 10): a tick lasts four times longer, so the run holds the same notes.
+            let seconds = if buffer == 1 { 12.0 } else { 40.0 };
             let mut host = NullHost::new(one_track_every_step(), sr);
             host.play(&Curve::Constant { bpm }, seconds, Sizes::Fixed(buffer));
             if let Err(e) = check_constant_tempo(&format!("g1-{bpm}bpm-{sr}hz-buffer{buffer}"), &host, bpm, sr) {

@@ -102,7 +102,15 @@ function followLight(page: Page, track: number, ms: number): Promise<(number | n
 }
 
 /** How many times the light changed step in the samples. */
-const moves = (seen: (number | null)[]): number => seen.reduce((n, s, i) => n + (i > 0 && s !== null && seen[i - 1] !== null && s !== seen[i - 1] ? 1 : 0), 0);
+function moves(seen: (number | null)[]): number {
+  let n = 0;
+  for (let i = 1; i < seen.length; i++) {
+    const a = seen[i - 1];
+    const b = seen[i];
+    if (a !== null && a !== undefined && b !== null && b !== undefined && a !== b) n++;
+  }
+  return n;
+}
 
 test("R-4: there is one Play, and one press of it starts the engine and plays: no Start, no second press", async () => {
   const page = await open();
@@ -145,12 +153,12 @@ test("R-3: a red light moves along the steps, one step at a time, and visits the
   for (let i = 1; i < seen.length; i++) {
     const a = seen[i - 1];
     const b = seen[i];
-    if (a !== null && b !== null && b !== a && b !== (a + 1) % 16 && b !== (a + 2) % 16) backwards++;
+    if (a !== null && a !== undefined && b !== null && b !== undefined && b !== a && b !== (a + 1) % 16 && b !== (a + 2) % 16) backwards++;
   }
   assert.equal(backwards, 0, "it goes forward, a step or at most two between samples, and wraps from 16 to 1");
   assert.ok(moves(seen) >= 15 && moves(seen) <= 26, `${moves(seen)} moves in 2.6 s at 120 BPM (a step is 125 ms: about 21)`);
-  const rows = new Set((await redKeys(page)).map(([t]) => t));
-  assert.ok(rows.size <= 5, "a light on the rows with a pattern, not on the whole panel");
+  const reds = await redKeys(page);
+  assert.equal(new Set(reds.map(([t]) => t)).size, reds.length, "one light on each row, and no row has two");
   await page.close();
 });
 
@@ -211,9 +219,9 @@ test("R-4: the Play key on the panel starts the engine and plays, the same as th
   await page.close();
 });
 
-test("R-8: ?bare is the page the earlier tests drive: the button is Start, nothing is loaded, nothing plays, nothing is heard", async () => {
+test("R-8: ?bare is the page the earlier tests drive: Play only starts the engine, nothing is loaded, nothing plays, nothing is heard", async () => {
   const page = await open("?bare");
-  assert.equal((await page.textContent("#play"))?.trim(), "Start");
+  assert.equal((await page.textContent("#play"))?.trim(), "Play");
   await page.click("#play");
   await page.waitForSelector('main[data-engine="running"]', { timeout: 15_000 });
   assert.equal(await page.getAttribute("main", "data-transport"), "stopped");

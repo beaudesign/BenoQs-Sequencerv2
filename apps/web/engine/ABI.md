@@ -33,7 +33,7 @@ is malformed, 4 the layout is not one the controller accepts, 5 a number out of 
 | `octoweb_events() -> ptr` | The events buffer: 512 records of 12 bytes (256 for notes and 256 for the clock), valid for the first `count` of the last render. Null before `octoweb_init` |
 | `octoweb_refresh_leds() -> u32` | Recomputes the LED frame from the controller and the engine's page. Returns 1 if any LED changed since the last call, else 0 |
 | `octoweb_leds() -> ptr` | The LED frame: 512 bytes, indexed by control number. Null before `octoweb_init` |
-| `octoweb_playheads() -> ptr` | 10 bytes: the step (0 to 15) each track is on, updated by `octoweb_render`. Null before `octoweb_init` |
+| `octoweb_playheads() -> ptr` | 10 bytes: the step (0 to 15) each track last played, updated by `octoweb_render`; 255 for a track that has not played a step since Play (all 0 until the first render). Null before `octoweb_init`. Before P6 this was the step the track was about to play, one ahead of the sound |
 | `octoweb_status() -> u32` | Bit 0: the transport is running. Bit 1: the panel is in Step zoom |
 | `octoweb_dropped_intents() -> u32` | How many panel intents (Audition, PLAY snapshots) the engine has no capability for. They are counted and not applied; the engine side is a request to the Metronome |
 | `octoweb_alloc_count() -> u32` | `measure` feature only. Allocations on this thread since it started |

@@ -19,14 +19,24 @@ function sinkFor(rig: WorkletRig): DemoSink {
   };
 }
 
-function only<T extends FromWorklet["type"]>(rig: WorkletRig, type: T): Extract<FromWorklet, { type: T }>[] {
-  return rig.take().map((p) => p.message).filter((m): m is Extract<FromWorklet, { type: T }> => m.type === type);
+/** What the worklet has posted since the last call: errors, and the last LED frame it sent, which is the page's picture of the panel. */
+function posted(rig: WorkletRig, frame: Uint8Array | null = null): { errors: string[]; leds: Uint8Array | null } {
+  const errors: string[] = [];
+  for (const p of rig.take()) {
+    const m: FromWorklet = p.message;
+    if (m.type === "error") errors.push(m.message);
+    if (m.type === "panel" && m.leds) frame = new Uint8Array(m.leds);
+  }
+  return { errors, leds: frame };
 }
 
-/** The LED frame as the page would hold it after the last message, found by running a few blocks. */
+/** The LED frame the page would hold after the last message: the one the messages made, and any a few blocks add. */
 function leds(rig: WorkletRig): Uint8Array {
-  let frame: Uint8Array | null = null;
-  for (let b = 0; b < 20; b++) for (const p of rig.block()) if (p.message.type === "panel" && p.message.leds) frame = new Uint8Array(p.message.leds);
+  let frame = posted(rig).leds;
+  for (let b = 0; b < 20; b++) {
+    rig.block();
+    frame = posted(rig, frame).leds;
+  }
   assert.ok(frame, "the worklet sent an LED frame");
   return frame;
 }
@@ -53,8 +63,9 @@ test("R-1: the demo is a real pattern: several tracks, a dozen or more steps, ev
 test("R-1: loading it lights exactly the steps it names, in the engine's own LED frame, with nothing pressed", () => {
   const rig = new WorkletRig();
   loadDemo(sinkFor(rig));
-  assert.deepEqual(only(rig, "error"), [], "the engine took every write");
-  const frame = leds(rig);
+  const sent = posted(rig);
+  assert.deepEqual(sent.errors, [], "the engine took every write");
+  const frame = sent.leds ?? leds(rig);
   const lit = new Set<number>();
   for (const t of DEMO) for (const s of t.steps) lit.add(numbers.get(matrixId(t.track, s.step))!);
   for (let row = 0; row < TRACK_COUNT; row++) {

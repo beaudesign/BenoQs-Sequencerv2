@@ -19,11 +19,11 @@ await page.addInitScript(() => {
     value: () => Promise.resolve({ outputs: new Map([[output.id, output]]), inputs: new Map(), onstatechange: null }),
   });
 });
-await page.goto(`${server.url}/pages/app.html`);
+await page.goto(`${server.url}/pages/app.html?bare`);
 await page.waitForSelector('main[data-engine="idle"]');
 await page.screenshot({ path: `${out}/p3c-panel-idle.png` });
 
-await page.click("#start");
+await page.click("#play");
 await page.waitForSelector('main[data-engine="running"]');
 await page.selectOption("#midi-output", "iac-1");
 const face = (id: string) => `g[data-id="${id}"] .face`;
@@ -48,8 +48,8 @@ await detail.addInitScript(() => {
   const output = { id: "iac-1", name: "IAC Driver Bus 1", send() {} };
   Object.defineProperty(Navigator.prototype, "requestMIDIAccess", { configurable: true, value: () => Promise.resolve({ outputs: new Map([[output.id, output]]), inputs: new Map(), onstatechange: null }) });
 });
-await detail.goto(`${server.url}/pages/app.html`);
-await detail.click("#start");
+await detail.goto(`${server.url}/pages/app.html?bare`);
+await detail.click("#play");
 await detail.waitForSelector('main[data-engine="running"]');
 for (const c of [1, 5]) await detail.click(face(`matrix.r0.c${c}`));
 await detail.click(face("mode.play"));

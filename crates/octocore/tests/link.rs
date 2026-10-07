@@ -297,7 +297,9 @@ fn e2_the_published_snapshot_is_what_the_engine_says_about_itself() {
     for (i, p) in s.playheads.iter().enumerate() {
         assert_eq!(p.track_index as usize, i);
     }
-    assert!(s.playheads.iter().any(|p| p.step_index != 0), "ten buffers is more than a step: the playheads have moved");
+    // A playhead is the step the track fired last, and 255 before it has fired one (`playing_step.rs`): ten buffers reach the first step.
+    assert!(s.playheads.iter().any(|p| p.step_index != octocore::engine::NOT_PLAYING), "ten buffers is more than a step: a track has fired one");
+    assert!(s.playheads.iter().filter(|p| p.step_index != octocore::engine::NOT_PLAYING).all(|p| p.step_index < 16), "and it is one of the 16");
 
     let mut direct = Snapshot::zeroed();
     e.snapshot(&mut direct);

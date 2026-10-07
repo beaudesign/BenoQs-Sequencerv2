@@ -10,7 +10,12 @@
 <body>
 <main data-engine="idle" data-transport="stopped">
   <section id="strip" aria-label="Sequencer settings">
-    <button id="start" type="button">Start</button>
+    <button id="play" type="button">Play</button>
+    <div class="field">
+      <label for="tempo">Tempo in beats per minute</label>
+      <input id="tempo" type="number" inputmode="numeric" step="1">
+    </div>
+    <button id="monitor" type="button" aria-pressed="true">Sound</button>
     <button id="metronome" type="button" aria-pressed="false">Metronome</button>
     <div class="field">
       <label for="midi-out-1">MIDI Out 1</label>
@@ -42,7 +47,7 @@
       <input id="lookahead" type="number" inputmode="numeric" step="1">
     </div>
     <p id="engine-status" role="status">The sequencer has not started.</p>
-    <p id="midi-status" role="status">MIDI is asked for when you press Start.</p>
+    <p id="midi-status" role="status">MIDI is asked for when you press Play.</p>
     <p id="midi-in-status" role="status"></p>
     <p id="midi-in-count"></p>
     <p id="clock-status" role="status"></p>

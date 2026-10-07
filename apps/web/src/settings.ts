@@ -1,5 +1,8 @@
 // The numbers the strip offers. They are the page's own settings and not design tokens.
 
+/** The tempo field, in beats per minute. The engine takes 1 to 999; the strip offers the range a person plays in. */
+export const TEMPO_BPM = { default: 120, min: 20, max: 300 } as const;
+
 export const LOOKAHEAD_MS = { default: 30, min: 0, max: 250 } as const;
 
 /**

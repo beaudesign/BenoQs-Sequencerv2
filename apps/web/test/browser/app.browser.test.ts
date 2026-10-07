@@ -170,13 +170,14 @@ async function open(init?: () => void, query = ""): Promise<Page> {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   page.on("pageerror", (e) => assert.fail(`page error: ${e.message}`));
   if (init) await page.addInitScript(init);
-  await page.goto(`${server.url}/pages/app.html${query}`);
+  // `?bare`: Play only starts the engine (pages/app.ts). The tests below drive the panel themselves; the page as a visitor meets it is in runs.browser.test.ts.
+  await page.goto(`${server.url}/pages/app.html?bare${query ? `&${query.replace(/^\?/, "")}` : ""}`);
   await page.waitForSelector('main[data-engine="idle"]');
   return page;
 }
 
 async function start(page: Page): Promise<void> {
-  await page.click("#start");
+  await page.click("#play");
   await page.waitForSelector('main[data-engine="running"]', { timeout: 15_000 });
 }
 
@@ -225,7 +226,7 @@ test("a press before Start lights nothing and says what to do", async () => {
   await page.click(face("matrix.r2.c3"));
   await page.waitForTimeout(150);
   assert.equal((await ledState(page, "matrix.r2.c3")).colour, "off");
-  assert.match(await page.textContent("#engine-status") ?? "", /Press Start/);
+  assert.match(await page.textContent("#engine-status") ?? "", /Press Play/);
   await page.close();
 });
 
@@ -434,7 +435,7 @@ test("E8: the browser's own accessibility tree finds each control by its manual 
 test("E8: Tab walks the strip, then the matrix in reading order, then the other controls in the layout's order", async () => {
   const page = await open();
   const seen: string[] = [];
-  const total = 8 + geometry.placements.length;
+  const total = 10 + geometry.placements.length;
   for (let i = 0; i < total; i++) {
     await page.keyboard.press("Tab");
     seen.push(await page.evaluate(() => {
@@ -442,7 +443,7 @@ test("E8: Tab walks the strip, then the matrix in reading order, then the other 
       return el?.getAttribute("data-id") ?? el?.id ?? "";
     }));
   }
-  assert.deepEqual(seen, ["start", "metronome", "midi-out-1", "midi-out-2", "midi-in", "clock-state", "clock-offset", "lookahead", ...tabOrder(geometry)]);
+  assert.deepEqual(seen, ["play", "tempo", "monitor", "metronome", "midi-out-1", "midi-out-2", "midi-in", "clock-state", "clock-offset", "lookahead", ...tabOrder(geometry)]);
   await page.keyboard.press("Tab");
   const after = await page.evaluate(() => (document.activeElement as HTMLElement).tagName);
   assert.notEqual(after, "G", "the next Tab leaves the panel");
@@ -457,7 +458,7 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
       return { display: s.display, stroke: s.stroke, width: s.strokeWidth };
     });
   assert.equal((await ring("matrix.r9.c1", "outer")).display, "none");
-  for (const _stop of ["start", "metronome", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
+  for (const _stop of ["play", "tempo", "sound", "metronome", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
   await page.keyboard.press("Tab"); // r9.c1
   const outer = await ring("matrix.r9.c1", "outer");
   const inner = await ring("matrix.r9.c1", "inner");
@@ -480,7 +481,7 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
 
 test("E8: the strip's own controls are labelled and the strip does not sit on the panel", async () => {
   const page = await open();
-  for (const [role, name] of [["button", "Start"], ["button", "Metronome"], ["combobox", "MIDI Out 1"], ["combobox", "MIDI Out 2"], ["combobox", "MIDI In"], ["combobox", "MIDI Clock"], ["spinbutton", "Clock offset in milliseconds"], ["spinbutton", "Lookahead in milliseconds"]] as const) {
+  for (const [role, name] of [["button", "Play"], ["button", "Sound"], ["button", "Metronome"], ["combobox", "MIDI Out 1"], ["combobox", "MIDI Out 2"], ["combobox", "MIDI In"], ["combobox", "MIDI Clock"], ["spinbutton", "Tempo in beats per minute"], ["spinbutton", "Clock offset in milliseconds"], ["spinbutton", "Lookahead in milliseconds"]] as const) {
     assert.equal(await page.getByRole(role, { name, exact: true }).count(), 1, name);
   }
   const strip = await page.$eval("#strip", (el) => el.getBoundingClientRect().toJSON() as DOMRect);
@@ -864,7 +865,7 @@ test("M7: the clock state is set from the keyboard, and the sentence follows the
 test("M8: with no Web MIDI, with access refused, and with MIDI that cannot start, master and slave are refused in words and the control goes back to Off", async () => {
   const cases: [string, () => void, RegExp][] = [
     ["no Web MIDI", removeMidi, /needs Web MIDI and this browser has none, so MIDI Clock stays off\.$/],
-    ["access refused", refuseMidi, /needs MIDI access, which was refused, so MIDI Clock stays off\. Allow it for this site, then press Start again\.$/],
+    ["access refused", refuseMidi, /needs MIDI access, which was refused, so MIDI Clock stays off\. Allow it for this site, then press Play again\.$/],
     ["cannot start", failMidi, /needs Web MIDI, which could not start on this system, so MIDI Clock stays off\.$/],
   ];
   for (const [what, init, words] of cases) {
@@ -889,7 +890,7 @@ test("M7: a state chosen before Start is kept, says it waits, and takes effect w
   await page.waitForSelector(STATE, { timeout: 3_000 });
   await page.selectOption(STATE, "master");
   assert.equal(await page.inputValue(STATE), "master", "not refused: there is nothing to judge by yet");
-  assert.equal(await clockSaid(page), "Press Start first, then Master Clock takes effect.");
+  assert.equal(await clockSaid(page), "Press Play first, then Master Clock takes effect.");
   await start(page);
   await page.waitForFunction(() => /^Master Clock is on/.test(document.querySelector("#clock-status")!.textContent ?? ""), null, { timeout: 5_000 });
   assert.equal(await page.inputValue(STATE), "master");

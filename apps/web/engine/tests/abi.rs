@@ -13,6 +13,10 @@ const RED_STEADY: u8 = 1;
 const MIDI_CHANNEL: u32 = 8; // where `TrackAttr::MidiChannel` stands in `TrackAttr::ALL`, which is the number `octoweb_set_track` takes (ABI.md)
 const ORANGE_FLASH: u8 = 3 | (1 << 2);
 const GREEN_FLASH: u8 = 2 | (1 << 2);
+const TRACK_PITCH: u32 = 0; // `TrackAttr::ALL` order, as for `MIDI_CHANNEL`
+const STEP_ACTIVE: u32 = 0; // `StepAttr::ALL` order: the number `octoweb_set_step` takes (ABI.md)
+const STEP_PITCH_OFFSET: u32 = 2;
+const STEP_SKIP: u32 = 1;
 
 #[test]
 fn the_module_reports_abi_version_two() {
@@ -63,6 +67,7 @@ fn calls_before_init_do_nothing_and_say_so() {
     assert_eq!(octoweb_transport(1), 1);
     assert_eq!(octoweb_set_tempo(120.0), 1);
     assert_eq!(octoweb_set_track(0, MIDI_CHANNEL, 17), 1);
+    assert_eq!(octoweb_set_step(0, 0, STEP_ACTIVE, 1), 1);
     assert_eq!(octoweb_render(128), 0, "no events");
     assert_eq!(octoweb_refresh_leds(), 0);
     assert_eq!(octoweb_status(), 0);
@@ -432,4 +437,38 @@ fn a_channel_outside_1_to_32_is_the_engines_to_clamp_not_a_crash() {
     for (port, channel) in note_on_routes(&abi, 600) {
         assert!((1..=2).contains(&port) && (1..=16).contains(&channel), "port {port} channel {channel}");
     }
+}
+
+// ----- P6b: the page can write a step (specs/SPEC-0002/p6-runs-when-opened.md), so that it can open with a pattern -----
+
+#[test]
+fn set_step_writes_one_attribute_of_one_step_and_the_panel_and_the_notes_show_it() {
+    let abi = Abi::start();
+    assert_eq!(abi.led(&abi.matrix(3, 5)), 0, "an empty pattern: the step is dark");
+    assert_eq!(octoweb_set_step(3, 5, STEP_ACTIVE, 1), 0);
+    assert_eq!(abi.led(&abi.matrix(3, 5)), GREEN_STEADY, "an active step is green (manual p.18)");
+    assert_eq!(abi.led(&abi.matrix(3, 6)), 0, "and only that step");
+    assert_eq!(octoweb_set_step(3, 5, STEP_SKIP, 1), 0);
+    assert_eq!(abi.led(&abi.matrix(3, 5)), RED_STEADY, "a skipped step is red (manual p.14)");
+    assert_eq!(octoweb_set_step(3, 5, STEP_SKIP, 0), 0);
+    // It plays: the track's pitch plus the step's offset.
+    assert_eq!(octoweb_set_track(3, TRACK_PITCH, 48), 0);
+    assert_eq!(octoweb_set_step(3, 5, STEP_PITCH_OFFSET, 7), 0);
+    octoweb_transport(1);
+    let mut notes = Vec::new();
+    for _ in 0..400 {
+        notes.extend(abi.render(128).into_iter().filter(|e| e[0] == 0).map(|e| e[3]));
+    }
+    assert!(!notes.is_empty(), "the step sounded");
+    assert!(notes.iter().all(|n| *n == 55), "48 + 7, got {notes:?}");
+}
+
+#[test]
+fn set_step_refuses_a_track_a_step_or_an_attribute_that_does_not_exist_and_changes_nothing() {
+    let abi = Abi::start();
+    let before = abi.leds();
+    for (track, step, attr) in [(10, 0, STEP_ACTIVE), (255, 0, STEP_ACTIVE), (u32::MAX, 0, STEP_ACTIVE), (0, 16, STEP_ACTIVE), (0, u32::MAX, STEP_ACTIVE), (0, 0, 12), (0, 0, u32::MAX)] {
+        assert_eq!(octoweb_set_step(track, step, attr, 1), 5, "track {track} step {step} attribute {attr} is out of range (ABI.md code 5)");
+    }
+    assert_eq!(abi.leds(), before, "nothing was written");
 }

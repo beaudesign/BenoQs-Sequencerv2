@@ -30,12 +30,12 @@ pub const CHAIN_MEMBERS_MAX: usize = TRACK_COUNT - 1;
 pub const MAX_SCALE_INTERVALS: usize = 12;
 /// PROVISIONAL — see tests/conformance/AMBIGUITIES.md "user-programmed directions".
 pub const USER_DIRECTION_COUNT: usize = 11; // dir values 6..=16
-pub const TICKS_PER_QUARTER: u32 = 192;
+pub const TICKS_PER_QUARTER: u32 = 48;
 /// Ticks in one MIDI clock pulse: a pulse is a 24th of a quarter note (ADR-0009). The check below fails the build if a change to
 /// the tick (D0, `WENGE-0012`) leaves a pulse that is not a whole number of ticks, so pulses cannot drift from the tick grid.
 pub const TICKS_PER_CLOCK: u32 = TICKS_PER_QUARTER / 24;
 const _: () = assert!(TICKS_PER_QUARTER % 24 == 0, "a MIDI clock pulse (a 24th of a quarter note) must be a whole number of ticks");
-pub const DEFAULT_STEP_TICKS: u32 = 12; // 1/16 note at 192 PPQN
+pub const DEFAULT_STEP_TICKS: u32 = 12; // 1/16 note: 12 of the 192 ticks of a whole note (p.15)
 
 /// Track indices run 0..=9 and correspond to panel rows 0 (bottom) to 9 (top).
 /// docs/03-sequencer-core.md §2: "Do not silently flip this." The effector's
@@ -676,12 +676,12 @@ impl Bank {
 pub struct PhraseNote {
     pub pitch_offset: i8,
     pub velocity_offset: i8,
-    /// Extra gate length in 192-PPQN ticks, added to the step's already-scaled
+    /// Extra gate length in ticks (192 to the whole note), added to the step's already-scaled
     /// length. Factory charts (p.24-26) store this as a small integer offset,
     /// not a replacement length.
     pub length_ticks: u8,
-    /// Start delay in 192-PPQN ticks relative to the step's own STA. Factory
-    /// Green phrases use 24/48/72… (1/8-note echoes at 192 PPQN). This is
+    /// Start delay in ticks (192 to the whole note) relative to the step's own STA. Factory
+    /// Green phrases use 24/48/72… (1/8-note echoes: 24 of 192). This is
     /// *not* the step-level STA pull/push of -5..=5 — phrase STA is an
     /// absolute tick delay, and the factory charts go well past i8 (160 on
     /// p.25).

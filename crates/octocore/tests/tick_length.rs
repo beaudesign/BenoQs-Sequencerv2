@@ -80,7 +80,7 @@ fn at_120_bpm_a_default_step_lasts_125_ms_a_sixteenth_note() {
 
 #[test]
 fn at_120_bpm_a_bar_of_sixteen_steps_lasts_two_seconds() {
-    let r = run(120.0, 9.0, false);
+    let r = run(120.0, 20.0, false);
     // The same step one loop apart: every 16th Note On.
     let first_of_each_loop: Vec<u64> = r.on.iter().step_by(16).copied().collect();
     within(&gaps(&first_of_each_loop), 96_000, "120 BPM, one loop of 16 steps");
@@ -112,3 +112,4 @@ fn a_step_is_six_clock_pulses_the_manual_and_the_clock_agree() {
         assert_eq!(between, 6, "pulses between the Note Ons at {} and {}", pair[0], pair[1]);
     }
 }
+

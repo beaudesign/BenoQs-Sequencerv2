@@ -929,7 +929,7 @@ test("slave: the clock on the input sets the tempo and the transport, and the se
   const page = await open(installTwoPorts);
   await start(page);
   await page.selectOption("#midi-out-1", "out-1");
-  for (const c of [1, 5, 9, 13]) await page.click(face(`matrix.r0.c${c}`)); // a note every four steps: six pulses
+  for (let c = 1; c <= 16; c++) await page.click(face(`matrix.r0.c${c}`)); // a note every step: six pulses (a step is a sixteenth, the manual's D0)
   await page.selectOption("#midi-in", "fake-in");
   await page.selectOption(STATE, "slave");
   assert.equal(await clockSaid(page), "Slave Clock: waiting for MIDI Clock from Fake input.");

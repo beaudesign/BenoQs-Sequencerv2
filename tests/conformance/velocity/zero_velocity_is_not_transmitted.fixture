@@ -10,9 +10,10 @@ track 1 vel 1
 track 0 mch 1
 track 1 mch 2
 play
-# One bar is 24,000 samples at 120 BPM, and the step fires on tick 12 (sample 1375), so 20
-# buffers of 512 hold exactly one firing.
-render 20 buffers buffer=512
+# One bar is 96,000 samples at 120 BPM (500 samples a tick, D0: the manual's 192 ticks to the
+# whole note), and a step is 6,000, so 40 buffers of 512 (20,480 samples) hold exactly one
+# firing and its NoteOff.
+render 40 buffers buffer=512
 expect event on ch=1 absent
 expect event off ch=1 absent
 expect event on ch=2 vel=1 count=1

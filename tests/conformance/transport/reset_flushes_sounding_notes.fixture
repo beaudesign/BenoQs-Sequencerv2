@@ -6,11 +6,12 @@ page.tracks 0 enabled
 track 0 mch 1
 track 0 step 0 len 192
 play
-render 4 buffers buffer=512
+# 14 buffers of 512 is 7,168 samples: the first step has fired and its note is far from over.
+render 14 buffers buffer=512
 expect event on port=1 ch=1 count=1
 expect event off absent
 reset
 render 1 buffers buffer=512
-expect event off port=1 ch=1 count=1 at=2048
+expect event off port=1 ch=1 count=1 at=7168
 expect event cc cc=123 port=1 ch=1 count=1
 expect balance

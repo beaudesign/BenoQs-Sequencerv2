@@ -29,15 +29,15 @@ track 3 mch 4
 track 3 vel 0
 track 3 step all active 1
 play
-render 2 s buffer=128
+render 8 s buffer=128
 bpm 140
-render 2 s buffer=128
+render 8 s buffer=128
 stop
-render 1 s buffer=128
+render 4 s buffer=128
 play
-render 2 s buffer=128
+render 8 s buffer=128
 stop
-render 1 s buffer=128
+render 4 s buffer=128
 expect balance
 expect event bend val=8192
 expect event pressure val=100

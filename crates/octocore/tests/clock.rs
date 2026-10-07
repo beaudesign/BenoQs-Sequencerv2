@@ -5,11 +5,11 @@
 //! `render` with `take_realtime`. With the clock off, which is the default, the engine does what it did before; the goldens,
 //! the conformance fixtures and `tests/invariants.rs` are the proof of that, and the first tests here repeat it for the clock.
 //!
-//! **The tick is 192 to the quarter note (D0, `WENGE-0012`, open),** so a pulse is 8 ticks and a step is 12. Nothing here
-//! says a step is a whole number of pulses; the test that would is `pending` at the bottom and names D0.
+//! **The tick is 48 to the quarter note (D0, `WENGE-0012`, decided: the manual's 192 to the whole note),** so a pulse is 2 ticks and a
+//! step is 12, which is 6 pulses. Before D0 it was 192 to the quarter, a pulse of 8 ticks and a step of 1.5 pulses.
 
 use octocore::domain::{DEFAULT_STEP_TICKS, TICKS_PER_CLOCK, TICKS_PER_QUARTER};
-use octocore::engine::REALTIME_PER_RENDER;
+use octocore::engine::{MAX_EARLY_TICKS, REALTIME_PER_RENDER};
 use octocore::types::{Realtime, RealtimeEvent, StepAttr};
 use octocore::{Command, Engine, Event, EventBuffer, RenderContext};
 
@@ -86,11 +86,22 @@ fn at_sample(e: &Event) -> u32 {
 
 #[test]
 fn a_clock_pulse_is_ticks_per_quarter_over_24_ticks_which_is_8_until_d0_is_answered() {
-    // D0 (`WENGE-0012`): the tick is 192 to the quarter note, which is four times short of the manual's own. If the owner changes it,
-    // this changes to match and the compile-time check in `domain.rs` says whether the new tick divides into pulses.
-    assert_eq!(TICKS_PER_QUARTER, 192);
-    assert_eq!(TICKS_PER_CLOCK, 8);
+    // The name is the ratchet's: `harness/baseline.txt` lists it, and a name leaves the baseline only by an ADR (docs/07 §ratchet). It
+    // said "8" while D0 (`WENGE-0012`) was open. D0 is answered by default, the manual's 192 to the whole note, so the pulse is 2 ticks
+    // and the test below says so; this one keeps what has not changed, that a pulse is a 24th of the quarter note, whatever the tick.
     assert_eq!(TICKS_PER_CLOCK * 24, TICKS_PER_QUARTER);
+    assert_eq!(TICKS_PER_QUARTER % 24, 0, "a quarter note is a whole number of pulses");
+}
+
+#[test]
+fn a_clock_pulse_is_two_ticks_since_d0_the_manual_counts_192_to_the_whole_note() {
+    // The manual counts 192 ticks to the whole note (p.15, p.16), so 48 to the quarter. The engine counted 192 to the quarter, which played
+    // every step four times too fast. The compile-time check in `domain.rs` says whether a tick divides into pulses.
+    assert_eq!(TICKS_PER_QUARTER, 48);
+    assert_eq!(TICKS_PER_CLOCK, 2);
+    assert_eq!(TICKS_PER_QUARTER * 4, 192, "192 ticks are a whole note, as the manual counts");
+    assert_eq!(DEFAULT_STEP_TICKS, 12, "a default step is 12 of 192: a sixteenth note, six pulses");
+    assert_eq!(DEFAULT_STEP_TICKS / TICKS_PER_CLOCK, 6);
 }
 
 #[test]
@@ -248,16 +259,16 @@ fn play_after_a_stop_sends_continue_and_the_pulses_stay_on_the_grid_the_pattern_
     let mut r = Rig::new(engine_with_notes(), bpm, sr);
     r.e.set_clock_master(true);
     r.playing = true;
-    r.run(10_000 + 3 * 125 + 60, 128); // tick 83 and a half
+    r.run(83 * 500 + 240, 128); // tick 83 and a half (500 samples a tick at 120 BPM and 48 kHz)
     r.e.handle_command(Command::Stop);
     r.playing = false;
     r.run(2_000, 128);
     let p = r.e.tick_position(); // where the audio stopped, in ticks
-    assert!((p - (83.0 + 60.0 / 125.0)).abs() < 1e-9, "the position the sound stopped at, not the engine's own count ({})", r.e.tick());
+    assert!((p - (83.0 + 240.0 / 500.0)).abs() < 1e-9, "the position the sound stopped at, not the engine's own count ({})", r.e.tick());
     r.e.handle_command(Command::Play);
     r.playing = true;
     let play_at = r.at;
-    let (rt, _) = r.render(1_000); // a pulse is at most 7 ticks, 875 samples, from the first tick
+    let (rt, _) = r.render(1_100); // a pulse is at most 2 ticks, 1000 samples, from the first tick
     assert_eq!(rt[0], (play_at, Realtime::Continue), "not Start: the engine is not at its beginning");
     let next_pulse_tick = (p / TICKS_PER_CLOCK as f64).ceil() * TICKS_PER_CLOCK as f64;
     let first_clock = rt.iter().find(|(_, m)| *m == Realtime::Clock).expect("a clock in the first block").0;
@@ -307,7 +318,8 @@ fn turning_the_clock_on_while_running_says_where_the_sequencer_is_and_then_pulse
     let on_at = r.at;
     let (rt, _) = r.render(128);
     assert_eq!(rt[0], (on_at, Realtime::Continue), "running and not at tick 0");
-    r.run(4_000, 128);
+    // The engine is stepped up to 12 ticks (6,000 samples) ahead of the audio, and the pulses of those ticks were not asked for.
+    r.run(10_000, 128);
     assert!(!r.clocks().is_empty(), "pulses follow");
     // Turning it off drops the pulses already stepped ahead and sends nothing.
     r.e.set_clock_master(false);
@@ -341,7 +353,8 @@ fn an_unusable_tempo_makes_no_pulse_and_leaves_none_to_replay() {
     let n = r.clocks().len();
     r.bpm = 0.0;
     r.run(10_000, 128);
-    assert!(r.clocks().len() <= n + 2, "no tick, no new pulse: only the one or two already stepped ahead of the audio come out ({} then {})", n, r.clocks().len());
+    let ahead = (MAX_EARLY_TICKS / TICKS_PER_CLOCK) as usize + 1;
+    assert!(r.clocks().len() <= n + ahead, "no tick, no new pulse: only those already stepped ahead of the audio come out ({} then {}, at most {ahead} more)", n, r.clocks().len());
     r.bpm = 120.0;
     r.run(1_000, 128);
     let c = r.clocks();
@@ -387,11 +400,11 @@ fn one_render_that_makes_more_messages_than_the_engine_keeps_loses_the_newest_an
 
 #[test]
 fn tick_position_is_the_audio_position_at_the_end_of_the_render_and_is_whole_on_a_tick() {
-    // 120 BPM at 48 kHz is 125 samples a tick. The engine steps ticks ahead of the audio, so its tick count is more than this.
+    // 120 BPM at 48 kHz is 500 samples a tick. The engine steps ticks ahead of the audio, so its tick count is more than this.
     let mut r = Rig::new(Engine::new(1), 120.0, 48_000.0);
     r.playing = true;
     for k in 1..=40u32 {
-        r.render(125);
+        r.render(500);
         let p = r.e.tick_position();
         assert!((p - k as f64).abs() < 1e-9, "after {k} ticks of audio the position is {p}");
     }
@@ -402,9 +415,9 @@ fn tick_position_is_the_audio_position_at_the_end_of_the_render_and_is_whole_on_
 fn tick_position_moves_by_a_fraction_between_ticks() {
     let mut r = Rig::new(Engine::new(1), 120.0, 48_000.0);
     r.playing = true;
-    r.render(125 * 4);
-    r.render(60);
-    assert!((r.e.tick_position() - (4.0 + 60.0 / 125.0)).abs() < 1e-9);
+    r.render(500 * 4);
+    r.render(240);
+    assert!((r.e.tick_position() - (4.0 + 240.0 / 500.0)).abs() < 1e-9);
 }
 
 #[test]
@@ -419,7 +432,10 @@ fn tick_position_never_goes_back_over_blocks_and_tempo_changes() {
         assert!(p >= last, "block {i}: {p} after {last}");
         last = p;
     }
-    assert!(last > 100.0);
+    // 76,800 samples. All at 60 BPM would be 1000 samples a tick, 76.8 ticks; all at 240 BPM would be 307.2. The engine is stepped 12 ticks
+    // ahead, 12,000 samples at 60 BPM, which is longer than the 3,200 samples between jumps, so a new tempo is heard a sixteenth note later
+    // and most of the run is at the old one: the position lies between the two.
+    assert!((76.0..=308.0).contains(&last), "{last}");
 }
 
 #[test]
@@ -446,9 +462,9 @@ fn tick_position_while_stopped_is_where_the_audio_stopped_and_reading_it_changes
     // And Play carries on from there: no jump forward or back, however long it was stopped.
     a.run(5 * 128, 128);
     a.playing = true;
-    a.render(50); // less than the time to the next tick, which is where the position is easiest to get wrong
-    assert!((a.e.tick_position() - (stopped + 50.0 / 125.0)).abs() < 1e-9, "50 samples after the Play, 0.4 of a tick on from where it stopped ({} from {stopped})", a.e.tick_position());
-    a.render(75);
+    a.render(200); // less than the time to the next tick, which is where the position is easiest to get wrong
+    assert!((a.e.tick_position() - (stopped + 200.0 / 500.0)).abs() < 1e-9, "200 samples after the Play, 0.4 of a tick on from where it stopped ({} from {stopped})", a.e.tick_position());
+    a.render(300);
     assert!((a.e.tick_position() - (stopped + 1.0)).abs() < 1e-9, "one tick of audio after the Play, one tick on from where it stopped ({} from {stopped})", a.e.tick_position());
 
     // After a Reset it is the engine's own count again.
@@ -458,10 +474,11 @@ fn tick_position_while_stopped_is_where_the_audio_stopped_and_reading_it_changes
     assert_eq!(a.e.tick_position(), 0.0);
 }
 
-// ------------------------------------------------------------------------------------------------ pending on D0
+// ------------------------------------------------------------------------------------------------ a step and the pulses (was pending on D0)
 
 #[test]
-#[ignore = "pending on D0 (WENGE-0012): with a 192-tick quarter a step is 12 ticks, which is 1.5 pulses; a step is a whole number of pulses only if the tick is 48 to the quarter note. Plan observable M3."]
 fn a_step_is_a_whole_number_of_pulses() {
+    // Plan observable M3. With a 192-tick quarter a step was 12 ticks, 1.5 pulses; with the manual's tick it is 6.
     assert_eq!(DEFAULT_STEP_TICKS % TICKS_PER_CLOCK, 0, "a step must be a whole number of pulses");
+    assert_eq!(DEFAULT_STEP_TICKS / TICKS_PER_CLOCK, 6);
 }

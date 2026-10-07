@@ -536,7 +536,7 @@ impl Engine {
         self.diag
     }
 
-    /// Test/fixture seam: run exactly one 192-PPQN tick, ignoring real-time
+    /// Test/fixture seam: run exactly one tick (48 to the quarter note), ignoring real-time
     /// sample scheduling, and leave `last_tick_fires` populated with whatever
     /// fired. `tests/conformance` fixtures are written in ticks, not samples.
     pub fn step_once_for_test(&mut self) {
@@ -1098,7 +1098,7 @@ impl Engine {
         }
     }
 
-    /// One 192-PPQN tick across every track, descending index order (see module
+    /// One tick (48 to the quarter note) across every track, descending index order (see module
     /// docs). `tick_due_sample` is this tick's absolute sample time, the base for
     /// any note this tick schedules.
     fn step_all_tracks(&mut self, tick_due_sample: f64, samples_per_tick: f64) {
@@ -2004,7 +2004,8 @@ mod tests {
             page.tracks[0].steps[0].chord.count = 1; // chord_size = 2 (base + 1 offset)
             page.tracks[0].steps[0].chord.polyphony = 5; // 3 rest placeholders
 
-            let ctx = RenderContext { sample_rate: 48_000.0, buffer_len: 1600, bpm: 120.0, playing: true };
+            // Long enough to hold the first step's notes: a step is 12 ticks, 6000 samples at 120 BPM and 48 kHz.
+            let ctx = RenderContext { sample_rate: 48_000.0, buffer_len: 8000, bpm: 120.0, playing: true };
             let mut out = EventBuffer::new();
             engine.render(&ctx, &mut out);
             let count = note_ons(out.as_slice()).len();
@@ -2540,11 +2541,12 @@ mod tests {
         }
         let base_abs = base_abs.expect("base note 60 should have fired");
         let extra_abs = extra_abs.expect("phrase extra 64 should have fired");
-        // 120 bpm / 192 PPQN / 48 kHz ≈ 125 samples/tick; 24 ticks ≈ 3000 samples.
-        let delta = extra_abs as i32 - base_abs as i32;
+        // 24 ticks of the tempo set: 500 samples a tick at 120 BPM and 48 kHz (a quarter note is 48 ticks), so 12,000 samples.
+        let want = 24.0 * samples_per_tick(48_000.0, 120.0).unwrap();
+        let delta = extra_abs as f64 - base_abs as f64;
         assert!(
-            (2800..=3200).contains(&delta),
-            "expected ~3000-sample STA delay, got extra={extra_abs} base={base_abs} delta={delta}"
+            (want - 200.0..=want + 200.0).contains(&delta),
+            "expected a 24-tick STA delay of ~{want} samples, got extra={extra_abs} base={base_abs} delta={delta}"
         );
     }
 
@@ -2581,11 +2583,12 @@ mod tests {
                 break;
             }
         }
-        let delta = extra_abs.expect("extra") as i32 - base_abs.expect("base") as i32;
-        // 12 ticks ≈ 1500 samples at 120 bpm / 48 kHz.
+        let delta = extra_abs.expect("extra") as f64 - base_abs.expect("base") as f64;
+        // 12 ticks of the tempo set: 6000 samples at 120 BPM and 48 kHz.
+        let want = 12.0 * samples_per_tick(48_000.0, 120.0).unwrap();
         assert!(
-            (1400..=1600).contains(&delta),
-            "POS 5 should halve a 24-tick STA to ~1500 samples, got {delta}"
+            (want - 100.0..=want + 100.0).contains(&delta),
+            "POS 5 should halve a 24-tick STA to ~{want} samples, got {delta}"
         );
     }
 
@@ -2670,9 +2673,9 @@ mod tests {
         RenderContext { sample_rate: 48_000.0, buffer_len, bpm: 120.0, playing }
     }
 
-    /// Track 0, one long step (LEN 100 ticks = 12,500 samples at 120 BPM), so its NoteOff is
-    /// still queued after the NoteOn goes out. Shorter than the 24,000-sample loop, so the
-    /// note ends before the pattern starts it again.
+    /// Track 0, one long step (LEN 100 ticks = 50,000 samples at 120 BPM), so its NoteOff is
+    /// still queued after the NoteOn goes out. Shorter than the 96,000-sample loop (16 steps of
+    /// 12 ticks, 500 samples a tick), so the note ends before the pattern starts it again.
     fn engine_with_one_long_note() -> Engine {
         let mut e = Engine::new(1);
         let step = &mut e.grid.active_page_mut().tracks[0].steps[0];
@@ -2687,12 +2690,12 @@ mod tests {
         let mut out = EventBuffer::new();
         // Nothing has been handed to the caller yet: scheduled is not sounding.
         assert_eq!(e.sounding_count(), 0);
-        for _ in 0..4 {
+        for _ in 0..20 {
             out.clear();
             e.render(&ctx(true, 512), &mut out);
         }
         assert_eq!(e.sounding_count(), 1, "the NoteOn went out, the NoteOff is still queued");
-        for _ in 0..36 {
+        for _ in 0..100 {
             out.clear();
             e.render(&ctx(true, 512), &mut out);
         }

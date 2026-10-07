@@ -35,7 +35,7 @@ export interface Sample {
   /** Milliseconds from the Start message. */
   sinceStart: number;
   heardMs: number;
-  /** A tick at the sender's tempo here, in milliseconds. */
+  /** One unit of heard error (an eighth of a pulse, `HEARD_TICKS_PER_PULSE`) at the sender's tempo here, in milliseconds. */
   tickMs: number;
   running: boolean;
 }
@@ -49,6 +49,14 @@ export interface LoopResult {
 }
 
 const MEASURE_EVERY_MS = 5;
+
+/**
+ * The unit the heard error is counted in, and that every tolerance in test/follower.test.ts is in: an eighth of a pulse, 2.6 ms at 120 BPM.
+ * D0: tick is 48 to the quarter note, so an ENGINE tick is now half a pulse (10.4 ms at 120 BPM) and this unit is a quarter of one. It was
+ * one engine tick (a pulse was 8 ticks), and it is kept as what it was in time and not in engine ticks: counting the same tolerances in
+ * the new tick would loosen them fourfold.
+ */
+export const HEARD_TICKS_PER_PULSE = 8;
 
 export function runLoop(options: LoopOptions): LoopResult {
   const { sim } = options;
@@ -92,7 +100,7 @@ export function runLoop(options: LoopOptions): LoopResult {
         const index = Math.max(0, Math.min(sim.tempo.length - 1, Math.floor(senderPulses(sim, t))));
         const period = 2500 / sim.tempo[index]!;
         const expected = senderPulses(sim, t + lookahead + offset);
-        samples.push({ at: t, sinceStart: t - (startAt ?? first), heardMs: (pulses - expected) * period, tickMs: period / TICKS_PER_CLOCK, running: plant.running });
+        samples.push({ at: t, sinceStart: t - (startAt ?? first), heardMs: (pulses - expected) * period, tickMs: period / HEARD_TICKS_PER_PULSE, running: plant.running });
       },
     });
   }

@@ -6,12 +6,15 @@
 //   * A tempo or a transport command takes `commandDelayMs` to reach the engine (a message to the worklet, applied before the next block).
 //   * The engine's position is reported every `positionEveryMs` (the worklet's panel message, about 21 ms) with the time it holds at on the
 //     page's clock wrong by up to `mapJitterMs` (the audio-to-page clock map moves by a millisecond or two, ADR-0009 decision 5).
-//   * The engine ticks 192 to the quarter note: `ticks = integral of bpm * 192 / 60000` over milliseconds, and a pulse is 8 ticks.
+//   * The engine ticks `TICKS_PER_QUARTER` to the quarter note: `ticks = integral of bpm * TICKS_PER_QUARTER / 60000` over milliseconds, and a
+//     pulse is `TICKS_PER_CLOCK` ticks. D0: tick is 48 to the quarter note (the manual counts 192 to the whole note), so a pulse is 2 ticks;
+//     it was 192 and 8. The pulse is taken from src/abi.ts, which test/abi.test.ts holds equal to the engine's.
+import { TICKS_PER_CLOCK } from "../../src/abi.ts";
 import { Rng } from "./rng.ts";
 import type { Sim } from "./sim-clock.ts";
 
-export const TICKS_PER_QUARTER = 192;
-export const TICKS_PER_CLOCK = 8;
+export { TICKS_PER_CLOCK };
+export const TICKS_PER_QUARTER = TICKS_PER_CLOCK * 24;
 
 export interface PlantConfig {
   seed: number;

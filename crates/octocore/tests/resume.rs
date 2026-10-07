@@ -26,7 +26,7 @@ use octocore::types::{Command, Realtime, RealtimeEvent, StepAttr};
 use octocore::{Engine, Event, EventBuffer, RenderContext};
 
 const SR: f32 = 48_000.0;
-/// Tempos at which the samples in a tick are an exact binary fraction at 48 kHz (250, 125, 62.5), so a sample position is a fact and not a
+/// Tempos at which the samples in a tick are an exact binary fraction at 48 kHz (1000, 500, 250), so a sample position is a fact and not a
 /// rounding, and "shifted by the gap" is exact.
 const BPMS: [f32; 3] = [60.0, 120.0, 240.0];
 const SEEDS: u64 = 60;
@@ -350,19 +350,19 @@ fn play_after_a_stop_is_the_stream_that_stopped_with_the_gap_taken_out() {
 
 #[test]
 fn a_stop_exactly_on_a_pulse_tick_neither_loses_that_pulse_nor_sends_it_twice() {
-    // 120 BPM at 48 kHz: tick 88 is a pulse tick (88 = 11 x 8) and falls on sample 11,000. The Stop comes on that sample, so the tick has
+    // 120 BPM at 48 kHz: tick 88 is a pulse tick (88 = 44 x 2) and falls on sample 44,000. The Stop comes on that sample, so the tick has
     // not sounded: its pulse is the Play's to send, on the Play's own sample, once, after the Continue.
     let mut h = Host::new(one_track(&[(0, 6), (3, 6)]), 120.0, true);
-    h.run(11_000, 128, true);
+    h.run(44_000, 128, true);
     h.e.handle_command(Command::Stop);
     h.run(777, 128, false);
     let played_at = h.at;
     h.e.handle_command(Command::Play);
     h.run(1_200, 128, true);
-    let after: Vec<(u64, Realtime)> = h.realtime.iter().filter(|(s, _)| *s >= 11_000).copied().collect();
-    assert_eq!(after[..4], [(11_000, Realtime::Stop), (played_at, Realtime::Continue), (played_at, Realtime::Clock), (played_at + 8 * 125, Realtime::Clock)], "{after:?}");
-    let before: Vec<(u64, Realtime)> = h.realtime.iter().filter(|(s, m)| *s < 11_000 && *m == Realtime::Clock).copied().collect();
-    assert_eq!(before.last(), Some(&(10_000, Realtime::Clock)), "the last pulse before the Stop is tick 80's, not tick 88's");
+    let after: Vec<(u64, Realtime)> = h.realtime.iter().filter(|(s, _)| *s >= 44_000).copied().collect();
+    assert_eq!(after[..4], [(44_000, Realtime::Stop), (played_at, Realtime::Continue), (played_at, Realtime::Clock), (played_at + 2 * 500, Realtime::Clock)], "{after:?}");
+    let before: Vec<(u64, Realtime)> = h.realtime.iter().filter(|(s, m)| *s < 44_000 && *m == Realtime::Clock).copied().collect();
+    assert_eq!(before.last(), Some(&(43_000, Realtime::Clock)), "the last pulse before the Stop is tick 86's, not tick 88's");
 }
 
 // ------------------------------------------------------------------------------------------------ the cases the sweep cannot build
@@ -385,12 +385,12 @@ fn one_track(steps: &[(usize, u8)]) -> Engine {
 
 #[test]
 fn two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_stop_falls_between_them() {
-    // 120 BPM at 48 kHz is 125 samples a tick, and a step's note comes on the twelfth tick of its step: step 0 at tick 11 and step 1 at
+    // 120 BPM at 48 kHz is 500 samples a tick, and a step's note comes on the twelfth tick of its step: step 0 at tick 11 and step 1 at
     // tick 23. Step 0 is a long note and step 1 a short one of the same pitch: the first ends at tick 111 and the second at tick 43. A Stop
     // at tick 15 falls after the first note has started and before the second has, with both Note Offs already in the queue. Only the
     // first Note Off is the stop's to send, as the flush; the second goes on with its note. Dropping the wrong one leaves the second note
     // sounding to tick 111.
-    let spt = 125u64;
+    let spt = 500u64;
     let mut h = Host::new(one_track(&[(0, 100), (1, 20)]), 120.0, false);
     h.run(15 * spt, 128, true);
     assert_eq!(h.events.len(), 1, "the first note has started: {:?}", h.events);
@@ -403,7 +403,7 @@ fn two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_stop_falls_between_
     let stopped_at = 15 * spt;
     let played_at = h.at;
     h.e.handle_command(Command::Play);
-    h.run(14_000, 128, true);
+    h.run(20_000, 128, true); // 40 ticks: the second note ends 28 ticks after the Play
 
     let got: Vec<(u64, Event)> = h.events[1..].to_vec();
     let gap = played_at - stopped_at;
@@ -419,7 +419,7 @@ fn two_notes_of_one_pitch_that_overlap_are_told_apart_when_a_stop_falls_between_
 #[test]
 fn a_reset_after_a_stop_forgets_the_notes_held_for_the_play() {
     // Reset is "back to the start". What Stop held for the Play is part of the position, so Reset drops it, and the next Play is a new run.
-    let spt = 125u64;
+    let spt = 500u64;
     let steps: Vec<(usize, u8)> = (0..16).map(|s| (s, 6)).collect();
     let mut h = Host::new(one_track(&steps), 120.0, true);
     h.run(10 * spt, 128, true); // step 0's note, at tick 11, is stepped and not yet sounded: Stop holds it
@@ -448,7 +448,7 @@ fn an_edit_made_while_stopped_is_heard_from_the_first_tick_the_engine_had_not_ye
     // ticks before step 1's note (tick 23, which is stepped, up to 12 ticks ahead, when the Stop comes), that note still sounds on Play
     // though the player has made a rest of it while stopped. The steps after it are the new ones. A design that rewinds the tracks on Stop
     // would hear the edit at once; this test changes when that design is chosen, and says so.
-    let spt = 125u64;
+    let spt = 500u64;
     let steps: Vec<(usize, u8)> = (0..16).map(|s| (s, 6)).collect();
     let mut h = Host::new(one_track(&steps), 120.0, false);
     h.run(18 * spt, 128, true); // step 0 has sounded and ended (tick 11 to tick 17)

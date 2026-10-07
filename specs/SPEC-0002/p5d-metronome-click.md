@@ -12,9 +12,9 @@
 
 The four lines of Sun 11:07 end "tick should just be metronome on or off - which follows the midi and tempo set". The plan read
 that two ways (D-P5-13). The 16:09 message, "Metronome needs to be built", is read as **(b): an audible click, on or off, that
-follows the transport and the tempo.** D0 (192 ticks to a whole note or to a quarter) is not answered and the click does not need
-it: it counts the engine's own clock grid, 24 pulses to a quarter note, 8 ticks to a pulse (`TICKS_PER_CLOCK`), so one click is
-`24 * 8 = 192` engine ticks. That is the beat an external device counts from the engine's MIDI clock, whatever the manual calls
+follows the transport and the tempo.** D0 (192 ticks to a whole note or to a quarter) was not answered when this was written and the click does not need
+it: it counts the engine's own clock grid, 24 pulses to a quarter note, `TICKS_PER_CLOCK` ticks to a pulse, so one click is
+`24 * TICKS_PER_CLOCK` engine ticks (192 at the time, 48 since D0 was decided by default, `p6a-tick-length.md`). That is the beat an external device counts from the engine's MIDI clock, whatever the manual calls
 a tick.
 
 The click is **a page control, not a panel control**: the Octopus has no metronome key on its face (`controls.json` has none),
@@ -23,7 +23,7 @@ so nothing is added to the panel and no contract is edited.
 ## 2. Design
 
 **W (chosen): the worklet works out each beat from the engine's tick position.** Each 128-frame block the worklet reads
-`tickPosition()` before and after `render()`, finds the beats `k` with `p0 <= k * 192 < p1`, and writes a click into its own
+`tickPosition()` before and after `render()`, finds the beats `k` with `p0 <= k * QUARTER_TICKS < p1` (`QUARTER_TICKS = 24 * TICKS_PER_CLOCK`), and writes a click into its own
 output at the sample where each falls, by linear interpolation inside the block. No engine change, no ABI change.
 
 - It follows the tempo because the position does: a tempo change moves where the next beat falls, with no rule of its own.

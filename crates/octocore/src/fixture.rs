@@ -451,7 +451,7 @@ pub fn run_script(source: &str, limits: Limits) -> Result<Played, String> {
                     .map_err(|e| format!("{}: {}", ctx(), e))?;
             }
             ["play", n, step_word] if step_word.starts_with("step") => {
-                // A "step" is DEFAULT_STEP_TICKS (12) PPQN ticks (a 1/16 note at
+                // A "step" is DEFAULT_STEP_TICKS (12) ticks (a 1/16 note at
                 // the default 1x multiplier) — one call to `step_once_for_test`
                 // is one *tick*, not one step; see docs/03-sequencer-core.md §2.
                 let steps: u32 = n.parse().map_err(|_| format!("{}: bad step count", ctx()))?;
@@ -519,13 +519,13 @@ mod tests {
 
     #[test]
     fn v2_render_collects_note_on_and_off_with_the_right_length() {
-        // 120 BPM at 48 kHz is 125 samples per tick, so a 12-tick step is 1500 samples.
-        // Two seconds fits exactly one note (the pattern repeats every 24,000 samples).
-        v2("play\nrender 8 buffers buffer=512\n\
+        // 120 BPM at 48 kHz is 500 samples per tick (a quarter note is 48 ticks), so a 12-tick step is 6000 samples.
+        // 32 buffers of 512 is 16,384 samples: one note, on and off (the pattern repeats every 96,000 samples).
+        v2("play\nrender 32 buffers buffer=512\n\
             expect event on count=1\n\
             expect event off count=1\n\
-            expect event on len=1500\n\
-            expect event on at=1..4095\n")
+            expect event on len=6000\n\
+            expect event on at=0..8191\n")
             .unwrap();
     }
 
@@ -536,7 +536,7 @@ mod tests {
 
     #[test]
     fn v2_absent_and_count_are_checked() {
-        let seen = "play\nrender 8 buffers buffer=512\n";
+        let seen = "play\nrender 32 buffers buffer=512\n";
         assert!(v2(&format!("{seen}expect event on absent\n")).is_err());
         assert!(v2(&format!("{seen}expect event on count=2\n")).is_err());
         v2(&format!("{seen}expect event cc absent\n")).unwrap();
@@ -545,19 +545,19 @@ mod tests {
 
     #[test]
     fn v2_filters_by_port_channel_note_and_velocity() {
-        v2("track 0 mch 17\nplay\nrender 8 buffers buffer=512\n\
+        v2("track 0 mch 17\nplay\nrender 32 buffers buffer=512\n\
             expect event on port=2 ch=1 count=1\n\
             expect event on port=1 absent\n")
             .unwrap();
-        assert!(v2("play\nrender 8 buffers buffer=512\nexpect event on vel=0\n").is_err());
+        assert!(v2("play\nrender 32 buffers buffer=512\nexpect event on vel=0\n").is_err());
     }
 
     #[test]
     fn v2_balance_catches_a_note_still_sounding() {
-        // At 2048 samples the note is on (fires before that) and its off (1500 later) is not.
-        let err = v2("play\nrender 4 buffers buffer=512\nexpect balance\n").unwrap_err();
+        // At 5632 samples (11 buffers) the note is on and its off, a step (6000 samples) after it, is not.
+        let err = v2("play\nrender 11 buffers buffer=512\nexpect balance\n").unwrap_err();
         assert!(err.contains("do not balance"), "{err}");
-        v2("play\nrender 8 buffers buffer=512\nexpect balance\n").unwrap();
+        v2("play\nrender 32 buffers buffer=512\nexpect balance\n").unwrap();
     }
 
     #[test]
@@ -594,7 +594,7 @@ mod tests {
     fn v2_step_all_and_len_attributes() {
         run_fixture(
             "seed 1\npage.tracks 0 enabled\ntrack 0 step all active 1\ntrack 0 step all len 6\n\
-             play\nrender 1 s buffer=512\nexpect event on len=750\n",
+             play\nrender 2 s buffer=512\nexpect event on len=3000\n",
         )
         .unwrap();
     }

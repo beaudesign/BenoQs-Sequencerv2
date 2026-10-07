@@ -8,7 +8,8 @@
 use crate::encode::{led_byte, write_merged, EVENT_BYTES};
 use octocore::domain::TRACK_COUNT;
 use octocore::engine::{MAX_BPM, MAX_SAMPLE_RATE, MIN_BPM, MIN_SAMPLE_RATE, REALTIME_PER_RENDER};
-use octocore::types::{Command, ControlId, Snapshot, TrackAttr, MAX_CONTROLS, MAX_EVENTS_PER_TICK};
+use octocore::domain::STEP_COUNT;
+use octocore::types::{Command, ControlId, Snapshot, StepAttr, TrackAttr, MAX_CONTROLS, MAX_EVENTS_PER_TICK};
 use octocore::{Engine, EventBuffer, Realtime, RealtimeEvent, RenderContext};
 use octoface::{Input, Layout, PageView, Panel, PanelMode};
 use std::cell::{Cell, RefCell};
@@ -232,6 +233,23 @@ pub fn set_track(track: u32, attr: u32, value: i32) -> u32 {
         match (track, TrackAttr::from_u32(attr)) {
             (Some(track), Some(attr)) => {
                 h.engine.handle_command(Command::SetTrack { track, attr, value });
+                OK
+            }
+            _ => ERR_BAD_ARGUMENT,
+        }
+    })
+    .unwrap_or(ERR_NOT_INITIALISED)
+}
+
+/// One attribute of one step, through the engine's own `SetStep` (P6, `specs/SPEC-0002/p6-runs-when-opened.md`). `attr` is the attribute's place in
+/// `StepAttr::ALL`; a track, step or attribute that does not exist is refused, and the value is the engine's to clamp.
+pub fn set_step(track: u32, step: u32, attr: u32, value: i32) -> u32 {
+    with_host(|h| {
+        let track = u8::try_from(track).ok().filter(|t| usize::from(*t) < TRACK_COUNT);
+        let step = u8::try_from(step).ok().filter(|s| usize::from(*s) < STEP_COUNT);
+        match (track, step, StepAttr::from_u32(attr)) {
+            (Some(track), Some(step), Some(attr)) => {
+                h.engine.handle_command(Command::SetStep { track, step, attr, value });
                 OK
             }
             _ => ERR_BAD_ARGUMENT,

@@ -9,7 +9,6 @@ import { after, before, test } from "node:test";
 import type { Browser, Page } from "playwright-core";
 import { launch } from "../../scripts/browser.ts";
 import { serve, type Server } from "../../scripts/serve.ts";
-import { midiBytes } from "../../src/midi-out.ts";
 import { parseLayout, place, tabOrder, type ControlsDoc } from "../../src/layout.ts";
 import { parseTokens } from "../../src/tokens.ts";
 import { repoRoot } from "../support/module.ts";
@@ -821,12 +820,6 @@ async function clockSays(page: Page, words: string, timeout = 3_000): Promise<vo
   } catch {
     assert.equal(await clockSaid(page), words);
   }
-}
-
-/** The engine's distance from the sender's beat, in milliseconds (positive: ahead), read from the detail line, or null if it shows none. */
-async function phaseShown(page: Page): Promise<number | null> {
-  const m = /engine (\d+\.\d) ms (ahead|behind)/.exec((await page.textContent("#clock-detail")) ?? "");
-  return m ? Number(m[1]) * (m[2] === "ahead" ? 1 : -1) : null;
 }
 
 const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;

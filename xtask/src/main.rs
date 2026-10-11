@@ -261,7 +261,7 @@ struct Outcome {
     duration_s: f64,
 }
 
-fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
+fn run_all(root: &Path, o: &Opts) -> Result<Outcome, String> {
     let baseline = load_baseline(root)?;
     let base = match &o.base {
         Some(r) => load_base_baseline(root, r)?,
@@ -283,7 +283,7 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
         scope: &scope_scan,
     };
     let (gates, assertions) = gates::evaluate(&inputs);
-    Ok((Outcome { gates, assertions, duration_s: start.elapsed().as_secs_f64() }, baseline))
+    Ok(Outcome { gates, assertions, duration_s: start.elapsed().as_secs_f64() })
 }
 
 // ------------------------------------------------------------------- commands
@@ -291,7 +291,7 @@ fn run_all(root: &Path, o: &Opts) -> Result<(Outcome, Baseline), String> {
 fn verify(o: &Opts) -> Result<ExitCode, String> {
     let root = root();
     let required = load_required(&root)?;
-    let (outcome, _) = run_all(&root, o)?;
+    let outcome = run_all(&root, o)?;
 
     let rep = report::Report {
         commit: commit_hash(&root),
@@ -371,7 +371,7 @@ fn gate(name: &str, o: &Opts) -> Result<ExitCode, String> {
         );
         gates::scope_gate(def, &scan)
     } else {
-        let (outcome, _) = run_all(&root, o)?;
+        let outcome = run_all(&root, o)?;
         outcome.gates.iter().find(|g| g.name == name).expect("gate is in the table").clone()
     };
     for m in &g.metrics {

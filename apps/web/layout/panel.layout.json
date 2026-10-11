@@ -1,21 +1,1112 @@
 {
-  "schema": "panel.layout/1",
-  "status": "provisional",
-  "note": "Where the first panel puts the controls it draws. The manual places the matrix (p013, p047, p052), says the SEL column is left of it and the MIX TARGET row below it (p015, p038), and says where no other control sits: the MODE block's contents are Q23, the EDIT block's order is Q04, and the transport keys' LEDs are Q26. So the matrix is placed as the manual says (sixteen columns, row 0 at the bottom, controls.json zone matrix), and the eleven other controls the controller acts on are set out below it in rows, grouped by the zone controls.json gives them, so that they can be used. That arrangement is the web app's own and is not the hardware's. Sizes are token names, positions are cells, and no length is written here.",
-  "size": { "key": "space.6", "gap": "space.2", "margin": "space.4" },
-  "label": { "span": 2, "chars": 16, "leading_em": 1.2 },
-  "matrix": { "col": 0, "row": 0 },
-  "controls": [
-    { "id": "mode.page", "col": 0, "row": 11 },
-    { "id": "mode.step", "col": 3, "row": 11 },
-    { "id": "mode.play", "col": 6, "row": 11 },
-    { "id": "mode.edit", "col": 9, "row": 11 },
-    { "id": "keys.esc", "col": 12, "row": 11 },
-    { "id": "keys.program", "col": 0, "row": 12 },
-    { "id": "mutator.tgl", "col": 3, "row": 12 },
-    { "id": "mutator.zom", "col": 6, "row": 12 },
-    { "id": "mutator.mute", "col": 9, "row": 12 },
-    { "id": "transport.play", "col": 0, "row": 13 },
-    { "id": "transport.stop", "col": 3, "row": 13 }
-  ]
+ "schema": "panel.layout/2",
+ "status": "provisional",
+ "note": "Where the panel puts every control the inventory holds, taken from reference/plates/web-frontal-01.jpg by handoffs/evidence/panel-layout/extract.py (the measurement) and assign.py (what each measured key is). Positions are in matrix column pitches from the plate's top left corner: one pitch is the key size plus the gap, from the tokens, so this file holds no length. A matrix row is row_pitch pitches apart. 'basis' says how an entry's identity is known: lattice or photo (read from the plate), glyph (read from its printed symbol), position (from where it sits among named blocks), order (from its place in a group whose order the photograph does not settle: provisional). 'hw' keys are on the plate and in no inventory (controls.json); they are drawn and do nothing. 'unplaced' controls have no place on the plate and are not drawn.",
+ "source": {
+  "photograph": "reference/plates/web-frontal-01.jpg",
+  "measurement": "handoffs/evidence/panel-layout/measured.json",
+  "roll_degrees": -0.2
+ },
+ "size": {
+  "key": "space.4",
+  "gap": "space.3",
+  "margin": "space.4",
+  "dot": "space.2",
+  "knob": "space.5"
+ },
+ "knob": {
+  "ball": 0.62
+ },
+ "led": {
+  "distance": 0.5
+ },
+ "plate": {
+  "w": 50.07,
+  "h": 23.12
+ },
+ "matrix": {
+  "x": 8.04,
+  "y": 4.96,
+  "row_pitch": 1.4953
+ },
+ "controls": [
+  {
+   "id": "mix.enc.r0",
+   "x": 4.11,
+   "y": 18.51,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r1",
+   "x": 4.06,
+   "y": 17.05,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r2",
+   "x": 4.07,
+   "y": 15.53,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r3",
+   "x": 4.08,
+   "y": 14.07,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r4",
+   "x": 4.03,
+   "y": 12.55,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r5",
+   "x": 4.04,
+   "y": 11.03,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r6",
+   "x": 4.06,
+   "y": 9.51,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r7",
+   "x": 4.07,
+   "y": 7.99,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r8",
+   "x": 4.02,
+   "y": 6.53,
+   "basis": "photo"
+  },
+  {
+   "id": "mix.enc.r9",
+   "x": 4.03,
+   "y": 5.0,
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.vel",
+   "x": 28.67,
+   "y": 5.03,
+   "text": "VEL",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.pit",
+   "x": 28.05,
+   "y": 6.49,
+   "text": "PIT",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.len",
+   "x": 27.62,
+   "y": 7.95,
+   "text": "LEN",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.sta",
+   "x": 27.3,
+   "y": 9.53,
+   "text": "STA",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.pos",
+   "x": 27.11,
+   "y": 10.99,
+   "text": "POS",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.dir",
+   "x": 27.1,
+   "y": 12.51,
+   "text": "DIR",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.amt",
+   "x": 27.33,
+   "y": 14.03,
+   "text": "AMT",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.grv",
+   "x": 27.62,
+   "y": 15.56,
+   "text": "GRV",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.mcc",
+   "x": 27.97,
+   "y": 17.02,
+   "text": "MCC",
+   "basis": "photo"
+  },
+  {
+   "id": "edit.enc.mch",
+   "x": 28.57,
+   "y": 18.48,
+   "text": "MCH",
+   "basis": "photo"
+  },
+  {
+   "id": "main.enc",
+   "x": 44.86,
+   "y": 4.3,
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r0",
+   "x": 6.18,
+   "y": 18.4,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r1",
+   "x": 6.13,
+   "y": 16.94,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r2",
+   "x": 6.14,
+   "y": 15.42,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r3",
+   "x": 6.15,
+   "y": 13.96,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r4",
+   "x": 6.16,
+   "y": 12.44,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r5",
+   "x": 6.11,
+   "y": 10.91,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r6",
+   "x": 6.12,
+   "y": 9.45,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r7",
+   "x": 6.14,
+   "y": 7.93,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r8",
+   "x": 6.15,
+   "y": 6.47,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "selector.r9",
+   "x": 6.1,
+   "y": 4.95,
+   "led": "e",
+   "basis": "photo"
+  },
+  {
+   "id": "mutator.tgl",
+   "x": 24.78,
+   "y": 4.96,
+   "led": "w",
+   "text": "TGL",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.sol",
+   "x": 24.77,
+   "y": 6.48,
+   "led": "w",
+   "text": "SOL",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.clr",
+   "x": 24.76,
+   "y": 7.94,
+   "led": "w",
+   "text": "CLR",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.rnd",
+   "x": 24.74,
+   "y": 9.46,
+   "led": "w",
+   "text": "RND",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.flt",
+   "x": 24.73,
+   "y": 10.92,
+   "led": "w",
+   "text": "FLT",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.zom",
+   "x": 24.72,
+   "y": 12.44,
+   "led": "w",
+   "text": "ZOM",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.rmx",
+   "x": 24.71,
+   "y": 13.96,
+   "led": "n",
+   "text": "RMX",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.cpy",
+   "x": 24.7,
+   "y": 15.42,
+   "led": "w",
+   "text": "Copy",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.pst",
+   "x": 24.69,
+   "y": 16.88,
+   "led": "n",
+   "text": "Paste",
+   "basis": "order"
+  },
+  {
+   "id": "mutator.eff",
+   "x": 24.74,
+   "y": 18.41,
+   "led": "w",
+   "text": "EFF",
+   "basis": "order"
+  },
+  {
+   "id": "mix.master",
+   "x": 4.1,
+   "y": 20.1,
+   "led": "n",
+   "text": "MIX",
+   "basis": "photo"
+  },
+  {
+   "id": "mutator.mute",
+   "x": 24.73,
+   "y": 20.11,
+   "led": "n",
+   "text": "Mute",
+   "basis": "photo"
+  },
+  {
+   "id": "mode.edit",
+   "x": 28.26,
+   "y": 20.06,
+   "led": "n",
+   "text": "EDIT",
+   "basis": "position"
+  },
+  {
+   "id": "keys.esc",
+   "x": 30.69,
+   "y": 20.07,
+   "led": "n",
+   "text": "ESC",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.tempo",
+   "x": 40.96,
+   "y": 5.87,
+   "led": "n",
+   "text": "Tempo",
+   "basis": "photo"
+  },
+  {
+   "id": "keys.program",
+   "x": 42.11,
+   "y": 6.78,
+   "led": "n",
+   "text": "Program",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.select",
+   "x": 42.95,
+   "y": 7.88,
+   "led": "n",
+   "text": "Select",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.chain",
+   "x": 32.96,
+   "y": 17.58,
+   "led": "n",
+   "text": "X",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.clock200",
+   "x": 45.69,
+   "y": 7.28,
+   "led": "n",
+   "text": "200",
+   "basis": "order"
+  },
+  {
+   "id": "transport.play",
+   "x": 39.65,
+   "y": 18.34,
+   "text": "Play",
+   "basis": "photo"
+  },
+  {
+   "id": "transport.pause",
+   "x": 38.37,
+   "y": 18.7,
+   "text": "Pause",
+   "basis": "photo"
+  },
+  {
+   "id": "transport.stop",
+   "x": 36.97,
+   "y": 18.87,
+   "text": "Stop",
+   "basis": "photo"
+  },
+  {
+   "id": "transport.rec",
+   "x": 35.57,
+   "y": 18.69,
+   "led": "n",
+   "text": "Record",
+   "basis": "photo"
+  },
+  {
+   "id": "chord.b1",
+   "x": 46.76,
+   "y": 10.7,
+   "led": "n",
+   "text": "1",
+   "basis": "order"
+  },
+  {
+   "id": "chord.b2",
+   "x": 46.75,
+   "y": 12.58,
+   "led": "n",
+   "text": "2",
+   "basis": "order"
+  },
+  {
+   "id": "chord.b3",
+   "x": 46.37,
+   "y": 14.34,
+   "led": "n",
+   "text": "3",
+   "basis": "order"
+  },
+  {
+   "id": "chord.b4",
+   "x": 45.69,
+   "y": 16.17,
+   "led": "n",
+   "text": "4",
+   "basis": "order"
+  },
+  {
+   "id": "chord.b5",
+   "x": 44.64,
+   "y": 17.75,
+   "led": "n",
+   "text": "5",
+   "basis": "order"
+  },
+  {
+   "id": "chord.b6",
+   "x": 43.35,
+   "y": 19.02,
+   "led": "n",
+   "text": "6",
+   "basis": "order"
+  },
+  {
+   "id": "chord.b7",
+   "x": 41.82,
+   "y": 20.11,
+   "led": "n",
+   "text": "7",
+   "basis": "order"
+  },
+  {
+   "id": "circle.note.k1",
+   "x": 34.2,
+   "y": 14.54,
+   "led": "n",
+   "text": "C",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k2",
+   "x": 33.42,
+   "y": 13.26,
+   "led": "n",
+   "text": "C#",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k3",
+   "x": 33.12,
+   "y": 11.74,
+   "led": "n",
+   "text": "D",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k4",
+   "x": 33.44,
+   "y": 10.28,
+   "led": "n",
+   "text": "D#",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k5",
+   "x": 34.24,
+   "y": 8.95,
+   "led": "n",
+   "text": "E",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k6",
+   "x": 35.52,
+   "y": 8.16,
+   "led": "n",
+   "text": "F",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k7",
+   "x": 37.05,
+   "y": 7.86,
+   "led": "n",
+   "text": "F#",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k8",
+   "x": 38.57,
+   "y": 8.17,
+   "led": "n",
+   "text": "G",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k9",
+   "x": 39.9,
+   "y": 8.97,
+   "led": "n",
+   "text": "G#",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k10",
+   "x": 40.62,
+   "y": 10.25,
+   "led": "n",
+   "text": "A",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k11",
+   "x": 40.91,
+   "y": 11.77,
+   "led": "n",
+   "text": "A#",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.note.k12",
+   "x": 40.6,
+   "y": 13.23,
+   "led": "n",
+   "text": "B",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.upper_c",
+   "x": 39.8,
+   "y": 14.56,
+   "led": "n",
+   "text": "C",
+   "text_basis": "photo",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.scale_mod",
+   "x": 35.47,
+   "y": 15.4,
+   "led": "n",
+   "text": "MOD",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.scale_sel",
+   "x": 36.99,
+   "y": 15.71,
+   "led": "n",
+   "text": "SEL",
+   "basis": "photo"
+  },
+  {
+   "id": "circle.scale_cad",
+   "x": 38.45,
+   "y": 15.41,
+   "led": "n",
+   "text": "CAD",
+   "basis": "photo"
+  },
+  {
+   "id": "mode.grid",
+   "x": 38.13,
+   "y": 9.75,
+   "led": "n",
+   "text": "GRID",
+   "basis": "photo"
+  },
+  {
+   "id": "mode.page",
+   "x": 36.9,
+   "y": 10.78,
+   "text": "PAGE",
+   "basis": "photo"
+  },
+  {
+   "id": "mode.track",
+   "x": 35.92,
+   "y": 11.63,
+   "led": "e",
+   "text": "TRACK",
+   "basis": "photo"
+  },
+  {
+   "id": "mode.step",
+   "x": 38.9,
+   "y": 11.82,
+   "led": "n",
+   "text": "STEP",
+   "basis": "photo"
+  },
+  {
+   "id": "mode.play",
+   "x": 38.23,
+   "y": 13.04,
+   "led": "n",
+   "text": "PLAY",
+   "basis": "photo"
+  }
+ ],
+ "keys": [
+  {
+   "id": "hw.sel",
+   "x": 6.17,
+   "y": 20.1,
+   "led": "n",
+   "text": "SEL",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.atr",
+   "x": 9.76,
+   "y": 20.12,
+   "led": "n",
+   "text": "ATR",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.vol",
+   "x": 10.73,
+   "y": 20.06,
+   "led": "n",
+   "text": "VOL",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.pan",
+   "x": 11.77,
+   "y": 20.06,
+   "led": "n",
+   "text": "PAN",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.mod",
+   "x": 12.74,
+   "y": 20.07,
+   "led": "n",
+   "text": "MOD",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.exp",
+   "x": 13.71,
+   "y": 20.07,
+   "led": "n",
+   "text": "EXP",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.map",
+   "x": 14.75,
+   "y": 20.07,
+   "led": "n",
+   "text": "MAP",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.1",
+   "x": 16.15,
+   "y": 20.08,
+   "led": "n",
+   "text": "1",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.2",
+   "x": 17.12,
+   "y": 20.08,
+   "led": "n",
+   "text": "2",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.3",
+   "x": 18.15,
+   "y": 20.09,
+   "led": "n",
+   "text": "3",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.4",
+   "x": 19.13,
+   "y": 20.09,
+   "led": "n",
+   "text": "4",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.target.5",
+   "x": 20.1,
+   "y": 20.09,
+   "led": "n",
+   "text": "5",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.1",
+   "x": 29.9,
+   "y": 11.73,
+   "led": "n",
+   "text": "I",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.2",
+   "x": 30.15,
+   "y": 10.33,
+   "led": "n",
+   "text": "II",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.3",
+   "x": 30.53,
+   "y": 9.05,
+   "led": "n",
+   "text": "III",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.4",
+   "x": 31.15,
+   "y": 7.84,
+   "led": "n",
+   "text": "IV",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.5",
+   "x": 32.07,
+   "y": 6.75,
+   "led": "n",
+   "text": "V",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.6",
+   "x": 33.17,
+   "y": 5.84,
+   "led": "n",
+   "text": "VI",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.7",
+   "x": 34.39,
+   "y": 5.23,
+   "led": "n",
+   "text": "VII",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.8",
+   "x": 35.67,
+   "y": 4.87,
+   "led": "n",
+   "text": "VIII",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.9",
+   "x": 37.07,
+   "y": 4.76,
+   "led": "n",
+   "text": "IX",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.num.10",
+   "x": 38.47,
+   "y": 4.88,
+   "led": "n",
+   "text": "X",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.1",
+   "x": 39.81,
+   "y": 5.25,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.2",
+   "x": 43.55,
+   "y": 9.04,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.3",
+   "x": 43.97,
+   "y": 10.38,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.4",
+   "x": 44.14,
+   "y": 11.78,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.5",
+   "x": 44.01,
+   "y": 13.18,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.6",
+   "x": 43.57,
+   "y": 14.46,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.7",
+   "x": 42.89,
+   "y": 15.73,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.8",
+   "x": 41.97,
+   "y": 16.82,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.9",
+   "x": 40.93,
+   "y": 17.61,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.10",
+   "x": 31.99,
+   "y": 16.73,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.11",
+   "x": 31.09,
+   "y": 15.75,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.12",
+   "x": 30.43,
+   "y": 14.41,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.ring.13",
+   "x": 30.01,
+   "y": 13.13,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.transport.left",
+   "x": 34.29,
+   "y": 18.32,
+   "led": "n",
+   "basis": "photo"
+  },
+  {
+   "id": "hw.mode.map",
+   "x": 36.82,
+   "y": 13.46,
+   "led": "n",
+   "text": "MAP",
+   "basis": "photo"
+  }
+ ],
+ "legends": [
+  {
+   "text": "MIX",
+   "x": 4.15,
+   "y": 21.01,
+   "kind": "section",
+   "anchor": "middle"
+  },
+  {
+   "text": "SEL",
+   "x": 6.22,
+   "y": 21.02,
+   "kind": "section",
+   "anchor": "middle"
+  },
+  {
+   "text": "MUT",
+   "x": 24.78,
+   "y": 21.08,
+   "kind": "section",
+   "anchor": "middle"
+  },
+  {
+   "text": "EDIT",
+   "x": 28.92,
+   "y": 21.1,
+   "kind": "section",
+   "anchor": "middle"
+  },
+  {
+   "text": "CHORD",
+   "x": 43.4,
+   "y": 20.91,
+   "kind": "section",
+   "anchor": "middle"
+  },
+  {
+   "text": "MODE",
+   "x": 35.82,
+   "y": 9.62,
+   "kind": "section",
+   "anchor": "middle"
+  },
+  {
+   "text": "SCALE",
+   "x": 37.12,
+   "y": 14.56,
+   "kind": "section",
+   "anchor": "middle"
+  },
+  {
+   "text": "TRANSPORT",
+   "x": 36.98,
+   "y": 17.17,
+   "kind": "section",
+   "anchor": "middle"
+  },
+  {
+   "text": "MIX TARGET",
+   "x": 14.93,
+   "y": 19.4,
+   "kind": "caption",
+   "anchor": "middle"
+  },
+  {
+   "text": "0",
+   "x": 5.15,
+   "y": 18.4,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "1",
+   "x": 5.16,
+   "y": 16.91,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "2",
+   "x": 5.17,
+   "y": 15.41,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "3",
+   "x": 5.18,
+   "y": 13.92,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "4",
+   "x": 5.19,
+   "y": 12.42,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "5",
+   "x": 5.2,
+   "y": 10.93,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "6",
+   "x": 5.21,
+   "y": 9.43,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "7",
+   "x": 5.22,
+   "y": 7.94,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "8",
+   "x": 5.23,
+   "y": 6.44,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "9",
+   "x": 5.25,
+   "y": 4.95,
+   "kind": "row",
+   "anchor": "middle"
+  },
+  {
+   "text": "𝄞",
+   "x": 2.42,
+   "y": 8.04,
+   "kind": "clef",
+   "anchor": "middle"
+  },
+  {
+   "text": "𝄢",
+   "x": 2.38,
+   "y": 14.19,
+   "kind": "clef",
+   "anchor": "middle"
+  }
+ ],
+ "unplaced": [
+  {
+   "id": "circle.low_c",
+   "why": "The note ring in the photograph has 13 keys (C, C#, D, D#, E, F, F#, G, G#, A, A#, B, C), and the inventory has 14 (twelve notes, an upper C and a low C). Q33."
+  },
+  {
+   "id": "circle.chr",
+   "why": "The 'Chr.' key is not among the keys the photograph lets be read; the outer ring has 13 keys (hw.ring.*) whose names are too small to read."
+  },
+  {
+   "id": "circle.follow",
+   "why": "The Follow key is not among the keys the photograph lets be read (hw.ring.*)."
+  },
+  {
+   "id": "mutator.aln",
+   "why": "The mutator column has ten keys and a MUT key under it; the inventory has twelve mutators, and the photograph does not say where the twelfth is."
+  },
+  {
+   "id": "circle.numeric",
+   "why": "The 'numeric field' is a display, not a key, and the photograph shows no numeric display."
+  }
+ ]
 }

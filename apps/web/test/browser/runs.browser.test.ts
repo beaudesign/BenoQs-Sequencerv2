@@ -70,7 +70,7 @@ const face = (id: string): string => `g[data-id="${id}"] .face`;
 /** The matrix keys that are red now, as [track, step]. */
 function redKeys(page: Page): Promise<[number, number][]> {
   return page.evaluate(() =>
-    [...document.querySelectorAll<SVGElement>('g[data-id^="matrix."] .face.led[data-colour="red"]')].map((el) => {
+    [...document.querySelectorAll<SVGElement>('g[data-id^="matrix."] .led[data-colour="red"]')].map((el) => {
       const m = /^matrix\.r(\d+)\.c(\d+)$/.exec(el.closest("g")!.getAttribute("data-id")!)!;
       return [Number(m[1]), Number(m[2]) - 1] as [number, number];
     }),
@@ -78,7 +78,7 @@ function redKeys(page: Page): Promise<[number, number][]> {
 }
 
 function litCount(page: Page): Promise<number> {
-  return page.evaluate(() => document.querySelectorAll('g[data-id^="matrix."] .face.led:not([data-colour="off"])').length);
+  return page.evaluate(() => document.querySelectorAll('g[data-id^="matrix."] .led:not([data-colour="off"])').length);
 }
 
 /** Samples where track `track`'s red light is, every 15 ms for `ms`. `null` is no red light on that row. */
@@ -89,7 +89,7 @@ function followLight(page: Page, track: number, ms: number): Promise<(number | n
         const out: (number | null)[] = [];
         const started = performance.now();
         const tick = (): void => {
-          const reds = [...document.querySelectorAll<SVGElement>(`g[data-id^="matrix.r${t}."] .face.led[data-colour="red"]`)];
+          const reds = [...document.querySelectorAll<SVGElement>(`g[data-id^="matrix.r${t}."] .led[data-colour="red"]`)];
           const m = reds.length ? /\.c(\d+)$/.exec(reds[0]!.closest("g")!.getAttribute("data-id")!) : null;
           out.push(m ? Number(m[1]) - 1 : null);
           if (performance.now() - started < duration) setTimeout(tick, 15);
@@ -127,7 +127,7 @@ test("R-1: the demo pattern is lit on the panel with nothing pressed but Play", 
   assert.equal(await litCount(page), 0, "before Play the panel is dark: there is no engine to light it yet");
   await page.click("#play");
   await page.waitForSelector('main[data-transport="playing"]', { timeout: 15_000 });
-  await page.waitForFunction(() => document.querySelectorAll('g[data-id^="matrix."] .face.led:not([data-colour="off"])').length >= 12, null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.querySelectorAll('g[data-id^="matrix."] .led:not([data-colour="off"])').length >= 12, null, { timeout: 5_000 });
   assert.ok((await litCount(page)) >= 12);
   await page.close();
 });

@@ -38,12 +38,20 @@ X0 = min(c[0] for c in corners)
 Y0 = min(c[1] for c in corners)
 W = max(c[0] for c in corners) - X0
 H = max(c[1] for c in corners) - Y0
+# The plate's top band carries the maker's name and the logo, which the panel does not draw (D-P7-6). The panel's plate starts below most of it, a
+# whole number of pitches so that the cut is stated and not eyeballed: the band is about 4 pitches deep and nothing else is in it.
+CROP_TOP = 3.0
+Y0 += CROP_TOP
+H -= CROP_TOP
 
 
 def at(px, py):
     X, Y = rectify(px, py)
     return round(X - X0, 2), round(Y - Y0, 2)
 
+
+# The top left matrix key (row 9, column 1) is the rectified frame's origin, so its place on the plate is minus the plate's corner.
+mx, my = round(-X0, 2), round(-Y0, 2)
 
 found = {(round(f["px"][0]), round(f["px"][1])): f for f in m["found"]}
 
@@ -75,7 +83,9 @@ def put(cid, f, basis, text=None, text_basis=None, led=None):
     used.add(cid)
     x, y = at(*f["px"])
     e = {"id": cid, "x": x, "y": y}
-    if controls[cid].get("led"):
+    # The manual gives some keys an LED and says nothing of others (Q26); the photograph has a dot beside every key, so every key gets one,
+    # and the dot is dead (the engine has nothing to light it with) where the manual gives the key no LED.
+    if controls[cid].get("led") or f.get("led"):
         e["led"] = led or led_side(f)
     if text:
         e["text"] = text
@@ -136,10 +146,10 @@ put("keys.esc", b_esc, "photo", text="ESC")
 # ---- the circle ------------------------------------------------------------------------------------------------
 # Photograph coordinates of each key in the circle. The list is what the eye settled on in the photograph.
 CLUSTER = {
-    # the number keys on the top-left arc, 1 to 10 (the manual says Roman numerals, Q33; the photograph's are too small to settle it)
-    (530, 416): ("hw", "hw.num.1", "I"), (534, 394): ("hw", "hw.num.2", "II"), (540, 372): ("hw", "hw.num.3", "III"), (550, 352): ("hw", "hw.num.4", "IV"),
-    (565, 334): ("hw", "hw.num.5", "V"), (583, 320): ("hw", "hw.num.6", "VI"), (603, 310): ("hw", "hw.num.7", "VII"), (624, 303): ("hw", "hw.num.8", "VIII"),
-    (647, 301): ("hw", "hw.num.9", "IX"), (670, 303): ("hw", "hw.num.10", "X"),
+    # the number keys on the top-left arc, 1 to 10 (read as digits; the manual's note on the outer circle says Roman numerals, Q33)
+    (530, 416): ("hw", "hw.num.1", "1"), (534, 394): ("hw", "hw.num.2", "2"), (540, 372): ("hw", "hw.num.3", "3"), (550, 352): ("hw", "hw.num.4", "4"),
+    (565, 334): ("hw", "hw.num.5", "5"), (583, 320): ("hw", "hw.num.6", "6"), (603, 310): ("hw", "hw.num.7", "7"), (624, 303): ("hw", "hw.num.8", "8"),
+    (647, 301): ("hw", "hw.num.9", "9"), (670, 303): ("hw", "hw.num.10", "10"),
     # the outer ring
     (711, 319): ("c", "circle.tempo", "Tempo", "photo"), (730, 334): ("c", "keys.program", "Program", "photo"), (744, 352): ("c", "circle.select", "Select", "photo"),
     (581, 513): ("c", "circle.chain", "X", "glyph"), (789, 342): ("c", "circle.clock200", "200", "order"),
@@ -199,15 +209,111 @@ def legend(text, px, py, kind, anchor="middle"):
 
 for text, px, py in [("MIX", 108, 570), ("SEL", 142, 570), ("MUT", 447, 570), ("EDIT", 515, 570), ("CHORD", 753, 566), ("MODE", 627, 381), ("SCALE", 649, 462), ("TRANSPORT", 647, 505)]:
     legend(text, px, py, "section")
-legend("MIX TARGET", 285, 543, "caption")
+legend("MIX TARGET", 285, 586, "caption")
 for r in range(10):
     legend(str(r), 124, 527.15 - r * 24.573, "row")
 legend("\U0001d11e", 78, 357, "clef")  # treble, at the top of the track column
 legend("\U0001d122", 78, 458, "clef")  # bass, at the bottom
 
+# ---- where each printed name goes ------------------------------------------------------------------------------
+# The same clearance rules apps/web/test/layout.test.ts asserts: a name clears every key, dot, knob, legend and other name, and stays on the plate.
+SPACE = {k: v["value"] for k, v in tokens["space"].items()}
+KEY, GAP, DOT, KNOB, NEAR = SPACE["4"], SPACE["3"], SPACE["2"], SPACE["5"], SPACE["1"]
+FONT = tokens["type"]["size"]["label"]["value"]
+PITCH = KEY + GAP
+CHAR = 0.7 * FONT
+HALF = FONT * 1.2 / 2
+DIST = 0.5 * PITCH
+SIDE_VEC = {"n": (0, -1), "s": (0, 1), "e": (1, 0), "w": (-1, 0)}
+
+
+def boxes_of_things():
+    out = []
+    ents = []
+    for c in controls_out:
+        ents.append((c["id"], c["x"], c["y"], controls[c["id"]]["kind"] == "encoder", c.get("led")))
+    for k in keys_out:
+        ents.append((k["id"], k["x"], k["y"], False, k.get("led")))
+    for r in range(10):
+        for col in range(16):
+            ents.append((f"matrix.r{r}.c{col + 1}", mx + col, my + (9 - r) * ratio, False, "n"))
+    for cid, x, y, knob, led in ents:
+        cx, cy, rad = x * PITCH, y * PITCH, (KNOB if knob else KEY) / 2
+        out.append((cid, cx - rad, cy - rad, cx + rad, cy + rad))
+        if led:
+            dx, dy = SIDE_VEC[led]
+            lx, ly = cx + dx * DIST, cy + dy * DIST
+            out.append((cid + " dot", lx - DOT / 2, ly - DOT / 2, lx + DOT / 2, ly + DOT / 2))
+    return out
+
+
+def text_box(text, x, y, anchor):
+    w = len(text) * CHAR
+    x0 = x if anchor == "start" else x - w if anchor == "end" else x - w / 2
+    return (x0, y - FONT * 0.6, x0 + w, y + FONT * 0.6)
+
+
+def hit(a, b):
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+things = boxes_of_things()
+legend_boxes = [text_box(l["text"], l["x"] * PITCH, l["y"] * PITCH, l["anchor"]) for l in legends_out]
+placed_labels = []
+dropped = []
+W_PX, H_PX = W * PITCH, H * PITCH
+
+
+def choose(entry, is_knob):
+    cid, text = entry["id"], entry.get("text")
+    if not text:
+        return
+    if cid.startswith("edit.enc."):
+        order = ["w"]
+    elif cid.startswith("mutator.") and cid != "mutator.mute":
+        order = ["n", "e", "s"]
+    elif cid.startswith("hw.target."):
+        order = ["s", "w", "e"]
+    else:
+        order = ["e", "w", "s", "n"]
+    cx, cy = entry["x"] * PITCH, entry["y"] * PITCH
+    rad = (KNOB if is_knob else KEY) / 2
+    for side in order:
+        if side == entry.get("led"):
+            continue
+        if side == "e":
+            x, y, anchor = cx + rad + NEAR, cy, "start"
+        elif side == "w":
+            x, y, anchor = cx - rad - NEAR, cy, "end"
+        elif side == "n":
+            x, y, anchor = cx, cy - rad - NEAR - HALF, "middle"
+        else:
+            x, y, anchor = cx, cy + rad + NEAR + HALF, "middle"
+        b = text_box(text, x, y, anchor)
+        if b[0] < 0 or b[2] > W_PX or b[1] < 0 or b[3] > H_PX:
+            continue
+        if any(hit(b, t[1:]) for t in things if t[0] != cid):
+            continue
+        if any(hit(b, t) for t in legend_boxes) or any(hit(b, t) for t in placed_labels):
+            continue
+        entry["label"] = side
+        placed_labels.append(b)
+        return
+    dropped.append(cid)
+
+
+for e in controls_out:
+    choose(e, controls[e["id"]]["kind"] == "encoder")
+for e in keys_out:
+    choose(e, False)
+if dropped:
+    print("no room for a printed name:", dropped, file=sys.stderr)
+    for e in controls_out + keys_out:
+        if e["id"] in dropped:
+            e.pop("text", None)
+            e.pop("text_basis", None)
+
 # ---- the file --------------------------------------------------------------------------------------------------
-tl = at(ox, oy)
-mx, my = at(ox, oy - 9 * -M["row_px"][1] if False else oy + 9 * M["row_px"][1])  # matrix row 9, column 1: the top left key
 out = {
     "schema": "panel.layout/2",
     "status": "provisional",
@@ -221,8 +327,8 @@ out = {
     "size": {"key": "space.4", "gap": "space.3", "margin": "space.4", "dot": "space.2", "knob": "space.5"},
     "knob": {"ball": 0.62},
     "led": {"distance": 0.5},
-    "plate": {"w": round(W, 2), "h": round(H, 2)},
-    "matrix": {"x": mx, "y": my, "row_pitch": round(ratio, 4)},
+    "plate": {"w": round(W, 2), "h": round(H, 2), "top_cropped": CROP_TOP},
+    "matrix": {"x": mx, "y": my, "row_pitch": round(ratio, 4), "led": "n"},
     "controls": controls_out,
     "keys": keys_out,
     "legends": legends_out,

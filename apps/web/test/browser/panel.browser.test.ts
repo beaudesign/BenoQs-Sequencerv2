@@ -31,19 +31,26 @@ after(async () => {
   await server?.close();
 });
 
+interface Sent {
+  type: string;
+  kind: number;
+  control: number;
+  detents: number;
+}
+
 declare global {
   interface Window {
-    __sent: { type?: string; kind?: number; control?: number; detents?: number }[];
+    __sent: Sent[];
   }
 }
 
 /** Records what the page posts to the engine's worklet, so a test can say what a turn or a press sent. */
 function recordInputs(): void {
-  const sent: Window["__sent"] = [];
+  const sent: Sent[] = [];
   window.__sent = sent;
   const original = MessagePort.prototype.postMessage;
   MessagePort.prototype.postMessage = function (this: MessagePort, message: unknown, ...rest: unknown[]) {
-    const m = message as { type?: string; kind?: number; control?: number; detents?: number } | null;
+    const m = message as Sent | null;
     if (m && m.type === "input") sent.push({ type: m.type, kind: m.kind, control: m.control, detents: m.detents });
     return (original as (...a: unknown[]) => void).call(this, message, ...rest);
   } as typeof MessagePort.prototype.postMessage;
@@ -145,7 +152,7 @@ test("P7-6: a knob turns: the arrow keys and the wheel send detents to the engin
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowLeft");
-  const box = await page.$eval(`${key("mix.enc.r4")} .face`, (el) => el.getBoundingClientRect().toJSON() as DOMRect);
+  const box = await page.$eval(`${key("mix.enc.r4")} .nut`, (el) => el.getBoundingClientRect().toJSON() as DOMRect);
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.wheel(0, -100);
   await page.mouse.wheel(0, 100);
@@ -202,7 +209,7 @@ test("P7-10: the panel scales as one object: the circle's keys keep their places
   const shape = () =>
     page.evaluate(() => {
       const c = (id: string) => {
-        const r = document.querySelector(`g[data-id="${id}"] .face`)!.getBoundingClientRect();
+        const r = document.querySelector(`g[data-id="${id}"] .face, g[data-id="${id}"] .nut`)!.getBoundingClientRect();
         return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width };
       };
       const a = c("matrix.r9.c1");

@@ -18,20 +18,34 @@ function section(title: string): string {
   return readme.slice(start, end < 0 ? undefined : end);
 }
 
-test("the README's tab order lists the strip, then the matrix in reading order, then the other controls in the layout's order", () => {
+test("the README's tab order lists the strip, then the plate's controls in reading order, and says what is not a stop", () => {
   const text = section("Tab order");
-  const strip = /`start`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`/.exec(text);
-  assert.ok(strip, "the strip's eight stops");
-  assert.match(text, /row 9 \(the top row\) from column 1 to column 16, then row 8/);
-  assert.match(text, /row 0 \(the bottom row\)/);
-  const listed = [...text.matchAll(/^\s+\d+\.\s+`([a-z0-9_.]+)`\s*$/gm)].map((m) => m[1]);
-  assert.deepEqual(listed, tabOrder(geometry).slice(160), "the numbered controls are the layout's, in its order");
-  assert.ok(text.indexOf("`start`") < text.indexOf("row 9") && text.indexOf("row 9") < text.indexOf("`mode.page`"), "strip, matrix, controls");
+  const html = readFileSync(`${webRoot}/pages/app.html`, "utf8");
+  const strip = [...html.matchAll(/<(?:button|input|select)\b[^>]*\bid="([a-z0-9-]+)"/g)].map((m) => m[1]);
+  assert.match(text, new RegExp(`${strip.map((id) => `\`${id}\``).join(", ")}`), "the strip's stops, in the page's order");
+  const order = tabOrder(geometry);
+  assert.match(text, new RegExp(`${order.length} controls in its reading order`));
+  assert.match(text, /bands one matrix row high from the top, left to right in each band/);
+  const first = /The first stops are\s+([^;]*?); then row 8/s.exec(text);
+  assert.ok(first, "the README names the first stops");
+  const named = [...first[1]!.matchAll(/`([a-z0-9_.]+)`/g)].map((m) => m[1]!);
+  assert.deepEqual(named, ["mix.enc.r9", "selector.r9", "matrix.r9.c1", "matrix.r9.c2", "matrix.r9.c16", "mutator.tgl", "edit.enc.vel", "main.enc"]);
+  assert.deepEqual(order.slice(0, 4), ["mix.enc.r9", "selector.r9", "matrix.r9.c1", "matrix.r9.c2"]);
+  assert.equal(order[17], "matrix.r9.c16");
+  assert.deepEqual(order.slice(18, 21), ["mutator.tgl", "edit.enc.vel", "main.enc"]);
+  assert.equal(order[21], "mix.enc.r8");
+  const last = /The last stops are\s+(.*?)\n\s+The plate's own keys/s.exec(text);
+  assert.ok(last, "the README names the last stops");
+  assert.deepEqual([...last[1]!.matchAll(/`([a-z0-9_.]+)`/g)].map((m) => m[1]), order.slice(-5));
+  assert.match(text, /`hw\.\*`\) are not stops/);
 });
 
-test("the README names every control the panel draws besides the matrix", () => {
+test("the README says what the panel draws: the counts, and the controls it does not draw", () => {
   const text = section("The panel");
-  for (const id of tabOrder(geometry).slice(160)) assert.ok(text.includes(`\`${id}\``), id);
+  const file = JSON.parse(readFileSync(`${repoRoot}/apps/web/layout/panel.layout.json`, "utf8")) as { unplaced: { id: string }[]; keys: unknown[] };
+  assert.match(text, new RegExp(`${tabOrder(geometry).length} of the ${controls.controls.length} controls`));
+  assert.match(text, new RegExp(`${file.keys.length} keys\\*\\* the plate has`));
+  for (const u of file.unplaced) assert.ok(text.includes(`\`${u.id}\``), `${u.id} is named as not drawn`);
 });
 
 test("the README says what the route hook is, and that it is a hook and not a control", () => {

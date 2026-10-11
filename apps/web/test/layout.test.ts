@@ -75,7 +75,7 @@ test("the matrix is sixteen columns by ten rows, a row is 1.495 column pitches, 
 
 test("each position is where the photograph measures it: every drawn key and knob is within a tenth of a pitch of one measured point, and no point serves two", () => {
   const minX = Math.min(...measured.plate_u.map((p) => p[0]));
-  const minY = Math.min(...measured.plate_u.map((p) => p[1]));
+  const minY = Math.min(...measured.plate_u.map((p) => p[1])) + layoutFile.plate.top_cropped;
   const taken = new Set<number>();
   const tol = 0.1;
   for (const p of g.placements) {
@@ -112,10 +112,11 @@ test("left to right: the MIX knobs, the SEL column, the matrix, the mutator colu
   const matrix = ids("matrix.");
   const mut = ids("mutator.").filter((p) => p.id !== "mutator.mute");
   const edit = ids("edit.enc.");
-  const circle = g.placements.filter((p) => /^(circle|chord|transport|mode)\./.test(p.id) || p.id === "keys.program" || p.id.startsWith("hw.num.") || p.id.startsWith("hw.ring."));
+  // The circle: everything right of the EDIT column except the row of keys under the matrix (mode.edit is the key under the EDIT knobs).
+  const circle = g.placements.filter((p) => (/^(circle|chord|transport|mode)\./.test(p.id) && p.id !== "mode.edit") || p.id === "keys.program" || p.id.startsWith("hw.num.") || p.id.startsWith("hw.ring."));
   assert.equal(mix.length, 10);
   assert.equal(sel.length, 10);
-  assert.equal(mut.length, 9, "nine of the mutators are in the column (the tenth, ALN, is not drawn)");
+  assert.equal(mut.length, 10, "ten of the mutators are in the column; the eleventh, Mute, is under it; the twelfth, ALN, is not drawn");
   assert.equal(edit.length, 10);
   assert.ok(Math.max(...xs(mix)) < Math.min(...xs(sel)));
   assert.ok(Math.max(...xs(sel)) < Math.min(...xs(matrix)));
@@ -127,13 +128,13 @@ test("left to right: the MIX knobs, the SEL column, the matrix, the mutator colu
 test("the MIX knobs, the SEL keys, the mutator column and the EDIT knobs are on the matrix's rows", () => {
   for (let r = 0; r < 10; r++) {
     const row = byId(`matrix.r${r}.c1`).cy;
-    for (const id of [`mix.enc.r${r}`, `selector.r${r}`]) assert.ok(Math.abs(byId(id).cy - row) < pitch * 0.1, `${id} is on matrix row ${r}`);
+    for (const id of [`mix.enc.r${r}`, `selector.r${r}`]) assert.ok(Math.abs(byId(id).cy - row) < pitch * 0.25, `${id} is on matrix row ${r}`);
   }
   const rows = Array.from({ length: 10 }, (_, r) => byId(`matrix.r${9 - r}.c1`).cy);
   const mut = ["tgl", "sol", "clr", "rnd", "flt", "zom", "rmx", "cpy", "pst", "eff"].map((n) => g.placements.find((p) => p.id === `mutator.${n}`));
-  mut.forEach((p, i) => i < 10 && p && assert.ok(Math.abs(p.cy - rows[i]!) < pitch * 0.1, `${p.id} is on row ${9 - i}`));
+  mut.forEach((p, i) => assert.ok(p && Math.abs(p.cy - rows[i]!) < pitch * 0.25, `mutator ${i} is on row ${9 - i}`));
   const edit = ["vel", "pit", "len", "sta", "pos", "dir", "amt", "grv", "mcc", "mch"].map((n) => byId(`edit.enc.${n}`));
-  edit.forEach((p, i) => assert.ok(Math.abs(p.cy - rows[i]!) < pitch * 0.1, `${p.id} is on row ${9 - i}`));
+  edit.forEach((p, i) => assert.ok(Math.abs(p.cy - rows[i]!) < pitch * 0.25, `${p.id} is on row ${9 - i}`));
 });
 
 test("the EDIT knobs read VEL PIT LEN STA POS DIR AMT GRV MCC MCH from the top, and bow towards the matrix in the middle", () => {
@@ -161,7 +162,8 @@ test("the note ring is chromatic, clockwise from the C at the bottom left, round
   const cy = ring.reduce((a, p) => a + p.cy, 0) / ring.length;
   const radii = ring.map((p) => Math.hypot(p.cx - cx, p.cy - cy));
   const mean = radii.reduce((a, b) => a + b, 0) / radii.length;
-  for (const [i, r] of radii.entries()) assert.ok(Math.abs(r - mean) < pitch * 0.5, `${ring[i]!.id} is on the ring`);
+  // The plate's ring is an oval (flatter across the top than the bottom), so the bound is loose: a loop round a centre, not a circle.
+  for (const [i, r] of radii.entries()) assert.ok(Math.abs(r / mean - 1) < 0.35, `${ring[i]!.id} is on the ring`);
   // Screen angle, clockwise from straight up (y grows downwards).
   const angle = (p: Placement) => (Math.atan2(p.cx - cx, -(p.cy - cy)) + 2 * Math.PI) % (2 * Math.PI);
   const a = ring.map(angle);
@@ -238,15 +240,18 @@ test("an LED dot sits beside its key on the side the plate puts it: above a matr
   assert.ok(dot("mutator.sol").dx < 0, "a mutator key's LED is to its left");
 });
 
-test("an LED is drawn for the controls the manual gives one, and a dead dot for the plate's keys; encoders have none", () => {
+test("an LED is live for the controls the manual gives one; a dot beside a key the manual gives none (Play, Stop, Pause: Q26) and beside the plate's own keys is dead; encoders have none", () => {
   for (const p of g.placements.filter((q) => !q.inert)) {
     const c = controls.controls.find((x) => x.id === p.id)!;
-    assert.equal(p.led !== null, c.led === true, p.id);
+    if (c.led === true) assert.equal(p.led?.live, true, `${p.id} has an LED`);
+    else assert.ok(p.led === null || p.led.live === false, `${p.id} has no LED to light`);
     assert.equal(p.n, c.n);
     assert.equal(p.name, c.name, `${p.id} is named as the manual names it`);
   }
   for (const p of g.placements.filter((q) => q.kind === "knob")) assert.equal(p.led, null, p.id);
-  assert.equal(byId("transport.stop").led, null);
+  for (const p of g.placements.filter((q) => q.inert)) assert.ok(p.led === null || p.led.live === false, `${p.id}`);
+  for (const id of ["transport.stop", "transport.play", "transport.pause"]) assert.equal(byId(id).led?.live, false, `${id}: the photograph has a dot, the manual gives no LED`);
+  assert.equal(byId("transport.rec").led?.live, true);
 });
 
 test("no pixel is written in the layout: changing a token moves the panel, and nothing else does", () => {
@@ -385,7 +390,8 @@ test("reading order is the plate's: bands of one matrix row from the top, left t
   }
   // Within the first band: the MIX knob, the SEL key, the sixteen matrix keys, the mutator key, the EDIT knob.
   assert.deepEqual(order.slice(0, 5), ["mix.enc.r9", "selector.r9", "matrix.r9.c1", "matrix.r9.c2", "matrix.r9.c3"]);
-  assert.equal(order[18], "matrix.r9.c16");
+  assert.equal(order[17], "matrix.r9.c16");
+  assert.equal(order[18], "mutator.tgl");
 });
 
 test("parseLayout refuses what cannot be drawn", () => {

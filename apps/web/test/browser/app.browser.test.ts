@@ -406,11 +406,11 @@ test("E7: a refusal of MIDI access is told apart from a browser without it, and 
 
 test("E8: every control the page draws is a button with the manual's own name, and nothing is drawn that the layout does not hold", async () => {
   const page = await open();
-  const drawn = await page.$$eval("svg g[data-id]", (els) =>
+  assert.equal(await page.$$eval("svg g[data-id]", (els) => els.length), geometry.placements.length, "nothing is drawn that the layout does not hold");
+  const drawn = await page.$$eval('svg g[data-id][role="button"]', (els) =>
     els.map((el) => ({ id: el.getAttribute("data-id"), role: el.getAttribute("role"), name: el.getAttribute("aria-label"), tab: el.getAttribute("tabindex") })),
   );
-  assert.equal(drawn.length, geometry.placements.length);
-  assert.equal(drawn.length, 171);
+  assert.equal(drawn.length, 242);
   for (const d of drawn) {
     const control = controls.controls.find((c) => c.id === d.id);
     assert.ok(control, `${d.id} is in controls.json`);
@@ -424,17 +424,17 @@ test("E8: every control the page draws is a button with the manual's own name, a
 
 test("E8: the browser's own accessibility tree finds each control by its manual name", async () => {
   const page = await open();
-  for (const p of geometry.placements) {
+  for (const p of geometry.placements.filter((q) => !q.inert)) {
     const n = await page.getByRole("button", { name: p.name, exact: true }).count();
     assert.equal(n, 1, `${p.name}`);
   }
   await page.close();
 });
 
-test("E8: Tab walks the strip, then the matrix in reading order, then the other controls in the layout's order", async () => {
+test("E8: Tab walks the strip, then the plate's controls in its reading order (bands of one matrix row from the top, left to right)", async () => {
   const page = await open();
   const seen: string[] = [];
-  const total = 10 + geometry.placements.length;
+  const total = 10 + tabOrder(geometry).length;
   for (let i = 0; i < total; i++) {
     await page.keyboard.press("Tab");
     seen.push(await page.evaluate(() => {
@@ -458,6 +458,8 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
     });
   assert.equal((await ring("matrix.r9.c1", "outer")).display, "none");
   for (const _stop of ["play", "tempo", "sound", "metronome", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab"); // the MIX knob on row 9
+  await page.keyboard.press("Tab"); // the SEL key on row 9
   await page.keyboard.press("Tab"); // r9.c1
   const outer = await ring("matrix.r9.c1", "outer");
   const inner = await ring("matrix.r9.c1", "inner");

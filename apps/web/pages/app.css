@@ -97,18 +97,56 @@ main {
   user-select: none;
 }
 
-.face {
+/* The plate, and the keys and knobs on it: flat fills and hairlines, no highlight (docs/00 section 2, E1 and E2). */
+.plate {
   fill: var(--colour-surface);
   stroke: var(--colour-ink-quiet);
   stroke-width: var(--stroke-hairline);
+}
+
+.face,
+.nut,
+.ball {
+  fill: var(--colour-surface);
+  stroke: var(--colour-ink-quiet);
+  stroke-width: var(--stroke-hairline);
+}
+
+.knob {
+  cursor: ns-resize;
+}
+
+/* A key on the plate that is in no inventory: drawn, and it does nothing. */
+.inert {
+  cursor: default;
+}
+
+/* Printed on the plate. The block names are in ink; the captions, the row numbers and the clefs are the quieter ink. */
+.legend {
+  fill: var(--colour-ink);
+  font-size: var(--type-size-label);
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+.legend.caption,
+.legend.row {
+  fill: var(--colour-ink-quiet);
+}
+
+.legend.clef {
+  fill: var(--colour-ink-quiet);
+  font-size: var(--space-6);
 }
 
 .control[data-down] .face {
   stroke: var(--colour-ink);
 }
 
-/* An LED: the key is lit in the role's colour, or dark. Steady, flashing and shine are told apart by more than colour. */
-.led {
+/* An LED is a dot beside its key, lit in the role's colour or dark; a dot the engine has no LED for stays dark. Steady, flashing and shine are told apart by more than colour. */
+.led,
+.dot {
   fill: var(--colour-led-off);
 }
 

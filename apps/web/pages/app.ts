@@ -81,7 +81,10 @@ async function main(): Promise<void> {
     },
   });
 
-  const panel = drawPanel(document, geometry, tokens, presses);
+  const panel = drawPanel(document, geometry, tokens, presses, (n, detents) => {
+    if (!host) strip.say("Press Play first, then the keys work.");
+    else host.turn(n, detents);
+  });
   document.querySelector("#panel-frame")!.append(panel.svg);
   addEventListener("blur", () => presses.releaseAll());
 

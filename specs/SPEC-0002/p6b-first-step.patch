@@ -1,0 +1,82 @@
+diff --git a/crates/octocore/src/steps.rs b/crates/octocore/src/steps.rs
+index a20ce66..350e858 100644
+--- a/crates/octocore/src/steps.rs
++++ b/crates/octocore/src/steps.rs
+@@ -77,6 +77,10 @@ pub struct StepClock {
+     unit: u128,
+     /// The numerator of the rate the clock last ran at. It always divides `unit`.
+     num: u32,
++    /// False until the first tick. The first step of a run starts on that tick, at Play, and not a whole step later: a clock that began
++    /// at phase 0 and fired when the phase reached a step's length played step 1 only after step 1's own time had gone by (11 ticks at
++    /// x1, 115 ms at 120 BPM), and every later step that far late with it.
++    started: bool,
+ }
+ 
+ impl Default for StepClock {
+@@ -87,7 +91,7 @@ impl Default for StepClock {
+ 
+ impl StepClock {
+     pub const fn new() -> StepClock {
+-        StepClock { phase: 0, unit: 1, num: 1 }
++        StepClock { phase: 0, unit: 1, num: 1, started: false }
+     }
+ 
+     /// A clock that is `phase` units of `1/unit` tick into its step, running at a multiplier whose
+@@ -95,7 +99,7 @@ impl StepClock {
+     /// had already played for a very long time.
+     pub const fn at(phase: u32, unit: u32) -> StepClock {
+         let unit = if unit == 0 { 1 } else { unit };
+-        StepClock { phase: phase as u128, unit: unit as u128, num: unit }
++        StepClock { phase: phase as u128, unit: unit as u128, num: unit, started: true }
+     }
+ 
+     /// The phase and its unit: `phase` units of `1/unit` tick. For tests and diagnostics.
+@@ -135,6 +139,12 @@ impl StepClock {
+         if rate.every_tick() {
+             // A step of a tick or less. The phase is carried through untouched, as the `f32`
+             // accumulator's `+ 1 - 1` did, so leaving this state resumes where it left off.
++            self.started = true;
++            return true;
++        }
++        if !self.started {
++            // The first tick of the run: step 1 starts now. The phase stays at 0, so step 2 starts a step later.
++            self.started = true;
+             return true;
+         }
+         // One tick is `unit` units and a step is `den / num` ticks, `den * (unit / num)` units.
+@@ -158,12 +168,13 @@ impl StepClock {
+ pub(crate) struct ExactClock {
+     n: u128,
+     d: u128,
++    started: bool,
+ }
+ 
+ #[cfg(test)]
+ impl ExactClock {
+     pub(crate) fn new() -> ExactClock {
+-        ExactClock { n: 0, d: 1 }
++        ExactClock { n: 0, d: 1, started: false }
+     }
+ 
+     /// One tick at a rate whose step is `den / num` ticks: the phase gains a tick and a step
+@@ -173,6 +184,11 @@ impl ExactClock {
+             return false;
+         }
+         if rate.num >= rate.den {
++            self.started = true;
++            return true;
++        }
++        if !self.started {
++            self.started = true;
+             return true;
+         }
+         let (num, den) = (rate.num as u128, rate.den as u128);
+@@ -435,7 +451,7 @@ mod tests {
+     #[test]
+     fn the_fallback_rounds_down_by_less_than_one_unit() {
+         // A phase whose reduced denominator is 2^81 forces the fallback for any numerator.
+-        let mut clock = StepClock { phase: 12_345_678_901_234_567_891, unit: (1u128 << 81) + 1, num: 1 };
++        let mut clock = StepClock { phase: 12_345_678_901_234_567_891, unit: (1u128 << 81) + 1, num: 1, started: true };
+         let (p0, u0) = clock.phase();
+         clock.retune(7);
+         let (p1, u1) = clock.phase();

@@ -46,6 +46,9 @@ enum DeferredAction {
     SkipRotate(i8),
 }
 
+/// The snapshot's playhead for a track that has not fired a step yet.
+pub const NOT_PLAYING: u8 = 255;
+
 #[derive(Clone, Copy, Debug, Default)]
 struct ChainRuntime {
     member_idx: u8,
@@ -58,6 +61,10 @@ struct TrackRuntime {
     /// Where the track is within its current step: an exact integer phase (`steps.rs`).
     step: StepClock,
     pos: u8,
+    /// The step this track fired last (the physical step, after rotation and any custom direction), or `NOT_PLAYING` before it has fired one since the
+    /// last Reset. This is the snapshot's playhead: `pos` is advanced the moment a step fires, so it is the step to play *next* and says nothing
+    /// about the step in any direction but forward.
+    playing: u8,
     ping_dir: i8,
     chain: ChainRuntime,
     /// The offsets of this track's current step, exposed for listeners if this
@@ -88,6 +95,7 @@ impl Default for TrackRuntime {
         TrackRuntime {
             step: StepClock::new(),
             pos: 0,
+            playing: NOT_PLAYING,
             ping_dir: 1,
             chain: ChainRuntime { member_idx: 0, seg_pos: 0, ping_dir: 1 },
             feed_pitch: 0,
@@ -506,7 +514,7 @@ impl Engine {
         into.mode = self.grid.mode;
         into.active = ActiveRefs { bank: self.grid.active_page.bank, page: self.grid.active_page.page };
         for (i, p) in into.playheads.iter_mut().enumerate() {
-            *p = PlayheadState { step_index: self.track_rt[i].pos, track_index: i as u8 };
+            *p = PlayheadState { step_index: self.track_rt[i].playing, track_index: i as u8 };
         }
     }
 
@@ -1224,6 +1232,7 @@ impl Engine {
         } else {
             ((raw_index as u16 + track.rotation as u16) % page_len as u16) as u8
         };
+        self.track_rt[ti as usize].playing = step_index % STEP_COUNT as u8;
         let mut step = base_track.steps[(step_index % STEP_COUNT as u8) as usize];
 
         // Ref: CE v5.30 p.31, "Hyperstep PIT and VEL": "the hypedtrack will

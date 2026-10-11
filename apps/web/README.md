@@ -45,8 +45,17 @@ the device for **MIDI In**, the **MIDI Clock** state, the **clock offset** in mi
 (30 by default), and sentences that say what the app and the browser's MIDI and clock are doing. It never sits on the panel and holds no colour. The panel is one SVG that scales as a whole and
 never rearranges.
 
-- **Start** is a button because a browser keeps audio silent until the page has been used. It starts the engine in its
-  worklet and asks the browser for MIDI. Until then a press on the panel only says to press Start.
+- **Play** is the one transport button, because a browser keeps audio silent until the page has been used. The first press starts the
+  engine in its worklet, loads the demo pattern (`src/demo.ts`), turns the built-in sound on, asks the browser for MIDI and plays; after
+  that it is Stop and Play. The panel's own Play key does the same. Until then a press on the panel only says to press Play.
+  `specs/SPEC-0002/p6-runs-when-opened.md` says why each of those is there.
+- **Tempo** is a field (120 to begin with). **Sound** is the built-in monitor (`src/monitor.ts`): the engine's notes played in the page's
+  own audio, on to begin with, and not MIDI (the events are byte for byte the same with it on or off). It is how a page with no MIDI
+  device, or in a frame that cannot reach one, is heard to run.
+- **The chase-light** is the red LED on the step each track is playing (`src/chase.ts`), held back by the engine's 12-tick lead so that it is
+  on the step you hear.
+- **`?bare`** in the address is the page the P3 to P5 tests drive: Play only starts the engine, and nothing is loaded, played or heard
+  until the test says so. It is a test hook, like `?route=`.
 - **No Web MIDI** (Safari, Firefox): the page loads and runs, and the strip says the browser has no Web MIDI. A refusal of
   access says that instead. Either way the keys and the LEDs work; nothing is sent.
 - **Two outputs**: MIDI Out 1 is the engine's port 1 and MIDI Out 2 is port 2 (a track's MIDI channel 1 to 16 is port 1 and

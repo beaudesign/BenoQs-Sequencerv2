@@ -184,6 +184,8 @@ pub struct EncoderState {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PlayheadState {
+    /// The step the track fired last, 0 to 15, in any direction; `engine::NOT_PLAYING` (255) before it has fired one. It runs ahead of the
+    /// sound by the engine's lead (`snapshot.rs`).
     pub step_index: u8,
     pub track_index: u8,
 }

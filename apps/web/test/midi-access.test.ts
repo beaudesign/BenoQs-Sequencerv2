@@ -49,7 +49,7 @@ test("a refused request says it was refused and how to fix it", async () => {
   const midi = await openMidi({ requestMIDIAccess: () => Promise.reject(new DOMException("denied", "SecurityError")) });
   assert.equal(midi.status, "denied");
   assert.match(midi.message, /refused/);
-  assert.match(midi.message, /Start/);
+  assert.match(midi.message, /Play/);
 });
 
 test("a request that throws instead of rejecting is the same as a refusal", async () => {

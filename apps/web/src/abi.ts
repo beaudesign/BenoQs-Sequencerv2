@@ -21,8 +21,11 @@ export function decodeLed(byte: number): { colour: LedColour; phase: LedPhase } 
   return { colour: LED_COLOURS[byte & 0b11] ?? "off", phase: LED_PHASES[(byte >> 2) & 0b11] ?? "steady" };
 }
 
-/** The attribute numbers `octoweb_set_track` takes: the engine's own order (ABI.md). Only the one the page writes is named. */
-export const TRACK_ATTR = { midiChannel: 8 } as const;
+/** The attribute numbers `octoweb_set_track` takes: the engine's own order (ABI.md). Only the ones the page writes are named. */
+export const TRACK_ATTR = { pitch: 0, velocity: 1, midiChannel: 8 } as const;
+
+/** The attribute numbers `octoweb_set_step` takes: the engine's own order (ABI.md). Only the ones the page writes are named. */
+export const STEP_ATTR = { active: 0, skip: 1, pitchOffset: 2, velocityOffset: 3, lengthTicks: 4 } as const;
 
 /** The event record kind for a MIDI real-time message: `d1` is the status byte (0xF8 Clock, 0xFA Start, 0xFB Continue, 0xFC Stop), port and channel are 0. */
 export const KIND_REALTIME = 5;
@@ -42,6 +45,7 @@ export interface Exports {
   octoweb_transport(play: number): number;
   octoweb_set_tempo(bpm: number): number;
   octoweb_set_track(track: number, attr: number, value: number): number;
+  octoweb_set_step(track: number, step: number, attr: number, value: number): number;
   octoweb_set_clock(master: number): number;
   octoweb_tick_position(): number;
   octoweb_render(frames: number): number;
@@ -155,6 +159,11 @@ export class Octoweb {
   /** One attribute of one track (`TRACK_ATTR`). A track or attribute that does not exist is code 5. */
   setTrack(track: number, attr: number, value: number): void {
     this.check(this.x.octoweb_set_track(track, attr, value), "set track");
+  }
+
+  /** One attribute of one step (`STEP_ATTR`). A track, step or attribute that does not exist is code 5. */
+  setStep(track: number, step: number, attr: number, value: number): void {
+    this.check(this.x.octoweb_set_step(track, step, attr, value), "set step");
   }
 
   /** Makes the engine the MIDI clock master, or not. Off at `init`. Turned on while the transport runs, the engine says where it is (Start or Continue) and the pulses follow. */

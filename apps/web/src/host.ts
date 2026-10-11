@@ -146,9 +146,19 @@ export class Host implements WorkletSink {
     this.post({ type: "track", track, attr, value });
   }
 
+  /** One attribute of one step, in the engine's own numbering (`STEP_ATTR`). A step that does not exist comes back as an `onError`. */
+  setStep(track: number, step: number, attr: number, value: number): void {
+    this.post({ type: "step", track, step, attr, value });
+  }
+
   /** Makes the engine the MIDI clock master, or not (ADR-0009). The clock reaches every chosen output as real-time records in the events. */
   setClock(master: boolean): void {
     this.post({ type: "clock", master });
+  }
+
+  /** Switches the built-in sound on or off. It plays the engine's notes in the node's own output and is not MIDI. */
+  setMonitor(on: boolean): void {
+    this.post({ type: "monitor", on });
   }
 
   /** Switches the click on or off. It sounds in the node's own output, once a quarter note while the transport runs, and is not MIDI. */

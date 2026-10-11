@@ -69,7 +69,7 @@ test("slave with echo follows and passes the clock on; with no output it follows
 test("M8: master and slave are refused, with a sentence, when MIDI is not there to do it, and the state falls back to off", () => {
   const cases: [ClockWorld["midi"], RegExp][] = [
     ["unavailable", /needs Web MIDI and this browser has none, so MIDI Clock stays off\.$/],
-    ["denied", /needs MIDI access, which was refused, so MIDI Clock stays off\. Allow it for this site, then press Start again\.$/],
+    ["denied", /needs MIDI access, which was refused, so MIDI Clock stays off\. Allow it for this site, then press Play again\.$/],
     ["failed", /needs Web MIDI, which could not start on this system, so MIDI Clock stays off\.$/],
   ];
   for (const mode of ["master", "slave", "slave-echo"] as const) {
@@ -84,7 +84,7 @@ test("M8: master and slave are refused, with a sentence, when MIDI is not there 
 
 test("before Start, and while MIDI is being asked for, there is nothing to send or follow with: the choice is kept as pending, with a sentence, and not refused", () => {
   for (const [w, words] of [
-    [world({ started: false, midi: "unknown" }), /^Press Start first, then .+ takes effect\.$/],
+    [world({ started: false, midi: "unknown" }), /^Press Play first, then .+ takes effect\.$/],
     [world({ started: true, midi: "unknown" }), /^Waiting for MIDI access, then .+ takes effect\.$/],
   ] as const) {
     for (const mode of ["master", "slave", "slave-echo"] as const) {

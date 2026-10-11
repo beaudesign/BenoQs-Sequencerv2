@@ -56,7 +56,7 @@ const NOTHING = { master: false, follow: false, echo: false } as const;
 
 const REFUSALS: Readonly<Record<"unavailable" | "denied" | "failed", string>> = {
   unavailable: "needs Web MIDI and this browser has none, so MIDI Clock stays off.",
-  denied: "needs MIDI access, which was refused, so MIDI Clock stays off. Allow it for this site, then press Start again.",
+  denied: "needs MIDI access, which was refused, so MIDI Clock stays off. Allow it for this site, then press Play again.",
   failed: "needs Web MIDI, which could not start on this system, so MIDI Clock stays off.",
 };
 
@@ -98,7 +98,7 @@ export function decideClock(wanted: ClockMode, world: ClockWorld): ClockDecision
     sentence,
   });
   if (wanted === "off") return off("MIDI Clock is off. The sequencer neither sends nor follows a clock.");
-  if (!world.started) return off(`Press Start first, then ${label} takes effect.`, { pending: true });
+  if (!world.started) return off(`Press Play first, then ${label} takes effect.`, { pending: true });
   if (world.midi === "unknown") return off(`Waiting for MIDI access, then ${label} takes effect.`, { pending: true });
   if (world.midi !== "ready") return off(`${label} ${REFUSALS[world.midi]}`, { refused: true });
   if (wanted === "master") {

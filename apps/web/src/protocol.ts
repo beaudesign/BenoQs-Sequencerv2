@@ -13,10 +13,14 @@ export type ToWorklet =
   | { type: "transport"; play: boolean }
   | { type: "tempo"; bpm: number }
   | { type: "track"; track: number; attr: number; value: number }
+  /** One attribute of one step, in the engine's own numbering (`STEP_ATTR`): how the page opens with a pattern. */
+  | { type: "step"; track: number; step: number; attr: number; value: number }
   /** Makes the engine the MIDI clock master (ADR-0009), or not. */
   | { type: "clock"; master: boolean }
   /** The click (specs/SPEC-0002/p5d-metronome-click.md): on or off. It is audio the worklet makes, and is not in the events. */
   | { type: "metronome"; on: boolean }
+  /** The built-in sound (src/monitor.ts): the engine's notes played in the node's output. Off in the worklet until the page turns it on. Audio the worklet makes, and not in the events. */
+  | { type: "monitor"; on: boolean }
   | { type: "reset" };
 
 export type FromWorklet =

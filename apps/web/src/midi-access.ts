@@ -44,7 +44,7 @@ export interface Midi {
 }
 
 const NO_MIDI = "This browser has no Web MIDI, so the sequencer runs without MIDI out. Chrome and Edge have it.";
-const REFUSED = "MIDI access was refused. Allow it for this site, then press Start again.";
+const REFUSED = "MIDI access was refused. Allow it for this site, then press Play again.";
 const NO_OUTPUT = "No MIDI output found. Connect one, or turn on a loopback port, and it will appear here.";
 const CHOOSE = "Choose a MIDI output to hear the sequencer.";
 const NO_INPUT = "No MIDI input found. Connect one, or turn on a loopback port, and it will appear here.";

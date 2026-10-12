@@ -3,8 +3,8 @@
 **Owner:** Curator. **Gate:** `verify:slop`, `verify:tokens`, `verify:a11y`, none built yet.
 
 This is deliberately short. The panel is a control surface whose look is decided by the
-hardware's layout and the manual's names, and the only colour in it is a lit LED
-(SPEC-0002 D3, `SPEC.md` N2 and N6). The Curator's authority is over what may *not* be added.
+hardware's layout and the manual's names, and the only saturated colour in it is a lit
+LED (SPEC-0002 D3 as amended by ADR-0010, `SPEC.md` N2 and N6). The Curator's authority is over what may *not* be added.
 
 **Status: proposed.** D3 approved "a faithful layout, restrained materials, LEDs as the only
 colour". Everything below that goes further (the strip around the panel, the radius rule, the
@@ -25,6 +25,9 @@ clock source, saving, a "this browser has no MIDI" message). They must never ble
 No overlays on the panel. No round, lit or engraved-looking controls in the strip. No colour
 in the strip. Each is one plain thing, and neither pretends to be the other.
 
+The panel has a ground of its own, the plate, inside a frame (ADR-0010). The strip and the page
+keep `surface`.
+
 ---
 
 ## 2. Tokens
@@ -35,15 +38,20 @@ exists. `verify:tokens` will enforce this by scanning the source.
 
 ### 2.1 Colour
 
-Three LED roles and one neutral palette. That is all of it.
+Three LED roles, one neutral palette, and the panel's two materials. That is all of it.
 
 | Token | Role | Notes |
 |---|---|---|
 | `led.red`, `led.green`, `led.orange` | The LED language | Roles, not hues. The manual's colourways (red as blue, green as yellow, orange as purple) are a table that maps a role to a hue. Steady or flashing is part of the meaning |
 | `led.off` | An unlit LED | Neutral. Distinguishable from every lit state by more than hue |
 | `ink`, `ink.quiet` | Text and hairlines | Contrast at least 7:1 against `surface` for text |
-| `surface` | Panel and page ground | One value |
+| `surface` | The page's and the strip's ground | One value |
 | `focus` | Keyboard focus ring | Neutral (ink plus a contrasting inner stroke), not a hue |
+| `plate` | The faceplate (ADR-0010) | Tinted, chroma at most 12. Carries the S8 suppression and its reason |
+| `frame` | The case round the plate (ADR-0010) | Tinted, chroma at most 12 |
+| `plate.ink`, `plate.ink.quiet` | Printed names; captions, row numbers and clefs, on the plate | Pure grey. At least 7:1 against `plate` |
+| `key` | A key's or a knob's flat tone | Pure grey |
+| `key.edge` | Its outline | Pure grey. At least 3:1 against `plate` |
 
 There is **no brand colour and no accent colour**. When something needs emphasis it uses
 contrast, weight or space, never hue. This is the hardest rule in the document to keep and
@@ -112,12 +120,14 @@ mode. Rules are added, never removed.
 | S14 | No idle or looping animation on the panel | P3 |
 | S15 | No `border-radius` other than `50%` on the round controls | §2.3 |
 | S16 | No CSS `transition`, `animation` or `@keyframes` other than the LED flash | §3, N3 |
+| S17 | The six panel roles (`plate`, `frame`, `plate.ink`, `plate.ink.quiet`, `key`, `key.edge`) appear only in the rules of `#panel` and `#panel-frame` | §1, ADR-0010 |
 
 S8 needs a note. `#F4F1EA` is flagged because it is the centroid of generated warm-cream
 backgrounds. If the neutral palette lands within ΔE 3 of it, the lint fires, and the correct
 response is a suppression comment that states the reason. The point of the rule is not that
 the colour is forbidden; it is that arriving there deliberately must be distinguishable from
-arriving there by default.
+arriving there by default. `plate` is such a case (ADR-0010): it carries the suppression and its
+reason.
 
 **Retired with the photoreal panel (ADR-0006): S3** (radii limited to the five measured ones),
 **S10** (every animation registered in the motion registry) and **S13** (magic numbers in
@@ -135,7 +145,7 @@ Non-optional, and not in tension with the look. Acceptance criterion A8
   encoders, then the spiral in order. Hold-and-press gestures need a keyboard equivalent; its design is open
   (`specs/SPEC-0002/tech.md` §5).
 - **Visible focus.** The `focus` ring, 2 px, with a 1 px contrasting inner stroke so it is
-  visible on the surface and on a lit LED.
+  visible on the surface, on the plate and on a lit LED.
 - **Labels.** Every control has an accessible name that is the manual's own name for it
   (**gate: 100% of controls**). The displays are exposed as text, not only drawn. A blind
   musician should be able to operate the sequencer; the Octopus's own design (a stave, ten

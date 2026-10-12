@@ -24,8 +24,10 @@ control buttons arranged in a spiral on the right half, and two columns of ten r
 Beside most buttons sits a small LED, and **the LEDs are the display**: one LED means different
 things in different modes, in three colours, steady or flashing.
 
-The web panel does not copy the wood, the coat or the chrome (SPEC-0002 D3). It keeps what the
-hand and the eye use:
+The web panel copies three things of the hardware's material, flat: the colour of the faceplate,
+the colour of the case round it, and the metal of the keys as one tone (ADR-0010). It does not
+copy the grain, the coat's texture, gloss or reflection (SPEC-0002 D3). It keeps what the hand
+and the eye use:
 
 **The layout.** The matrix, the encoder columns, the selector and mutator columns, the circle,
 the chord block, the transport and the spiral stay where the hardware has them, relative to
@@ -86,8 +88,8 @@ is understood rather than merely obeyed.
 
 ### 3.1 Colour
 
-There is one neutral palette and three LED roles, and nothing else
-([Design System §2](05-design-system.md)). There is **no accent colour and no brand colour**,
+There is one neutral palette, the two materials of the panel (the faceplate and the frame,
+ADR-0010) and three LED roles, and nothing else ([Design System §2](05-design-system.md)). There is **no accent colour and no brand colour**,
 because the hardware has none. The only saturated colour anywhere in the product is emitted by
 an LED. This is the strictest and most valuable constraint in the design system, and it will
 be tempting to break it in the settings page. Do not. Emphasis is made with contrast, weight
@@ -135,9 +137,10 @@ of equal standing with layout, and timing beats pixels (N5).
 
 Checked against the known cluster of generated-design tells:
 
-- *Warm cream background with high-contrast serif and terracotta accent:* not used. The
-  palette is neutral, and there is no accent at all. The lint flags values near the cluster
-  ([Design System §4](05-design-system.md), S8).
+- *Warm cream background with high-contrast serif and terracotta accent:* the cream is not
+  used by default. The faceplate is the instrument's own warm off-white (ADR-0010); it carries
+  S8's waiver with its reason, and the face is a sans, with no serif and no accent at all. The
+  lint flags values near the cluster ([Design System §4](05-design-system.md), S8).
 - *Near-black with one acid accent:* not used.
 - *Broadsheet hairlines and zero radius:* rejected. Controls are the round things the
   hardware has.

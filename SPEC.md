@@ -84,9 +84,10 @@ Gate: `verify:arch` (not built yet).
 
 **N2. The only saturated colour is an LED's.**
 Red, green and orange, steady or flashing, and only as roles: the colourways in the manual
-change the hue, not the role. Everything else is one neutral palette. No gradient stands in
-for a material, no drop shadow fakes depth, no accent colour. Gate: `verify:slop` (not built
-yet).
+change the hue, not the role. Everything else is flat and low in chroma: one neutral palette,
+and the two materials of the hardware, the faceplate and the frame (ADR-0010). No gradient
+stands in for a material, no drop shadow fakes depth, no accent colour. Gate: `verify:slop`
+(not built yet).
 
 **N3. Motion is state, not decoration.**
 An LED is off, on or flashing at the manual's rate; a button is up or down. Nothing else

@@ -109,6 +109,13 @@ below was filled in on 2026-09-30; the agent merges nothing.
 - **O6 (ring, snapshot, loom tests)**: on `main`, tested, and not needed by a single-threaded
   WebAssembly engine. Frozen (D5).
 
+## Amendments
+
+- **D3, by ADR-0010 (proposed 2026-10-12; in force when the owner merges it).** "Restrained materials" includes the
+  colour of the faceplate and of the frame and the keys' metal as flat tones, and "LEDs as the only colour" reads as
+  `SPEC.md` N2 does: the only *saturated* colour. The layout, the ban on gradient and shadow, and the absence of a
+  photoreal path are unchanged.
+
 ## Files
 
 | File | Contents |

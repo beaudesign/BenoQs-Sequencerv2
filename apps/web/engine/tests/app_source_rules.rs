@@ -313,7 +313,79 @@ fn violations(s: &Source) -> Vec<String> {
             }
         }
     }
+    // S17: the six panel colours (ADR-0010) are the panel's. In a stylesheet only a rule whose every selector begins at #panel or #panel-frame
+    // may use one; a script or the page names none (the stylesheet draws, the script does not).
+    if s.kind == Kind::Css {
+        for (selector, body) in css_blocks(&with_strings) {
+            for role in panel_roles_named(&body) {
+                for sel in selector.split(',') {
+                    if !is_panel_selector(sel) {
+                        bad("S17", format!("`{}` uses --{role}, which is the panel's: only a rule that starts at #panel or #panel-frame may", sel.trim()));
+                    }
+                }
+            }
+        }
+    } else {
+        for role in panel_roles_named(&with_strings) {
+            bad("S17", format!("--{role} is written outside a stylesheet; the six panel colours are drawn by the stylesheet's #panel rules"));
+        }
+    }
     out
+}
+
+/// The six colour roles ADR-0010 adds, as custom properties. They are the plate's, the frame's and the keys', and nothing else's.
+const PANEL_ROLES: [&str; 6] = ["colour-plate", "colour-frame", "colour-plate-ink", "colour-plate-ink-quiet", "colour-key", "colour-key-edge"];
+
+/// The panel roles named in `text` as custom properties (`--colour-plate`, wherever it is written), each as a whole name:
+/// `--colour-plate-ink` is one role and not `--colour-plate` followed by something.
+fn panel_roles_named(text: &str) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    for part in text.split("--").skip(1) {
+        let name: String = part.chars().take_while(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-').collect();
+        if let Some(role) = PANEL_ROLES.iter().find(|r| **r == name) {
+            out.push(*role);
+        }
+    }
+    out
+}
+
+/// The innermost blocks of a stylesheet, as (selector, body): `a, b { x: y }` is one; in `@keyframes n { 0% { x: y } }` the inner
+/// block is one and the at-rule is not.
+fn css_blocks(css: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    // (prelude, where the body starts, whether a block opened inside it)
+    let mut open: Vec<(String, usize, bool)> = Vec::new();
+    let mut start = 0;
+    for (i, c) in css.char_indices() {
+        match c {
+            '{' => {
+                if let Some(parent) = open.last_mut() {
+                    parent.2 = true;
+                }
+                open.push((css[start..i].trim().to_string(), i + 1, false));
+                start = i + 1;
+            }
+            '}' => {
+                if let Some((prelude, body_at, nested)) = open.pop() {
+                    if !nested {
+                        out.push((prelude, css[body_at..i].to_string()));
+                    }
+                }
+                start = i + 1;
+            }
+            ';' => start = i + 1,
+            _ => {}
+        }
+    }
+    out
+}
+
+/// A selector that begins at the panel: its first compound is `#panel` or `#panel-frame` (with classes, attributes or pseudo-classes
+/// after it), and not `#panelx` or `main #panel`.
+fn is_panel_selector(selector: &str) -> bool {
+    let first = selector.trim().split(|c: char| c.is_whitespace() || c == '>' || c == '+' || c == '~').next().unwrap_or("");
+    let id: String = first.chars().take_while(|c| !matches!(c, '.' | '[' | ':')).collect();
+    id == "#panel" || id == "#panel-frame"
 }
 
 /// Numeric literals in the panel's drawing code: none beyond 0, 1 and 2 (halves and steps), so no pixel position is
@@ -621,4 +693,114 @@ fn s12_a_pixel_position_written_in_panel_code_is_caught() {
     assert!(!found("// 60 px in a comment\nconst label = 'a 60px string';"));
     let layout = Source { name: "layout/x.json".into(), kind: Kind::Json, text: "{\"gap\": \"12px\"}".into() };
     assert!(caught(&layout, "S12"), "a length in the layout file");
+}
+
+#[test]
+fn s17_a_panel_colour_outside_the_panel_is_caught() {
+    for text in [
+        "#strip button { background: var(--colour-plate); }",
+        "html, body { background: var(--colour-frame); }",
+        ".plate { fill: var(--colour-plate); }",
+        "#panel, #strip { fill: var(--colour-key); }",
+        "main #panel { fill: var(--colour-key-edge); }",
+        "#panelx .a { fill: var(--colour-plate-ink); }",
+        "#strip p { color: var(--colour-plate-ink-quiet); }",
+        "@media (min-width: 0) { .x { fill: var(--colour-key); } }",
+        "@keyframes led-flash { 0% { fill: var(--colour-plate); } }",
+        ":root { --colour-plate: var(--lit); } a { fill: var(--colour-plate); }",
+    ] {
+        assert!(caught(&css(text), "S17"), "{text}");
+    }
+    assert!(caught(&ts("el.style.setProperty('fill', 'var(--colour-plate)');"), "S17"));
+    assert!(caught(&ts("const x = '--colour-key-edge';"), "S17"));
+    let page = Source { name: "x.html".into(), kind: Kind::Html, text: "<style>a { fill: var(--colour-frame) }</style>".into() };
+    assert!(caught(&page, "S17"));
+}
+
+#[test]
+fn s17_inside_the_panel_the_six_colours_are_allowed_and_elsewhere_the_other_roles_are() {
+    for ok in [
+        "#panel .plate { fill: var(--colour-plate); }",
+        "#panel-frame { background: var(--colour-frame); padding: var(--space-4); }",
+        "#panel .legend.caption, #panel .legend.row { fill: var(--colour-plate-ink-quiet); }",
+        "#panel .control[data-down] .face { stroke: var(--colour-plate-ink); }",
+        "#panel:focus-visible { stroke: var(--colour-key); }",
+        "#panel > .face { stroke: var(--colour-key-edge); }",
+        "@media (min-width: 0) { #panel .face { fill: var(--colour-key); } }",
+        "#strip p { color: var(--colour-ink-quiet); } html, body { background: var(--colour-surface); }",
+        "#strip button { background: var(--colour-ink); }",
+    ] {
+        assert!(!caught(&css(ok), "S17"), "{ok}");
+    }
+    // Whole names: the ink on the plate is not the plate, and a longer name that is no role is no role.
+    assert_eq!(panel_roles_named("a { fill: var(--colour-plate-ink); stroke: var(--colour-platex); b: var(--colour-key-edge) }"), vec!["colour-plate-ink", "colour-key-edge"]);
+    assert!(!caught(&ts("const i = 0; i--; const p = 'colour-plate';"), "S17"), "a decrement and a name without its dashes are not custom properties");
+}
+
+#[test]
+fn the_blocks_of_a_stylesheet_are_read_as_the_rule_scan_needs() {
+    let blocks = css_blocks("a, b { x: y; } @keyframes k { 0% { fill: red; } 50% { fill: none; } } @media m { c .d { e: f; } } g { h: i }");
+    let selectors: Vec<&str> = blocks.iter().map(|(s, _)| s.as_str()).collect();
+    assert_eq!(selectors, vec!["a, b", "0%", "50%", "c .d", "g"]);
+    assert_eq!(blocks[0].1.trim(), "x: y;");
+    assert!(is_panel_selector("#panel") && is_panel_selector(" #panel-frame ") && is_panel_selector("#panel .a > b") && is_panel_selector("#panel[data-x]"));
+    assert!(!is_panel_selector("#panelx") && !is_panel_selector("main #panel") && !is_panel_selector(".panel") && !is_panel_selector("panel"));
+}
+
+/// The panel's rules in the page stylesheet: the bodies of every block whose selectors all begin at the panel.
+fn panel_bodies() -> Vec<(String, String)> {
+    let text = std::fs::read_to_string(web_dir().join("pages/app.css")).unwrap();
+    css_blocks(&code_of(&text, Kind::Css, true)).into_iter().filter(|(sel, _)| sel.split(',').all(is_panel_selector)).collect()
+}
+
+#[test]
+fn the_panel_is_drawn_in_its_own_six_colours_and_each_is_used() {
+    let bodies = panel_bodies();
+    assert!(bodies.len() >= 8, "the panel has {} rules of its own", bodies.len());
+    for role in PANEL_ROLES {
+        assert!(bodies.iter().any(|(_, b)| panel_roles_named(b).contains(&role)), "no #panel rule uses --{role}");
+    }
+}
+
+#[test]
+fn the_panel_borrows_nothing_from_the_strip() {
+    // docs/05 section 1: two worlds. The strip's ground and ink are not the plate's; the shine is told in the plate's ink (flash.shine names `ink`, the strip's).
+    let bodies = panel_bodies();
+    let mut found = Vec::new();
+    for (sel, body) in &bodies {
+        for name in custom_properties_used(body) {
+            if ["colour-surface", "colour-ink", "colour-ink-quiet", "flash-shine"].contains(&name.as_str()) {
+                found.push(format!("`{sel}` uses --{name}, which is the strip's"));
+            }
+        }
+    }
+    assert!(found.is_empty(), "{}", found.join("\n"));
+}
+
+#[test]
+fn the_strip_and_the_page_are_not_drawn_in_the_panel_colours() {
+    // The converse of the above, over the real stylesheet: S17 already refuses it, and this names the strip so a failure says so.
+    let text = std::fs::read_to_string(web_dir().join("pages/app.css")).unwrap();
+    for (sel, body) in css_blocks(&code_of(&text, Kind::Css, true)) {
+        if sel.contains("#strip") || sel.contains("html") || sel.contains("body") || sel.contains("main") {
+            assert!(panel_roles_named(&body).is_empty(), "`{sel}` uses a panel colour");
+        }
+    }
+}
+
+#[test]
+fn the_panels_parts_are_styled_only_under_the_panel() {
+    // The classes panel.ts gives the things it draws. A rule that names one without starting at #panel would style the panel from outside it, past S17 and the test above.
+    const PARTS: [&str; 14] = ["plate", "face", "nut", "ball", "legend", "led", "dot", "label", "ring-inner", "ring-outer", "control", "knob", "inert", "key"];
+    let text = std::fs::read_to_string(web_dir().join("pages/app.css")).unwrap();
+    let mut found = Vec::new();
+    for (sel, _) in css_blocks(&code_of(&text, Kind::Css, true)) {
+        for one in sel.split(',') {
+            let classes = one.split('.').skip(1).map(|c| c.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-').collect::<String>());
+            if classes.into_iter().any(|c| PARTS.contains(&c.as_str())) && !is_panel_selector(one) {
+                found.push(format!("`{}` styles a part of the panel from outside #panel", one.trim()));
+            }
+        }
+    }
+    assert!(found.is_empty(), "{}", found.join("\n"));
 }

@@ -1,0 +1,12 @@
+/* The throwaway preview for ADR-0010: P7's panel with the proposed roles laid over it. It is a stylesheet laid over
+   the page in a test browser (page.addStyleTag), not a change to the app, and it uses colour literals on purpose:
+   the values are the candidates in the ADR, and P8 turns the accepted ones into tokens.
+   plate #fcf3ec, frame #32241e, plate.ink #1e1e1e, plate.ink.quiet #4d4d4d, key #9a9a9a, key.edge #5c5c5c */
+#panel-frame { background: #32241e; padding: 20px; box-sizing: border-box; }
+.plate { fill: #fcf3ec; stroke: none; }
+.face { fill: #9a9a9a; stroke: #5c5c5c; }
+.nut { fill: #b4b4b4; stroke: #5c5c5c; }
+.ball { fill: #8a8a8a; stroke: #5c5c5c; }
+.label, .legend { fill: #1e1e1e; }
+.legend.caption, .legend.row, .legend.clef { fill: #4d4d4d; }
+.led, .dot { stroke: #1e1e1e; stroke-width: 1px; }

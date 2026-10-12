@@ -1,0 +1,114 @@
+{
+ "source": "reference/plates/web-frontal-01.jpg",
+ "caveat": "retailer product photograph, no colour chart, unknown white balance; the numbers are what the photograph shows",
+ "plate": {
+  "hex": "#fcf3ec",
+  "lab": [
+   96.5,
+   2.0,
+   4.0
+  ],
+  "chroma": 4.5,
+  "pixels": 237549,
+  "p10": "#f1e7e2",
+  "p90": "#ffffff",
+  "note": "median of the light, warm pixels inside the outline and clear of every key, knob and LED; p10 and p90 show the lighting across the plate"
+ },
+ "frame_bands": {
+  "left": {
+   "width_px": 37,
+   "hex": "#32241e",
+   "lab": [
+    15.7,
+    6.0,
+    6.0
+   ],
+   "chroma": 8.5,
+   "pixels": 13494,
+   "p10": "#261b16",
+   "p90": "#483426"
+  }
+ },
+ "frame": {
+  "hex": "#32241e",
+  "lab": [
+   15.7,
+   6.0,
+   6.0
+  ],
+  "chroma": 8.5,
+  "pixels": 13494,
+  "p10": "#261b16",
+  "p90": "#483426",
+  "note": "median of the dark pixels in the strips left and right of the plate outline (the wenge cheeks)"
+ },
+ "key_face": {
+  "hex": "#a0958c",
+  "lab": [
+   62.4,
+   2.0,
+   6.0
+  ],
+  "chroma": 6.3,
+  "pixels": 7685,
+  "p10": "#25191d",
+  "p90": "#fefaf7",
+  "note": "median over all keys of the central 3 px radius; a chrome ball has a highlight, so p10 to p90 is wide"
+ },
+ "keys_counted": 265,
+ "knob_ball": {
+  "hex": "#827772",
+  "lab": [
+   51.0,
+   3.0,
+   4.0
+  ],
+  "chroma": 5.0,
+  "pixels": 609,
+  "p10": "#343033",
+  "p90": "#fffbf5"
+ },
+ "knob_nut": {
+  "hex": "#aaa297",
+  "lab": [
+   67.1,
+   1.0,
+   7.0
+  ],
+  "chroma": 7.1,
+  "pixels": 4284,
+  "p10": "#51483d",
+  "p90": "#f4eee6"
+ },
+ "knobs_counted": 21,
+ "led_dots": {
+  "found": 253,
+  "without_hue": 143
+ },
+ "led_off": {
+  "hex": "#645444",
+  "lab": [
+   36.9,
+   4.0,
+   12.0
+  ],
+  "chroma": 12.6,
+  "pixels": 143,
+  "p10": "#534033",
+  "p90": "#766652",
+  "note": "median of the dots with no hue; the photograph's dots are about 3 px across, so this is a blend with the plate round them"
+ },
+ "ink": {
+  "hex": "#1e0e0a",
+  "lab": [
+   5.5,
+   8.0,
+   4.0
+  ],
+  "chroma": 8.9,
+  "pixels": 2946,
+  "p10": "#020000",
+  "p90": "#2e1f1f",
+  "note": "the darkest 1 percent of plate pixels clear of keys; printed names are about 4 px high so this is a blur of the ink with the plate and is lighter than the ink"
+ }
+}

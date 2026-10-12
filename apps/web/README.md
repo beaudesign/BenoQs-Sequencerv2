@@ -42,7 +42,7 @@ Chromium comes from `npx playwright-core install chromium`, or from `PLAYWRIGHT_
 
 `pages/app.html` is a strip and a panel. The strip is plain: **Start**, the device for **MIDI Out 1** and for **MIDI Out 2**,
 the device for **MIDI In**, the **MIDI Clock** state, the **clock offset** in milliseconds, the **lookahead** in milliseconds
-(30 by default), and sentences that say what the app and the browser's MIDI and clock are doing. It never sits on the panel and holds no colour. The panel is one SVG that scales as a whole and
+(30 by default), and sentences that say what the app and the browser's MIDI and clock are doing. It never sits on the panel and holds no colour of the panel's (S17). The panel is one SVG that scales as a whole and
 never rearranges.
 
 - **Play** is the one transport button, because a browser keeps audio silent until the page has been used. The first press starts the
@@ -79,6 +79,10 @@ never rearranges.
   (`unplaced` in the layout file says why). The controller acts on eleven controls today and the rest do nothing yet. The layout is
   provisional: each entry's `basis` says whether its identity was read from the plate (`photo`) or only guessed from its place in a
   group (`order`), and `unplaced` and `hw.*` are findings for the Panelwright.
+- **The look** is the hardware's own materials drawn flat (ADR-0010, `specs/SPEC-0002/p8b-panel-in-the-hardwares-materials.md`): a cream plate (`plate`) in a dark frame (`frame`), keys, knobs and nuts in one grey metal tone with a
+  hairline edge (`key`, `key.edge`), and the names printed in dark ink (`plate.ink`; the captions, row numbers and clefs in `plate.ink.quiet`). It has no gradient, highlight, shadow or outline on the plate. The six colours are
+  the panel's: only rules that start at `#panel` or `#panel-frame` in `pages/app.css` may use them (rule S17), and the strip keeps its own ground and ink. The values are candidates until the owner merges the pull request with the screenshots in
+  `handoffs/evidence/p8b/`. The page and the strip are still the strip's dark, because the case is the panel's and not the page's.
 - **The Play key** (`transport.play`) is the page's own command to the engine, a stopgap until the transport workflow is
   built from the manual (ADR-0008 decision 4). **The tempo** is the engine's 120; its encoder is Wave 1.
 - **The chase-light** is not drawn (the manual does not say how it overlays a lit step; request to the Panelwright).
@@ -89,7 +93,7 @@ never rearranges.
   engine has none to show.
 - **LEDs** are a dot beside each key, as on the plate (above a matrix key, right of a SEL key, left of a mutator key), and are drawn from the
   engine's LED frame: dark, or lit in the role's colour. A dot beside a key the manual gives no LED (Play, Stop, Pause: Q26) is dead. A flashing LED flashes at the token's
-  period and all flashing LEDs flash together; a shine LED is ringed in ink. The state is also said in words
+  period and all flashing LEDs flash together; every dot has a rim of ink, because a lit green is 1.6 to 1 on the plate and a lit orange 2.2 to 1, and a shine LED has the heavier rim. The state is also said in words
   (`aria-description`), because colour is not the only carrier.
 - **No colour, length or type size is written in the app.** `dist/tokens.css` is generated from the tokens file; the
   stylesheet only names it; the panel's geometry is computed from the tokens. `engine/tests/app_source_rules.rs` fails the
@@ -179,8 +183,8 @@ checked against `layout/panel.layout.json` by `test/readme.test.ts`, so it canno
    The plate's own keys (`hw.*`) are not stops.
 
 Every control is a `button` whose name is the manual's own name for it (`contracts/controls.json`, `name`); a knob is a button that says it
-is a knob. Focus is a ring of two strokes, a light one outside the key and a dark one inside its edge, so that it shows on the ground and on a
-lit LED; it is drawn from the focus tokens and appears on keyboard focus, not on a pointer press.
+is a knob. Focus is a ring of two strokes, a dark one outside the key, on the plate, and a light one inside its edge, on the metal, so that it shows on both; it is drawn from the focus tokens and appears on
+keyboard focus, not on a pointer press. (In P3c to P7 it was light outside and dark inside, for the dark ground; ADR-0010 decision 5.)
 
 **Known cost.** There are 242 Tab stops. A single stop with arrow keys (a roving focus) is the usual cure, and it would change what E8
 checks, so it is the owner's to choose; it is not done.

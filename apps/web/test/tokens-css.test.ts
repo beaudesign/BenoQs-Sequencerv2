@@ -11,7 +11,7 @@ const tokens = parseTokens(raw);
 const css = tokensCss(tokens);
 
 test("every colour, space, type, stroke and flash token is a custom property with its value", () => {
-  for (const [key, leaf] of Object.entries(tokens.colour)) assert.ok(css.includes(`--colour-${key.replace(".", "-")}: ${leaf.value};`), key);
+  for (const [key, leaf] of Object.entries(tokens.colour)) assert.ok(css.includes(`--colour-${key.replaceAll(".", "-")}: ${leaf.value};`), key);
   for (const [key, leaf] of Object.entries(tokens.space)) assert.ok(css.includes(`--space-${key}: ${leaf.value}px;`), `space ${key}`);
   assert.ok(css.includes(`--type-family: ${tokens.type.family.value};`));
   assert.ok(css.includes(`--type-size-label: ${tokens.type.size.label.value}px;`));

@@ -464,13 +464,14 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
   const outer = await ring("matrix.r9.c1", "outer");
   const inner = await ring("matrix.r9.c1", "inner");
   assert.equal(outer.display, "inline");
-  assert.equal(outer.stroke, rgb(tokens.colour["focus"].value));
+  // On the plate the two tones change places (ADR-0010 decision 5; panel-colours.browser.test.ts P8-6 measures why): the dark one is outside, on the plate.
+  assert.equal(outer.stroke, rgb(tokens.colour["focus.inner"].value));
   assert.equal(outer.width, `${tokens.stroke.focus.value}px`);
-  assert.equal(inner.stroke, rgb(tokens.colour["focus.inner"].value));
+  assert.equal(inner.stroke, rgb(tokens.colour["focus"].value));
   assert.equal(inner.width, `${tokens.stroke.focus_inner.value}px`);
   await page.click(face("matrix.r5.c5"));
   assert.equal((await ring("matrix.r5.c5", "outer")).display, "none", "a mouse press does not leave a ring");
-  // The ring is two strokes either side of the key's edge: the light one just outside, the dark one just inside.
+  // The ring is two strokes either side of the key's edge: the dark one just outside, the light one just inside.
   const radii = await page.$eval(key("matrix.r9.c1"), (g) => {
     const r = (sel: string) => Number(g.querySelector(sel)!.getAttribute("r"));
     return { face: r(".face"), outer: r(".ring-outer"), inner: r(".ring-inner") };

@@ -1,7 +1,9 @@
 /* The page's own rules. Every colour, length, font and stroke is a custom property from the generated tokens.css
    (contracts/design.tokens.json): this file writes none of its own (ADR-0008 decision 6, rules S2 and S12).
    No gradient, shadow, transition or easing anywhere; the one animation is the LED flash, whose keyframes are in
-   tokens.css. The strip has square corners and no colour; the controls are circles, the one place a radius is used. */
+   tokens.css. The strip has square corners and no colour; the controls are circles, the one place a radius is used.
+   Two worlds (docs/05 section 1): everything from "The panel" down is drawn under #panel or #panel-frame, in the hardware's
+   own flat tones (plate, frame, key, and the ink printed on the plate; ADR-0010), and the strip above never uses them (S17). */
 
 html,
 body {
@@ -77,11 +79,14 @@ main {
   outline-offset: var(--stroke-focus);
 }
 
-/* The panel is one object: it scales to the room it is given and never rearranges. */
+/* The panel is one object: it scales to the room it is given and never rearranges. Its frame is the case round the plate:
+   one flat tone, and a margin the plate does not touch. */
 #panel-frame {
   flex: 1;
   min-height: 0;
   display: flex;
+  padding: var(--space-4);
+  background: var(--colour-frame);
 }
 
 #panel {
@@ -90,115 +95,120 @@ main {
   display: block;
 }
 
-.control {
+#panel .control {
   cursor: pointer;
   outline: none;
   touch-action: none;
   user-select: none;
 }
 
-/* The plate, and the keys and knobs on it: flat fills and hairlines, no highlight (docs/00 section 2, E1 and E2). */
-.plate {
-  fill: var(--colour-surface);
-  stroke: var(--colour-ink-quiet);
+/* The plate, and the keys and knobs on it: flat fills, no highlight, no gradient and no shadow (docs/00 section 2, E1 and E2).
+   The plate has no outline (the frame is its edge); a key is one metal tone with a hairline edge. */
+#panel .plate {
+  fill: var(--colour-plate);
+  stroke: none;
+}
+
+#panel .face,
+#panel .nut,
+#panel .ball {
+  fill: var(--colour-key);
+  stroke: var(--colour-key-edge);
   stroke-width: var(--stroke-hairline);
 }
 
-.face,
-.nut,
-.ball {
-  fill: var(--colour-surface);
-  stroke: var(--colour-ink-quiet);
-  stroke-width: var(--stroke-hairline);
-}
-
-.knob {
+#panel .knob {
   cursor: ns-resize;
 }
 
 /* A key on the plate that is in no inventory: drawn, and it does nothing. */
-.inert {
+#panel .inert {
   cursor: default;
 }
 
-/* Printed on the plate. The block names are in ink; the captions, the row numbers and the clefs are the quieter ink. */
-.legend {
-  fill: var(--colour-ink);
+/* Printed on the plate, in dark ink. The block names are in the ink; the captions, the row numbers and the clefs are the quieter ink. */
+#panel .legend {
+  fill: var(--colour-plate-ink);
   font-size: var(--type-size-label);
   dominant-baseline: central;
   pointer-events: none;
   user-select: none;
 }
 
-.legend.caption,
-.legend.row {
-  fill: var(--colour-ink-quiet);
+#panel .legend.caption,
+#panel .legend.row {
+  fill: var(--colour-plate-ink-quiet);
 }
 
-.legend.clef {
-  fill: var(--colour-ink-quiet);
+#panel .legend.clef {
+  fill: var(--colour-plate-ink-quiet);
   font-size: var(--space-6);
 }
 
-.control[data-down] .face {
-  stroke: var(--colour-ink);
+/* Held down, a key's edge goes to the ink: the face does not change (a key of the hardware does not), so the edge says it. */
+#panel .control[data-down] .face {
+  stroke: var(--colour-plate-ink);
 }
 
-/* An LED is a dot beside its key, lit in the role's colour or dark; a dot the engine has no LED for stays dark. Steady, flashing and shine are told apart by more than colour. */
-.led,
-.dot {
+/* An LED is a dot beside its key, lit in the role's colour or dark; a dot the engine has no LED for stays dark. On the plate a lit green is 1.6:1
+   and a lit orange 2.2:1, so colour does not mark a lit LED: every dot has a rim of the ink. Steady, flashing and shine are told apart by more than
+   colour: flashing moves, and shining has the heavier rim. */
+#panel .led,
+#panel .dot {
   fill: var(--colour-led-off);
+  stroke: var(--colour-plate-ink);
+  stroke-width: var(--stroke-hairline);
 }
 
-.led[data-colour="red"] {
+#panel .led[data-colour="red"] {
   --lit: var(--colour-led-red);
   fill: var(--lit);
 }
 
-.led[data-colour="green"] {
+#panel .led[data-colour="green"] {
   --lit: var(--colour-led-green);
   fill: var(--lit);
 }
 
-.led[data-colour="orange"] {
+#panel .led[data-colour="orange"] {
   --lit: var(--colour-led-orange);
   fill: var(--lit);
 }
 
-.led[data-phase="flash"] {
+#panel .led[data-phase="flash"] {
   animation: led-flash var(--flash-period) steps(1, end) infinite;
 }
 
-.led[data-phase="shine"] {
-  stroke: var(--flash-shine);
+#panel .led[data-phase="shine"] {
   stroke-width: var(--stroke-focus);
 }
 
-/* The focus ring: a light stroke outside the key and a dark one inside its edge, so it shows on the ground and on a lit LED. */
-.ring-inner,
-.ring-outer {
+/* The focus ring: two strokes, so that it shows on the plate and on the key (docs/05 section 5). On the plate the dark one is outside the key, on
+   the plate, and the light one inside its edge, on the metal; `focus.inner` names the dark tone, not the place. */
+#panel .ring-inner,
+#panel .ring-outer {
   display: none;
   fill: none;
   pointer-events: none;
 }
 
-.ring-inner {
-  stroke: var(--colour-focus-inner);
+#panel .ring-inner {
+  stroke: var(--colour-focus);
   stroke-width: var(--stroke-focus-inner);
 }
 
-.ring-outer {
-  stroke: var(--colour-focus);
+#panel .ring-outer {
+  stroke: var(--colour-focus-inner);
   stroke-width: var(--stroke-focus);
 }
 
-.control:focus-visible .ring-inner,
-.control:focus-visible .ring-outer {
+#panel .control:focus-visible .ring-inner,
+#panel .control:focus-visible .ring-outer {
   display: inline;
 }
 
-.label {
-  fill: var(--colour-ink);
+#panel .label {
+  fill: var(--colour-plate-ink);
   font-size: var(--type-size-label);
   dominant-baseline: central;
   pointer-events: none;

@@ -144,6 +144,19 @@ fn delta_e(a: Rgb, b: Rgb) -> f64 {
     delta_e2000(lab(a), lab(b))
 }
 
+/// CIELAB chroma: how far a colour is from grey, whatever its lightness.
+fn chroma(c: Rgb) -> f64 {
+    let l = lab(c);
+    l[1].hypot(l[2])
+}
+
+/// `YYYY-MM-DD`, with a month from 1 to 12 and a day from 1 to 31 (a date to read, not a clock to ask).
+fn is_date(s: &str) -> bool {
+    let p: Vec<&str> = s.split('-').collect();
+    let num = |x: &str, len: usize, lo: u32, hi: u32| x.len() == len && x.bytes().all(|b| b.is_ascii_digit()) && x.parse::<u32>().is_ok_and(|n| (lo..=hi).contains(&n));
+    p.len() == 3 && num(p[0], 4, 1970, 9999) && num(p[1], 2, 1, 12) && num(p[2], 2, 1, 31)
+}
+
 // ---------------------------------------------------------------------------------------------
 // The rules
 // ---------------------------------------------------------------------------------------------
@@ -151,9 +164,17 @@ fn delta_e(a: Rgb, b: Rgb) -> f64 {
 /// The colours the AI-design cluster of rule S8 names (`docs/05` section 4).
 const S8_CLUSTER: [&str; 4] = ["#0b0b0b", "#111111", "#f4f1ea", "#d97757"];
 
-const COLOUR_KEYS: [&str; 9] = ["led.red", "led.green", "led.orange", "led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner"];
+const COLOUR_KEYS: [&str; 15] = [
+    "led.red", "led.green", "led.orange", "led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner", // the nine of ADR-0008
+    "plate", "frame", "plate.ink", "plate.ink.quiet", "key", "key.edge", // the six of ADR-0010
+];
 const LIT: [&str; 3] = ["led.red", "led.green", "led.orange"];
-const NEUTRAL: [&str; 6] = ["led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner"];
+const NEUTRAL: [&str; 10] = ["led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner", "plate.ink", "plate.ink.quiet", "key", "key.edge"];
+/// The two tinted materials of the hardware (ADR-0010 decision 3): not neutral, and not saturated.
+const MATERIAL: [&str; 2] = ["plate", "frame"];
+/// The CIELAB chroma a material may not exceed. The photograph measures the faceplate at 4.5 and the frame at 8.5 (handoffs/evidence/panel-colours);
+/// a lit LED is far above it.
+const MATERIAL_CHROMA_MAX: f64 = 12.0;
 const SPACE_SCALE: [u64; 8] = [0, 4, 8, 12, 20, 32, 52, 84];
 const REFUSED_FACES: [&str; 8] = ["inter", "google sans", "sf pro", "system-ui", "-apple-system", "blinkmacsystemfont", "ui-sans-serif", "segoe ui"];
 
@@ -248,6 +269,12 @@ fn rule_violations(doc: &Value) -> Vec<String> {
                 }
             }
         }
+        // The panel has a ground of its own (ADR-0010): the ring shows on the plate too.
+        if let Some(plate) = rgb(doc, "plate") {
+            if contrast(f, plate).max(contrast(fi, plate)) < 3.0 {
+                out.push("T5 neither focus nor focus.inner reaches 3:1 against plate".into());
+            }
+        }
     }
 
     // T6: fewer than three flashes a second (WCAG 2.3.1), or the file calls the rate a finding.
@@ -263,12 +290,31 @@ fn rule_violations(doc: &Value) -> Vec<String> {
         _ => out.push("T6 flash.period_ms is missing or not a positive number".into()),
     }
 
-    // T7: the only keys with a hue are the three lit roles.
+    // T7: the only keys with a hue are the three lit roles and the two materials. A material stays under a chroma ceiling and carries an
+    // exemption that says why and until when (ADR-0010 decision 5, the one loosening, which expires); every other role is pure grey.
     for key in NEUTRAL {
         if let Some(c) = rgb(doc, key) {
             if !neutral(c) {
-                out.push(format!("T7 colour.{key} has a hue ({}); only the led roles may", colour(doc, key).unwrap()["value"]));
+                out.push(format!("T7 colour.{key} has a hue ({}); only the led roles, plate and frame may", colour(doc, key).unwrap()["value"]));
             }
+        }
+    }
+    for key in MATERIAL {
+        if let Some(c) = rgb(doc, key) {
+            let k = chroma(c);
+            if k > MATERIAL_CHROMA_MAX {
+                out.push(format!("T7 colour.{key} has chroma {k:.1}; a material's ceiling is {MATERIAL_CHROMA_MAX}"));
+            }
+        }
+        let ex = colour(doc, key).map(|t| t["exemption"].clone()).unwrap_or(Value::Null);
+        let said = ex["rule"] == "T7" && ex["why"].as_str().is_some_and(|w| !w.trim().is_empty()) && ex["expires"].as_str().is_some_and(is_date);
+        if !said {
+            out.push(format!("T7 colour.{key} carries no exemption that says why and until when (ADR-0010 decision 5)"));
+        }
+    }
+    for key in COLOUR_KEYS {
+        if !MATERIAL.contains(&key) && colour(doc, key).is_some_and(|t| t.get("exemption").is_some()) {
+            out.push(format!("T7 colour.{key} carries an exemption; only plate and frame may"));
         }
     }
 
@@ -294,6 +340,24 @@ fn rule_violations(doc: &Value) -> Vec<String> {
         if let Some(c) = rgb(doc, a) {
             if neutral(c) {
                 out.push(format!("T9 {a} is grey; a lit LED is the one place colour is allowed"));
+            }
+        }
+    }
+
+    // T12 and T13: what is printed on the plate is read against the plate (ADR-0010 decision 3).
+    if let Some(plate) = rgb(doc, "plate") {
+        for key in ["plate.ink", "plate.ink.quiet"] {
+            if let Some(c) = rgb(doc, key) {
+                let r = contrast(c, plate);
+                if r < 7.0 {
+                    out.push(format!("T12 colour.{key} against plate is {r:.2}:1, the floor is 7:1"));
+                }
+            }
+        }
+        if let Some(c) = rgb(doc, "key.edge") {
+            let r = contrast(c, plate);
+            if r < 3.0 {
+                out.push(format!("T13 colour.key.edge against plate is {r:.2}:1, the floor is 3:1 (WCAG 2.1 non-text)"));
             }
         }
     }
@@ -370,7 +434,7 @@ fn the_tokens_say_what_they_are() {
     want.sort_unstable();
     let mut got = colours;
     got.sort_unstable();
-    assert_eq!(got, want, "the nine colour roles and no tenth (CLAUDE.md rule 6)");
+    assert_eq!(got, want, "the fifteen colour roles and no sixteenth (ADR-0008 and ADR-0010; CLAUDE.md rule 6)");
     let space: Vec<u64> = (0..8).map(|i| doc["space"][i.to_string()]["value"].as_u64().unwrap()).collect();
     assert_eq!(space, SPACE_SCALE, "docs/05 section 2.2");
 }
@@ -481,6 +545,81 @@ fn t7_a_neutral_that_has_a_hue_is_refused() {
         let found = rule_violations(&with(tokens(), &["colour", key, "value"], json!("#3a3a46")));
         assert!(found.iter().any(|l| l.starts_with("T7") && l.contains(key)), "{key}: {found:?}");
     }
+}
+
+#[test]
+fn t7_a_material_with_too_much_chroma_is_refused() {
+    for (key, bad) in [("plate", "#f7c9a8"), ("frame", "#6b3a1e")] {
+        let found = rule_violations(&with(tokens(), &["colour", key, "value"], json!(bad)));
+        assert!(found.iter().any(|l| l.starts_with("T7") && l.contains(key) && l.contains("chroma")), "{key} = {bad}: {found:?}");
+    }
+}
+
+#[test]
+fn t7_a_material_must_say_why_and_until_when() {
+    for key in MATERIAL {
+        let mut doc = tokens();
+        doc["colour"][key].as_object_mut().unwrap().remove("exemption");
+        let found = rule_violations(&doc);
+        assert!(found.iter().any(|l| l.starts_with("T7") && l.contains(key) && l.contains("exemption")), "{key}: {found:?}");
+        for bad in [
+            json!({ "rule": "T7", "why": "  ", "expires": "2027-01-31" }),
+            json!({ "rule": "T7", "why": "the hardware's own colour", "expires": "soon" }),
+            json!({ "rule": "T7", "why": "the hardware's own colour", "expires": "2027-13-40" }),
+            json!({ "rule": "T7", "why": "the hardware's own colour" }),
+        ] {
+            let found = rule_violations(&with(tokens(), &["colour", key, "exemption"], bad.clone()));
+            assert!(found.iter().any(|l| l.starts_with("T7") && l.contains(key)), "{key} {bad}: {found:?}");
+        }
+    }
+}
+
+#[test]
+fn t7_only_the_two_materials_may_carry_an_exemption() {
+    let ex = json!({ "rule": "T7", "why": "the owner liked it", "expires": "2027-01-31" });
+    for key in ["ink", "key", "surface", "led.green"] {
+        let found = rule_violations(&with(tokens(), &["colour", key, "exemption"], ex.clone()));
+        assert!(found.iter().any(|l| l.starts_with("T7") && l.contains(key) && l.contains("only plate and frame")), "{key}: {found:?}");
+    }
+}
+
+#[test]
+fn t12_printed_names_too_quiet_on_the_plate_are_refused() {
+    let doc = tokens();
+    let plate = rgb(&doc, "plate").expect("the plate is in the file");
+    let g = (0..=255u8).find(|g| contrast([*g; 3], plate) < 7.0).expect("some grey sits under 7:1 on the plate");
+    let hex = format!("#{g:02x}{g:02x}{g:02x}");
+    for key in ["plate.ink", "plate.ink.quiet"] {
+        let found = rule_violations(&with(tokens(), &["colour", key, "value"], json!(hex)));
+        assert!(found.iter().any(|l| l.starts_with("T12") && l.contains(key)), "{key} = {hex}: {found:?}");
+    }
+}
+
+#[test]
+fn t13_a_key_edge_that_vanishes_on_the_plate_is_refused() {
+    let found = rule_violations(&with(tokens(), &["colour", "key.edge", "value"], json!("#e8e8e8")));
+    assert!(has(&found, "T13"), "{found:?}");
+}
+
+#[test]
+fn t5_a_ring_that_vanishes_on_the_plate_is_refused() {
+    // Both strokes light: they show on the dark surface and are gone on the cream plate.
+    let both = with(with(tokens(), &["colour", "focus", "value"], json!("#f0f0f0")), &["colour", "focus.inner", "value"], json!("#e8e8e8"));
+    let found = rule_violations(&both);
+    assert!(found.iter().any(|l| l.starts_with("T5") && l.contains("plate")), "{found:?}");
+}
+
+#[test]
+fn the_faceplate_carries_the_s8_exit_with_its_reason() {
+    // ADR-0010 decision 3: the faceplate is about ΔE 3 from #F4F1EA, and says why it is there, so that arriving there on purpose is told from arriving by default.
+    let reasons = tokens()["colour"]["plate"]["suppress"].as_array().cloned().unwrap_or_default();
+    assert!(reasons.iter().any(|r| r["rule"] == "S8" && r["why"].as_str().is_some_and(|w| w.trim().len() > 20)), "{reasons:?}");
+}
+
+#[test]
+fn a_sixteenth_colour_role_is_refused() {
+    let found = everything_wrong(&with(tokens(), &["colour", "accent"], json!({ "value": "#ff00ff" })));
+    assert!(has(&found, "schema"), "{found:?}");
 }
 
 #[test]

@@ -57,7 +57,6 @@ async function open(width = 1280, height = 900): Promise<Page> {
 
 const key = (id: string): string => `g[data-id="${id}"]`;
 const style = (page: Page, selector: string, prop: string): Promise<string> => page.$eval(selector, (el, p) => getComputedStyle(el).getPropertyValue(p), prop);
-const styles = (page: Page, selector: string, prop: string): Promise<string[]> => page.$$eval(selector, (els, p) => els.map((el) => getComputedStyle(el).getPropertyValue(p)), prop);
 
 /** Reads pixels out of a PNG with the browser's own decoder, on a blank page, so no pixel is guessed from a stylesheet. */
 async function pixels(png: Buffer, points: readonly (readonly [number, number])[]): Promise<Rgb[]> {

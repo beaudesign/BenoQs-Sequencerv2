@@ -12,7 +12,11 @@ export interface Leaf<T> {
   pending?: Pending;
 }
 
-export const COLOUR_KEYS = ["led.red", "led.green", "led.orange", "led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner"] as const;
+// The nine of ADR-0008, then the six of ADR-0010 (the panel's own materials).
+export const COLOUR_KEYS = [
+  "led.red", "led.green", "led.orange", "led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner",
+  "plate", "frame", "plate.ink", "plate.ink.quiet", "key", "key.edge",
+] as const;
 export type ColourKey = (typeof COLOUR_KEYS)[number];
 
 export const SPACE_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7"] as const;

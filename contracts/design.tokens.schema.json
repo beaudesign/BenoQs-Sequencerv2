@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wenge.local/contracts/design.tokens.schema.json",
   "title": "Design tokens",
-  "description": "The web panel's colours, space, type, strokes and LED flash, as one file the app's stylesheet is generated from (ADR-0008 decision 6). It has no radius, shadow, gradient or easing group, so the slop rules S1, S4, S9, S15 and S16 have nothing to be satisfied by. The only colour with a hue is a lit LED; every other colour is neutral (the rules are asserted by apps/web/engine/tests/tokens.rs). A token whose value depends on something the manual does not say carries `pending`, the shape `controls.json` uses. Changed only by ADR.",
+  "description": "The web panel's colours, space, type, strokes and LED flash, as one file the app's stylesheet is generated from (ADR-0008 decision 6). It has no radius, shadow, gradient or easing group, so the slop rules S1, S4, S9, S15 and S16 have nothing to be satisfied by. The only saturated colour is a lit LED; the two materials of the hardware, plate and frame, are tinted under a chroma ceiling and carry an exemption that expires (ADR-0010); every other colour is pure grey (the rules are asserted by apps/web/engine/tests/tokens.rs). A token whose value depends on something the manual does not say carries `pending`, the shape `controls.json` uses. Changed only by ADR.",
   "type": "object",
   "required": [
     "schema",
@@ -44,10 +44,16 @@
         "ink.quiet",
         "surface",
         "focus",
-        "focus.inner"
+        "focus.inner",
+        "plate",
+        "frame",
+        "plate.ink",
+        "plate.ink.quiet",
+        "key",
+        "key.edge"
       ],
       "additionalProperties": false,
-      "description": "Nine roles and no tenth. The three led roles are roles and not hues: the manual's other colourways (p004) are a later table that maps a role to a hue.",
+      "description": "Fifteen roles and no sixteenth: the nine of ADR-0008 and the six of ADR-0010. The three led roles are roles and not hues: the manual's other colourways (p004) are a later table that maps a role to a hue. `plate` and `frame` are the hardware's materials; `plate.ink`, `plate.ink.quiet`, `key` and `key.edge` are pure grey.",
       "properties": {
         "led.red": {
           "$ref": "#/$defs/colour_token"
@@ -74,6 +80,24 @@
           "$ref": "#/$defs/colour_token"
         },
         "focus.inner": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "plate": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "frame": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "plate.ink": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "plate.ink.quiet": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "key": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "key.edge": {
           "$ref": "#/$defs/colour_token"
         }
       }
@@ -463,6 +487,29 @@
                 "type": "string",
                 "minLength": 1
               }
+            }
+          }
+        },
+        "exemption": {
+          "type": "object",
+          "description": "Rule T7's exemption (ADR-0010 decision 5): a tinted material says why, and until when. Only plate and frame may carry one (apps/web/engine/tests/tokens.rs).",
+          "required": [
+            "rule",
+            "why",
+            "expires"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "rule": {
+              "const": "T7"
+            },
+            "why": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expires": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
             }
           }
         }

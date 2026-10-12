@@ -2,7 +2,7 @@
   "$schema": "./design.tokens.schema.json",
   "schema": "design.tokens/1",
   "status": "candidate",
-  "note": "Proposed in SPEC-0002 P3c with the panel screenshot in the pull request. The owner ratifies the values by merging it. The rules the values must keep are asserted by apps/web/engine/tests/tokens.rs, so a change of hue passes and a change that breaks a rule does not.",
+  "note": "Proposed in SPEC-0002 P3c with the panel screenshot in the pull request. The owner ratifies the values by merging it. ADR-0010 adds six roles for the panel (plate, frame, plate.ink, plate.ink.quiet, key, key.edge); their values here are candidates, and the owner ratifies them by merging P8b with its screenshot. The rules the values must keep are asserted by apps/web/engine/tests/tokens.rs, so a change of hue passes and a change that breaks a rule does not.",
   "colour": {
     "led.red": {
       "value": "#ff2a12"
@@ -30,6 +30,40 @@
     },
     "focus.inner": {
       "value": "#1f1f1f"
+    },
+    "plate": {
+      "value": "#fcf3ec",
+      "suppress": [
+        {
+          "rule": "S8",
+          "why": "The instrument's faceplate is a warm off-white and its photograph measures a median of #fcf3ec, about 3 dE2000 from #F4F1EA. It is arrived at on purpose, from the hardware, and not by default (ADR-0010)."
+        }
+      ],
+      "exemption": {
+        "rule": "T7",
+        "why": "The faceplate's own colour: tinted, chroma at most 12 (measured 4.5). ADR-0010 decision 5.",
+        "expires": "2027-01-31"
+      }
+    },
+    "frame": {
+      "value": "#32241e",
+      "exemption": {
+        "rule": "T7",
+        "why": "The wenge case round the faceplate: tinted, chroma at most 12 (measured 8.5). ADR-0010 decision 5.",
+        "expires": "2027-01-31"
+      }
+    },
+    "plate.ink": {
+      "value": "#1e1e1e"
+    },
+    "plate.ink.quiet": {
+      "value": "#4d4d4d"
+    },
+    "key": {
+      "value": "#9a9a9a"
+    },
+    "key.edge": {
+      "value": "#5c5c5c"
     }
   },
   "space": {

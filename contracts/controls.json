@@ -9,7 +9,7 @@
     {"id": "mix", "name": "MIX block", "grid": {"cols": 1, "rows": 10, "row_zero": "bottom"}, "cite": ["p027", "p072", "p073"], "note": "One encoder per matrix row. The manual calls it the MIXER block and the MIX encoder block."},
     {"id": "edit", "name": "EDIT block", "cite": ["p015", "p016", "p017", "p070"], "note": "Order and layout of the knobs are not stated (Q04)."},
     {"id": "main", "name": "Main rotary", "cite": ["p022", "p027", "p077"]},
-    {"id": "circle_outer", "name": "Outer circle", "cite": ["p016", "p048", "p049", "p071", "p093"], "note": "Keys carry Roman numerals as printed labels. Their positions and the number of number keys are not stated."},
+    {"id": "circle_outer", "name": "Outer circle", "cite": ["p016", "p048", "p049", "p071", "p093"], "note": "Keys carry Roman numerals as printed labels. Their positions are not stated. The number keys are ten and are labelled 1 to 10, from the plate (ADR-0012)."},
     {"id": "circle_inner", "name": "Inner circle (pitch circle)", "cite": ["p020", "p046", "p052", "p071"], "note": "Twelve note keys, an upper C and a low C, and the three keys MOD, SEL and CAD at the bottom of the circle (p020). Which note each key is, and their order on the ring, are not stated (Q33)."},
     {"id": "chord", "name": "CHORD block", "cite": ["p020", "p022", "p027", "p102"], "note": "Bottom right of the front panel (p020). Seven buttons; CHORD1 to CHORD7 are also the overload LEDs (p102)."},
     {"id": "transport", "name": "Transport", "cite": ["p016", "p049", "p067"], "note": "The manual gives the Record key an LED (p067). It gives Play, Stop and Pause none (Q26)."},
@@ -268,6 +268,16 @@
     {"n": 292, "id": "circle.chain", "kind": "button", "zone": "circle_outer", "name": "X button", "label": "XXVIII", "led": true, "cite": ["p047"]},
     {"n": 293, "id": "circle.clock200", "kind": "button", "zone": "circle_outer", "name": "200 button", "label": "200", "led": true, "cite": ["p093"]},
     {"n": 294, "id": "circle.numeric", "kind": "display", "zone": "circle_outer", "name": "numeric field", "cite": ["p034", "p050", "p068"]},
+    {"n": 295, "id": "circle.num.1", "kind": "button", "zone": "circle_outer", "name": "number key 1", "label": "1", "at": {"index": 1}, "cite": ["p017", "p052", "p057"]},
+    {"n": 296, "id": "circle.num.2", "kind": "button", "zone": "circle_outer", "name": "number key 2", "label": "2", "at": {"index": 2}, "cite": ["p017", "p052", "p057"]},
+    {"n": 297, "id": "circle.num.3", "kind": "button", "zone": "circle_outer", "name": "number key 3", "label": "3", "at": {"index": 3}, "cite": ["p017", "p052", "p057"]},
+    {"n": 298, "id": "circle.num.4", "kind": "button", "zone": "circle_outer", "name": "number key 4", "label": "4", "at": {"index": 4}, "cite": ["p017", "p052", "p057"]},
+    {"n": 299, "id": "circle.num.5", "kind": "button", "zone": "circle_outer", "name": "number key 5", "label": "5", "at": {"index": 5}, "cite": ["p017", "p052", "p057"]},
+    {"n": 300, "id": "circle.num.6", "kind": "button", "zone": "circle_outer", "name": "number key 6", "label": "6", "at": {"index": 6}, "cite": ["p017", "p052", "p057"]},
+    {"n": 301, "id": "circle.num.7", "kind": "button", "zone": "circle_outer", "name": "number key 7", "label": "7", "at": {"index": 7}, "cite": ["p017", "p052", "p057"]},
+    {"n": 302, "id": "circle.num.8", "kind": "button", "zone": "circle_outer", "name": "number key 8", "label": "8", "at": {"index": 8}, "cite": ["p017", "p052", "p057"]},
+    {"n": 303, "id": "circle.num.9", "kind": "button", "zone": "circle_outer", "name": "number key 9", "label": "9", "at": {"index": 9}, "cite": ["p017", "p052", "p057"]},
+    {"n": 304, "id": "circle.num.10", "kind": "button", "zone": "circle_outer", "name": "number key 10", "label": "10", "at": {"index": 10}, "cite": ["p017", "p052", "p057"]},
     {"n": 320, "id": "main.enc", "kind": "encoder", "zone": "main", "name": "main rotary", "cite": ["p022", "p027"], "pending": {"question": "Q05", "note": "p050 and p057 say 'the rotary encoder on the top right'; p077 says 'main knob / tempo knob'. One knob or two is not stated"}}
   ],
   "open": [
@@ -276,6 +286,6 @@
     {"id": "transport.triangles", "zone": "transport", "names": ["play button, one triangle", "play button, two triangles", "play button, four triangles"], "question": "Q21", "note": "p049: 'use the play buttons with one, two or four triangles in the transport bar'. Whether the one-triangle button is the Play button is not stated.", "cite": ["p016", "p049"]},
     {"id": "mute.row", "zone": "mutator", "names": ["Track Mute buttons", "MUT column"], "question": "Q30", "note": "p067 says to press a track's 'Mute' button. Whether there is one per row, and whether they are the MUT column of p082, is not stated.", "cite": ["p014", "p067", "p082"]},
     {"id": "map.anti_echo", "zone": "keys", "names": ["MAP (anti-echo)"], "question": "Q11", "note": "p087 names a MAP button for anti-echo; p074 and p090 name map selectors. One button or seven is not stated.", "cite": ["p074", "p087", "p090"]},
-    {"id": "circle.numbers", "zone": "circle_outer", "names": ["number keys", "scale keys (Maj, Min and others)", "chain selectors XXIX to XXXI"], "question": "Q32", "note": "p052 says values are keyed in like a tempo entry; p071 names scale keys; the chain selectors appear only in the 2007 tutorial (T05). Their count and positions are not stated.", "cite": ["p052", "p071"]}
+    {"id": "circle.numbers", "zone": "circle_outer", "names": ["scale keys (Maj, Min and others)", "chain selectors XXIX to XXXI"], "question": "Q32", "note": "The ten number keys left this group for the controls circle.num.1 to circle.num.10 (ADR-0012): their count and labels are the plate's, legibly. What stays open: p071 names scale keys; the chain selectors appear only in the 2007 tutorial (T05); their count and positions are not stated, and nor is which of the thirteen further outer-ring keys the plate shows (their printed names cannot be read) is which function.", "cite": ["p071"]}
   ]
 }

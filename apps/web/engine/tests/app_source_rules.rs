@@ -216,6 +216,10 @@ fn violations(s: &Source) -> Vec<String> {
             if prop == "font-size" && !value.starts_with("var(") && value != "inherit" {
                 bad("S2", format!("a font size written in the stylesheet: {value}"));
             }
+            // The weights and the OpenType features belong to the face the contract names (ADR-0011 decision 5): a number or a tag written here is a second contract.
+            if (prop == "font-weight" || prop == "font-feature-settings" || prop == "font-variation-settings") && !value.starts_with("var(") && value != "inherit" && value != "normal" {
+                bad("S2", format!("{prop} written in the stylesheet: {value}"));
+            }
         }
     }
     // S2 for lengths: no length with a unit, outside the generated stylesheet and the tokens file.
@@ -266,11 +270,17 @@ fn violations(s: &Source) -> Vec<String> {
             bad("S11", format!("{face} as a face"));
         }
     }
-    // S15: no radius but the round controls' 50%, or none at all. No SVG rx or ry (a rounded rectangle).
+    // S15: no radius but the round controls' 50%, or none at all, or the control's one corner (`--radius-control`, ADR-0011 decision 6) in a rule of the
+    // strip, and nowhere else. No SVG rx or ry (a rounded rectangle).
     if s.kind == Kind::Css {
-        for (prop, value) in declarations(&with_strings) {
-            if prop == "border-radius" && value != "50%" && value != "0" {
-                bad("S15", format!("border-radius: {value}"));
+        for (selector, body) in css_blocks(&with_strings) {
+            for (prop, value) in declarations(&body) {
+                if prop == "border-radius" && value != "50%" && value != "0" {
+                    let the_strips = value == "var(--radius-control)" && selector.split(',').all(is_strip_selector);
+                    if !the_strips {
+                        bad("S15", format!("border-radius: {value} in `{}`", selector.trim()));
+                    }
+                }
             }
         }
     }
@@ -386,6 +396,13 @@ fn is_panel_selector(selector: &str) -> bool {
     let first = selector.trim().split(|c: char| c.is_whitespace() || c == '>' || c == '+' || c == '~').next().unwrap_or("");
     let id: String = first.chars().take_while(|c| !matches!(c, '.' | '[' | ':')).collect();
     id == "#panel" || id == "#panel-frame"
+}
+
+/// A selector that begins at the strip: its first compound is `#strip`, with classes, attributes or pseudo-classes after it.
+fn is_strip_selector(selector: &str) -> bool {
+    let first = selector.trim().split(|c: char| c.is_whitespace() || c == '>' || c == '+' || c == '~').next().unwrap_or("");
+    let id: String = first.chars().take_while(|c| !matches!(c, '.' | '[' | ':')).collect();
+    id == "#strip"
 }
 
 /// Numeric literals in the panel's drawing code: none beyond 0, 1 and 2 (halves and steps), so no pixel position is
@@ -520,7 +537,11 @@ fn token_properties(tokens: &serde_json::Value) -> std::collections::BTreeSet<St
         out.insert(format!("space-{k}"));
     }
     for name in [
+        "radius-control",
         "type-family",
+        "type-features",
+        "type-weight-regular",
+        "type-weight-strong",
         "type-size-label",
         "type-size-body",
         "type-measure",
@@ -606,6 +627,10 @@ fn s2_a_colour_a_length_or_a_face_written_outside_the_tokens_is_caught() {
         "a { font-size: 14px; }",
         "a { font-size: larger; }",
         "a { font-family: Georgia, serif; }",
+        "a { font-weight: 700; }",
+        "a { font-weight: bold; }",
+        "a { font-feature-settings: \"cv01\", \"zero\"; }",
+        "a { font-variation-settings: \"wght\" 510; }",
     ] {
         assert!(caught(&css(text), "S2"), "{text}");
     }
@@ -619,6 +644,7 @@ fn s2_a_colour_a_length_or_a_face_written_outside_the_tokens_is_caught() {
         "a { font-family: inherit; font: inherit; }",
         "/* 12px and #fff in a comment are not code */ a { color: var(--colour-ink); }",
         "a { color: var(--colour-ink); } #start { margin: 0; }",
+        "a { font-weight: var(--type-weight-strong); font-feature-settings: var(--type-features); } b { font-weight: inherit; font-feature-settings: normal; }",
     ] {
         assert!(!caught(&css(ok), "S2"), "{ok}");
     }
@@ -659,6 +685,20 @@ fn s15_a_radius_other_than_the_round_controls_is_caught() {
         assert!(caught(&css(text), "S15"), "{text}");
     }
     assert!(!caught(&css("a { border-radius: 50%; } b { border-radius: 0; }"), "S15"));
+    // ADR-0011 decision 6: the control's one corner, in the strip's rules and nowhere else.
+    for text in [
+        "a { border-radius: var(--radius-control); }",
+        "#panel .face { border-radius: var(--radius-control); }",
+        "#strip button, a { border-radius: var(--radius-control); }",
+        "#stripx { border-radius: var(--radius-control); }",
+        "main #strip { border-radius: var(--radius-control); }",
+        "#strip button { border-radius: calc(var(--radius-control) * 2); }",
+        "#strip button { border-radius: var(--radius-control) 0; }",
+    ] {
+        assert!(caught(&css(text), "S15"), "{text}");
+    }
+    assert!(!caught(&css("#strip button, #strip select, #strip input { border-radius: var(--radius-control); } #strip .field input { border-radius: var(--radius-control); }"), "S15"));
+    assert!(is_strip_selector("#strip") && is_strip_selector(" #strip button") && is_strip_selector("#strip:focus-visible") && !is_strip_selector("#stripx") && !is_strip_selector("main #strip"));
     assert!(caught(&ts("rect.setAttribute(\"rx\", r);"), "S15"));
     assert!(caught(&ts("el.style.borderRadius = x;"), "S15"));
     assert!(caught(&ts("const a = { rx: 4, cx: 1 };"), "S15"));
@@ -762,19 +802,44 @@ fn the_panel_is_drawn_in_its_own_six_colours_and_each_is_used() {
     }
 }
 
-#[test]
-fn the_panel_borrows_nothing_from_the_strip() {
-    // docs/05 section 1: two worlds. The strip's ground and ink are not the plate's; the shine is told in the plate's ink (flash.shine names `ink`, the strip's).
-    let bodies = panel_bodies();
+/// What the strip and the page own (ADR-0011 decision 3): the panel's rules name none of these. `flash-shine` is the strip's ink under another name.
+const STRIP_OWN: [&str; 7] = ["colour-surface", "colour-ink", "colour-ink-quiet", "colour-surface-raised", "colour-edge", "colour-edge-control", "flash-shine"];
+
+/// The strip's custom properties named in the bodies of the rules that begin at the panel.
+fn strip_properties_in_panel_rules(css: &str) -> Vec<String> {
     let mut found = Vec::new();
-    for (sel, body) in &bodies {
-        for name in custom_properties_used(body) {
-            if ["colour-surface", "colour-ink", "colour-ink-quiet", "flash-shine"].contains(&name.as_str()) {
+    for (sel, body) in css_blocks(&code_of(css, Kind::Css, true)) {
+        if !sel.split(',').all(is_panel_selector) {
+            continue;
+        }
+        for name in custom_properties_used(&body) {
+            if STRIP_OWN.contains(&name.as_str()) {
                 found.push(format!("`{sel}` uses --{name}, which is the strip's"));
             }
         }
     }
+    found
+}
+
+#[test]
+fn the_panel_borrows_nothing_from_the_strip() {
+    // docs/05 section 1: two worlds. The strip's ground, tones and ink are not the plate's; the shine is told in the plate's ink (flash.shine names `ink`, the strip's).
+    let text = std::fs::read_to_string(web_dir().join("pages/app.css")).unwrap();
+    let found = strip_properties_in_panel_rules(&text);
     assert!(found.is_empty(), "{}", found.join("\n"));
+}
+
+#[test]
+fn a_strip_tone_in_a_panel_rule_is_caught() {
+    for text in [
+        "#panel .face { stroke: var(--colour-edge); }",
+        "#panel-frame { background: var(--colour-surface-raised); }",
+        "#panel .label { fill: var(--colour-edge-control); }",
+        "#panel .led { stroke: var(--flash-shine); }",
+    ] {
+        assert_eq!(strip_properties_in_panel_rules(text).len(), 1, "{text}");
+    }
+    assert!(strip_properties_in_panel_rules("#strip button { border: var(--stroke-hairline) solid var(--colour-edge-control); } #panel .face { stroke: var(--colour-key-edge); }").is_empty());
 }
 
 #[test]

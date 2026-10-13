@@ -13,9 +13,10 @@ const defined = [...generated.matchAll(/^\s+--([a-z0-9-]+):/gm)].map((m) => m[1]
 
 test("the tokens stylesheet defines exactly the properties the Rust rule test lists", () => {
   const want = [
-    ...["led-red", "led-green", "led-orange", "led-off", "ink", "ink-quiet", "surface", "focus", "focus-inner", "plate", "frame", "plate-ink", "plate-ink-quiet", "key", "key-edge"].map((k) => `colour-${k}`),
+    ...["led-red", "led-green", "led-orange", "led-off", "ink", "ink-quiet", "surface", "focus", "focus-inner", "plate", "frame", "plate-ink", "plate-ink-quiet", "key", "key-edge", "surface-raised", "edge", "edge-control"].map((k) => `colour-${k}`),
+    "radius-control",
     ...[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `space-${k}`),
-    "type-family", "type-size-label", "type-size-body", "type-measure",
+    "type-family", "type-features", "type-weight-regular", "type-weight-strong", "type-size-label", "type-size-body", "type-measure",
     "stroke-hairline", "stroke-focus", "stroke-focus-inner",
     "flash-period", "flash-shine",
   ].sort();

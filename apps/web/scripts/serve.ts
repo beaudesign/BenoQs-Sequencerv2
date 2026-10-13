@@ -24,6 +24,7 @@ const TYPES: Record<string, string> = {
   ".json": "application/json",
   ".wasm": "application/wasm",
   ".css": "text/css; charset=utf-8",
+  ".woff2": "font/woff2",
 };
 
 /** Cross-origin isolation gives `performance.now()` its fine resolution (5 microseconds, not 100), which spike S2 needs. */

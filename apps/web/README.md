@@ -82,7 +82,16 @@ never rearranges.
 - **The look** is the hardware's own materials drawn flat (ADR-0010, `specs/SPEC-0002/p8b-panel-in-the-hardwares-materials.md`): a cream plate (`plate`) in a dark frame (`frame`), keys, knobs and nuts in one grey metal tone with a
   hairline edge (`key`, `key.edge`), and the names printed in dark ink (`plate.ink`; the captions, row numbers and clefs in `plate.ink.quiet`). It has no gradient, highlight, shadow or outline on the plate. The six colours are
   the panel's: only rules that start at `#panel` or `#panel-frame` in `pages/app.css` may use them (rule S17), and the strip keeps its own ground and ink. The values are candidates until the owner merges the pull request with the screenshots in
-  `handoffs/evidence/p8b/`. The page and the strip are still the strip's dark, because the case is the panel's and not the page's.
+  `handoffs/evidence/p8b/`. The case is the frame drawn inside the panel's own SVG and no bigger than the panel: the page shows round it.
+- **The strip and the page** are a midnight ground with hairlines (ADR-0011, `specs/SPEC-0002/p9-the-shell-look.md`): a pure-grey ground (`surface`), a hairline of `edge` under the strip, controls drawn as a border (`edge.control`, 3:1 on the
+  ground) with the one corner of the tokens (`radius.control`, 8 px, the owner's word), Play the one filled control (`ink` on `surface`, the strong weight; the one other fill is the stepper of a number field, below), a toggle that is on in the raised tone (`surface.raised`) with an ink border, and the status lines in `ink.quiet`.
+  The face is Inter Variable, a file in `pages/fonts/` with its licence beside it and an `@font-face` generated from the tokens, at two weights (400 and 510) with the features `cv01`, `ss03` and `zero`. There is no accent colour (the reference's acid
+  lime is not taken), no shadow, gradient, card, pill, tracking or capitals. The values are candidates until the owner merges the pull request with the screenshots in `handoffs/evidence/p9/`.
+- **The stepper** (`src/stepper.ts`, ADR-0011 decision 7) is the small block with an up and a down arrow at the right of each number field. The browser draws its own and neither gives it a corner nor lets the page pick its tone, so
+  the page hides it and draws one: the `ink`, the `surface` for its arrows, the same 8 px corner. A press steps the value by the field's step within its limits and says so with an `input` and a `change`, as the browser's did; held, it repeats; at
+  a limit nothing happens and nothing is announced. It repeats the arrow keys, which still work, so it is hidden from the accessibility tree and is not a stop for the Tab key.
+- **The ground** (`#stage`) is the room under the strip. The case is sized to it by the plate's aspect alone (a size container and `--panel-aspect`, which the script sets) and sits in the middle of it, as far from the strip as from the bottom
+  of the window. There is nothing else in the room: the three line drawings that stood in it from 11:15 were taken out at the owner's word of 12:52 (ADR-0011 decision 10, withdrawn), and the only SVG on the page is the panel's.
 - **The Play key** (`transport.play`) is the page's own command to the engine, a stopgap until the transport workflow is
   built from the manual (ADR-0008 decision 4). **The tempo** is the engine's 120; its encoder is Wave 1.
 - **The chase-light** is not drawn (the manual does not say how it overlays a lit step; request to the Panelwright).

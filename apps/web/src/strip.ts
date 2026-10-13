@@ -2,6 +2,7 @@
 // pages/app.html; this binds it. It never sits on the panel and holds no colour of its own.
 import type { InputChoice, OutputChoice } from "./midi-access.ts";
 import type { OutputPort } from "./settings.ts";
+import { addSteppers } from "./stepper.ts";
 
 export interface Strip {
   /** The one Play: the first press starts the engine and plays; after that it is Play and Stop. */
@@ -68,6 +69,7 @@ function fill(doc: Document, select: HTMLSelectElement, none: string, choices: P
 }
 
 export function bindStrip(doc: Document): Strip {
+  addSteppers(doc); // before the fields are looked up: a field is the same element when it has its block round it
   const play = find<HTMLButtonElement>(doc, "#play");
   const tempo = find<HTMLInputElement>(doc, "#tempo");
   const monitor = find<HTMLButtonElement>(doc, "#monitor");

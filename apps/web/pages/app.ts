@@ -86,6 +86,9 @@ async function main(): Promise<void> {
     else host.turn(n, detents);
   });
   document.querySelector("#panel-frame")!.append(panel.svg);
+  // The case is sized to the room by its aspect (pages/app.css, #stage) and sits in the middle of it; nothing else is in the room.
+  const stage = document.querySelector<HTMLElement>("#stage")!;
+  stage.style.setProperty("--panel-aspect", String(panel.aspect));
   addEventListener("blur", () => presses.releaseAll());
 
   strip.lookahead.min = String(LOOKAHEAD_MS.min);

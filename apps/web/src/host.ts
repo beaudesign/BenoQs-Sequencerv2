@@ -161,6 +161,11 @@ export class Host implements WorkletSink {
     this.post({ type: "monitor", on });
   }
 
+  /** Switches the built-in sound's drums on or off (the notes on channel 10). Audio only: the notes still go to every output that is chosen. */
+  setDrums(on: boolean): void {
+    this.post({ type: "drums", on });
+  }
+
   /** Switches the click on or off. It sounds in the node's own output, once a quarter note while the transport runs, and is not MIDI. */
   setMetronome(on: boolean): void {
     this.post({ type: "metronome", on });

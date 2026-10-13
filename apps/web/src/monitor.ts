@@ -1,6 +1,6 @@
 // The built-in sound (specs/SPEC-0002/p6-runs-when-opened.md, R-2). The Octopus makes no sound of its own, but a page opened with nothing
 // plugged in must be heard to run, and Web MIDI cannot be reached from every frame the page is shown in. So the worklet plays the engine's
-// own notes in its output: a pitched voice for a note and a one-shot for each of three drums on MIDI channel 10 (kick, clap and hat).
+// own notes in its output: a pitched voice for a note and a one-shot for each of three drums on MIDI channel 10 (kick, clap and hat). The drums can be switched off (`drums`).
 //
 // It is audio and not MIDI: it reads the events the engine made for this block, changes none of them, and keeps nothing the engine can see.
 // It is deliberately plain (sine and two harmonics, noise and a falling sine): it makes the sequencer audible and is not the instrument's voice.
@@ -54,6 +54,13 @@ export class Monitor {
   private readonly voices: Voice[] = Array.from({ length: MAX_VOICES }, () => new Voice());
   private readonly rate: number;
   private enabled = false;
+  /**
+   * Whether the drums (the notes on `DRUM_CHANNEL`) are played. On until the page says otherwise, and independent of `on`: the sound being switched off and on
+   * does not change it. Off, a drum note is not started and adds nothing; a hit that is already sounding finishes as it would have (it ends in its own fade
+   * to zero, so there is no step), and the synth's voices are not touched, so the output is the synth's sample for sample (specs/SPEC-0002/p10-silence-the-drums.md).
+   * It is audio and nothing else: the drum notes are still in the engine's events and go to every output that is chosen.
+   */
+  drums = true;
   private seed = 0x9e3779b9;
 
   constructor(sampleRate: number) {
@@ -165,8 +172,10 @@ export class Monitor {
       while (e < events.length && events[e]!.atSample <= i) {
         const ev = events[e++]!;
         if (ev.kind === NOTE_ON && ev.d2 > 0) {
-          this.start(ev.channel, ev.d1, ev.d2);
-          any = true;
+          if (ev.channel !== DRUM_CHANNEL || this.drums) {
+            this.start(ev.channel, ev.d1, ev.d2);
+            any = true;
+          }
         } else if (ev.kind === NOTE_ON || ev.kind === NOTE_OFF) this.stop(ev.channel, ev.d1);
       }
       if (!any) continue;

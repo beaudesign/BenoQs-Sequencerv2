@@ -2,12 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wenge.local/contracts/design.tokens.schema.json",
   "title": "Design tokens",
-  "description": "The web panel's colours, space, type, strokes and LED flash, as one file the app's stylesheet is generated from (ADR-0008 decision 6). It has no radius, shadow, gradient or easing group, so the slop rules S1, S4, S9, S15 and S16 have nothing to be satisfied by. The only saturated colour is a lit LED; the two materials of the hardware, plate and frame, are tinted under a chroma ceiling and carry an exemption that expires (ADR-0010); every other colour is pure grey (the rules are asserted by apps/web/engine/tests/tokens.rs). A token whose value depends on something the manual does not say carries `pending`, the shape `controls.json` uses. Changed only by ADR.",
+  "description": "The web panel's colours, space, type, strokes and LED flash, as one file the app's stylesheet is generated from (ADR-0008 decision 6). It has no shadow, gradient or easing group and no radius scale (one corner, the control's), so the slop rules S1, S4, S9 and S16 have nothing to be satisfied by and S15 has one value. The only saturated colour is a lit LED; the two materials of the hardware, plate and frame, are tinted under a chroma ceiling and carry an exemption that expires (ADR-0010); every other colour is pure grey (the rules are asserted by apps/web/engine/tests/tokens.rs). A token whose value depends on something the manual does not say carries `pending`, the shape `controls.json` uses. Changed only by ADR.",
   "type": "object",
   "required": [
     "schema",
     "status",
     "colour",
+    "radius",
     "space",
     "type",
     "stroke",
@@ -50,10 +51,13 @@
         "plate.ink",
         "plate.ink.quiet",
         "key",
-        "key.edge"
+        "key.edge",
+        "surface.raised",
+        "edge",
+        "edge.control"
       ],
       "additionalProperties": false,
-      "description": "Fifteen roles and no sixteenth: the nine of ADR-0008 and the six of ADR-0010. The three led roles are roles and not hues: the manual's other colourways (p004) are a later table that maps a role to a hue. `plate` and `frame` are the hardware's materials; `plate.ink`, `plate.ink.quiet`, `key` and `key.edge` are pure grey.",
+      "description": "Eighteen roles and no nineteenth: the nine of ADR-0008, the six of ADR-0010 and the three of ADR-0011. The three led roles are roles and not hues: the manual's other colourways (p004) are a later table that maps a role to a hue. `plate` and `frame` are the hardware's materials; `plate.ink`, `plate.ink.quiet`, `key` and `key.edge` are pure grey and the panel's; `surface.raised`, `edge` and `edge.control` are pure grey and the strip's.",
       "properties": {
         "led.red": {
           "$ref": "#/$defs/colour_token"
@@ -99,6 +103,39 @@
         },
         "key.edge": {
           "$ref": "#/$defs/colour_token"
+        },
+        "surface.raised": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "edge": {
+          "$ref": "#/$defs/colour_token"
+        },
+        "edge.control": {
+          "$ref": "#/$defs/colour_token"
+        }
+      }
+    },
+    "radius": {
+      "type": "object",
+      "required": [
+        "control"
+      ],
+      "additionalProperties": false,
+      "description": "One corner, a control's (ADR-0011 decision 6). It is not a scale: docs/05 section 2.3 still has none, and the panel's controls are circles (50%). apps/web/engine/tests/tokens.rs T10 keeps it to one value between 1 and 12.",
+      "properties": {
+        "control": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
         }
       }
     },
@@ -219,6 +256,8 @@
       "type": "object",
       "required": [
         "family",
+        "face",
+        "weight",
         "size",
         "measure"
       ],
@@ -238,6 +277,81 @@
             },
             "pending": {
               "$ref": "#/$defs/pending"
+            }
+          }
+        },
+        "face": {
+          "type": "object",
+          "required": [
+            "name",
+            "file",
+            "licence",
+            "features"
+          ],
+          "additionalProperties": false,
+          "description": "The family's lead name as a file in the repository, so that naming it is not a promise about what the visitor has installed (T17). The stylesheet generator writes the @font-face from it.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "file": {
+              "type": "string",
+              "pattern": "^pages/fonts/[A-Za-z0-9._-]+\\.woff2$",
+              "description": "Relative to apps/web; a variable font in woff2."
+            },
+            "licence": {
+              "type": "string",
+              "pattern": "^pages/fonts/[A-Za-z0-9._-]+\\.txt$",
+              "description": "The licence text, beside the file."
+            },
+            "features": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9]{4}$"
+              },
+              "description": "OpenType feature tags the page turns on."
+            }
+          }
+        },
+        "weight": {
+          "type": "object",
+          "required": [
+            "regular",
+            "strong"
+          ],
+          "additionalProperties": false,
+          "description": "Emphasis is made with weight and not with bold: strong is under 700 (T18).",
+          "properties": {
+            "regular": {
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 900
+                }
+              }
+            },
+            "strong": {
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 900
+                }
+              }
             }
           }
         },

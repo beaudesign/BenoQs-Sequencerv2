@@ -18,6 +18,8 @@ function svg<K extends keyof SVGElementTagNameMap>(doc: Document, name: K, attrs
 
 export interface Panel {
   readonly svg: SVGSVGElement;
+  /** Width over height of the whole case: the frame, and the plate inside it. The page sizes the case by this and by nothing else. */
+  readonly aspect: number;
   /** Applies an LED frame (one byte per control number). Only what changed is touched. */
   paintLeds(frame: Uint8Array): void;
 }
@@ -38,12 +40,17 @@ export function drawPanel(doc: Document, geometry: Geometry, tokens: Tokens, pre
   const root = svg(doc, "svg", { id: "panel", viewBox: geometry.viewBox.join(" "), role: "group", "aria-label": "Octopus panel" });
   const leds = new Map<number, LedRef>();
 
+  // The case: the frame is the first thing drawn and fills the view box, which is the plate and the margin round it, so the case is exactly as big as the
+  // panel and the page shows round it (ADR-0011 decision 4).
+  const [frameX, frameY, frameW, frameH] = geometry.viewBox;
+  root.append(svg(doc, "rect", { class: "frame", x: frameX, y: frameY, width: frameW, height: frameH }));
   root.append(svg(doc, "rect", { class: "plate", x: 0, y: 0, width: geometry.width, height: geometry.height }));
   for (const l of geometry.legends) root.append(drawLegend(doc, l));
   for (const p of geometry.placements) root.append(p.inert ? drawInert(doc, p) : drawControl(doc, p, tokens, presses, turn, leds));
 
   return {
     svg: root,
+    aspect: frameW / frameH,
     paintLeds(frame) {
       let flashChanged = false;
       for (const [n, led] of leds) {

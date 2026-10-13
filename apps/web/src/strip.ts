@@ -2,6 +2,7 @@
 // pages/app.html; this binds it. It never sits on the panel and holds no colour of its own.
 import type { InputChoice, OutputChoice } from "./midi-access.ts";
 import type { OutputPort } from "./settings.ts";
+import { addSteppers } from "./stepper.ts";
 
 export interface Strip {
   /** The one Play: the first press starts the engine and plays; after that it is Play and Stop. */
@@ -13,6 +14,9 @@ export interface Strip {
   /** The built-in sound (src/monitor.ts), a toggle: `aria-pressed` says which way it is. */
   monitor: HTMLButtonElement;
   showMonitor(on: boolean): void;
+  /** The drums of the built-in sound, a toggle: pressed means they are heard. It changes what the page plays and nothing it sends. */
+  drums: HTMLButtonElement;
+  showDrums(on: boolean): void;
   /** The click, a toggle: `aria-pressed` says which way it is. It is the page's own, and is not on the panel. */
   metronome: HTMLButtonElement;
   /** Shows the metronome as on or off. */
@@ -68,9 +72,11 @@ function fill(doc: Document, select: HTMLSelectElement, none: string, choices: P
 }
 
 export function bindStrip(doc: Document): Strip {
+  addSteppers(doc); // before the fields are looked up: a field is the same element when it has its block round it
   const play = find<HTMLButtonElement>(doc, "#play");
   const tempo = find<HTMLInputElement>(doc, "#tempo");
   const monitor = find<HTMLButtonElement>(doc, "#monitor");
+  const drums = find<HTMLButtonElement>(doc, "#drums");
   const metronome = find<HTMLButtonElement>(doc, "#metronome");
   const outputs = { 1: find<HTMLSelectElement>(doc, "#midi-out-1"), 2: find<HTMLSelectElement>(doc, "#midi-out-2") };
   const input = find<HTMLSelectElement>(doc, "#midi-in");
@@ -90,6 +96,8 @@ export function bindStrip(doc: Document): Strip {
     tempo,
     monitor,
     showMonitor: (on) => monitor.setAttribute("aria-pressed", on ? "true" : "false"),
+    drums,
+    showDrums: (on) => drums.setAttribute("aria-pressed", on ? "true" : "false"),
     metronome,
     showMetronome: (on) => metronome.setAttribute("aria-pressed", on ? "true" : "false"),
     outputs,

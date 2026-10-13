@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { RENDER_FRAMES, decodeEvents } from "../src/abi.ts";
-import { DEMO, loadDemo } from "../src/demo.ts";
+import { DEMO, loadDemo, type DemoTrack } from "../src/demo.ts";
 import { DRUM_CHANNEL, MAX_VOICES, Monitor, type NoteEvent } from "../src/monitor.ts";
 import type { FromWorklet } from "../src/protocol.ts";
 import { WorkletRig } from "./support/worklet-scope.ts";
@@ -194,4 +194,93 @@ test("R-2: a step message the engine refuses is reported to the page as an error
   assert.match(error?.message ?? "", /set step.*code 5/);
   rig.send({ type: "step", track: 0, step: 0, attr: 0, value: 1 });
   assert.deepEqual(rig.take().filter((p) => p.message.type === "error"), []);
+});
+
+// ----- the drums (specs/SPEC-0002/p10-silence-the-drums.md) -----
+/** The first sample at which two renders differ, or -1. (`assert.deepEqual` on a long render that differs builds a diff of every sample.) */
+const firstDifference = (a: Float32Array, b: Float32Array): number => {
+  if (a.length !== b.length) return Math.min(a.length, b.length);
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return i;
+  return -1;
+};
+
+// The owner, Tue 2026-10-13 12:00 London: "a button where you can silence the drums - it should be purely the synth and all of the midi that you can hear".
+
+test("P10-1: with the drums off a drum note adds nothing, exactly, and the notes beside it sound sample for sample as they do alone", () => {
+  const muted = new Monitor(RATE);
+  muted.on = true;
+  muted.drums = false;
+  const hits = run(muted, 100, (b) => (b === 0 ? [on(36, 0, DRUM_CHANNEL), on(39, 5, DRUM_CHANNEL), on(42, 9, DRUM_CHANNEL)] : []));
+  assert.ok(hits.every((x) => x === 0), "three drums, and not a sample of them");
+  const given = new Float32Array(RENDER_FRAMES).fill(0.25);
+  given[0] = 2; // past full scale, on the sample the drum note is on: a pass through the mix would clamp it, so a block that is left as it was was not passed through it
+  const before = given.slice();
+  muted.render(given, [on(36, 0, DRUM_CHANNEL)]);
+  assert.equal(firstDifference(given, before), -1, "a block it is given is left exactly as it was");
+  const beside = new Monitor(RATE);
+  beside.on = true;
+  beside.drums = false;
+  const alone = new Monitor(RATE);
+  alone.on = true;
+  const together = run(beside, 100, (b) => (b === 0 ? [on(60, 5), on(36, 10, DRUM_CHANNEL), on(42, 20, DRUM_CHANNEL), on(39, 30, DRUM_CHANNEL), on(67, 40)] : []));
+  const synth = run(alone, 100, (b) => (b === 0 ? [on(60, 5), on(67, 40)] : []));
+  assert.ok(peak(synth) > 0.02, "the synth is heard");
+  assert.equal(firstDifference(together, synth), -1, "with the drums off the output is the synth's, sample for sample");
+});
+
+test("P10-2: switching the drums off lets a hit that is sounding finish, silences every hit after it, and switching them on makes the next one", () => {
+  const kick = (at: number) => (b: number): NoteEvent[] => (b === at ? [on(36, 0, DRUM_CHANNEL)] : []);
+  const reference = run(Object.assign(new Monitor(RATE), { on: true }), 400, kick(0));
+  assert.ok(peak(reference.subarray(0, 4800)) > 0.1, "a kick is heard");
+  const m = new Monitor(RATE);
+  m.on = true;
+  const out = new Float32Array(400 * RENDER_FRAMES);
+  for (let b = 0; b < 400; b++) {
+    if (b === 5) m.drums = false; // 13 ms into the first kick
+    if (b === 250) m.drums = true;
+    m.render(out.subarray(b * RENDER_FRAMES, (b + 1) * RENDER_FRAMES), b === 0 || b === 200 || b === 300 ? [on(36, 0, DRUM_CHANNEL)] : []);
+  }
+  assert.equal(firstDifference(out.subarray(0, 200 * RENDER_FRAMES), reference.subarray(0, 200 * RENDER_FRAMES)), -1, "the kick that was sounding is not cut or changed: it ends as it would have, in its own fade to zero");
+  assert.ok(out.subarray(200 * RENDER_FRAMES, 250 * RENDER_FRAMES).every((x) => x === 0), "the kick struck while the drums were off is silent");
+  assert.ok(peak(out.subarray(300 * RENDER_FRAMES, 340 * RENDER_FRAMES)) > 0.1, "and the one struck after they were switched on is heard");
+});
+
+test("P10-3: the drums are on to begin with, and switching the sound off and on does not change them", () => {
+  const m = new Monitor(RATE);
+  assert.equal(m.drums, true);
+  m.drums = false;
+  m.on = true;
+  m.on = false;
+  m.on = true;
+  assert.equal(m.drums, false, "they stay off");
+  m.drums = true;
+  m.on = false;
+  assert.equal(m.drums, true, "and on");
+});
+
+function demoRig(drums: boolean | null, demo: readonly DemoTrack[] = DEMO): WorkletRig {
+  const rig = new WorkletRig();
+  rig.send({ type: "monitor", on: true });
+  if (drums !== null) rig.send({ type: "drums", on: drums });
+  loadDemo({ setTrack: (track, attr, value) => rig.send({ type: "track", track, attr, value }), setStep: (track, step, attr, value) => rig.send({ type: "step", track, step, attr, value }) }, demo);
+  rig.send({ type: "transport", play: true });
+  return rig;
+}
+
+test("P10-4: in the worklet the drums message takes the drums out: the demo with them off is, sample for sample, the demo without its drum tracks", () => {
+  const blocks = Math.ceil((RATE * 3) / RENDER_FRAMES);
+  const off = eventsOf(demoRig(false), blocks).audio;
+  const without = eventsOf(demoRig(null, DEMO.filter((t) => t.channel !== DRUM_CHANNEL)), blocks).audio;
+  const on = eventsOf(demoRig(true), blocks).audio;
+  assert.ok(peak(off) > 0.05, "the synth is heard");
+  assert.equal(firstDifference(off, without), -1, "nothing of the drums is left");
+  assert.notEqual(firstDifference(on, off), -1, "and with them on the drums are in the output");
+  assert.equal(firstDifference(eventsOf(demoRig(null), blocks).audio, on), -1, "on is what the worklet does when the page says nothing");
+});
+
+test("P10-5: the drums button is not MIDI: the events are byte for byte the same with the drums on and off, and the drum notes are in both", () => {
+  const events = (drums: boolean): string[] => eventsOf(demoRig(drums), 800).events;
+  const a = events(true);
+  assert.ok(a.some((e) => e.split(":")[3] === String(DRUM_CHANNEL)), "the engine plays drum notes");
+  assert.deepEqual(events(false), a);
 });

@@ -51,7 +51,9 @@ never rearranges.
   `specs/SPEC-0002/p6-runs-when-opened.md` says why each of those is there.
 - **Tempo** is a field (120 to begin with). **Sound** is the built-in monitor (`src/monitor.ts`): the engine's notes played in the page's
   own audio, on to begin with, and not MIDI (the events are byte for byte the same with it on or off). It is how a page with no MIDI
-  device, or in a frame that cannot reach one, is heard to run.
+  device, or in a frame that cannot reach one, is heard to run. **Drums** (`specs/SPEC-0002/p10-silence-the-drums.md`) takes the drums out of that sound, the notes on
+  channel 10, and leaves the synth's voices as they were; pressed (to begin with) means they are heard. It is audio only: the drum notes are still in the events and still go to every
+  output that is chosen, a hit that is sounding finishes rather than being cut, and a choice made before Play is kept.
 - **The chase-light** is the red LED on the step each track is playing (`src/chase.ts`), held back by the engine's 12-tick lead so that it is
   on the step you hear.
 - **`?bare`** in the address is the page the P3 to P5 tests drive: Play only starts the engine, and nothing is loaded, played or heard
@@ -82,7 +84,16 @@ never rearranges.
 - **The look** is the hardware's own materials drawn flat (ADR-0010, `specs/SPEC-0002/p8b-panel-in-the-hardwares-materials.md`): a cream plate (`plate`) in a dark frame (`frame`), keys, knobs and nuts in one grey metal tone with a
   hairline edge (`key`, `key.edge`), and the names printed in dark ink (`plate.ink`; the captions, row numbers and clefs in `plate.ink.quiet`). It has no gradient, highlight, shadow or outline on the plate. The six colours are
   the panel's: only rules that start at `#panel` or `#panel-frame` in `pages/app.css` may use them (rule S17), and the strip keeps its own ground and ink. The values are candidates until the owner merges the pull request with the screenshots in
-  `handoffs/evidence/p8b/`. The page and the strip are still the strip's dark, because the case is the panel's and not the page's.
+  `handoffs/evidence/p8b/`. The case is the frame drawn inside the panel's own SVG and no bigger than the panel: the page shows round it.
+- **The strip and the page** are a midnight ground with hairlines (ADR-0011, `specs/SPEC-0002/p9-the-shell-look.md`): a pure-grey ground (`surface`), a hairline of `edge` under the strip, controls drawn as a border (`edge.control`, 3:1 on the
+  ground) with the one corner of the tokens (`radius.control`, 8 px, the owner's word), Play the one filled control (`ink` on `surface`, the strong weight; the one other fill is the stepper of a number field, below), a toggle that is on in the raised tone (`surface.raised`) with an ink border, and the status lines in `ink.quiet`.
+  The face is Inter Variable, a file in `pages/fonts/` with its licence beside it and an `@font-face` generated from the tokens, at two weights (400 and 510) with the features `cv01`, `ss03` and `zero`. There is no accent colour (the reference's acid
+  lime is not taken), no shadow, gradient, card, pill, tracking or capitals. The values are candidates until the owner merges the pull request with the screenshots in `handoffs/evidence/p9/`.
+- **The stepper** (`src/stepper.ts`, ADR-0011 decision 7) is the small block with an up and a down arrow at the right of each number field. The browser draws its own and neither gives it a corner nor lets the page pick its tone, so
+  the page hides it and draws one: the `ink`, the `surface` for its arrows, the same 8 px corner. A press steps the value by the field's step within its limits and says so with an `input` and a `change`, as the browser's did; held, it repeats; at
+  a limit nothing happens and nothing is announced. It repeats the arrow keys, which still work, so it is hidden from the accessibility tree and is not a stop for the Tab key.
+- **The ground** (`#stage`) is the room under the strip. The case is sized to it by the plate's aspect alone (a size container and `--panel-aspect`, which the script sets) and sits in the middle of it, as far from the strip as from the bottom
+  of the window. There is nothing else in the room: the three line drawings that stood in it from 11:15 were taken out at the owner's word of 12:52 (ADR-0011 decision 10, withdrawn), and the only SVG on the page is the panel's.
 - **The Play key** (`transport.play`) is the page's own command to the engine, a stopgap until the transport workflow is
   built from the manual (ADR-0008 decision 4). **The tempo** is the engine's 120; its encoder is Wave 1.
 - **The chase-light** is not drawn (the manual does not say how it overlays a lit step; request to the Panelwright).
@@ -176,7 +187,7 @@ gear the click is early or late by the difference. It is not trimmed. Only a mea
 Acceptance criterion A8. The order of the elements in the page is the tab order (nothing has a `tabindex` above 0). This section is
 checked against `layout/panel.layout.json` by `test/readme.test.ts`, so it cannot drift.
 
-1. The strip: `play`, `tempo`, `monitor`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
+1. The strip: `play`, `tempo`, `monitor`, `drums`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
 2. The plate's 242 controls in its reading order: bands one matrix row high from the top, left to right in each band. The first stops are
    `mix.enc.r9`, `selector.r9`, `matrix.r9.c1`, `matrix.r9.c2` and so on along row 9 to `matrix.r9.c16`, then `mutator.tgl`, `edit.enc.vel`
    and `main.enc`; then row 8 from `mix.enc.r8`. The last stops are `mix.master`, `mutator.mute`, `mode.edit`, `keys.esc` and `chord.b7`.

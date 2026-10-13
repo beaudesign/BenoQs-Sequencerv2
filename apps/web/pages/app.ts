@@ -86,6 +86,9 @@ async function main(): Promise<void> {
     else host.turn(n, detents);
   });
   document.querySelector("#panel-frame")!.append(panel.svg);
+  // The case is sized to the room by its aspect (pages/app.css, #stage) and sits in the middle of it; nothing else is in the room.
+  const stage = document.querySelector<HTMLElement>("#stage")!;
+  stage.style.setProperty("--panel-aspect", String(panel.aspect));
   addEventListener("blur", () => presses.releaseAll());
 
   strip.lookahead.min = String(LOOKAHEAD_MS.min);
@@ -210,6 +213,15 @@ async function main(): Promise<void> {
     host?.setMonitor(monitorOn);
   });
 
+  // The drums of that sound. On to begin with, in `?bare` too; pressed means they are heard. It changes what this page plays and none of what it sends.
+  let drumsOn = true;
+  strip.showDrums(drumsOn);
+  strip.drums.addEventListener("click", () => {
+    drumsOn = !drumsOn;
+    strip.showDrums(drumsOn);
+    host?.setDrums(drumsOn);
+  });
+
   // The click. A choice made before Play is kept and goes to the worklet when there is one; after that each change goes at once.
   let metronomeOn = false;
   strip.metronome.addEventListener("click", () => {
@@ -254,6 +266,7 @@ async function main(): Promise<void> {
       };
       started.onError = (message) => strip.say(`The engine reported: ${message}`);
       started.setMonitor(monitorOn);
+      started.setDrums(drumsOn);
       started.setTempo(tempoNow);
       if (!bare) loadDemo(started);
       // The route is applied before the transport can run, and the worklet handles messages in the order they were posted.

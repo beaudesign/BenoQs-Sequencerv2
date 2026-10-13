@@ -60,6 +60,9 @@ class OctowebProcessor extends AudioWorkletProcessor {
         case "monitor":
           this.monitor.on = m.on;
           return;
+        case "drums":
+          this.monitor.drums = m.on;
+          return;
       }
       // A Stop, from the transport message or from a panel key, shows in the panel's status word. The
       // engine's flush Note Offs come out of the next render and are scheduled like any other event.

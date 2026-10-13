@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0003 |
-| Revision | r0, draft, 2026-10-13 |
-| Stage | **Draft for the owner. Planning only: this pull request adds a spec and a journal entry, and changes no code, contract, fixture or threshold. Nothing in the series starts until the decisions below are answered.** |
+| Revision | r1, approved with all defaults, 2026-10-13 13:41 (r0 was the draft) |
+| Stage | **Approved by the owner (see the approval record). This pull request is still planning only: it adds the spec and a journal entry, and changes no code, contract, fixture or threshold. S0 (ADR-0012) is the first pull request of the series; nothing has been built.** |
 | Risk tier | **Low** for this pull request (`specs/`, `journal/`). The work it plans is **Medium** for each slice and **High** for S0, which changes `contracts/` |
 | Owner and approver | `@beaudesign` |
 | Task | `WENGE-0028` (`handoffs/WENGE-0028.ndjson`, written with the first slice) |
@@ -59,7 +59,7 @@ Evidence is in `findings.md`.
 
 ## Decisions for the owner
 
-Defaults apply if you say "approve, all defaults", as in SPEC-0001 and SPEC-0002.
+Defaults apply if you say "approve, all defaults", as in SPEC-0001 and SPEC-0002. **Answered in r1: all defaults apply** (approval record).
 
 | # | Decision | Default | Alternatives |
 |---|---|---|---|
@@ -114,6 +114,25 @@ Defaults apply if you say "approve, all defaults", as in SPEC-0001 and SPEC-0002
 
 ## Approval record
 
-**Awaiting the owner.** r0 is a draft. Nothing in the series starts until D1 to D10 are answered or the owner says
-"approve, all defaults". Chat is not a source of truth, so on an answer the agent will write here how it read it, as
-SPEC-0002 did.
+**r1, 2026-10-13, 13:41 (Europe/London).** The owner had been asked to answer D1 to D10 or to say "approve, all
+defaults". The owner replied **"approve, all defaults"**. The agent reads that as the second option, because it answers
+that question and names no change to a default. Chat is not a source of truth, so the reading is written down here. If it
+is wrong, say so and this record is revised. (The owner's earlier "continue", a minute before, was not taken as an
+approval; nothing was started on it.)
+
+| Item | What is approved | What is not |
+|---|---|---|
+| D1 the plan | This spec as the plan for the circle half of SPEC-0002 wave 2, with the exclusions of `product.md` section 6 | Merging. The agent never merges |
+| D2 order | S1 to S6, Gate T, S7 and S8; S9 any time after S1 | Starting a slice before the one before it has merged |
+| D3 Track mode | Gate T after S6, as its own amendment to SPEC-0002 | Building Track mode inside this series |
+| D4 the quadrant | LEDs as the hardware, plus a sentence for the accessibility tree; no printed digits | A printed readout |
+| D5 the ring keys | Ids by position (`circle.ring.1` to `.13`), flagged. **The owner is still asked, once, to read the thirteen printed names**; it is not required for S0 | Binding any function to a ring key before it is answered |
+| D6 holds | The latch (Shift-click or a long press), keyboard hold keys, real chords on touch | Starting S4 before S3 has merged: D6 is needed there |
+| D7 provisional choices | Named provisional choices where the manual is silent, one function or one table each | Asserting any of them in a fixture |
+| D8 one state | The strip's Tempo and clock select and the panel's are one value (CA6) | |
+| D9 chance and replay | The engine's generator is seeded by the host; the page seeds it from the clock and keeps the seed in the saved state | Any change to the engine's generator in this series without the Metronome's request |
+| D10 tutorials | The 2007 tutorials as fixtures, the v5.30 page winning on a conflict | |
+| Series | S0 first, as ADR-0012 (proposed), a pull request of its own; the contract change that follows is a second pull request after the ADR has merged | S1 onward, and any answer to Q43 to Q56: their defaults are provisional until the hardware says |
+
+Anything the owner did not answer with this reply is still not approved. The questions Q43 to Q56 need a person with
+an Octopus; an approval does not answer them.

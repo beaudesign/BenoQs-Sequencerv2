@@ -39,9 +39,9 @@ control, Play, is `ink` on `surface`), hued greys (the greys here are pure), sha
 cards and tracking.
 
 **The ground carries three small line drawings (ADR-0011 decision 10)**, above the case, in the room the
-case leaves: hairline strokes in `edge` and `edge.control`, no fill, dotted construction lines, drawn
+case leaves: hairline strokes in `edge.control`, solid and dotted, no fill, dotted construction lines, drawn
 from the space tokens, `aria-hidden`, still. They are the ground's only decoration; none touches the
-panel or the strip, and a rule keeps every `#ground` rule to those two roles and to `fill: none`.
+panel or the strip, and a rule keeps every `#ground` rule to that role and to `fill: none`.
 
 ---
 

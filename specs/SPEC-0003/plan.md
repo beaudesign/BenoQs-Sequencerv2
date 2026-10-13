@@ -41,10 +41,15 @@ the ids of `tech.md` section 7 (`circle.num.1` to `.10`, `circle.ring.1` to `.13
 names), the function keeps its id (`circle.chr`, `circle.follow`) and is bound to a ring key **only when the key's
 identity is answered** (Q32, D5); until then the ring keys are `circle.ring.1` to `.13` by position, basis `order`.
 
+**Amended by A1 (README; ADR-0012, proposed, draft PR #60).** S0 promotes **ten** keys, `circle.num.1` to `.10`, with no
+`led`. The thirteen ring keys keep their `hw.ring.k` ids in the layout until each is named; then it takes the id the
+contract already has, or one ADR-0007 amendment adds the control. The text above is the plan as approved; read S0-2 with
+the numbers below.
+
 | # | Observable | Test |
 |---|---|---|
 | S0-1 | Every function in `product.md` section 3.2 is an id in `controls.json` or an `open` item with a question number | `controls` inventory test, extended |
-| S0-2 | The 23 promoted keys are no longer `hw.*`; the drawn count rises by 23 and the unplaced list only shrinks; the inert-key count falls from 37 to 14 | `layout.test.ts` (P7-1, by the ADR) |
+| S0-2 | The 23 promoted keys are no longer `hw.*`; the drawn count rises by 23 and the unplaced list only shrinks; the inert-key count falls from 37 to 14 *(as amended by A1: the ten promoted keys are no longer `hw.*`; drawn 242 to 252, controls 247 to 257, inert 37 to 27, the unplaced list unchanged)* | `layout.test.ts` and the two browser tests (P7-1, by the ADR) |
 | S0-3 | The schema passes; ids are unique; no id is both a control and an `hw` key | `contract.rs` |
 | S0-4 | The number of `open` items on the circle zones does not rise | The Referee's check |
 

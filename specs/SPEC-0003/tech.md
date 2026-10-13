@@ -26,7 +26,7 @@ So the circle's functions are mostly **engine logic that nothing can reach**. Th
    rendering, and the manual often does not say (Q43, Q45). A fixture never asserts a guessed LED; the rendering
    function is written once, named `provisional` and listed in `QUESTIONS.md`, as the flash rate (Q25) and `Shine` (Q03) already are. A hardware
    answer changes one function and its fixtures, not the controller.
-2. **No display widget.** The numeric quadrant and the inner circle are, as far as the manual says, LEDs on keys the plate already has (`p57`:
+2. **No display widget.** The numeric quadrant and the inner circle are, as far as the manual says, LEDs on keys the plate already has (T05:
    "the 100 position is lit"; `p54`: "an orange dot at the 1 position"). They are drawn by the LED frame that exists.
    The only new thing the page gets is text for the accessibility tree: the meaning layer, as a sentence ("Tempo,
    120"; "Pitch, G, octave 3"). This also settles the look: **no new colour, no new token**.
@@ -161,6 +161,10 @@ fixtures staying green and the assertion count unchanged:
 
 Nothing here edits a threshold. `harness/baseline.txt` only grows. If S0 changes the count in P7-1, the ADR says why and
 does not loosen it: the new count is higher.
+
+**Amended by A1 (README, ADR-0012, proposed).** The first row above becomes ten controls, `circle.num.1` to `.10` (n 295 to
+304, no `led`), and the thirteen ring keys get no ids until they are named. The second row promotes ten keys, not 23, and the
+counts are 257 controls, 252 drawn, 27 inert. The rest of this section stands.
 
 ## 8. Risks
 

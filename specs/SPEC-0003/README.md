@@ -112,6 +112,17 @@ Defaults apply if you say "approve, all defaults", as in SPEC-0001 and SPEC-0002
 | `plan.md` | The nine slices with their observables and fixtures, the tutorial fixtures, what "done" means |
 | `findings.md` | What was read, the circle against the repo, Q43 to Q56 and the open questions this spec leans on |
 
+## Amendments
+
+**A1, proposed by ADR-0012 (draft PR #60); in force when the owner merges it.** The approved default of D5 is amended. The
+ADR proposes that the thirteen ring keys whose printed names cannot be read get **no ids by position**: a positional id
+binds nothing, and it costs a second ADR when the key is named, because the function already has an id
+(`circle.chr`, `circle.follow`) or gets one by an ADR-0007 amendment. So S0 promotes **ten** keys, `circle.num.1` to `.10`
+(`n` 295 to 304, no `led`: the manual gives none, as for Stop, Play and Pause), not 23. The counts become 257 controls,
+252 drawn, 27 inert keys, 252 tab stops. No slice loses an asserted observable: the ones that use a ring key's name were
+already `pending` (K-12, H-13). The owner is still asked, once, to read the thirteen printed names. If the owner closes
+ADR-0012, this amendment is void and D5 stands as approved.
+
 ## Approval record
 
 **r1, 2026-10-13, 13:41 (Europe/London).** The owner had been asked to answer D1 to D10 or to say "approve, all

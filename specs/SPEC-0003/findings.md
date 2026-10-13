@@ -63,7 +63,7 @@ the writers; what is missing is the controller, the readouts, the ring's identit
   intents and an LED frame (the P5 plan, D-P5-5), and the page shows no value for any knob (D-P7-5). A value cannot be
   entered, checked or taught.
 - **F3. The numeric quadrant and the inner circle are, as far as the manual says, LEDs on keys the plate has.** The manual
-  says the "100 position" is lit and "an orange dot at the 1 position" (p57, p54), and the quadrant must show values
+  says the "100 position" is lit (tutorial 5, T05) and "an orange dot at the 1 position" (p54), and the quadrant must show values
   to 17 and -9 to 9, which is more positions than the ten labelled keys: so it is probably those and some of the
   unnamed ring keys (Q43). Either way they need no widget, only LED writes to keys that need ids. That is why S0 comes first and why this spec adds no token.
 - **F4. Number entry is stated, and is the matrix's too.** "A double-click will set a 10's value and a single-click

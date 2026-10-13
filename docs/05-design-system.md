@@ -38,10 +38,7 @@ round it. What the reference has and this product does not: an accent colour (th
 control, Play, is `ink` on `surface`), hued greys (the greys here are pure), shadows, gradients,
 cards and tracking.
 
-**The ground carries three small line drawings (ADR-0011 decision 10)**, above the case, in the room the
-case leaves: hairline strokes in `edge.control`, solid and dotted, no fill, dotted construction lines, drawn
-from the space tokens, `aria-hidden`, still. They are the ground's only decoration; none touches the
-panel or the strip, and a rule keeps every `#ground` rule to that role and to `fill: none`.
+**The ground is empty.** Three small line drawings stood in it for an hour and a half (ADR-0011 decision 10) and the owner took them out (12:52: "they offer nothing"). The case sits in the middle of the room under the strip, and a rule fails on any drawing brought back into the ground.
 
 ---
 

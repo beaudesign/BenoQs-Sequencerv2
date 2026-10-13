@@ -128,7 +128,7 @@ the disagreement is a fixture (N8).
 by the sequencer. No idle pulses, no breathing glows, no attract loops. The restraint is the
 point.
 
-**P4. Spend nothing on decoration.** The panel is disciplined to the point of severity. (The one exception is outside it: three hairline line drawings in the ground above the case, by ADR-0011 decision 10, at the owner's direction.) What
+**P4. Spend nothing on decoration.** The panel is disciplined to the point of severity. What
 makes it good is that a musician's hands already know it.
 
 **P5. Latency is a material.** A control that answers in 8 ms feels like a machine; the same

@@ -10,6 +10,8 @@ It answers the owner's own words. Tue 2026-10-13, 10:58 London, in chat, after a
 
 **The third message.** Tue 2026-10-13, 12:00 London, with a screenshot of the Clock offset field (a hairline box holding `0`, and at its right a light block with an up and a down arrow, which the owner calls the beige background): "Let's round the corners to an 8px for the beige background of it". The light block is the browser's own number-field spin button. This ADR reads the word as the corner of the strip: 8 px, not the reference's 6, and it reaches the light block only because the page draws that block itself (decisions 6 and 7), the browser's own not taking a radius. The same message asks for a button that silences the drums; that is a feature (specs/SPEC-0002/p10-silence-the-drums.md) and not this ADR's.
 
+**The fourth message.** Tue 2026-10-13, 12:52 London, with a screenshot of the page (the strip's last line, then a black ground holding the three line drawings of decision 10, then the case): "Let's remove the top shapes above they offer nothing". This ADR withdraws decision 10. The drawings, their module, their rules and their tests come out; the ground round the case is empty, and the case sits in the middle of the room under the strip. It is the owner's word, and the ADR's own "if the owner would rather have the ground empty" (decision 10, as it stood) was the one-edit exit they took.
+
 It amends part of `docs/00-north-star.md` sections 3.1, 3.2 and 3.5 and E4, `docs/05-design-system.md` sections 1, 2.1, 2.3, 2.4 and 4 (rules S2, S11, S15, S17), SPEC-0002 D3 as ADR-0010 amended it, and ADR-0008 decision 6 (the tokens contract: eighteen roles, one radius, a face). `SPEC.md` N2 and `CLAUDE.md` rule 6 are **not** touched. It changes the contract in the same pull request as its tests, and the strip's stylesheet in a second one.
 
 **What this ADR could not read.** https://roland50.studio was never opened: the fetch permission was left unanswered and was not worked around. https://www.designmd.co/d/elevenlabs could not be fetched (an error on two tries), and https://elevenlabs.io returned page text with no styles in it. The ElevenLabs values below are from a third-party transcription of the same kind of design file (https://www.shadcn.io/design/elevenlabs/raw), which is data and not the owner's word; the screenshot the owner attached is the primary source for "embellishment".
@@ -61,7 +63,7 @@ Each of these has a route written into the rules (an ADR, a stated reason, a nar
 
 ### 1. The look reaches the strip and the page, and stops there
 
-The strip (`#strip`), the page's ground (`html`, `body`), the case's edge and the line drawings in the ground (decision 10) change. The panel's drawing does not: the plate, the frame, the keys, the printed ink and the LEDs keep ADR-0010's roles and values. S17 now also runs the other way (decision 8).
+The strip (`#strip`), the page's ground (`html`, `body`), and the case's edge change. (The line drawings that decision 10 put in the ground were withdrawn at 12:52.) The panel's drawing does not: the plate, the frame, the keys, the printed ink and the LEDs keep ADR-0010's roles and values. S17 now also runs the other way (decision 8).
 
 ### 2. What is taken from the reference, and what is not
 
@@ -125,18 +127,21 @@ The six panel roles stay out of the strip (ADR-0010). From now the strip's tones
 | PR | What | Tier | Why |
 |---|---|---|---|
 | A | This ADR and its doc edits; `contracts/design.tokens.json` and its schema (three roles, three values, `radius`, `type.face`, `type.weight`); `tokens.rs` (T10 amended, T14 to T18, the ground's S8 exit, eighteen roles, each rule shown to fail); `app_source_rules.rs` (S2, S15, S17 both ways); the generator, `tokens.ts`, the font and its licence, the MIME type; baseline | High | A contract file |
-| B | `pages/app.css`, `pages/app.html` (the stage and the ground), `src/panel.ts` (the frame inside the SVG), `src/ground.ts` (the drawings), the browser tests for the new look, the tests P8b wrote that assumed the old one (updated, none removed), screenshots | Medium | `apps/web` only |
+| B | `pages/app.css`, `pages/app.html` (the stage and the ground), `src/panel.ts` (the frame inside the SVG), `src/ground.ts` (the drawings; withdrawn, decision 10), the browser tests for the new look, the tests P8b wrote that assumed the old one (updated, none removed), screenshots | Medium | `apps/web` only |
 
 PR B carries PR A's commits until it merges. The agent merges neither.
 
-### 10. Line drawings in the ground above the case
+### 10. Line drawings in the ground above the case (withdrawn)
 
-The page ground behind the panel carries three small drawings, in the language of the owner's screenshot and in none of its three compositions: hairline strokes, no fill, dotted construction lines, geometric solids. They are this product's own and are drawn from the tokens: a **detent** (rings whose radii are the space scale, round a dotted crosshair), a **stack** (four oblique planes, one per track, joined by dotted verticals) and an **orbit** (an ellipse on dotted axes, with a small circle on it). They are generated by `src/ground.ts` from the space tokens, so no length is written in the code (S12 now covers it), and they are the ground's only decoration.
+*As decided at 11:15.* The page ground behind the panel carried three small hairline drawings in the language of the owner's screenshot (a detent, a stack and an orbit: strokes, no fill, dotted construction lines), generated from the space tokens by `src/ground.ts`, in `edge.control`, above the case in the room it left, `aria-hidden`, still. They were the ground's only decoration.
 
-- They sit in the ground, above the case, in the room the case leaves: the case is sized to the window by the plate's aspect and takes what it needs; the drawings scale to what is left and are gone when none is. They are never behind the case, never under the strip, and never in the panel (no overlay on the panel, `docs/05` section 1).
-- Their strokes are `edge.control`, solid and dotted alike, a hairline wide and unscaled. The hairline tone `edge` was tried for the construction lines and is not seen at 1.28:1 on the ground (the dots vanish). A rule in `app_source_rules.rs` keeps every `#ground` rule to that one role and to `fill: none`, and a Chromium test measures the computed strokes. They are `aria-hidden`, take no pointer events and no focus, and do not move (P3, S14).
-- No new role, and no new token: dots are `stroke-dasharray: 0 var(--space-1)` with a round cap.
-- If the owner would rather have the ground empty, deleting `#ground` and its element is one edit; the tests that name it go with it.
+*Withdrawn at 12:52, by the owner's word* ("Let's remove the top shapes above they offer nothing"). What goes, and what stays:
+
+- `src/ground.ts`, its node test, the `#ground` element and its rules in `pages/app.css`, and the script that prepended it are deleted. The ground round the case is empty, and the only SVG on the page is the panel's.
+- The three rules about the drawings' tone (`#ground` rules use only `edge.control`, no fill, no tint; a rule that does otherwise is caught) and the entry for `src/ground.ts` in the S12 list leave with them. Two Rust tests were in the baseline for them (`app_source_rules::the_ground_is_drawn_in_one_edge_tone_and_no_fill` and `app_source_rules::a_ground_rule_that_fills_tints_or_borrows_is_caught`); they leave it through `cargo xtask baseline --remove ... --adr ADR-0011`, which is this paragraph. Nothing is loosened: the rule they kept is gone because what it kept is.
+- A rule stays in their place and only grows: `app_source_rules::the_ground_has_no_drawings` fails on a module, a call, an element or a rule that draws in the ground, and on an SVG written in the page; it is shown to fire on each. A Chromium test (P9-8) says the same of the built page.
+- The case sits in the middle of the room under the strip (P9-9: as far from the strip as from the bottom of the window), because with nothing above it the top of the room would leave all the empty ground below. Putting it at the top is one line.
+- No token moves. The drawings only read the space scale, which was in the contract before them and which the strip uses, so nothing in the contract is left without a user.
 
 ## Alternatives considered
 
@@ -147,7 +152,9 @@ The page ground behind the panel carries three small drawings, in the language o
 - **Two families, Inter for the strip and Helvetica for the panel.** More faithful to the hardware's printing, and a second family to choose, test and ship. The screenshot decides whether it is needed.
 - **Cards.** Both references have them. The north star's "SaaS card kit: impossible by construction" stands.
 - **Copy the three ElevenLabs drawings.** The nearest reading of the screenshot, and a specific artwork of someone else's. These drawings are made for this product and share the language only.
-- **Put the drawings on cards, as in the screenshot.** Cards are refused above. The drawings stand on the ground.
+- **Put the drawings on cards, as in the screenshot.** Cards are refused above. (Moot: the drawings are withdrawn.)
+- **Keep the drawings, fewer or fainter** (12:52). The owner said they offer nothing; a fainter drawing is the same nothing, and the tone that made them visible (`edge.control`) is the lowest that holds 3:1 on this ground.
+- **Put the case at the top of the room, not the middle** (12:52). It leaves the empty ground all below it. The middle is the default; one line moves it.
 - **Give the browser's spin button a corner.** It is the first thing to try, and it does not work: the browser paints the control itself, takes no `border-radius` on it, and chooses its tone by its own rule (dark in one browser, light in another), so the owner's 8 px could not be promised in any browser. Checked in Chromium on the built page.
 - **Hide the spin button.** Keeps one corner and loses the click to step that the owner has in front of them, and the owner asked for its corners, not its removal.
 - **Make the stepper dark (`surface.raised`) and so keep Play the one fill.** It fits the rest of the strip better, and it changes a colour the owner did not ask to change. It is one token in one rule if the owner wants it, and the first thing to try if the light block reads as loud.
@@ -155,7 +162,7 @@ The page ground behind the panel carries three small drawings, in the language o
 ## Not decided here
 
 - **Acid lime or any accent** (above). **A hero floor, Berkeley Mono, a light theme, pills, badges, pastel orbs, a display face.** None has anything to apply to.
-- **More drawings, or drawings elsewhere** (a settings page, an empty state). Three, above the case.
+- **Any drawing, anywhere.** The owner took the three out; another is a new ADR.
 - **The Curator's specimens** for the panel's printed names.
 - **Other pages.** The strip and the page behind the panel are the whole app today. A settings page, when there is one, takes this look by default and is its own decision.
 - **How the case should be framed at very wide windows** (a maximum width, centring). The panel scales to the room it is given; the page ground shows on the sides.
@@ -165,5 +172,5 @@ The page ground behind the panel carries three small drawings, in the language o
 
 - PR A changes the contract and its tests; the stylesheet, until PR B, still draws the strip as before, now on the new ground and in Inter. The page is usable and a little odd for one pull request. PR B is where it is right.
 - It is reversible: closing the pull request leaves things as they are; a value can change in PR B without a new ADR as long as T2 and T14 to T16 hold.
-- The assertion set grows (T14 to T18, the ground's exit, the radius and strip-tone tests, S2 and S15 and S17 both ways, the generator's font test); none leaves, and the tests P8b wrote that named the old strip's colours are updated to name the roles, not removed.
+- The assertion set grows (T14 to T18, the ground's exit, the radius and strip-tone tests, S2 and S15 and S17 both ways, the generator's font test), and the tests P8b wrote that named the old strip's colours are updated to name the roles, not removed. Two leave, with decision 10 (the drawings' tone rules, above), recorded by `--remove ... --adr ADR-0011`; `the_ground_has_no_drawings` takes their place.
 - **CLAUDE.md rule 3** asks for an expiry date on a loosening. This ADR loosens no number: 7:1, 3:1, ΔE 3 and chroma 12 are as they were. S11, S15 and the "no radius group" line of T10 each change from a wider rule to a narrower one that stays in force (T17 and the `#strip`-only corner), so nothing lapses and no date is set. If the owner reads them as loosenings, they set a date when merging and the Referee enforces it.

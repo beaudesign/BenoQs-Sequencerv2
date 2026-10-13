@@ -8,6 +8,8 @@ It answers the owner's own words. Tue 2026-10-13, 10:58 London, in chat, after a
 
 **The second message.** Tue 2026-10-13, 11:15 London, mid-work: "Also add in some design embellishment from Eleven Labs - https://elevenlabs.io - https://www.designmd.co/d/elevenlabs", with a screenshot of three cards of black line drawings on a warm off-white (a pair of cones and ellipses on dotted axes, a grid cube with dotted diagonals, tangent concentric circles with a dotted outer ring), each with a one-word title and a grey sentence under it. This ADR reads "embellishment" as that screenshot's drawing language, and decision 10 says what is taken from it.
 
+**The third message.** Tue 2026-10-13, 12:00 London, with a screenshot of the Clock offset field (a hairline box holding `0`, and at its right a light block with an up and a down arrow, which the owner calls the beige background): "Let's round the corners to an 8px for the beige background of it". The light block is the browser's own number-field spin button. This ADR reads the word as the corner of the strip: 8 px, not the reference's 6, and it reaches the light block only because the page draws that block itself (decisions 6 and 7), the browser's own not taking a radius. The same message asks for a button that silences the drums; that is a feature (specs/SPEC-0002/p10-silence-the-drums.md) and not this ADR's.
+
 It amends part of `docs/00-north-star.md` sections 3.1, 3.2 and 3.5 and E4, `docs/05-design-system.md` sections 1, 2.1, 2.3, 2.4 and 4 (rules S2, S11, S15, S17), SPEC-0002 D3 as ADR-0010 amended it, and ADR-0008 decision 6 (the tokens contract: eighteen roles, one radius, a face). `SPEC.md` N2 and `CLAUDE.md` rule 6 are **not** touched. It changes the contract in the same pull request as its tests, and the strip's stylesheet in a second one.
 
 **What this ADR could not read.** https://roland50.studio was never opened: the fetch permission was left unanswered and was not worked around. https://www.designmd.co/d/elevenlabs could not be fetched (an error on two tries), and https://elevenlabs.io returned page text with no styles in it. The ElevenLabs values below are from a third-party transcription of the same kind of design file (https://www.shadcn.io/design/elevenlabs/raw), which is data and not the owner's word; the screenshot the owner attached is the primary source for "embellishment".
@@ -37,7 +39,7 @@ It amends part of `docs/00-north-star.md` sections 3.1, 3.2 and 3.5 and E4, `doc
 | `tokens.rs` T7 | Every role but the three lit LEDs, `plate` and `frame` is pure grey | The reference's blue-tinted greys |
 | `tokens.rs` T4, rule S8 | Nothing within ΔE 3 of `#0b0b0b`, `#111111`, `#F4F1EA`, `#D97757`, unless the token says why | Void `#08090a`, which is inside the cluster, unless it says why. S8 has this exit written in (`docs/05` section 4) |
 | `tokens.rs` T2 | `ink` and `ink.quiet` at least 7:1 against `surface` | Fog `#8a8f98`, which is 6.1:1 against Void |
-| ADR-0008 decision 6, `docs/05` section 2.3, S15, `tokens.rs` T10 | No radius group; no `border-radius` but `50%` | The 6 px corner |
+| ADR-0008 decision 6, `docs/05` section 2.3, S15, `tokens.rs` T10 | No radius group; no `border-radius` but `50%` | One corner, 8 px (the reference's is 6; the owner's word of 12:00 is 8) |
 | S11, `tokens.rs` T10, `docs/00` section 3.2 | Not Inter | The reference's face |
 | `docs/05` section 5 (WCAG 2.1) | A control's boundary is 3:1 against the ground | Graphite `#23252a` as a control's border (1.3:1) |
 | S1, S4, S5, S16 | No gradient, shadow, letter-spaced or all-caps label, transition | Nothing the reference needs; its "no shadows" is ours |
@@ -72,7 +74,7 @@ The strip (`#strip`), the page's ground (`html`, `body`), the case's edge and th
 | | **Tracking, shadows, cards, pills, the hero floor, Berkeley Mono, a light theme.** S5, S4, §4 of the north star, S1, S7. The strip has none of these to apply them to |
 | | **Four weights.** Two: regular 400 and strong 510 |
 | ElevenLabs: hairline line drawings with dotted construction lines (decision 10) | **Cards** (12, 16 and 24 px radii, a warm off-white fill) and **pills**: the north star's "no cards", and one corner is not a scale. The off-white `#f5f5f5` to `#f0efed` family also lives next to S8's `#F4F1EA`, on a ground that is now dark |
-| ElevenLabs: an ink primary button | The shape. Play is already `ink` on `surface`; it keeps the 6 px corner, not a pill |
+| ElevenLabs: an ink primary button | The shape. Play is already `ink` on `surface`; it keeps the 8 px corner, not a pill |
 | | **Gradient orbs, pastel tints** (S1, N2, rule 6), **the soft hover shadow** (S4), **tracking and uppercase badges** (S5), **Waldenburg** (licensed, and a serif-like display face that the north star rejects) |
 
 ### 3. Three colour roles are added to the fifteen, and three values are re-set
@@ -108,11 +110,11 @@ P8b drew the frame as `#panel-frame`'s background, filling the room under the st
 
 ### 6. One corner
 
-`radius.control` is 6 px. It is one token, not a scale: `tokens.rs` T10 keeps the `radius` group to the one key `control` between 1 and 12, and refuses a `radius.card` or a second value. **S15** becomes: no `border-radius` but `50%` and `0`, and `var(--radius-control)` in a rule whose selectors all begin at `#strip`. The panel's controls are still the hardware's shapes, and nothing else has a corner.
+`radius.control` is 8 px. The reference's corner for buttons and inputs is 6, and 6 was this ADR's first value; the owner's word of 12:00 ("round the corners to an 8px") replaced it, and one corner stays one corner, so every control of the strip and the number field's light block take 8 and none takes another. It is one token, not a scale: `tokens.rs` T10 keeps the `radius` group to the one key `control` between 1 and 12, and refuses a `radius.card` or a second value. **S15** becomes: no `border-radius` but `50%` and `0`, and `var(--radius-control)` in a rule whose selectors all begin at `#strip`. The panel's controls are still the hardware's shapes, and nothing else has a corner.
 
 ### 7. How the strip is drawn (PR B)
 
-Flat, with no fill but the ground: a hairline of `edge` under the strip; a control is a border of `edge.control` and the ink on the ground with a 6 px corner; Play is the one filled control (`ink` fill, `surface` text, strong weight); a toggle that is on takes `surface.raised` and the ink as its border; the focus ring is the same two strokes; the status lines are `ink.quiet`; sentence case, no tracking. No shadow, gradient, card, pill, transition or accent. The tone and the border change together when a toggle is on, so state is not carried by a shade alone, and `aria-pressed` is unchanged.
+Flat, with no fill but the ground: a hairline of `edge` under the strip; a control is a border of `edge.control` and the ink on the ground with an 8 px corner; Play is the one filled control (`ink` fill, `surface` text, strong weight), and the one other fill at rest is the **stepper** of a number field, the small block with an up and a down arrow that the owner sees as beige: the browser draws its own in a light tone of its choosing and cannot give it a corner, so the page draws it, `ink` for the block and `surface` for the arrows, with the same 8 px corner, redundant with the arrow keys and so out of the tab order; a toggle that is on takes `surface.raised` and the ink as its border; the focus ring is the same two strokes; the status lines are `ink.quiet`; sentence case, no tracking. No shadow, gradient, card, pill, transition or accent. The tone and the border change together when a toggle is on, so state is not carried by a shade alone, and `aria-pressed` is unchanged.
 
 ### 8. S17 runs both ways
 
@@ -146,6 +148,9 @@ The page ground behind the panel carries three small drawings, in the language o
 - **Cards.** Both references have them. The north star's "SaaS card kit: impossible by construction" stands.
 - **Copy the three ElevenLabs drawings.** The nearest reading of the screenshot, and a specific artwork of someone else's. These drawings are made for this product and share the language only.
 - **Put the drawings on cards, as in the screenshot.** Cards are refused above. The drawings stand on the ground.
+- **Give the browser's spin button a corner.** It is the first thing to try, and it does not work: the browser paints the control itself, takes no `border-radius` on it, and chooses its tone by its own rule (dark in one browser, light in another), so the owner's 8 px could not be promised in any browser. Checked in Chromium on the built page.
+- **Hide the spin button.** Keeps one corner and loses the click to step that the owner has in front of them, and the owner asked for its corners, not its removal.
+- **Make the stepper dark (`surface.raised`) and so keep Play the one fill.** It fits the rest of the strip better, and it changes a colour the owner did not ask to change. It is one token in one rule if the owner wants it, and the first thing to try if the light block reads as loud.
 
 ## Not decided here
 

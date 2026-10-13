@@ -752,6 +752,13 @@ fn t10_one_corner_radius_is_allowed_and_a_scale_is_not() {
 }
 
 #[test]
+fn t10_the_corner_is_the_owners_eight() {
+    // A taste judgement made a test. The owner, Tue 2026-10-13 12:00 London, of the light block in a number field: "round the corners to an 8px"
+    // (ADR-0011 decision 6). One corner is one corner, so the strip's controls take it with the block: change this number only with the owner's word.
+    assert_eq!(tokens()["radius"]["control"]["value"], json!(8), "the corner of the strip's controls is 8 px");
+}
+
+#[test]
 fn t14_a_control_border_that_vanishes_on_the_ground_is_refused() {
     let found = rule_violations(&with(tokens(), &["colour", "edge.control", "value"], json!("#333333")));
     assert!(has(&found, "T14"), "{found:?}");

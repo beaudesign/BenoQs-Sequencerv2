@@ -89,7 +89,7 @@ space.4 = 20   space.5 = 32   space.6 = 52   space.7 = 84
 ### 2.3 Radius
 
 There is no radius scale. The panel's controls are the shapes the hardware has (LEDs, buttons
-and encoders are circles). The strip's controls have one corner, `radius.control` (6 px, ADR-0011),
+and encoders are circles). The strip's controls have one corner, `radius.control` (8 px, ADR-0011),
 and nothing else has a radius: the token is one value between 1 and 12, only a rule that
 starts at `#strip` may use it (S15), and a second one is a scale. There is no `radius.sm`, no
 `radius.md`, no `radius.lg`, no card radius. The most reliable signature of generated interface

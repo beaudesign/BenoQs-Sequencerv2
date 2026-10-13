@@ -393,6 +393,7 @@ test tokens::a_sixteenth_colour_role_is_refused
 test tokens::ciede2000_reproduces_the_published_test_pairs
 test tokens::t10_a_refused_face_and_a_forbidden_group_are_refused
 test tokens::t10_one_corner_radius_is_allowed_and_a_scale_is_not
+test tokens::t10_the_corner_is_the_owners_eight
 test tokens::t11_the_measure_is_sixty_eight
 test tokens::t12_printed_names_too_quiet_on_the_plate_are_refused
 test tokens::t13_a_key_edge_that_vanishes_on_the_plate_is_refused

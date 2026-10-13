@@ -146,7 +146,7 @@ Checked against the known cluster of generated-design tells:
 - *Near-black with one acid accent:* the near-black is used, in the strip and the page, because the owner asked for it
   (ADR-0011; S8's suppression states the reason). The acid accent is not: there is no accent, and the one
   filled control is `ink` on `surface`.
-- *Broadsheet hairlines and zero radius:* hairlines between regions of the strip, and one 6 px corner on its controls,
+- *Broadsheet hairlines and zero radius:* hairlines between regions of the strip, and one 8 px corner on its controls,
   by ADR-0011. On the panel, rejected: its controls are the round things the hardware has.
 - *SaaS card kit:* impossible by construction. There are no cards.
 - *Template chrome (all-caps eyebrows, middle-dot meta strings, arrows in buttons, monospace

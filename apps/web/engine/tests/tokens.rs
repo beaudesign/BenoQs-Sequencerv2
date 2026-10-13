@@ -164,12 +164,15 @@ fn is_date(s: &str) -> bool {
 /// The colours the AI-design cluster of rule S8 names (`docs/05` section 4).
 const S8_CLUSTER: [&str; 4] = ["#0b0b0b", "#111111", "#f4f1ea", "#d97757"];
 
-const COLOUR_KEYS: [&str; 15] = [
+const COLOUR_KEYS: [&str; 18] = [
     "led.red", "led.green", "led.orange", "led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner", // the nine of ADR-0008
     "plate", "frame", "plate.ink", "plate.ink.quiet", "key", "key.edge", // the six of ADR-0010
+    "surface.raised", "edge", "edge.control", // the three of ADR-0011
 ];
 const LIT: [&str; 3] = ["led.red", "led.green", "led.orange"];
-const NEUTRAL: [&str; 10] = ["led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner", "plate.ink", "plate.ink.quiet", "key", "key.edge"];
+const NEUTRAL: [&str; 13] = [
+    "led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner", "plate.ink", "plate.ink.quiet", "key", "key.edge", "surface.raised", "edge", "edge.control",
+];
 /// The two tinted materials of the hardware (ADR-0010 decision 3): not neutral, and not saturated.
 const MATERIAL: [&str; 2] = ["plate", "frame"];
 /// The CIELAB chroma a material may not exceed. The photograph measures the faceplate at 4.5 and the frame at 8.5 (handoffs/evidence/panel-colours);
@@ -362,6 +365,67 @@ fn rule_violations(doc: &Value) -> Vec<String> {
         }
     }
 
+    // T14 to T16: the strip's own tones (ADR-0011 decision 3). A control's border is read against the ground (WCAG 1.4.11: 3:1); the hairline
+    // between regions is seen at all, and is not a control's boundary; the six tones of the strip step up in one fixed order; and ink stays
+    // readable on the fill a pressed control takes.
+    if let (Some(raised), Some(edge), Some(control)) = (rgb(doc, "surface.raised"), rgb(doc, "edge"), rgb(doc, "edge.control")) {
+        let r = contrast(control, surface);
+        if r < 3.0 {
+            out.push(format!("T14 colour.edge.control against surface is {r:.2}:1, the floor is 3:1 (WCAG 2.1 non-text: a control's boundary)"));
+        }
+        let r = contrast(edge, surface);
+        if r < 1.2 {
+            out.push(format!("T15 colour.edge against surface is {r:.2}:1, the floor is 1.2:1 (a hairline that cannot be seen is not there)"));
+        }
+        let steps = [("surface", surface), ("surface.raised", raised), ("edge", edge), ("edge.control", control), ("ink.quiet", quiet), ("ink", ink)];
+        for pair in steps.windows(2) {
+            if luminance(pair[0].1) >= luminance(pair[1].1) {
+                out.push(format!("T15 the strip's tones are out of order: {} is not darker than {}", pair[0].0, pair[1].0));
+            }
+        }
+        let r = contrast(ink, raised);
+        if r < 7.0 {
+            out.push(format!("T16 colour.ink against surface.raised is {r:.2}:1, the floor is 7:1"));
+        }
+    }
+
+    // T17: a face the contract names is a file in the repository with its licence beside it (ADR-0011 decision 5), so that naming one
+    // is not a promise about what the visitor has installed. Its name leads the family; its features are four-letter OpenType tags.
+    {
+        let face = &doc["type"]["face"];
+        let name = face["name"].as_str().unwrap_or("");
+        let family = doc["type"]["family"]["value"].as_str().unwrap_or("");
+        let first = family.split(',').next().unwrap_or("").trim().trim_matches('"');
+        if name.is_empty() || first != name {
+            out.push(format!("T17 type.face.name {name:?} is not the first name of type.family ({first:?})"));
+        }
+        for (field, ext) in [("file", ".woff2"), ("licence", ".txt")] {
+            match face[field].as_str() {
+                Some(rel) if rel.ends_with(ext) && rel.starts_with("pages/fonts/") => {
+                    let path = repo_root().join("apps/web").join(rel);
+                    if std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) == 0 {
+                        out.push(format!("T17 type.face.{field} is {rel}, which is missing or empty"));
+                    }
+                }
+                other => out.push(format!("T17 type.face.{field} is {other:?}, not a {ext} file under pages/fonts/")),
+            }
+        }
+        let features = face["features"].as_array().cloned().unwrap_or_default();
+        if features.is_empty() || features.iter().any(|f| !f.as_str().is_some_and(|s| s.len() == 4 && s.chars().all(|c| c.is_ascii_alphanumeric()))) {
+            out.push("T17 type.face.features is empty, or holds something that is not a four-letter OpenType feature tag".into());
+        }
+    }
+
+    // T18: emphasis is made with weight, and not with bold: the strong weight is under 700 (ADR-0011 decision 5).
+    {
+        let regular = doc["type"]["weight"]["regular"]["value"].as_u64();
+        let strong = doc["type"]["weight"]["strong"]["value"].as_u64();
+        match (regular, strong) {
+            (Some(r), Some(s)) if (100..=900).contains(&r) && r < s && s < 700 => {}
+            other => out.push(format!("T18 type.weight is {other:?}; regular must be under strong, and strong under 700")),
+        }
+    }
+
     // T10: the type face is not one of the defaults rule S11 names, and no group the design
     // system forbids (docs/05 section 2.3: no radius scale; section 4: no shadow, gradient or easing).
     if let Some(face) = doc["type"]["family"]["value"].as_str() {
@@ -375,7 +439,14 @@ fn rule_violations(doc: &Value) -> Vec<String> {
     if let Some(top) = doc.as_object() {
         for k in top.keys() {
             let k = k.to_lowercase();
-            if ["radius", "shadow", "gradient", "easing", "motion", "transition"].iter().any(|bad| k.contains(bad)) {
+            if k == "radius" {
+                // ADR-0011 decision 6: one corner, the control's, and no scale.
+                let only_control = doc["radius"].as_object().is_some_and(|o| o.len() == 1 && o.contains_key("control"));
+                let size = doc["radius"]["control"]["value"].as_u64();
+                if !only_control || !size.is_some_and(|n| (1..=12).contains(&n)) {
+                    out.push(format!("T10 radius holds {:?}; it holds one value, `control`, between 1 and 12, and no scale (ADR-0011 decision 6)", doc["radius"]));
+                }
+            } else if ["radius", "shadow", "gradient", "easing", "motion", "transition"].iter().any(|bad| k.contains(bad)) {
                 out.push(format!("T10 the file has a `{k}` group; there is none by design (ADR-0008 decision 6)"));
             }
         }
@@ -434,7 +505,7 @@ fn the_tokens_say_what_they_are() {
     want.sort_unstable();
     let mut got = colours;
     got.sort_unstable();
-    assert_eq!(got, want, "the fifteen colour roles and no sixteenth (ADR-0008 and ADR-0010; CLAUDE.md rule 6)");
+    assert_eq!(got, want, "the eighteen colour roles and no nineteenth (ADR-0008, ADR-0010 and ADR-0011; CLAUDE.md rule 6)");
     let space: Vec<u64> = (0..8).map(|i| doc["space"][i.to_string()]["value"].as_u64().unwrap()).collect();
     assert_eq!(space, SPACE_SCALE, "docs/05 section 2.2");
 }
@@ -489,12 +560,15 @@ fn t3_an_unlit_led_that_looks_like_a_lit_one_is_refused() {
 
 #[test]
 fn t4_a_colour_near_the_s8_cluster_is_refused_unless_it_says_why() {
+    // The ground carries its own exit now (ADR-0011), so each case starts from a contract whose ground has none: the rule is shown to fire, not waived.
+    let mut bare = tokens();
+    bare["colour"]["surface"].as_object_mut().unwrap().remove("suppress");
     for (key, bad) in [("surface", "#111111"), ("surface", "#0b0b0b"), ("ink", "#f4f1ea"), ("led.orange", "#d97757"), ("led.orange", "#da7858")] {
-        let found = rule_violations(&with(tokens(), &["colour", key, "value"], json!(bad)));
+        let found = rule_violations(&with(bare.clone(), &["colour", key, "value"], json!(bad)));
         assert!(has(&found, "T4"), "{key} = {bad}: {found:?}");
     }
     let waived = with(
-        with(tokens(), &["colour", "surface", "value"], json!("#111111")),
+        with(bare, &["colour", "surface", "value"], json!("#111111")),
         &["colour", "surface", "suppress"],
         json!([{ "rule": "S8", "why": "the owner chose it after seeing the sketch" }]),
     );
@@ -659,6 +733,94 @@ fn t10_a_refused_face_and_a_forbidden_group_are_refused() {
 #[test]
 fn t11_the_measure_is_sixty_eight() {
     assert!(has(&rule_violations(&with(tokens(), &["type", "measure", "value"], json!(80))), "T11"));
+}
+
+#[test]
+fn t10_one_corner_radius_is_allowed_and_a_scale_is_not() {
+    // ADR-0011 decision 6: a control has one corner, and the file has no radius scale.
+    let ok = with(tokens(), &["radius", "control", "value"], json!(6));
+    assert!(!has(&rule_violations(&ok), "T10"), "{:?}", rule_violations(&ok));
+    for bad in [0, 13, 50] {
+        let found = rule_violations(&with(tokens(), &["radius", "control", "value"], json!(bad)));
+        assert!(has(&found, "T10"), "{bad}: {found:?}");
+    }
+    let scale = with(tokens(), &["radius", "card"], json!({ "value": 12 }));
+    assert!(has(&rule_violations(&scale), "T10") && has(&everything_wrong(&scale), "schema"), "a second radius is a scale");
+    let mut none = tokens();
+    none.as_object_mut().unwrap().remove("radius");
+    assert!(has(&everything_wrong(&none), "schema"), "the control's corner is part of the contract");
+}
+
+#[test]
+fn t14_a_control_border_that_vanishes_on_the_ground_is_refused() {
+    let found = rule_violations(&with(tokens(), &["colour", "edge.control", "value"], json!("#333333")));
+    assert!(has(&found, "T14"), "{found:?}");
+}
+
+#[test]
+fn t15_a_hairline_that_cannot_be_seen_or_a_strip_tone_out_of_order_is_refused() {
+    let doc = tokens();
+    let ground = doc["colour"]["surface"]["value"].clone();
+    let found = rule_violations(&with(doc.clone(), &["colour", "edge", "value"], ground));
+    assert!(has(&found, "T15"), "an edge the colour of the ground: {found:?}");
+    let found = rule_violations(&with(doc.clone(), &["colour", "surface.raised", "value"], json!("#303030")));
+    assert!(found.iter().any(|l| l.starts_with("T15") && l.contains("out of order")), "a raised fill lighter than the hairline: {found:?}");
+    let found = rule_violations(&with(doc, &["colour", "edge.control", "value"], json!("#d9d9d9")));
+    assert!(found.iter().any(|l| l.starts_with("T15") && l.contains("out of order")), "a control border brighter than the ink: {found:?}");
+}
+
+#[test]
+fn t16_ink_that_cannot_be_read_on_a_pressed_control_is_refused() {
+    let found = rule_violations(&with(tokens(), &["colour", "surface.raised", "value"], json!("#8a8a8a")));
+    assert!(has(&found, "T16"), "{found:?}");
+}
+
+#[test]
+fn the_strip_tones_are_pure_grey() {
+    // T7 for the three roles of ADR-0011: the owner's reference tints its greys blue, and this product does not (ADR-0011 flag 2).
+    assert!(!has(&rule_violations(&tokens()), "T7"), "the contract itself breaks T7: {:?}", rule_violations(&tokens()));
+    for key in ["surface", "surface.raised", "edge", "edge.control"] {
+        let found = rule_violations(&with(tokens(), &["colour", key, "value"], json!("#0a0b0d")));
+        assert!(found.iter().any(|l| l.starts_with("T7") && l.contains(key)), "{key}: {found:?}");
+    }
+}
+
+#[test]
+fn t17_a_face_that_is_not_a_file_with_its_licence_is_refused() {
+    let doc = tokens();
+    assert!(!has(&rule_violations(&doc), "T17"), "the contract itself breaks T17: {:?}", rule_violations(&doc));
+    let found = rule_violations(&with(doc.clone(), &["type", "face", "name"], json!("Mystery Sans")));
+    assert!(has(&found, "T17"), "a name that does not lead the family: {found:?}");
+    let found = rule_violations(&with(doc.clone(), &["type", "face", "file"], json!("pages/fonts/nothing.woff2")));
+    assert!(has(&found, "T17"), "a file that is not there: {found:?}");
+    let found = rule_violations(&with(doc.clone(), &["type", "face", "file"], json!("https://example.com/face.woff2")));
+    assert!(has(&found, "T17"), "a face fetched from elsewhere: {found:?}");
+    let found = rule_violations(&with(doc.clone(), &["type", "face", "licence"], json!("pages/fonts/nothing.txt")));
+    assert!(has(&found, "T17"), "a face with no licence beside it: {found:?}");
+    let found = rule_violations(&with(doc, &["type", "face", "features"], json!(["cv01", "zero-slashed"])));
+    assert!(has(&found, "T17"), "a feature that is not a tag: {found:?}");
+}
+
+#[test]
+fn t18_bold_is_refused() {
+    assert!(!has(&rule_violations(&tokens()), "T18"), "the contract itself breaks T18");
+    for strong in [700, 800] {
+        let found = rule_violations(&with(tokens(), &["type", "weight", "strong", "value"], json!(strong)));
+        assert!(has(&found, "T18"), "{strong}: {found:?}");
+    }
+    let found = rule_violations(&with(tokens(), &["type", "weight", "regular", "value"], json!(600)));
+    assert!(has(&found, "T18"), "regular must be lighter than strong: {found:?}");
+}
+
+#[test]
+fn the_ground_carries_the_s8_exit_with_its_reason() {
+    // ADR-0011 decision 3: the owner's reference sets its ground at #08090a, inside rule S8's cluster. It says why it is there, so that arriving
+    // there on purpose is told from arriving by default; no threshold moves.
+    let reasons = tokens()["colour"]["surface"]["suppress"].as_array().cloned().unwrap_or_default();
+    assert!(reasons.iter().any(|r| r["rule"] == "S8" && r["why"].as_str().is_some_and(|w| w.trim().len() > 20)), "{reasons:?}");
+    let mut bare = tokens();
+    bare["colour"]["surface"].as_object_mut().unwrap().remove("suppress");
+    assert!(has(&rule_violations(&bare), "T4"), "without its reason the ground is a T4 violation");
 }
 
 // ---------------------------------------------------------------------------------------------

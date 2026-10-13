@@ -12,20 +12,36 @@ export interface Leaf<T> {
   pending?: Pending;
 }
 
-// The nine of ADR-0008, then the six of ADR-0010 (the panel's own materials).
+// The nine of ADR-0008, the six of ADR-0010 (the panel's own materials), then the three of ADR-0011 (the strip's own tones).
 export const COLOUR_KEYS = [
   "led.red", "led.green", "led.orange", "led.off", "ink", "ink.quiet", "surface", "focus", "focus.inner",
   "plate", "frame", "plate.ink", "plate.ink.quiet", "key", "key.edge",
+  "surface.raised", "edge", "edge.control",
 ] as const;
 export type ColourKey = (typeof COLOUR_KEYS)[number];
 
 export const SPACE_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7"] as const;
 export type SpaceKey = (typeof SPACE_KEYS)[number];
 
+/** A face the contract names as a file in the repository (ADR-0011 decision 5): its name, the variable font, its licence, the features the page turns on. */
+export interface Face {
+  name: string;
+  file: string;
+  licence: string;
+  features: string[];
+}
+
 export interface Tokens {
   colour: Record<ColourKey, Leaf<string>>;
+  radius: { control: Leaf<number> };
   space: Record<SpaceKey, Leaf<number>>;
-  type: { family: Leaf<string>; size: { label: Leaf<number>; body: Leaf<number> }; measure: Leaf<number> };
+  type: {
+    family: Leaf<string>;
+    face: Face;
+    weight: { regular: Leaf<number>; strong: Leaf<number> };
+    size: { label: Leaf<number>; body: Leaf<number> };
+    measure: Leaf<number>;
+  };
   stroke: { hairline: Leaf<number>; focus: Leaf<number>; focus_inner: Leaf<number> };
   flash: { period_ms: Leaf<number>; duty_percent: Leaf<number>; shine: Leaf<"ink" | "ink.quiet"> };
 }
@@ -55,14 +71,25 @@ export function parseTokens(json: unknown): Tokens {
   const root = object(json, "the file");
   if (root["schema"] !== "design.tokens/1") fail("schema", '"design.tokens/1"');
   const colour = object(root["colour"], "colour");
+  const radius = object(root["radius"], "radius");
   const space = object(root["space"], "space");
   const type = object(root["type"], "type");
+  const face = object(type["face"], "type.face");
+  const weight = object(type["weight"], "type.weight");
   const size = object(type["size"], "type.size");
   const stroke = object(root["stroke"], "stroke");
   const flash = object(root["flash"], "flash");
   for (const k of COLOUR_KEYS) leaf(colour[k], `colour.${k}`, isHex, "#rrggbb");
+  leaf(radius["control"], "radius.control", isNumber, "a number");
   for (const k of SPACE_KEYS) leaf(space[k], `space.${k}`, isNumber, "a number");
   leaf(type["family"], "type.family", isString, "a font family list");
+  for (const k of ["name", "file", "licence"]) if (!isString(face[k])) fail(`type.face.${k}`, "a non-empty string");
+  const features = face["features"];
+  if (!Array.isArray(features) || features.length === 0 || !features.every((f) => typeof f === "string" && /^[A-Za-z0-9]{4}$/.test(f))) {
+    fail("type.face.features", "a list of four-letter OpenType feature tags");
+  }
+  leaf(weight["regular"], "type.weight.regular", isNumber, "a number");
+  leaf(weight["strong"], "type.weight.strong", isNumber, "a number");
   leaf(size["label"], "type.size.label", isNumber, "a number");
   leaf(size["body"], "type.size.body", isNumber, "a number");
   leaf(type["measure"], "type.measure", isNumber, "a number");

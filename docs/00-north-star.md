@@ -88,7 +88,7 @@ is understood rather than merely obeyed.
 
 ### 3.1 Colour
 
-There is one neutral palette, the two materials of the panel (the faceplate and the frame,
+There is one neutral palette (the strip's near-black tones, ADR-0011), the two materials of the panel (the faceplate and the frame,
 ADR-0010) and three LED roles, and nothing else ([Design System §2](05-design-system.md)). There is **no accent colour and no brand colour**,
 because the hardware has none. The only saturated colour anywhere in the product is emitted by
 an LED. This is the strictest and most valuable constraint in the design system, and it will
@@ -97,8 +97,10 @@ and space.
 
 ### 3.2 Type
 
-One family, chosen by the Curator by ADR after three specimens are rendered beside the panel
-at real size. Not Inter and not Google Sans (E4). Labels on the panel use the manual's names
+One family. Inter Variable, vendored, is the owner's own choice for the strip and the page (ADR-0011,
+2026-10-13), and the panel's printed names are drawn in it too; it overturns "Not Inter" below only
+for that file, named in the tokens with its licence (T17). The Curator may still render three
+specimens beside the panel at real size. Not Google Sans (E4), and not Inter as a default that nobody chose. Labels on the panel use the manual's names
 as the manual spells them. The page around the panel is set in sentence case, with no all-caps
 and no letter-spaced small labels.
 
@@ -126,7 +128,7 @@ the disagreement is a fixture (N8).
 by the sequencer. No idle pulses, no breathing glows, no attract loops. The restraint is the
 point.
 
-**P4. Spend nothing on decoration.** The panel is disciplined to the point of severity. What
+**P4. Spend nothing on decoration.** The panel is disciplined to the point of severity. (The one exception is outside it: three hairline line drawings in the ground above the case, by ADR-0011 decision 10, at the owner's direction.) What
 makes it good is that a musician's hands already know it.
 
 **P5. Latency is a material.** A control that answers in 8 ms feels like a machine; the same
@@ -141,9 +143,11 @@ Checked against the known cluster of generated-design tells:
   used by default. The faceplate is the instrument's own warm off-white (ADR-0010); it carries
   S8's waiver with its reason, and the face is a sans, with no serif and no accent at all. The
   lint flags values near the cluster ([Design System §4](05-design-system.md), S8).
-- *Near-black with one acid accent:* not used.
-- *Broadsheet hairlines and zero radius:* rejected. Controls are the round things the
-  hardware has.
+- *Near-black with one acid accent:* the near-black is used, in the strip and the page, because the owner asked for it
+  (ADR-0011; S8's suppression states the reason). The acid accent is not: there is no accent, and the one
+  filled control is `ink` on `surface`.
+- *Broadsheet hairlines and zero radius:* hairlines between regions of the strip, and one 6 px corner on its controls,
+  by ADR-0011. On the panel, rejected: its controls are the round things the hardware has.
 - *SaaS card kit:* impossible by construction. There are no cards.
 - *Template chrome (all-caps eyebrows, middle-dot meta strings, arrows in buttons, monospace
   data labels):* all banned by the slop rules.

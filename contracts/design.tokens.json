@@ -2,7 +2,7 @@
   "$schema": "./design.tokens.schema.json",
   "schema": "design.tokens/1",
   "status": "candidate",
-  "note": "Proposed in SPEC-0002 P3c with the panel screenshot in the pull request. The owner ratifies the values by merging it. ADR-0010 adds six roles for the panel (plate, frame, plate.ink, plate.ink.quiet, key, key.edge); their values here are candidates, and the owner ratifies them by merging P8b with its screenshot. The rules the values must keep are asserted by apps/web/engine/tests/tokens.rs, so a change of hue passes and a change that breaks a rule does not.",
+  "note": "Proposed in SPEC-0002 P3c with the panel screenshot in the pull request. The owner ratifies the values by merging it. ADR-0010 adds six roles for the panel (plate, frame, plate.ink, plate.ink.quiet, key, key.edge); their values here are candidates, and the owner ratifies them by merging P8b with its screenshot. ADR-0011 adds three roles for the strip (surface.raised, edge, edge.control), re-sets surface, ink and ink.quiet in the owner's midnight-instrument reference, and adds the control's one corner radius, the Inter Variable face (a vendored file, with its licence) and the two weights; their values here are candidates, and the owner ratifies them by merging the strip's pull request with its screenshot. The rules the values must keep are asserted by apps/web/engine/tests/tokens.rs, so a change of hue passes and a change that breaks a rule does not.",
   "colour": {
     "led.red": {
       "value": "#ff2a12"
@@ -17,13 +17,19 @@
       "value": "#1f1f1f"
     },
     "ink": {
-      "value": "#ececec"
+      "value": "#d4d4d4"
     },
     "ink.quiet": {
-      "value": "#bdbdbd"
+      "value": "#9d9d9d"
     },
     "surface": {
-      "value": "#2e2e2e"
+      "value": "#090909",
+      "suppress": [
+        {
+          "rule": "S8",
+          "why": "The ground of the page is the owner's midnight-instrument reference (Void, #08090a), which is within a few dE2000 of #0b0b0b. It is arrived at on purpose, from the owner's own words of 2026-10-13, and not by default; it is pure grey, where the reference tints it blue (ADR-0011)."
+        }
+      ]
     },
     "focus": {
       "value": "#ffffff"
@@ -64,6 +70,20 @@
     },
     "key.edge": {
       "value": "#5c5c5c"
+    },
+    "surface.raised": {
+      "value": "#1c1c1c"
+    },
+    "edge": {
+      "value": "#242424"
+    },
+    "edge.control": {
+      "value": "#626262"
+    }
+  },
+  "radius": {
+    "control": {
+      "value": 6
     }
   },
   "space": {
@@ -94,10 +114,28 @@
   },
   "type": {
     "family": {
-      "value": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "value": "\"Inter Variable\", \"Helvetica Neue\", Helvetica, Arial, sans-serif",
       "pending": {
         "question": "docs/05 section 2.4",
-        "note": "Provisional. One family is chosen by the Curator by ADR after three specimens are rendered beside the panel at real size; this one may not outlive the first Wave 1 demonstration."
+        "note": "Inter Variable is the owner's own reference for the strip and the page (ADR-0011), vendored as a file with its licence (type.face). The panel's printed names are drawn in it too, because there is one family. The Curator may still bring three specimens beside the panel at real size; this stays until they do."
+      }
+    },
+    "face": {
+      "name": "Inter Variable",
+      "file": "pages/fonts/inter-latin-wght-normal.woff2",
+      "licence": "pages/fonts/inter-LICENSE.txt",
+      "features": [
+        "cv01",
+        "ss03",
+        "zero"
+      ]
+    },
+    "weight": {
+      "regular": {
+        "value": 400
+      },
+      "strong": {
+        "value": 510
       }
     },
     "size": {
@@ -105,7 +143,7 @@
         "value": 12
       },
       "body": {
-        "value": 16
+        "value": 14
       }
     },
     "measure": {

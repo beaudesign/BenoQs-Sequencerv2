@@ -28,6 +28,21 @@ in the strip. Each is one plain thing, and neither pretends to be the other.
 The panel has a ground of its own, the plate, inside a frame (ADR-0010). The strip and the page
 keep `surface`.
 
+**The strip and the page are a midnight ground with hairlines (ADR-0011).** At the owner's
+direction of 2026-10-13 they take their look from a near-black "precision instrument" reference:
+a pure-grey ground (`surface`), a hairline between regions (`edge`), controls drawn as a border
+(`edge.control`, at least 3:1 against the ground) with one small corner (`radius.control`), the
+ink on the ground, and `surface.raised` as the fill a pressed control takes. The instrument sits
+on that ground as an object: the frame is the case, it hugs the plate, and the page shows
+round it. What the reference has and this product does not: an accent colour (the one filled
+control, Play, is `ink` on `surface`), hued greys (the greys here are pure), shadows, gradients,
+cards and tracking.
+
+**The ground carries three small line drawings (ADR-0011 decision 10)**, above the case, in the room the
+case leaves: hairline strokes in `edge` and `edge.control`, no fill, dotted construction lines, drawn
+from the space tokens, `aria-hidden`, still. They are the ground's only decoration; none touches the
+panel or the strip, and a rule keeps every `#ground` rule to those two roles and to `fill: none`.
+
 ---
 
 ## 2. Tokens
@@ -38,14 +53,17 @@ exists. `verify:tokens` will enforce this by scanning the source.
 
 ### 2.1 Colour
 
-Three LED roles, one neutral palette, and the panel's two materials. That is all of it.
+Three LED roles, one neutral palette (the strip's tones, the panel's and the ink), and the panel's two materials. Eighteen roles in all, and no nineteenth.
 
 | Token | Role | Notes |
 |---|---|---|
 | `led.red`, `led.green`, `led.orange` | The LED language | Roles, not hues. The manual's colourways (red as blue, green as yellow, orange as purple) are a table that maps a role to a hue. Steady or flashing is part of the meaning |
 | `led.off` | An unlit LED | Neutral. Distinguishable from every lit state by more than hue |
-| `ink`, `ink.quiet` | Text and hairlines | Contrast at least 7:1 against `surface` for text |
-| `surface` | The page's and the strip's ground | One value |
+| `ink`, `ink.quiet` | Text | Contrast at least 7:1 against `surface`; `ink` also 7:1 against `surface.raised` |
+| `surface` | The page's and the strip's ground | One value. Near-black pure grey; carries the S8 suppression and its reason (ADR-0011) |
+| `surface.raised` | The fill a pressed or selected control takes | Pure grey; the next tone up from `surface` |
+| `edge` | A hairline between regions of the strip and the page | Pure grey; at least 1.2:1 against `surface` |
+| `edge.control` | The border of a control | Pure grey; at least 3:1 against `surface` (WCAG 2.1 non-text). The tones run `surface`, `surface.raised`, `edge`, `edge.control`, `ink.quiet`, `ink`, each lighter than the last |
 | `focus` | Keyboard focus ring | Neutral (ink plus a contrasting inner stroke), not a hue |
 | `plate` | The faceplate (ADR-0010) | Tinted, chroma at most 12. Carries the S8 suppression and its reason |
 | `frame` | The case round the plate (ADR-0010) | Tinted, chroma at most 12 |
@@ -71,17 +89,24 @@ space.4 = 20   space.5 = 32   space.6 = 52   space.7 = 84
 ### 2.3 Radius
 
 There is no radius scale. The panel's controls are the shapes the hardware has (LEDs, buttons
-and encoders are circles) and the strip has square corners. There is no `radius.sm`, no
-`radius.md`, no `radius.lg`. The most reliable signature of generated interface design is a
-set of invented radii applied uniformly to unrelated things, and removing the ability to do
-it removes the temptation.
+and encoders are circles). The strip's controls have one corner, `radius.control` (6 px, ADR-0011),
+and nothing else has a radius: the token is one value between 1 and 12, only a rule that
+starts at `#strip` may use it (S15), and a second one is a scale. There is no `radius.sm`, no
+`radius.md`, no `radius.lg`, no card radius. The most reliable signature of generated interface
+design is a set of invented radii applied uniformly to unrelated things, and holding it to one
+value for one kind of control removes the temptation.
 
 ### 2.4 Type
 
-One family, chosen by ADR (see [North Star §3.2](00-north-star.md)). Panel labels use the
-manual's names as the manual spells them. The strip is set in sentence case, with no all-caps
-and no letter-spaced small labels, and a line length of at most 68 characters. Numeric
-readouts use tabular figures. Sizes are set with the family.
+One family. It is Inter Variable, at the owner's direction of 2026-10-13 (ADR-0011), as a file in
+the repository with its licence beside it (`type.face`), so that naming it is not a promise
+about what the visitor has installed (T17); the Curator may still bring specimens (see
+[North Star §3.2](00-north-star.md)). The page turns on the features `cv01`, `ss03` and `zero`.
+Weights are two: regular (400) and strong (510). Emphasis is made with weight, and not with
+bold: the strong weight is under 700 (T18). Panel labels use the manual's names as the manual
+spells them. The strip is set in sentence case, with no all-caps and no letter-spaced small
+labels, and a line length of at most 68 characters. Numeric readouts use tabular figures.
+Sizes are set with the family.
 
 ---
 
@@ -108,19 +133,19 @@ mode. Rules are added, never removed.
 | # | Rule | Rationale |
 |---|---|---|
 | S1 | No `linear-gradient`, `radial-gradient`, `conic-gradient`, or SVG gradient element in the app | N2. A gradient is not a material. |
-| S2 | No colour literal outside `design.tokens.json` | N6. Colour has one source. |
+| S2 | No colour literal outside `design.tokens.json`; no font weight, feature or variation literal in a stylesheet | N6. Colour has one source, and so has the face (ADR-0011). |
 | S4 | No `box-shadow` and no `drop-shadow` filter | Depth is not painted. |
 | S5 | No all-caps or letter-spaced label styles in the strip | E4 |
 | S6 | No `→`, `·`-joined meta strings, or `01 / 02 / 03` numbered eyebrows | template chrome |
 | S7 | No monospace face used for non-code content | template chrome |
 | S8 | No `#0B0B0B`, `#111111`, `#F4F1EA`, `#D97757` or values within ΔE 3 of them | the AI-design cluster |
 | S9 | No easing keyword (`ease-in-out`, `cubic-bezier(…)`) anywhere | §3, N3 |
-| S11 | No `Google Sans`, `Inter`, `SF Pro` as the app's face | E4, defaults |
+| S11 | No `Google Sans`, `Inter`, `SF Pro` named in the app's source. The one face is the file the tokens name (`type.face`, T17), reached through `var(--type-family)`; a bare `Inter` in the tokens is still refused (T10) | E4, defaults; ADR-0011 |
 | S12 | No hardcoded pixel coordinate in the panel code | N1 |
 | S14 | No idle or looping animation on the panel | P3 |
-| S15 | No `border-radius` other than `50%` on the round controls | §2.3 |
+| S15 | No `border-radius` other than `50%` on the round controls, and `var(--radius-control)` in a rule that starts at `#strip` | §2.3, ADR-0011 |
 | S16 | No CSS `transition`, `animation` or `@keyframes` other than the LED flash | §3, N3 |
-| S17 | The six panel roles (`plate`, `frame`, `plate.ink`, `plate.ink.quiet`, `key`, `key.edge`) appear only in the rules of `#panel` and `#panel-frame` | §1, ADR-0010 |
+| S17 | The six panel roles (`plate`, `frame`, `plate.ink`, `plate.ink.quiet`, `key`, `key.edge`) appear only in the rules of `#panel` and `#panel-frame`; and the strip's (`surface`, `surface.raised`, `edge`, `edge.control`, `ink`, `ink.quiet`, and the shine that names `ink`) appear in none of them | §1, ADR-0010, ADR-0011 |
 
 S8 needs a note. `#F4F1EA` is flagged because it is the centroid of generated warm-cream
 backgrounds. If the neutral palette lands within ΔE 3 of it, the lint fires, and the correct

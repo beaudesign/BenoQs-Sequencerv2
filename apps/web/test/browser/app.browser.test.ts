@@ -434,7 +434,7 @@ test("E8: the browser's own accessibility tree finds each control by its manual 
 test("E8: Tab walks the strip, then the plate's controls in its reading order (bands of one matrix row from the top, left to right)", async () => {
   const page = await open();
   const seen: string[] = [];
-  const total = 10 + tabOrder(geometry).length;
+  const total = 11 + tabOrder(geometry).length;
   for (let i = 0; i < total; i++) {
     await page.keyboard.press("Tab");
     seen.push(await page.evaluate(() => {
@@ -442,7 +442,7 @@ test("E8: Tab walks the strip, then the plate's controls in its reading order (b
       return el?.getAttribute("data-id") ?? el?.id ?? "";
     }));
   }
-  assert.deepEqual(seen, ["play", "tempo", "monitor", "metronome", "midi-out-1", "midi-out-2", "midi-in", "clock-state", "clock-offset", "lookahead", ...tabOrder(geometry)]);
+  assert.deepEqual(seen, ["play", "tempo", "monitor", "drums", "metronome", "midi-out-1", "midi-out-2", "midi-in", "clock-state", "clock-offset", "lookahead", ...tabOrder(geometry)]);
   await page.keyboard.press("Tab");
   const after = await page.evaluate(() => (document.activeElement as HTMLElement).tagName);
   assert.notEqual(after, "G", "the next Tab leaves the panel");
@@ -457,7 +457,7 @@ test("E8: the focus ring is drawn from the focus tokens, and appears on keyboard
       return { display: s.display, stroke: s.stroke, width: s.strokeWidth };
     });
   assert.equal((await ring("matrix.r9.c1", "outer")).display, "none");
-  for (const _stop of ["play", "tempo", "sound", "metronome", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
+  for (const _stop of ["play", "tempo", "sound", "drums", "metronome", "out 1", "out 2", "in", "clock", "offset", "lookahead"]) await page.keyboard.press("Tab");
   await page.keyboard.press("Tab"); // the MIX knob on row 9
   await page.keyboard.press("Tab"); // the SEL key on row 9
   await page.keyboard.press("Tab"); // r9.c1

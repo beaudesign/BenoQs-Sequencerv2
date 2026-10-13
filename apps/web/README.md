@@ -51,7 +51,9 @@ never rearranges.
   `specs/SPEC-0002/p6-runs-when-opened.md` says why each of those is there.
 - **Tempo** is a field (120 to begin with). **Sound** is the built-in monitor (`src/monitor.ts`): the engine's notes played in the page's
   own audio, on to begin with, and not MIDI (the events are byte for byte the same with it on or off). It is how a page with no MIDI
-  device, or in a frame that cannot reach one, is heard to run.
+  device, or in a frame that cannot reach one, is heard to run. **Drums** (`specs/SPEC-0002/p10-silence-the-drums.md`) takes the drums out of that sound, the notes on
+  channel 10, and leaves the synth's voices as they were; pressed (to begin with) means they are heard. It is audio only: the drum notes are still in the events and still go to every
+  output that is chosen, a hit that is sounding finishes rather than being cut, and a choice made before Play is kept.
 - **The chase-light** is the red LED on the step each track is playing (`src/chase.ts`), held back by the engine's 12-tick lead so that it is
   on the step you hear.
 - **`?bare`** in the address is the page the P3 to P5 tests drive: Play only starts the engine, and nothing is loaded, played or heard
@@ -185,7 +187,7 @@ gear the click is early or late by the difference. It is not trimmed. Only a mea
 Acceptance criterion A8. The order of the elements in the page is the tab order (nothing has a `tabindex` above 0). This section is
 checked against `layout/panel.layout.json` by `test/readme.test.ts`, so it cannot drift.
 
-1. The strip: `play`, `tempo`, `monitor`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
+1. The strip: `play`, `tempo`, `monitor`, `drums`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
 2. The plate's 242 controls in its reading order: bands one matrix row high from the top, left to right in each band. The first stops are
    `mix.enc.r9`, `selector.r9`, `matrix.r9.c1`, `matrix.r9.c2` and so on along row 9 to `matrix.r9.c16`, then `mutator.tgl`, `edit.enc.vel`
    and `main.enc`; then row 8 from `mix.enc.r8`. The last stops are `mix.master`, `mutator.mute`, `mode.edit`, `keys.esc` and `chord.b7`.

@@ -21,6 +21,8 @@ export type ToWorklet =
   | { type: "metronome"; on: boolean }
   /** The built-in sound (src/monitor.ts): the engine's notes played in the node's output. Off in the worklet until the page turns it on. Audio the worklet makes, and not in the events. */
   | { type: "monitor"; on: boolean }
+  /** Whether the built-in sound plays the drums, the notes on channel 10 (specs/SPEC-0002/p10-silence-the-drums.md). On in the worklet until the page turns it off. Audio only: the notes are in the events either way. */
+  | { type: "drums"; on: boolean }
   | { type: "reset" };
 
 export type FromWorklet =

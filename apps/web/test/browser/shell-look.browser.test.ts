@@ -1,6 +1,6 @@
 // The strip and the page in the midnight look, in Chromium (WENGE-0024, ADR-0011): a pure-grey ground, a hairline under the strip, controls drawn as a border
-// with one corner, Play the one filled control, Inter Variable actually loaded, the case hugging the plate with the ground showing round it, and three
-// hairline line drawings in the ground above the case. What is measured is what the browser computed and rendered, not what the stylesheet says: a rule
+// with one corner, Play the one filled control, Inter Variable actually loaded, and the case hugging the plate in the middle of the room under the strip,
+// with nothing in the ground round it (the owner took the line drawings out at 12:52). What is measured is what the browser computed and rendered, not what the stylesheet says: a rule
 // that never applied would pass a scan. Needs `npm run build` first, which `npm run test:browser` does.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -251,82 +251,34 @@ for (const [width, height] of [
   });
 }
 
-test("P9-8: the ground carries three hairline line drawings, drawn in the control-edge tone, with no fill, that nothing can touch", async () => {
+test("P9-8: there is nothing in the ground: no drawings, and the only SVG on the page is the panel's", async () => {
+  // The owner, Tue 2026-10-13 12:52 London: "Let's remove the top shapes above they offer nothing" (ADR-0011 decision 10, withdrawn).
   const page = await open();
-  assert.equal(await page.$eval("#ground", (el) => el.getAttribute("aria-hidden")), "true", "decoration, hidden from the accessibility tree");
-  assert.equal(await page.$eval("#ground", (el) => el.getAttribute("focusable")), "false");
-  assert.equal(await page.$$eval("#ground a, #ground button, #ground [tabindex], #ground text", (els) => els.length), 0, "nothing in it is a control or says anything");
-  assert.equal(await style(page, "#ground", "pointer-events"), "none");
-  assert.equal(await page.$$eval("#ground g.drawing", (els) => els.length), 3, "three drawings");
-  const shapes = await page.$$eval("#ground .line, #ground .dots", (els) =>
-    els.map((el) => {
-      const s = getComputedStyle(el);
-      return { cls: el.getAttribute("class") ?? "", fill: s.fill, stroke: s.stroke, width: s.strokeWidth, effect: s.getPropertyValue("vector-effect"), dash: s.strokeDasharray, cap: s.strokeLinecap };
-    }),
-  );
-  assert.ok(shapes.length > 20, `${shapes.length} strokes`);
-  const solid = shapes.filter((s) => s.cls.includes("line"));
-  const dotted = shapes.filter((s) => s.cls.includes("dots"));
-  assert.ok(solid.length > 0 && dotted.length > 0, "solid lines and dotted construction lines");
-  for (const s of shapes) {
-    assert.equal(s.fill, "none", `${s.cls}: no fill`);
-    assert.equal(s.width, `${tokens.stroke.hairline.value}px`, `${s.cls}: a hairline`);
-    assert.equal(s.effect, "non-scaling-stroke", `${s.cls}: the hairline stays a hairline when the drawing scales`);
-  }
-  for (const s of solid) eq(s.stroke, hex("edge.control"), "a solid line");
-  // The hairline tone is 1.28:1 on the ground: a dotted line in it is not there, so the dots are in the control edge too, and measured.
-  assert.ok(contrast(hex("edge.control"), hex("surface")) >= 3, "the drawings are seen");
-  for (const s of dotted) {
-    eq(s.stroke, hex("edge.control"), "a dotted construction line");
-    assert.equal(s.dash, `0px, ${tokens.space["1"].value}px`, "dots: a zero-length dash every space.1");
-    assert.equal(s.cap, "round", "dots: a round cap makes the dot");
-  }
-  // Nothing in the ground can be hit: a click through the middle of it lands on the stage.
-  const box = await rectOf(page, "#ground");
-  assert.ok(box.width > 0 && box.height > 0, "there is ground at this size");
-  const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("#ground") !== null, [box.left + box.width / 2, box.top + box.height / 2] as const);
-  assert.equal(hit, false, "the ground takes no pointer");
+  assert.equal(await page.$$eval("#ground", (els) => els.length), 0, "no #ground");
+  assert.equal(await page.$$eval("svg", (els) => els.map((el) => el.id).join()), "panel", "the one SVG on the page is the panel");
+  assert.equal(await page.$$eval("#stage > *", (els) => els.map((el) => el.id).join()), "panel-frame", "the stage holds the case and nothing else");
+  assert.equal(await page.$$eval("#stage path, #stage line, #stage circle, #stage polygon", (els) => els.filter((el) => !el.closest("#panel")).length), 0, "no stroke outside the panel");
   await page.close();
 });
 
-test("P9-9: the drawings are in the room the case leaves: above it, under the strip, never behind either, and gone when there is none", async () => {
-  for (const [width, height, room] of [
-    [1280, 900, true],
-    [1920, 1080, true],
-    [1600, 480, false],
-  ] as const) {
+for (const [width, height] of [
+  [1280, 900],
+  [1920, 1080],
+  [1024, 768],
+  [600, 800],
+  [1600, 480],
+] as const) {
+  test(`P9-9: at ${width} by ${height} the case is in the middle of the room under the strip: as far from the strip as from the bottom of the window`, async () => {
     const page = await open(width, height);
     const strip = await rectOf(page, "#strip");
     const panel = await rectOf(page, "#panel");
-    const ground = await rectOf(page, "#ground");
-    assert.ok(ground.top >= strip.bottom - 1, `${width}x${height}: the ground is under the strip`);
-    assert.ok(ground.bottom <= panel.top + 1, `${width}x${height}: the ground is above the case, not behind it (${ground.bottom} against ${panel.top})`);
-    assert.ok(ground.left >= 0 && ground.right <= width + 1, `${width}x${height}: inside the window`);
-    if (room) assert.ok(ground.height >= 60, `${width}x${height}: the case leaves ${ground.height}px of ground`);
-    else assert.ok(ground.height < 12, `${width}x${height}: no room is left, so there is none (${ground.height}px)`);
-    // Every stroke of every drawing is inside the ground, so nothing is cut off or runs under the case.
-    const strokes = await page.$$eval("#ground .line, #ground .dots", (els) =>
-      els.map((el) => {
-        const r = el.getBoundingClientRect();
-        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
-      }),
-    );
-    for (const r of strokes) assert.ok(r.top >= ground.top - 1 && r.bottom <= ground.bottom + 1 && r.left >= ground.left - 1 && r.right <= ground.right + 1, `${width}x${height}: a stroke is outside the ground`);
+    const above = panel.top - strip.bottom;
+    const below = height - panel.bottom;
+    assert.ok(above >= -1 && below >= -1, `${width}x${height}: the case is inside the room (${above} above, ${below} below)`);
+    assert.ok(Math.abs(above - below) <= 1, `${width}x${height}: ${above}px above the case and ${below}px below it`);
     await page.close();
-  }
-});
-
-test("P9-10: the drawings are still: nothing in the ground animates or moves between two frames", async () => {
-  const page = await open();
-  const before = await page.$eval("#ground", (el) => el.outerHTML);
-  assert.equal(await page.evaluate(() => document.getAnimations().filter((a) => (a.effect as KeyframeEffect | null)?.target?.closest?.("#ground")).length), 0, "no animation targets the ground");
-  const shot1 = await page.screenshot({ clip: { ...(await rectOf(page, "#ground")), x: (await rectOf(page, "#ground")).left, y: (await rectOf(page, "#ground")).top } });
-  await page.waitForTimeout(400);
-  const shot2 = await page.screenshot({ clip: { ...(await rectOf(page, "#ground")), x: (await rectOf(page, "#ground")).left, y: (await rectOf(page, "#ground")).top } });
-  assert.ok(shot1.equals(shot2), "the ground is the same picture 400 ms later");
-  assert.equal(await page.$eval("#ground", (el) => el.outerHTML), before, "and the same markup");
-  await page.close();
-});
+  });
+}
 
 // ----- the stepper of a number field (ADR-0011 decisions 6 and 7) -----
 // The owner, Tue 2026-10-13 12:00 London, with a screenshot of the Clock offset field: "Let's round the corners to an 8px for the beige background of it".

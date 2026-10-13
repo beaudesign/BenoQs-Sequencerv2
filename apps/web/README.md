@@ -90,9 +90,8 @@ never rearranges.
 - **The stepper** (`src/stepper.ts`, ADR-0011 decision 7) is the small block with an up and a down arrow at the right of each number field. The browser draws its own and neither gives it a corner nor lets the page pick its tone, so
   the page hides it and draws one: the `ink`, the `surface` for its arrows, the same 8 px corner. A press steps the value by the field's step within its limits and says so with an `input` and a `change`, as the browser's did; held, it repeats; at
   a limit nothing happens and nothing is announced. It repeats the arrow keys, which still work, so it is hidden from the accessibility tree and is not a stop for the Tab key.
-- **The ground** (`#stage`, `#ground`) is the room under the strip. The case is sized to it by the plate's aspect alone (a size container and `--panel-aspect`, which the script sets), and whatever the case leaves above it is the ground's: three hairline
-  line drawings (`src/ground.ts`: a detent, a stack and an orbit), drawn from the space tokens, in `edge.control`, solid and dotted, no fill, a hairline that stays a hairline as they scale, hidden from the accessibility tree, taking no pointer, and still.
-  They are the only decoration in the product. They scale down to the room and are gone when there is none.
+- **The ground** (`#stage`) is the room under the strip. The case is sized to it by the plate's aspect alone (a size container and `--panel-aspect`, which the script sets) and sits in the middle of it, as far from the strip as from the bottom
+  of the window. There is nothing else in the room: the three line drawings that stood in it from 11:15 were taken out at the owner's word of 12:52 (ADR-0011 decision 10, withdrawn), and the only SVG on the page is the panel's.
 - **The Play key** (`transport.play`) is the page's own command to the engine, a stopgap until the transport workflow is
   built from the manual (ADR-0008 decision 4). **The tempo** is the engine's 120; its encoder is Wave 1.
 - **The chase-light** is not drawn (the manual does not say how it overlays a lit step; request to the Panelwright).

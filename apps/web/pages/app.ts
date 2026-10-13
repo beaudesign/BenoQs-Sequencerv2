@@ -9,7 +9,6 @@ import { ChaseLight, composeChase, matrixMap } from "../src/chase.ts";
 import { CLOCK_DEFAULT, decideClock, describeClock, isClockMode, type ClockDecision, type ClockWorld } from "../src/clock-state.ts";
 import { loadDemo } from "../src/demo.ts";
 import { Follower } from "../src/follower.ts";
-import { drawGround } from "../src/ground.ts";
 import { Host } from "../src/host.ts";
 import { parseLayout, place, type ControlsDoc } from "../src/layout.ts";
 import { InputPath, REALTIME_STATUS, describeCount, describeInput } from "../src/midi-in.ts";
@@ -87,10 +86,9 @@ async function main(): Promise<void> {
     else host.turn(n, detents);
   });
   document.querySelector("#panel-frame")!.append(panel.svg);
-  // The case is sized to the room by its aspect (pages/app.css, #stage); the ground, with its three drawings, takes what the case leaves.
+  // The case is sized to the room by its aspect (pages/app.css, #stage) and sits in the middle of it; nothing else is in the room.
   const stage = document.querySelector<HTMLElement>("#stage")!;
   stage.style.setProperty("--panel-aspect", String(panel.aspect));
-  stage.prepend(drawGround(document, tokens));
   addEventListener("blur", () => presses.releaseAll());
 
   strip.lookahead.min = String(LOOKAHEAD_MS.min);

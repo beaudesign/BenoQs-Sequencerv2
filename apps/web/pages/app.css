@@ -3,9 +3,9 @@
    No gradient, shadow, transition or easing anywhere; the one animation is the LED flash, whose keyframes are in
    tokens.css. The strip and the page are a midnight ground with hairlines (ADR-0011): pure-grey ground, a hairline under the strip, controls drawn as
    a border with the one corner of the tokens (S15), Play the one filled control (and the stepper of a number field, the page's own block, below), no accent colour. The controls of the panel are circles.
-   Three worlds (docs/05 section 1): the strip and the page above "The panel"; the ground with its line drawings (#ground), in the control-edge tone and
-   nothing else; and everything from "The panel" down, drawn under #panel or #panel-frame in the hardware's own flat tones (plate, frame, key, and the
-   ink printed on the plate; ADR-0010), which the strip never uses (S17) and which never use the strip's. */
+   Two worlds (docs/05 section 1): the strip and the page above "The panel"; and everything from "The panel" down, drawn under #panel or #panel-frame in the
+   hardware's own flat tones (plate, frame, key, and the ink printed on the plate; ADR-0010), which the strip never uses (S17) and which never use the strip's.
+   The ground round the case is empty: the owner took its line drawings out at 12:52 (ADR-0011 decision 10, withdrawn). */
 
 html {
   color-scheme: dark;
@@ -179,37 +179,16 @@ main {
   outline-offset: var(--stroke-focus);
 }
 
-/* The stage is the room under the strip. The case takes what its aspect needs of it, and the ground, with its drawings, takes what is left above:
-   the case is sized by the stage (a size container) and by the plate's aspect alone, so the drawings are never behind it. The page shows round it. */
+/* The stage is the room under the strip. The case takes what its aspect needs of it and sits in the middle of the room, as far from the strip as from the
+   bottom of the window: it is sized by the stage (a size container) and by the plate's aspect alone. The page shows round it, and there is nothing else. */
 #stage {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   padding: var(--space-4);
   container-type: size;
-}
-
-/* The ground's drawings: strokes and nothing else, in the control-edge tone (the hairline tone is too faint to read as dots), a hairline that stays a hairline as the drawing scales, and dots for the construction lines. */
-#ground {
-  flex: 1 1 0;
-  min-height: 0;
-  width: 100%;
-  display: block;
-  pointer-events: none;
-}
-
-#ground .line,
-#ground .dots {
-  fill: none;
-  stroke: var(--colour-edge-control);
-  stroke-width: var(--stroke-hairline);
-  vector-effect: non-scaling-stroke;
-}
-
-#ground .dots {
-  stroke-dasharray: 0 var(--space-1);
-  stroke-linecap: round;
 }
 
 /* The panel is one object: it scales to the room it is given and never rearranges. The element that holds it is sized by the plate's aspect and has no colour;

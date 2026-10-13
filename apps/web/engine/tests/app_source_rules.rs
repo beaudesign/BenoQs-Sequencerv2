@@ -405,13 +405,6 @@ fn is_strip_selector(selector: &str) -> bool {
     id == "#strip"
 }
 
-/// A selector that begins at the ground: its first compound is `#ground`, with classes, attributes or pseudo-classes after it.
-fn is_ground_selector(selector: &str) -> bool {
-    let first = selector.trim().split(|c: char| c.is_whitespace() || c == '>' || c == '+' || c == '~').next().unwrap_or("");
-    let id: String = first.chars().take_while(|c| !matches!(c, '.' | '[' | ':')).collect();
-    id == "#ground"
-}
-
 /// Numeric literals in the panel's drawing code: none beyond 0, 1 and 2 (halves and steps), so no pixel position is
 /// written there (rule S12). Every length comes from layout.ts, which takes it from a token.
 fn numeric_literals(s: &Source) -> Vec<String> {
@@ -500,7 +493,7 @@ fn reading_the_address_is_caught_and_the_word_in_a_comment_or_a_string_is_not() 
 fn the_panel_code_writes_no_pixel_position() {
     let mut all = Vec::new();
     for s in app_sources() {
-        if ["src/panel.ts", "pages/app.ts", "src/strip.ts", "src/ground.ts"].contains(&s.name.as_str()) {
+        if ["src/panel.ts", "pages/app.ts", "src/strip.ts"].contains(&s.name.as_str()) {
             all.extend(numeric_literals(&s));
         }
     }
@@ -784,69 +777,51 @@ fn s17_inside_the_panel_the_six_colours_are_allowed_and_elsewhere_the_other_role
     assert!(!caught(&ts("const i = 0; i--; const p = 'colour-plate';"), "S17"), "a decrement and a name without its dashes are not custom properties");
 }
 
-/// The one tone the ground's drawings are made in (ADR-0011 decision 10): the control edge. The hairline tone, `edge`, is 1.28:1 on the ground and a dotted line in it is not there.
-const GROUND_ROLES: [&str; 1] = ["colour-edge-control"];
-
-/// What a stylesheet's `#ground` rules do wrong: a colour that is not the control edge, a fill, a rule shared with something that is not the ground,
-/// or a stroke written outside the stylesheet's custom properties.
-fn ground_violations(css: &str) -> Vec<String> {
+/// What in the app's files brings a drawing back into the ground: a module named for it, the call that draws it, an element or a rule called `#ground`, or an
+/// SVG written in the page (the panel's is made by script). The owner, Tue 2026-10-13 12:52 London: "Let's remove the top shapes above they offer nothing"
+/// (ADR-0011 decision 10, withdrawn). Comments are not code: they may say where the drawings were.
+fn ground_drawings(sources: &[Source]) -> Vec<String> {
     let mut found = Vec::new();
-    for (sel, body) in css_blocks(&code_of(css, Kind::Css, true)) {
-        let ground: Vec<bool> = sel.split(',').map(is_ground_selector).collect();
-        if !ground.iter().any(|g| *g) {
-            continue;
+    for s in sources {
+        let code = code_of(&s.text, s.kind, true);
+        if s.name.ends_with("ground.ts") {
+            found.push(format!("{}: a module that draws the ground", s.name));
         }
-        if !ground.iter().all(|g| *g) {
-            found.push(format!("`{}` shares a rule with something that is not the ground", sel.trim()));
-        }
-        for name in custom_properties_used(&body) {
-            if name.starts_with("colour-") && !GROUND_ROLES.contains(&name.as_str()) {
-                found.push(format!("`{}` uses --{name}; the ground's drawings are the control edge and nothing else", sel.trim()));
+        for needle in ["#ground", "id=\"ground\"", "drawGround"] {
+            if code.contains(needle) {
+                found.push(format!("{}: `{needle}`; the ground has no drawings", s.name));
             }
         }
-        for (prop, value) in declarations(&body) {
-            if prop == "fill" && value != "none" {
-                found.push(format!("`{}` sets fill: {value}; the ground's drawings are strokes and have no fill", sel.trim()));
-            }
-            if prop == "background" || prop == "background-color" || prop == "background-image" || prop == "filter" || prop == "opacity" {
-                found.push(format!("`{}` sets {prop}; the ground's drawings are strokes in the edge tones, not a tint or a wash", sel.trim()));
-            }
+        if s.kind == Kind::Html && code.contains("<svg") {
+            found.push(format!("{}: an SVG written in the page; the only one on it is the panel's, made by script", s.name));
         }
     }
     found
 }
 
 #[test]
-fn the_ground_is_drawn_in_one_edge_tone_and_no_fill() {
-    let text = std::fs::read_to_string(web_dir().join("pages/app.css")).unwrap();
-    let found = ground_violations(&text);
+fn the_ground_has_no_drawings() {
+    let found = ground_drawings(&app_sources());
     assert!(found.is_empty(), "{}", found.join("\n"));
-    // And it is drawn: the stylesheet has ground rules, and they use the tone.
-    let blocks: Vec<(String, String)> = css_blocks(&code_of(&text, Kind::Css, true)).into_iter().filter(|(sel, _)| sel.split(',').all(is_ground_selector)).collect();
-    assert!(blocks.len() >= 2, "{} #ground rules", blocks.len());
-    for role in GROUND_ROLES {
-        assert!(blocks.iter().any(|(_, b)| custom_properties_used(b).contains(&role.to_string())), "no #ground rule uses --{role}");
-    }
 }
 
 #[test]
-fn a_ground_rule_that_fills_tints_or_borrows_is_caught() {
-    for text in [
-        "#ground .line { fill: var(--colour-edge-control); }",
-        "#ground .dots { stroke: var(--colour-edge); }",
-        "#ground .dots { stroke: var(--colour-ink-quiet); }",
-        "#ground .line { stroke: var(--colour-surface-raised); }",
-        "#ground .line { stroke: var(--colour-led-green); }",
-        "#ground { background: var(--colour-edge-control); }",
-        "#ground { opacity: 0.5; }",
-        "#ground .line, #strip p { stroke: var(--colour-edge-control); }",
-        "#ground { filter: none; }",
+fn a_drawing_brought_back_into_the_ground_is_caught() {
+    let named = |name: &str, kind: Kind, text: &str| Source { name: name.into(), kind, text: text.into() };
+    for s in [
+        named("src/ground.ts", Kind::Script, "export const x = 1;"),
+        ts("import { drawGround } from './ground.ts';"),
+        ts("stage.prepend(drawGround(document, tokens));"),
+        css("#ground .line { fill: none; stroke: var(--colour-edge-control); }"),
+        named("pages/app.html", Kind::Html, "<div id=\"stage\"><svg id=\"ground\"></svg></div>"),
+        named("pages/app.html", Kind::Html, "<div id=\"stage\"><svg viewBox=\"0 0 1 1\"></svg></div>"),
     ] {
-        assert!(!ground_violations(text).is_empty(), "{text}");
+        assert!(!ground_drawings(&[s]).is_empty());
     }
-    assert!(ground_violations("#ground .line, #ground .dots { fill: none; stroke: var(--colour-edge-control); stroke-width: var(--stroke-hairline); }").is_empty());
-    assert!(ground_violations("#strip p { color: var(--colour-ink-quiet); fill: var(--colour-ink); }").is_empty(), "rules that are not the ground's are not this rule's");
-    assert!(is_ground_selector("#ground") && is_ground_selector(" #ground .line") && !is_ground_selector("#groundx") && !is_ground_selector("main #ground"));
+    assert!(ground_drawings(&[css("/* the ground's drawings (#ground) were removed */ #strip { color: var(--colour-ink); }")]).is_empty(), "a comment is not a drawing");
+    assert!(ground_drawings(&[ts("// drawGround was here\nconst x = 1;")]).is_empty(), "a comment is not a drawing");
+    assert!(ground_drawings(&[named("pages/app.html", Kind::Html, "<div id=\"stage\"><div id=\"panel-frame\"></div></div>")]).is_empty());
+    assert!(ground_drawings(&[css("html { background: var(--colour-surface); }")]).is_empty(), "the word is not the rule: a background is not the ground's drawings");
 }
 
 #[test]

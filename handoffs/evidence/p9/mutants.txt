@@ -13,3 +13,11 @@ CAUGHT  the drawings are ink  (P9-8: 1 failing)
 CAUGHT  the strip has no hairline  (P9-1: 1 failing)
 CAUGHT  a toggle that is on is not raised  (P9-2: 1 failing)
 NOTE: the 'the root has no ground' mutant in this first list was equivalent (a later rule overrode it); the real mutant (html dropped from the ground rule) was caught: CAUGHT  the root has no ground  (P9-1: 2 failing)
+
+12:52, the drawings withdrawn (WENGE-0027): six broken versions of the page, six caught.
+  the case not centred (no justify-content on #stage)      -> P9-9 (four sizes)
+  an <svg id="ground"> put back in the stage               -> P9-8 (and P9-9: it takes room)
+  src/ground.ts put back                                   -> app_source_rules::the_ground_has_no_drawings
+  drawGround(document, tokens) put back in pages/app.ts    -> the_ground_has_no_drawings
+  a "#ground { ... }" rule put back in pages/app.css       -> the_ground_has_no_drawings
+  an <svg> written in pages/app.html                       -> the_ground_has_no_drawings

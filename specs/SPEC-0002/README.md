@@ -118,8 +118,8 @@ below was filled in on 2026-09-30; the agent merges nothing.
 - **D3 (the strip and the page), by ADR-0011 (proposed 2026-10-13; in force when the owner merges it).** The strip
   and the page behind the panel are drawn as a near-black pure-grey ground with hairlines, in Inter Variable, with one
   small corner on the strip's controls; the case now hugs the plate and the page shows round it (this overturns P8b's
-  decision that the frame fills the room). Three hairline line drawings stand in the ground above the case. There is still
-  no accent colour, shadow, gradient or card.
+  decision that the frame fills the room). The ground round it is empty (three line drawings stood there for an hour and a half
+  and the owner took them out, 12:52). There is still no accent colour, shadow, gradient or card.
 
 ## Files
 

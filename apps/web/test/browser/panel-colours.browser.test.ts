@@ -87,8 +87,14 @@ test("P8-1: the plate, the frame, the keys and the knobs are the hardware's flat
   const eq = (got: string, want: Rgb, what: string): void => assert.deepEqual(parse(got), [...want], `${what}: ${got}, wanted ${show(want)}`);
   eq(await style(page, "#panel rect.plate", "fill"), hex("plate"), "the plate");
   assert.equal(await style(page, "#panel rect.plate", "stroke"), "none", "the plate has no outline: the frame is its edge");
-  eq(await style(page, "#panel-frame", "background-color"), hex("frame"), "the frame");
-  assert.ok(parseFloat(await style(page, "#panel-frame", "padding-top")) >= tokens.space["3"].value, "the plate does not touch the edge of its frame");
+  // ADR-0011 decision 4: the frame is the first rect of the panel's own SVG and fills its view box, so the case is exactly as big as the panel and the page shows round it.
+  eq(await style(page, "#panel .frame", "fill"), hex("frame"), "the frame");
+  const margin = await page.evaluate(() => {
+    const frame = document.querySelector("#panel .frame")!.getBoundingClientRect();
+    const plate = document.querySelector("#panel rect.plate")!.getBoundingClientRect();
+    return Math.min(plate.left - frame.left, plate.top - frame.top, frame.right - plate.right, frame.bottom - plate.bottom);
+  });
+  assert.ok(margin > 0, "the plate does not touch the edge of its frame");
   for (const [what, selector] of [
     ["a matrix key", `${key("matrix.r0.c1")} .face`],
     ["a key of the plate that does nothing", "#panel g.inert .face"],
@@ -99,8 +105,9 @@ test("P8-1: the plate, the frame, the keys and the knobs are the hardware's flat
   }
   eq(await style(page, `${key("main.enc")} .nut`, "fill"), hex("key"), "a knob's nut");
   eq(await style(page, "body", "background-color"), hex("surface"), "the page");
-  eq(await style(page, "#strip", "border-bottom-color"), hex("ink.quiet"), "the strip's rule");
-  eq(await style(page, "#play", "background-color"), hex("surface"), "a button of the strip");
+  eq(await style(page, "#strip", "border-bottom-color"), hex("edge"), "the strip's rule");
+  eq(await style(page, "#metronome", "color"), hex("ink"), "the ink of a button of the strip");
+  eq(await style(page, "#play", "background-color"), hex("ink"), "Play, the one filled control of the strip");
   await page.close();
 });
 
@@ -123,7 +130,7 @@ test("P8-3: rendered, the plate, the frame, a key and the page are those tones, 
   const at = await page.evaluate(() => {
     const rect = (sel: string): DOMRect => document.querySelector(sel)!.getBoundingClientRect();
     const plate = rect("#panel rect.plate");
-    const frame = rect("#panel-frame");
+    const frame = rect("#panel .frame");
     const face = rect('g[data-id="matrix.r4.c7"] .face');
     const strip = rect("#strip");
     return {
@@ -218,7 +225,7 @@ test("P8-7: the whole plate is still on screen, in its frame, at 1280 by 900 and
     const page = await open(w, h);
     const box = await page.evaluate(() => {
       const plate = document.querySelector("#panel rect.plate")!.getBoundingClientRect();
-      const frame = document.querySelector("#panel-frame")!.getBoundingClientRect();
+      const frame = document.querySelector("#panel .frame")!.getBoundingClientRect();
       return { plate, frame, vw: innerWidth, vh: innerHeight };
     });
     assert.ok(box.plate.left >= box.frame.left && box.plate.top >= box.frame.top && box.plate.right <= box.frame.right && box.plate.bottom <= box.frame.bottom, `the plate is inside its frame at ${w} by ${h}`);

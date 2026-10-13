@@ -539,16 +539,23 @@ test("C8: the Metronome button is pressed from the keyboard, with Space and with
   await page.close();
 });
 
-test("C8: a button that is on shows it by contrast alone: ink on the surface turns round, and no colour is added", async () => {
+test("C8: a button that is on shows it by tone and border alone: the raised tone, an ink border and the same ink, and no colour is added", async () => {
+  // ADR-0011 decision 7 (the strip's look); before it the ink and the surface changed places. What stays: no hue, and the state is not a shade alone.
   const page = await open();
-  const look = async (): Promise<{ background: string; color: string }> => page.$eval("#metronome", (el) => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color }));
+  const look = async (): Promise<{ background: string; color: string; border: string }> =>
+    page.$eval("#metronome", (el) => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color, border: getComputedStyle(el).borderTopColor }));
+  const grey = (css: string): boolean => {
+    const m = /^rgb\((\d+), (\d+), (\d+)\)$/.exec(css);
+    return m !== null && m[1] === m[2] && m[2] === m[3];
+  };
   const off = await look();
   await page.click("#metronome");
   await page.mouse.move(0, 0);
   const on = await look();
   assert.notEqual(on.background, off.background, "the pressed button looks different");
-  assert.equal(on.background, off.color, "the ground is the ink it had");
-  assert.equal(on.color, off.background, "and the ink is the ground it had");
+  assert.notEqual(on.border, off.border, "and its border changed with its tone, so the state is not a shade alone");
+  assert.equal(on.color, off.color, "the ink is the ink it had");
+  assert.ok(grey(on.background) && grey(on.border) && grey(on.color), `no colour is added: ${JSON.stringify(on)}`);
   await page.close();
 });
 

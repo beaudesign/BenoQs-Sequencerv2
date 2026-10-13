@@ -82,7 +82,14 @@ never rearranges.
 - **The look** is the hardware's own materials drawn flat (ADR-0010, `specs/SPEC-0002/p8b-panel-in-the-hardwares-materials.md`): a cream plate (`plate`) in a dark frame (`frame`), keys, knobs and nuts in one grey metal tone with a
   hairline edge (`key`, `key.edge`), and the names printed in dark ink (`plate.ink`; the captions, row numbers and clefs in `plate.ink.quiet`). It has no gradient, highlight, shadow or outline on the plate. The six colours are
   the panel's: only rules that start at `#panel` or `#panel-frame` in `pages/app.css` may use them (rule S17), and the strip keeps its own ground and ink. The values are candidates until the owner merges the pull request with the screenshots in
-  `handoffs/evidence/p8b/`. The page and the strip are still the strip's dark, because the case is the panel's and not the page's.
+  `handoffs/evidence/p8b/`. The case is the frame drawn inside the panel's own SVG and no bigger than the panel: the page shows round it.
+- **The strip and the page** are a midnight ground with hairlines (ADR-0011, `specs/SPEC-0002/p9-the-shell-look.md`): a pure-grey ground (`surface`), a hairline of `edge` under the strip, controls drawn as a border (`edge.control`, 3:1 on the
+  ground) with the one corner of the tokens (`radius.control`, 6 px), Play the one filled control (`ink` on `surface`, the strong weight), a toggle that is on in the raised tone (`surface.raised`) with an ink border, and the status lines in `ink.quiet`.
+  The face is Inter Variable, a file in `pages/fonts/` with its licence beside it and an `@font-face` generated from the tokens, at two weights (400 and 510) with the features `cv01`, `ss03` and `zero`. There is no accent colour (the reference's acid
+  lime is not taken), no shadow, gradient, card, pill, tracking or capitals. The values are candidates until the owner merges the pull request with the screenshots in `handoffs/evidence/p9/`.
+- **The ground** (`#stage`, `#ground`) is the room under the strip. The case is sized to it by the plate's aspect alone (a size container and `--panel-aspect`, which the script sets), and whatever the case leaves above it is the ground's: three hairline
+  line drawings (`src/ground.ts`: a detent, a stack and an orbit), drawn from the space tokens, in `edge.control`, solid and dotted, no fill, a hairline that stays a hairline as they scale, hidden from the accessibility tree, taking no pointer, and still.
+  They are the only decoration in the product. They scale down to the room and are gone when there is none.
 - **The Play key** (`transport.play`) is the page's own command to the engine, a stopgap until the transport workflow is
   built from the manual (ADR-0008 decision 4). **The tempo** is the engine's 120; its encoder is Wave 1.
 - **The chase-light** is not drawn (the manual does not say how it overlays a lit step; request to the Panelwright).

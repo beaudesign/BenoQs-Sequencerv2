@@ -410,7 +410,7 @@ test("E8: every control the page draws is a button with the manual's own name, a
   const drawn = await page.$$eval('svg g[data-id][role="button"]', (els) =>
     els.map((el) => ({ id: el.getAttribute("data-id"), role: el.getAttribute("role"), name: el.getAttribute("aria-label"), tab: el.getAttribute("tabindex") })),
   );
-  assert.equal(drawn.length, 242);
+  assert.equal(drawn.length, 252);
   for (const d of drawn) {
     const control = controls.controls.find((c) => c.id === d.id);
     assert.ok(control, `${d.id} is in controls.json`);

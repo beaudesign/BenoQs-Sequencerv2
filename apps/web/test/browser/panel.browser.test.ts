@@ -74,12 +74,12 @@ const key = (id: string): string => `g[data-id="${id}"]`;
 const KIND_TURN = 2;
 const inputs = (page: Page) => page.evaluate(() => window.__sent);
 
-test("P7-1: 242 controls are buttons found by the manual's own names, and none is missing", async () => {
+test("P7-1: 252 controls are buttons found by the manual's own names, and none is missing", async () => {
   const page = await open();
   const drawn = await page.$$eval('svg g[data-id][role="button"]', (els) => els.map((el) => el.getAttribute("data-id")));
-  assert.equal(drawn.length, 242);
+  assert.equal(drawn.length, 252);
   assert.deepEqual(drawn, tabOrder(geometry), "each once, in the plate's reading order");
-  for (const id of ["mode.page", "edit.enc.vel", "chord.b3", "circle.scale_mod", "transport.rec", "mutator.mute", "main.enc", "mix.enc.r0", "matrix.r9.c16"]) {
+  for (const id of ["mode.page", "edit.enc.vel", "chord.b3", "circle.scale_mod", "transport.rec", "mutator.mute", "main.enc", "mix.enc.r0", "matrix.r9.c16", "circle.num.1", "circle.num.10"]) {
     const name = controls.controls.find((c) => c.id === id)!.name;
     assert.equal(await page.getByRole("button", { name, exact: true }).count(), 1, name);
   }
@@ -89,7 +89,7 @@ test("P7-1: 242 controls are buttons found by the manual's own names, and none i
 test("P7-2: the plate's own keys are drawn, and are not buttons, not tab stops and not in the accessibility tree", async () => {
   const page = await open();
   const inert = await page.$$eval("svg g.inert", (els) => els.map((el) => ({ id: el.getAttribute("data-id"), role: el.getAttribute("role"), tab: el.getAttribute("tabindex"), hidden: el.getAttribute("aria-hidden") })));
-  assert.equal(inert.length, 37);
+  assert.equal(inert.length, 27);
   for (const k of inert) {
     assert.equal(k.role, null, `${k.id}`);
     assert.equal(k.tab, null, `${k.id}`);
@@ -103,7 +103,7 @@ test("P7-3: a click on one of the plate's own keys sends nothing to the engine",
   const page = await open();
   await start(page);
   await page.click(`${key("hw.target.atr")} .face`);
-  await page.click(`${key("hw.num.3")} .face`);
+  await page.click(`${key("hw.ring.3")} .face`);
   await page.waitForTimeout(150);
   assert.deepEqual(await inputs(page), []);
   await page.close();

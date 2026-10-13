@@ -719,6 +719,96 @@
    "text": "PLAY",
    "basis": "photo",
    "label": "e"
+  },
+  {
+   "id": "circle.num.1",
+   "x": 29.9,
+   "y": 8.73,
+   "led": "n",
+   "text": "1",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.2",
+   "x": 30.15,
+   "y": 7.33,
+   "led": "n",
+   "text": "2",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.3",
+   "x": 30.53,
+   "y": 6.05,
+   "led": "n",
+   "text": "3",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.4",
+   "x": 31.15,
+   "y": 4.84,
+   "led": "n",
+   "text": "4",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.5",
+   "x": 32.07,
+   "y": 3.75,
+   "led": "n",
+   "text": "5",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.6",
+   "x": 33.17,
+   "y": 2.84,
+   "led": "n",
+   "text": "6",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.7",
+   "x": 34.39,
+   "y": 2.23,
+   "led": "n",
+   "text": "7",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.8",
+   "x": 35.67,
+   "y": 1.87,
+   "led": "n",
+   "text": "8",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.9",
+   "x": 37.07,
+   "y": 1.76,
+   "led": "n",
+   "text": "9",
+   "basis": "photo",
+   "label": "e"
+  },
+  {
+   "id": "circle.num.10",
+   "x": 38.47,
+   "y": 1.88,
+   "led": "n",
+   "text": "10",
+   "basis": "photo",
+   "label": "e"
   }
  ],
  "keys": [
@@ -829,96 +919,6 @@
    "text": "5",
    "basis": "photo",
    "label": "s"
-  },
-  {
-   "id": "hw.num.1",
-   "x": 29.9,
-   "y": 8.73,
-   "led": "n",
-   "text": "1",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.2",
-   "x": 30.15,
-   "y": 7.33,
-   "led": "n",
-   "text": "2",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.3",
-   "x": 30.53,
-   "y": 6.05,
-   "led": "n",
-   "text": "3",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.4",
-   "x": 31.15,
-   "y": 4.84,
-   "led": "n",
-   "text": "4",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.5",
-   "x": 32.07,
-   "y": 3.75,
-   "led": "n",
-   "text": "5",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.6",
-   "x": 33.17,
-   "y": 2.84,
-   "led": "n",
-   "text": "6",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.7",
-   "x": 34.39,
-   "y": 2.23,
-   "led": "n",
-   "text": "7",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.8",
-   "x": 35.67,
-   "y": 1.87,
-   "led": "n",
-   "text": "8",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.9",
-   "x": 37.07,
-   "y": 1.76,
-   "led": "n",
-   "text": "9",
-   "basis": "photo",
-   "label": "e"
-  },
-  {
-   "id": "hw.num.10",
-   "x": 38.47,
-   "y": 1.88,
-   "led": "n",
-   "text": "10",
-   "basis": "photo",
-   "label": "e"
   },
   {
    "id": "hw.ring.1",

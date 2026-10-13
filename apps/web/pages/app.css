@@ -2,7 +2,7 @@
    (contracts/design.tokens.json): this file writes none of its own (ADR-0008 decision 6, rules S2 and S12).
    No gradient, shadow, transition or easing anywhere; the one animation is the LED flash, whose keyframes are in
    tokens.css. The strip and the page are a midnight ground with hairlines (ADR-0011): pure-grey ground, a hairline under the strip, controls drawn as
-   a border with the one corner of the tokens (S15), Play the one filled control, no accent colour. The controls of the panel are circles.
+   a border with the one corner of the tokens (S15), Play the one filled control (and the stepper of a number field, the page's own block, below), no accent colour. The controls of the panel are circles.
    Three worlds (docs/05 section 1): the strip and the page above "The panel"; the ground with its line drawings (#ground), in the control-edge tone and
    nothing else; and everything from "The panel" down, drawn under #panel or #panel-frame in the hardware's own flat tones (plate, frame, key, and the
    ink printed on the plate; ADR-0010), which the strip never uses (S17) and which never use the strip's. */
@@ -79,7 +79,8 @@ main {
 
 #strip button:hover,
 #strip select:hover,
-#strip input:hover {
+#strip input:hover,
+#strip .stepper:hover input {
   border-color: var(--colour-ink-quiet);
 }
 
@@ -107,6 +108,70 @@ main {
 #strip input {
   width: var(--space-6);
   font-variant-numeric: tabular-nums;
+}
+
+/* The stepper of a number field (ADR-0011 decision 7). The browser's own up and down takes no corner and picks its own tone, so it is off and the page draws
+   one: a block of the ink inside the field's box at the right, the ground for its two arrows, the one corner like every control. The number never runs under
+   it. It repeats the arrow keys, so it is out of the accessibility tree (the script sets that) and has nothing to focus. */
+#strip .stepper {
+  position: relative;
+  display: inline-flex;
+}
+
+#strip .stepper input {
+  appearance: textfield;
+  padding-right: calc(var(--space-4) + var(--space-1) + var(--space-1));
+}
+
+#strip .stepper input::-webkit-inner-spin-button,
+#strip .stepper input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+#strip .steps {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  bottom: var(--space-1);
+  width: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--colour-ink);
+  border-radius: var(--radius-control);
+}
+
+#strip .steps .up,
+#strip .steps .down {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+#strip .steps .up:hover,
+#strip .steps .down:hover,
+#strip .steps .up:active,
+#strip .steps .down:active {
+  background: var(--colour-ink-quiet);
+}
+
+#strip .steps .up::before,
+#strip .steps .down::before {
+  content: "";
+  width: var(--space-2);
+  height: var(--space-1);
+  background: var(--colour-surface);
+}
+
+#strip .steps .up::before {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+#strip .steps .down::before {
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 
 #strip :focus-visible {

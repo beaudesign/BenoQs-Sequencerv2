@@ -26,6 +26,8 @@ The strip was a grey bar of white-outlined square buttons in Helvetica, and belo
 | P9-8 | The ground is `aria-hidden`, not focusable, takes no pointer, has three drawings, and every stroke is a hairline of `edge.control` with no fill and `non-scaling-stroke`; the dots are a zero-length dash every `space.1` with a round cap | P9-8 |
 | P9-9 | The ground is under the strip and above the case, never behind either, every stroke inside it; 60 px or more at 1280 by 900 and 1920 by 1080, none at 1600 by 480 | P9-9 |
 | P9-10 | The ground is the same picture 400 ms later and has no animation | P9-10 |
+| P9-11 | The up and down block of a number field is the page's own: the `ink` with the `surface` for its arrows, the owner's 8 px on all four corners (the same as `radius.control`, and rendered: the four corner pixels are the field's ground and the middle of each edge is the block), the browser's own spin button gone (no pixel left of the block but the ground, with the field hovered), the number never under the block, hidden from the accessibility tree, nothing in it focusable | P9-11 |
+| P9-12 | A press steps the number as the browser's did: one press is one step with an `input` and a `change`, held it repeats and stops on release, at a limit nothing happens and no event is made up, a press leaves the field focused, and the arrow keys still step | P9-12 |
 | G-1 to G-5 | The drawing is a function of the space scale (doubling the scale doubles every length; the same tokens give the same bytes), every coordinate is a multiple of half the smallest step, strokes only, inside the view box | `test/ground.test.ts` |
 | R-1 | `#ground` rules use only `--colour-edge-control`, no fill and no tint; the strip's tones never appear in a `#panel` rule; `src/ground.ts` writes no number beyond 0, 1 and 2 (S12) | `app_source_rules.rs` (three tests) |
 
@@ -39,9 +41,13 @@ The strip was a grey bar of white-outlined square buttons in Helvetica, and belo
 | D-P9-4 | Ellipses are drawn as two arcs | S15 reads the attribute names `rx` and `ry` for a rounded rectangle and also catches `<ellipse>`. An ellipse is not a rounded rectangle; the rule is a finding (see the journal), not changed here |
 | D-P9-5 | The status lines are at the label size (12 px), in `ink.quiet` (7.34:1) | Compact, and over the floor |
 | D-P9-6 | Fields are a name over a control, the name quiet | Matches the reference's compact look; the tab order and the ids are unchanged |
+| D-P9-7 | The corner is 8 px for every control and for the stepper's block (the owner, Tue 12:00: "round the corners to an 8px for the beige background of it"); the contract moved from 6 to 8 in PR A | One corner is one corner (ADR-0011 decision 6). The owner named the block; applying 8 to it alone would give a block rounder than the box that holds it |
+| D-P9-8 | The block is drawn by the page, in the `ink` (light, as the owner saw it) | The browser's takes no corner and chooses its own tone (dark in headless Chromium, light in the owner's view). If the owner wants it dark, `surface.raised` for the block is one line, and Play is then the one fill again |
+| D-P9-9 | Hold to repeat: 400 ms, then every 70 ms | The browser's repeats; the numbers are the page's own, close to what it did. No other change to how a number field behaves |
 
 ## 4. What is not done
 
+- **A different look for the stepper** than the owner saw: only its corners changed (and the browser's own tone became the `ink`).
 - **Acid lime and every other accent**, cards, pills, pastel orbs, the soft shadow, tracking, a serif display face (ADR-0011 decision 2).
 - **Other pages**: there are none.
 - **roland50.studio**: never read.

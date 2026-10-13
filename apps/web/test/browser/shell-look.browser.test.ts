@@ -327,3 +327,130 @@ test("P9-10: the drawings are still: nothing in the ground animates or moves bet
   assert.equal(await page.$eval("#ground", (el) => el.outerHTML), before, "and the same markup");
   await page.close();
 });
+
+// ----- the stepper of a number field (ADR-0011 decisions 6 and 7) -----
+// The owner, Tue 2026-10-13 12:00 London, with a screenshot of the Clock offset field: "Let's round the corners to an 8px for the beige background of it".
+// The light block with an up and a down arrow is a browser's own spin button, which takes no corner and picks its own tone, so the page draws it.
+
+const NUMBER_FIELDS = ["tempo", "clock-offset", "lookahead"] as const;
+
+test("P9-11: a number field's up and down block is the page's own, the ink with the surface for its arrows, with the owner's 8 px on all four corners, and the browser's spin button is gone", async () => {
+  const page = await open();
+  for (const id of NUMBER_FIELDS) {
+    const got = await page.$eval(`#${id}`, (input) => {
+      const wrap = input.parentElement!;
+      const steps = wrap.querySelector(".steps");
+      const up = wrap.querySelector(".steps .up");
+      const down = wrap.querySelector(".steps .down");
+      if (!steps || !up || !down) return null;
+      const s = getComputedStyle(steps);
+      const i = getComputedStyle(input);
+      const box = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+      };
+      return {
+        wrap: wrap.getAttribute("class"),
+        hidden: steps.getAttribute("aria-hidden"),
+        bg: s.backgroundColor,
+        radii: [s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius],
+        arrows: [getComputedStyle(up, "::before").backgroundColor, getComputedStyle(down, "::before").backgroundColor],
+        appearance: i.appearance,
+        padRight: parseFloat(i.paddingRight),
+        focusable: steps.querySelectorAll("button, input, select, a, [tabindex]").length,
+        steps: box(steps),
+        input: box(input),
+      };
+    });
+    assert.ok(got, `${id}: has a block with an up and a down in it`);
+    assert.equal(got.wrap, "stepper", `${id}: the input and its block are one thing`);
+    assert.equal(got.hidden, "true", `${id}: the block repeats the arrow keys, so it is hidden from the accessibility tree`);
+    eq(got.bg, hex("ink"), `${id}: the block is light, the ink, as the owner saw it`);
+    for (const radius of got.radii) {
+      assert.equal(radius, "8px", `${id}: the owner's 8 px, on every corner`);
+      assert.equal(radius, `${tokens.radius.control.value}px`, `${id}: and it is the one corner of the tokens`);
+    }
+    for (const arrow of got.arrows) eq(arrow, hex("surface"), `${id}: an arrow is the ground on the ink`);
+    assert.equal(got.appearance, "textfield", `${id}: the browser's own up and down is off`);
+    assert.equal(got.focusable, 0, `${id}: nothing in the block is a control or a stop for the Tab key`);
+    const b = got.steps;
+    const i = got.input;
+    assert.ok(b.left > i.left && b.right < i.right && b.top > i.top && b.bottom < i.bottom, `${id}: the block is inside the box of the field`);
+    assert.ok(got.padRight >= i.right - b.left, `${id}: the number never runs under the block (${got.padRight} of padding, ${i.right - b.left} wanted)`);
+    assert.ok(b.width >= 16 && b.height >= 16, `${id}: the block is big enough to press: ${b.width}x${b.height}`);
+  }
+  // The browser's own up and down shows only while the field is hovered or focused: hover it, and the room left of the block is still the field's ground.
+  {
+    const field = await rectOf(page, "#tempo");
+    const block = await rectOf(page, "#tempo ~ .steps");
+    await page.mouse.move(field.left + 12, field.top + field.height / 2);
+    const grid: (readonly [number, number])[] = [];
+    for (let x = block.left - 22; x <= block.left - 3; x += 3) for (let y = field.top + 4; y <= field.bottom - 4; y += 3) grid.push([x, y]);
+    const seen = await pixels(await page.screenshot(), grid);
+    const notGround = seen.filter((px) => px.join() !== [...hex("surface")].join());
+    assert.equal(notGround.length, 0, `the browser's own spin button is drawn left of the block: ${notGround.length} of ${seen.length} pixels are not the ground`);
+  }
+  // The pixels: with a corner of 8 on a block this size the four corner pixels are the field's ground and the middle of each edge is the block.
+  await page.mouse.move(0, 0);
+  const b = await rectOf(page, "#tempo ~ .steps");
+  // Whole pixels, the second in from each edge: a pixel that is half the block's and half the ground would prove nothing.
+  const [x0, y0, x1, y1] = [Math.round(b.left) + 1, Math.round(b.top) + 1, Math.round(b.right) - 2, Math.round(b.bottom) - 2];
+  const [xm, ym] = [Math.round(b.left + b.width / 2), Math.round(b.top + b.height / 2)];
+  const [tl, tr, br, bl, top, left, right, bottom] = await pixels(await page.screenshot(), [
+    [x0, y0],
+    [x1, y0],
+    [x1, y1],
+    [x0, y1],
+    [xm, y0],
+    [x0, ym],
+    [x1, ym],
+    [xm, y1],
+  ]);
+  for (const [name, px] of [["top left", tl], ["top right", tr], ["bottom right", br], ["bottom left", bl]] as const) assert.deepEqual(px, [...hex("surface")], `the ${name} corner of the block is rounded away`);
+  for (const [name, px] of [["top", top], ["left", left], ["right", right], ["bottom", bottom]] as const) assert.deepEqual(px, [...hex("ink")], `the middle of the ${name} edge is the block`);
+  await page.close();
+});
+
+test("P9-12: pressing the block steps the number as the browser's own did: a press is a step with an input and a change, held it repeats and stops on release, at a limit nothing happens, and the arrow keys still step", async () => {
+  const page = await open();
+  await page.evaluate(() => {
+    const w = window as unknown as { __seen: string[] };
+    w.__seen = [];
+    for (const id of ["lookahead", "clock-offset"]) for (const type of ["input", "change"]) document.getElementById(id)!.addEventListener(type, () => w.__seen.push(`${id}:${type}`));
+  });
+  const seen = (): Promise<string[]> => page.evaluate(() => (window as unknown as { __seen: string[] }).__seen);
+  const press = async (selector: string): Promise<void> => {
+    const r = await rectOf(page, selector);
+    await page.mouse.click(r.left + r.width / 2, r.top + r.height / 2);
+  };
+  assert.equal(await page.inputValue("#lookahead"), "30");
+  await press("#lookahead ~ .steps .up");
+  assert.equal(await page.inputValue("#lookahead"), "31", "up is one step up");
+  assert.deepEqual(await seen(), ["lookahead:input", "lookahead:change"], "and says so, as the page's own listeners are told");
+  assert.equal(await page.evaluate(() => document.activeElement?.id), "lookahead", "the press leaves the field focused, as the browser's did");
+  await press("#lookahead ~ .steps .down");
+  await press("#lookahead ~ .steps .down");
+  assert.equal(await page.inputValue("#lookahead"), "29", "down is one step down");
+  // A limit: 250 is the most the field holds, and up there changes nothing and tells nobody.
+  await page.fill("#lookahead", "250");
+  await page.evaluate(() => ((window as unknown as { __seen: string[] }).__seen.length = 0));
+  await press("#lookahead ~ .steps .up");
+  assert.equal(await page.inputValue("#lookahead"), "250", "at the limit it stays");
+  assert.deepEqual(await seen(), [], "and no event is made up");
+  // Held, it repeats after a short wait; let go, and it stops.
+  assert.equal(await page.inputValue("#clock-offset"), "0");
+  const up = await rectOf(page, "#clock-offset ~ .steps .up");
+  await page.mouse.move(up.left + up.width / 2, up.top + up.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(1000);
+  await page.mouse.up();
+  const held = Number(await page.inputValue("#clock-offset"));
+  assert.ok(held >= 4 && held <= 40, `held for a second it went ${held} steps`);
+  await page.waitForTimeout(400);
+  assert.equal(Number(await page.inputValue("#clock-offset")), held, "and it stopped when the button was let go");
+  // The keyboard is the browser's own, and is not changed.
+  await page.focus("#clock-offset");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(Number(await page.inputValue("#clock-offset")), held - 1, "the arrow keys still step");
+  await page.close();
+});

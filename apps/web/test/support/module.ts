@@ -10,21 +10,16 @@ export const repoRoot = join(webRoot, "../..");
 
 /** `just web-wasm` builds the shipped module here. `OCTOWEB_WASM` points a test at another build. */
 export const shippedPath = process.env["OCTOWEB_WASM"] ?? join(webRoot, "dist/octoweb.wasm");
-export const spikePath = process.env["OCTOWEB_SPIKE_WASM"] ?? join(webRoot, "dist/octoweb-spike.wasm");
 
-const compiled = new Map<string, WebAssembly.Module>();
+let compiled: WebAssembly.Module | undefined;
 
-export function compile(path: string = shippedPath): WebAssembly.Module {
-  let m = compiled.get(path);
-  if (!m) {
-    m = new WebAssembly.Module(readFileSync(path));
-    compiled.set(path, m);
-  }
-  return m;
+export function compile(): WebAssembly.Module {
+  compiled ??= new WebAssembly.Module(readFileSync(shippedPath));
+  return compiled;
 }
 
-export function instantiate(path: string = shippedPath): Exports {
-  return new WebAssembly.Instance(compile(path), {}).exports as unknown as Exports;
+export function instantiate(): Exports {
+  return new WebAssembly.Instance(compile(), {}).exports as unknown as Exports;
 }
 
 export interface Control {
@@ -46,8 +41,8 @@ export function controlNumbers(): Map<string, number> {
 }
 
 /** An initialised module, each call with its own instance and therefore its own state. */
-export function start(sampleRate = 48_000, seed = 0n, path: string = shippedPath): Octoweb {
-  const engine = new Octoweb(instantiate(path));
+export function start(sampleRate = 48_000, seed = 0n): Octoweb {
+  const engine = new Octoweb(instantiate());
   engine.init(layoutBytes(), sampleRate, seed);
   return engine;
 }

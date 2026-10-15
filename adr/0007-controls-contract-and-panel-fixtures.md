@@ -171,4 +171,4 @@ data to migrate, because nothing reads any of them yet.
 
 ## Amendments
 
-None yet.
+- **2026-10-13, ADR-0012 (merged by the owner).** The open group `circle.numbers` is split. The ten number keys become controls, `circle.num.1` to `circle.num.10` (`n` 295 to 304, no `led`), on the count and labels the plate states legibly: the first plate fact to enter this contract, under the rule in ADR-0012 decision 4. The scale keys and the chain selectors stay open (Q32). The thirteen further outer-ring keys whose printed names cannot be read get no control until each is named.

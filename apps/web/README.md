@@ -75,8 +75,8 @@ never rearranges.
 - **What is drawn** is the Octopus's plate as the reference photograph measures it (`specs/SPEC-0002/p7-faithful-panel.md`): the 160 matrix keys (a
   row is 1.495 column pitches), the ten MIX knobs, the bowed column of ten EDIT knobs (VEL to MCH, from the top) and the main knob, the SEL
   and mutator columns, the row of keys under the matrix, the note ring, the MODE block, the scale keys, transport and the chord arm.
-  **242 of the 247 controls** are buttons or knobs found by the manual's own names. **37 keys** the plate has and the inventory has not
-  (`hw.*`: the number keys, the MIX TARGET row, and others) are drawn and do nothing: they are not buttons and not tab stops. **Five controls**
+  **252 of the 257 controls** are buttons or knobs found by the manual's own names (the ten number keys, `circle.num.1` to `circle.num.10`, are among them: ADR-0012). **27 keys** the plate has and the inventory has not
+  (`hw.*`: the thirteen outer-ring keys whose printed names cannot be read, the MIX TARGET row, and others) are drawn and do nothing: they are not buttons and not tab stops. **Five controls**
   have no place on the plate and are not drawn: `circle.low_c`, `circle.chr`, `circle.follow`, `mutator.aln` and `circle.numeric`
   (`unplaced` in the layout file says why). The controller acts on eleven controls today and the rest do nothing yet. The layout is
   provisional: each entry's `basis` says whether its identity was read from the plate (`photo`) or only guessed from its place in a
@@ -188,16 +188,16 @@ Acceptance criterion A8. The order of the elements in the page is the tab order 
 checked against `layout/panel.layout.json` by `test/readme.test.ts`, so it cannot drift.
 
 1. The strip: `play`, `tempo`, `monitor`, `drums`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
-2. The plate's 242 controls in its reading order: bands one matrix row high from the top, left to right in each band. The first stops are
-   `mix.enc.r9`, `selector.r9`, `matrix.r9.c1`, `matrix.r9.c2` and so on along row 9 to `matrix.r9.c16`, then `mutator.tgl`, `edit.enc.vel`
-   and `main.enc`; then row 8 from `mix.enc.r8`. The last stops are `mix.master`, `mutator.mute`, `mode.edit`, `keys.esc` and `chord.b7`.
+2. The plate's 252 controls in its reading order: bands one matrix row high from the top, left to right in each band. The first stops are
+   `mix.enc.r9`, `selector.r9`, `matrix.r9.c1`, `matrix.r9.c2` and so on along row 9 to `matrix.r9.c16`, then `mutator.tgl`, `edit.enc.vel`,
+   `circle.num.7` to `circle.num.10` and `main.enc`; then row 8 from `mix.enc.r8`. The last stops are `mix.master`, `mutator.mute`, `mode.edit`, `keys.esc` and `chord.b7`.
    The plate's own keys (`hw.*`) are not stops.
 
 Every control is a `button` whose name is the manual's own name for it (`contracts/controls.json`, `name`); a knob is a button that says it
 is a knob. Focus is a ring of two strokes, a dark one outside the key, on the plate, and a light one inside its edge, on the metal, so that it shows on both; it is drawn from the focus tokens and appears on
 keyboard focus, not on a pointer press. (In P3c to P7 it was light outside and dark inside, for the dark ground; ADR-0010 decision 5.)
 
-**Known cost.** There are 242 Tab stops. A single stop with arrow keys (a roving focus) is the usual cure, and it would change what E8
+**Known cost.** There are 252 Tab stops. A single stop with arrow keys (a roving focus) is the usual cure, and it would change what E8
 checks, so it is the owner's to choose; it is not done.
 
 ## Two rules in the MIDI scheduler

@@ -29,11 +29,11 @@ test("the README's tab order lists the strip, then the plate's controls in readi
   const first = /The first stops are\s+([^;]*?); then row 8/s.exec(text);
   assert.ok(first, "the README names the first stops");
   const named = [...first[1]!.matchAll(/`([a-z0-9_.]+)`/g)].map((m) => m[1]!);
-  assert.deepEqual(named, ["mix.enc.r9", "selector.r9", "matrix.r9.c1", "matrix.r9.c2", "matrix.r9.c16", "mutator.tgl", "edit.enc.vel", "main.enc"]);
+  assert.deepEqual(named, ["mix.enc.r9", "selector.r9", "matrix.r9.c1", "matrix.r9.c2", "matrix.r9.c16", "mutator.tgl", "edit.enc.vel", "circle.num.7", "circle.num.10", "main.enc"]);
   assert.deepEqual(order.slice(0, 4), ["mix.enc.r9", "selector.r9", "matrix.r9.c1", "matrix.r9.c2"]);
   assert.equal(order[17], "matrix.r9.c16");
-  assert.deepEqual(order.slice(18, 21), ["mutator.tgl", "edit.enc.vel", "main.enc"]);
-  assert.equal(order[21], "mix.enc.r8");
+  assert.deepEqual(order.slice(18, 25), ["mutator.tgl", "edit.enc.vel", "circle.num.7", "circle.num.8", "circle.num.9", "circle.num.10", "main.enc"]);
+  assert.equal(order[25], "mix.enc.r8");
   const last = /The last stops are\s+(.*?)\n\s+The plate's own keys/s.exec(text);
   assert.ok(last, "the README names the last stops");
   assert.deepEqual([...last[1]!.matchAll(/`([a-z0-9_.]+)`/g)].map((m) => m[1]), order.slice(-5));

@@ -42,24 +42,47 @@ test("every control in the inventory is drawn once or named as not drawn, with t
   const inventory = controls.controls.map((c) => c.id);
   const drawn = g.placements.filter((p) => !p.inert).map((p) => p.id);
   assert.equal(new Set(drawn).size, drawn.length, "each control once");
-  assert.equal(inventory.length, 247);
+  assert.equal(inventory.length, 257);
   const file = layoutFile;
   const unplaced = file.unplaced.map((u) => u.id);
   for (const id of unplaced) assert.ok(UNPLACED.includes(id), `${id} is not drawn, and is not on the list that may be`);
   for (const u of file.unplaced) assert.ok(u.why.length > 20, `${u.id} says why`);
   assert.deepEqual([...drawn, ...unplaced].sort(), [...inventory].sort(), "every control is drawn or named");
-  assert.equal(drawn.length, 242);
+  assert.equal(drawn.length, 252);
 });
 
 test("the plate has keys that are in no inventory: they are drawn, they are not buttons, and none is a control number", () => {
   const inert = g.placements.filter((p) => p.inert);
-  assert.equal(inert.length, 37);
+  assert.equal(inert.length, 27);
   for (const p of inert) {
     assert.match(p.id, /^hw\./);
     assert.equal(p.n, -1, `${p.id} is no control`);
     assert.ok(!controls.controls.some((c) => c.id === p.id));
   }
   assert.ok(!tabOrder(g).some((id) => id.startsWith("hw.")), "an inert key is not a tab stop");
+});
+
+test("the ten number keys are controls, circle.num.1 to circle.num.10 (ADR-0012): n 295 to 304, the digit as label, no LED the manual does not give; the thirteen unnamed ring keys are still the plate's own", () => {
+  type Raw = { n: number; id: string; kind: string; zone: string; name: string; label?: string; at?: { index?: number }; led?: boolean; cite: string[] };
+  const raw = controls.controls as unknown as Raw[];
+  for (let d = 1; d <= 10; d++) {
+    const c = raw.find((x) => x.id === `circle.num.${d}`);
+    assert.ok(c, `circle.num.${d} is in the inventory`);
+    assert.equal(c.n, 294 + d);
+    assert.equal(c.zone, "circle_outer");
+    assert.equal(c.kind, "button");
+    assert.equal(c.name, `number key ${d}`);
+    assert.equal(c.label, String(d));
+    assert.equal(c.at?.index, d);
+    assert.equal(c.led, undefined, "the manual gives the key no LED of its own (Q43); adding one is an amendment of ADR-0012");
+    for (const page of ["p017", "p052", "p057"]) assert.ok(c.cite.includes(page), `${c.id} cites ${page}`);
+    assert.ok(!layoutFile.keys.some((k) => k.id === `hw.num.${d}`), `hw.num.${d} is gone from the plate's own keys`);
+    const p = byId(c.id);
+    assert.ok(!p.inert);
+    assert.ok(p.led === null || p.led.live === false, `${c.id}'s dot is drawn dark`);
+  }
+  assert.equal(raw.filter((c) => c.id.startsWith("circle.ring.")).length, 0, "the thirteen ring keys get no control until each is named (ADR-0012 decision 2)");
+  assert.equal(layoutFile.keys.filter((k) => k.id.startsWith("hw.ring.")).length, 13);
 });
 
 test("the matrix is sixteen columns by ten rows, a row is 1.495 column pitches, and row 0 is at the bottom", () => {
@@ -113,7 +136,7 @@ test("left to right: the MIX knobs, the SEL column, the matrix, the mutator colu
   const mut = ids("mutator.").filter((p) => p.id !== "mutator.mute");
   const edit = ids("edit.enc.");
   // The circle: everything right of the EDIT column except the row of keys under the matrix (mode.edit is the key under the EDIT knobs).
-  const circle = g.placements.filter((p) => (/^(circle|chord|transport|mode)\./.test(p.id) && p.id !== "mode.edit") || p.id === "keys.program" || p.id.startsWith("hw.num.") || p.id.startsWith("hw.ring."));
+  const circle = g.placements.filter((p) => (/^(circle|chord|transport|mode)\./.test(p.id) && p.id !== "mode.edit") || p.id === "keys.program" || p.id.startsWith("hw.ring."));
   assert.equal(mix.length, 10);
   assert.equal(sel.length, 10);
   assert.equal(mut.length, 10, "ten of the mutators are in the column; the eleventh, Mute, is under it; the twelfth, ALN, is not drawn");
@@ -379,7 +402,7 @@ test("a printed label is the manual's own short name: it is in the control's nam
 
 test("reading order is the plate's: bands of one matrix row from the top, left to right in each band; inert keys are skipped", () => {
   const order = tabOrder(g);
-  assert.equal(order.length, 242);
+  assert.equal(order.length, 252);
   assert.equal(order[0], "mix.enc.r9", "the top left knob first");
   const band = (p: Placement) => Math.round((p.cy - byId("matrix.r9.c1").cy) / (layoutFile.matrix.row_pitch * pitch));
   const at = order.map(byId);

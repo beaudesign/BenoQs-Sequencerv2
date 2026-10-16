@@ -36,7 +36,7 @@ export interface Server {
 }
 
 export async function serve(port = 0): Promise<Server> {
-  const server = http.createServer((req, res) => {
+  return listen(port, (req, res) => {
     void (async () => {
       try {
         const path = decodeURIComponent((req.url ?? "/").split("?")[0] ?? "/");
@@ -57,6 +57,40 @@ export async function serve(port = 0): Promise<Server> {
       }
     })();
   });
+}
+
+/**
+ * One folder, served the way a static host serves a project site (GitHub Pages, SPEC-0002 P11): under an address prefix such as
+ * `/BenoQs-Sequencerv2`, a path that ends in `/` answered with its `index.html`, GET only, nothing outside the folder, and **no
+ * cross-origin-isolation headers**, which a project site cannot set. A request outside the prefix is a 404, as it is there.
+ */
+export async function serveFolder(dir: string, prefix = "", port = 0): Promise<Server> {
+  const root = resolve(dir);
+  return listen(port, (req, res) => {
+    void (async () => {
+      try {
+        const path = decodeURIComponent((req.url ?? "/").split("?")[0] ?? "/");
+        if (req.method !== "GET" || !(path === prefix || path.startsWith(prefix + "/"))) {
+          res.writeHead(404).end();
+          return;
+        }
+        const rest = path.slice(prefix.length);
+        const file = resolve(root, "." + (rest.endsWith("/") || rest === "" ? rest + "index.html" : rest));
+        if (file !== root && !file.startsWith(root + sep)) {
+          res.writeHead(403).end();
+          return;
+        }
+        const body = await readFile(file);
+        res.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(body);
+      } catch {
+        res.writeHead(404).end();
+      }
+    })();
+  });
+}
+
+async function listen(port: number, handler: http.RequestListener): Promise<Server> {
+  const server = http.createServer(handler);
   await new Promise<void>((ok) => server.listen(port, "127.0.0.1", ok));
   const address = server.address() as AddressInfo;
   return {

@@ -15,6 +15,7 @@
     "spike:s2": "npm run build && node spikes/s2/run.ts",
     "spike:s1": "npm run build && node spikes/s1/run.ts",
     "app": "npm run build && node scripts/app.ts",
+    "site": "npm run build && node scripts/site.ts",
     "screenshot": "npm run build && node scripts/screenshot.ts"
   },
   "devDependencies": {

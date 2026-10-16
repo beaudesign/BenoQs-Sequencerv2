@@ -240,3 +240,10 @@ early events reach the scheduler. The other half needs a real port, and until it
 5. Save the result and put it in `handoffs/evidence/`.
 
 A run sends about 16 messages a second to the output you chose. Use a loopback and not a synth.
+
+## The site
+
+`npm run site` assembles the folder a static host serves into `dist/site`: the page and exactly the files it loads (`scripts/site.ts`), an index that opens it, and `.nojekyll`. `.github/workflows/pages.yml` runs the same steps and publishes the folder to GitHub Pages
+(`specs/SPEC-0002/p11-published-page.md`). The page finds its files from where it is (`app.html` links relative to itself, and `pages/app.ts` finds the rest from `import.meta.url`), so it runs at the root of an address, under a project site's prefix such
+as `https://<owner>.github.io/<repo>/`, or from a folder. The layout it relies on is `dist/`, `pages/`, `layout/` and `contracts/` side by side, which `scripts/serve.ts` and `scripts/site.ts` both make. The spike and test pages are not published and
+keep their root-relative paths. `test/browser/published.browser.test.ts` serves the assembled folder under a prefix with no cross-origin-isolation headers, as a project site does, and plays it.

@@ -82,6 +82,8 @@ async function open(path: string): Promise<Run> {
   await page.addInitScript(installTap);
   await page.goto(`${server.url}${PREFIX}${path}`);
   await page.waitForSelector('main[data-engine="idle"]', { timeout: 10_000 });
+  // `main` is in the page's own HTML, so it is there before the script has fetched anything: the panel is what says the files came.
+  await page.waitForSelector("svg g[data-id]", { timeout: 10_000 });
   return run;
 }
 
@@ -108,7 +110,8 @@ test("P11-2: every file the page loads comes from inside the site, and none fail
   assert.deepEqual(outside, [], "nothing is fetched from outside the prefix");
   const failed = run.requests.filter((r) => r.status >= 400);
   assert.deepEqual(failed, [], "and nothing comes back with an error");
-  for (const wanted of ["/dist/pages/app.js", "/dist/octoweb.wasm", "/dist/src/worklet.js", "/contracts/controls.json", "/contracts/design.tokens.json", "/layout/panel.layout.json", "/dist/tokens.css"]) {
+  // The worklet's own module is fetched from the audio thread, which the page's response events do not see; P11-4 hears it play.
+  for (const wanted of ["/dist/pages/app.js", "/dist/octoweb.wasm", "/contracts/controls.json", "/contracts/design.tokens.json", "/layout/panel.layout.json", "/dist/tokens.css", "/pages/app.css", "/pages/fonts/inter-latin-wght-normal.woff2"]) {
     assert.ok(run.requests.some((r) => r.url === `${server.url}${PREFIX}${wanted}`), `${wanted} was loaded from the site`);
   }
   await run.page.close();

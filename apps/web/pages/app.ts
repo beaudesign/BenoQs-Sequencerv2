@@ -22,6 +22,13 @@ import { bindStrip } from "../src/strip.ts";
 import { parseTokens } from "../src/tokens.ts";
 import { wireMidi } from "../src/wire.ts";
 
+/**
+ * Where a file is, found from this module (dist/pages/app.js) and not from the root of the address, so the page runs from wherever it is served:
+ * the root of a local server, or under the prefix of a project site such as https://<owner>.github.io/<repo>/ (SPEC-0002 P11). The page's own
+ * links in app.html are relative for the same reason. The layout they rely on is the one scripts/serve.ts and scripts/site.ts both make.
+ */
+const at = (path: string): string => new URL(path, import.meta.url).href;
+
 async function json(path: string): Promise<unknown> {
   const r = await fetch(path);
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
@@ -41,9 +48,9 @@ async function main(): Promise<void> {
   const setState = (s: EngineState): void => void main.setAttribute("data-engine", s);
 
   const [controls, tokensJson, layoutJson] = await Promise.all([
-    json("/contracts/controls.json") as Promise<ControlsDoc>,
-    json("/contracts/design.tokens.json"),
-    json("/layout/panel.layout.json"),
+    json(at("../../contracts/controls.json")) as Promise<ControlsDoc>,
+    json(at("../../contracts/design.tokens.json")),
+    json(at("../../layout/panel.layout.json")),
   ]);
   const tokens = parseTokens(tokensJson);
   const geometry = place(parseLayout(layoutJson, controls), controls, tokens);
@@ -236,9 +243,9 @@ async function main(): Promise<void> {
     setState("starting");
     strip.say("Starting.");
     try {
-      const wasm = await (await fetch("/dist/octoweb.wasm")).arrayBuffer();
+      const wasm = await (await fetch(at("../octoweb.wasm"))).arrayBuffer();
       // A fixed seed: the same session plays the same way until Save and Load exist.
-      const started = await Host.start({ wasm, layout: layoutFromControls(controls), workletUrl: "/dist/src/worklet.js", seed: 0n });
+      const started = await Host.start({ wasm, layout: layoutFromControls(controls), workletUrl: at("../src/worklet.js"), seed: 0n });
       host = started;
       if (metronomeOn) started.setMetronome(true);
       const time = new ContextTimeMap(started.context, performance);

@@ -1,0 +1,71 @@
+# Publishes the web app to GitHub Pages (SPEC-0002 P11): on every push to main, and by hand from the Actions tab.
+#
+# The site is the folder apps/web/scripts/site.ts assembles: the page, the files it loads, a font and its licence, and an index that
+# opens it. Nothing else of the repository is published. The page finds its files from where it is, so a project site's address
+# (https://<owner>.github.io/<repo>/) is enough; apps/web/test/browser/published.browser.test.ts runs that folder under such a prefix.
+#
+# The owner switches it on once: Settings, Pages, Source: GitHub Actions. Until then the deploy job fails and nothing else does;
+# when it is on, re-run the failed job or use "Run workflow". The run prints the address.
+#
+# Only the deploy job may publish. The build job runs the repository's own code with read access and nothing more.
+# Owned by the Referee (CI). Changing this file is medium tier (AGENTS.md).
+
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time, and a deploy that has started is allowed to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install Rust with the wasm target
+        run: |
+          rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+          rustup default stable
+      - name: Build the octoweb module (the shipped build)
+        run: |
+          mkdir -p apps/web/dist
+          cargo build --release -p octoweb --target wasm32-unknown-unknown --no-default-features
+          cp target/wasm32-unknown-unknown/release/octoweb.wasm apps/web/dist/octoweb.wasm
+      - name: Build the page and assemble the site
+        working-directory: apps/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/site.ts "$RUNNER_TEMP/site"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,10 +1,14 @@
-# ADR 0013: The page's sound is a feature, and its voices stay in TypeScript
+# ADR 0014: The page's sound is a feature, and its voices stay in TypeScript
 
 ## Status
 
 Proposed on 2026-10-17 by the Conductor. It takes effect when the owner merges the pull request that carries it, as ADR-0010 and ADR-0012 did. If the owner closes it, the monitor stays as it is today: a plain tone that is "not the instrument's voice", and S0 of SPEC-0004 is withdrawn.
 
 It records decisions D1, D12, D13 and D14 of SPEC-0004 r1 (`WENGE-0030`). The owner answered that spec on Sat 2026-10-17 at 14:46 London in chat: "Okay build". How that was read, and how far it reaches, is in the spec's approval record. This ADR changes no file other than itself and the spec's approval record; the code is the Forge's, in its own pull request (`WENGE-0032`).
+
+## Number
+
+This ADR was first drafted as 0013. The owner's engineering spec for the shape player (pull request #71, `handoffs/eng-spec-shape-player-and-complex-voice-v2.md`, section 3.2 and its question QG3) reserves **0013** for "non-manual pattern styles live in `octostyle`", and says the sound ADR takes the next free number even if it is written first. So this is **0014**. Nothing in the decision changes. If the owner answers QG3 the other way, the two numbers swap and nothing else moves. (The frozen copy of the monitor in pull request #73 still says 0013 in its header comment, because that file is pinned byte for byte.)
 
 ## Context
 

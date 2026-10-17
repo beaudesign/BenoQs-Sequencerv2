@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0004 |
-| Revision | r1.1, 2026-10-17 (r0 is `12c7938`, r1 is `c079f8f`; what each changed is in section 12) |
-| Stage | **S0 approved by the owner to build (section 11); S1 onward not.** This pull request records that and adds ADR-0013 and a journal entry; it changes no code, contract, fixture or threshold. S0's code is its own pull request (Forge) |
+| Revision | r1.2, 2026-10-17 (r0 is `12c7938`, r1 is `c079f8f`; what each changed is in section 12) |
+| Stage | **S0 approved by the owner to build (section 11); S1 onward not.** This pull request records that and adds ADR-0014 and a journal entry; it changes no code, contract, fixture or threshold. S0's code is its own pull request (Forge) |
 | Risk tier | **Low** for this pull request (`specs/`, `journal/`). Every slice it plans is **Medium** (`apps/web/`, Forge); none touches `contracts/`, the engine or the ABI |
 | Owner and approver | `@beaudesign` |
 | Task | `WENGE-0030` (the spec); `WENGE-0032` (S0, `handoffs/WENGE-0032.ndjson`) |
@@ -79,7 +79,7 @@ events, the ABI and Web MIDI are untouched.
 
 | Slice | Content | Tier |
 |---|---|---|
-| **S0** | A `Voice` interface; the current tone moved behind it as **Plain**, sample for sample; a test rig that measures spectrum, pitch, response and cost; an offline renderer that writes a WAV of any voice playing the demo (so the owner can listen on a phone). ADR-0013 records D1, D12, D13 and D14 | Medium |
+| **S0** | A `Voice` interface; the current tone moved behind it as **Plain**, sample for sample; a test rig that measures spectrum, pitch, response and cost; an offline renderer that writes a WAV of any voice playing the demo (so the owner can listen on a phone). ADR-0014 records D1, D12, D13 and D14 | Medium |
 | **S1** | The oscillator: saw, pulse and triangle with a shape morph, a sub oscillator, hard sync, seeded drift | Medium |
 | **S2** | The filters: state-variable (low-pass to notch to high-pass), 4-pole ladder, Sallen-Key, each with a saturating loop and key follow | Medium |
 | **S3** | The first voices and the `Voice` button in the strip: **Saw ladder** (mono, bass and lead) and **Pulse morph** (pad, chords). The default sound becomes Saw ladder | Medium |
@@ -220,11 +220,11 @@ not approvals either.)
 | Item | What is approved | What is not |
 |---|---|---|
 | This spec as the plan | Yes, as the plan for the page's sound, with the defaults D1 to D14 | |
-| **S0** (`WENGE-0032`) | **Yes, build it:** the `Voice` interface, `Plain` sample for sample, the registry and H-16, the test rig, the offline WAV renderer, ADR-0013 | |
+| **S0** (`WENGE-0032`) | **Yes, build it:** the `Voice` interface, `Plain` sample for sample, the registry and H-16, the test rig, the offline WAV renderer, ADR-0014 | |
 | S1 to S6 | | **No.** The next question is the owner's, after listening to S0's WAVs: Q-S4-1 (which character first). S1 to S4 are cut only after it |
 | S7 Complex | | **No.** It waits for the engineering spec (Q-S4-4) and the owner's approval of its observables |
 | The shape player (a new crate, High tier) | | **No.** Not in this spec; it needs its own spec and the owner's approval |
-| ADR-0013 | | It takes effect when the owner merges the pull request that carries it, and not before |
+| ADR-0014 | | It takes effect when the owner merges the pull request that carries it, and not before |
 
 Merging is the owner's act; the agent merges nothing. A merge is not an approval: approval is the owner's own words,
 written here with the date.
@@ -235,4 +235,5 @@ written here with the date.
 |---|---|---|
 | r0 | 2026-10-16 | The spec: ask, benny survey and licence, slices S0 to S6, observables H-1 to H-15, decisions D1 to D11, questions Q-S4-1 to Q-S4-3 (`12c7938`, #66) |
 | r1 | 2026-10-17 (`c079f8f`, #69) | The overlap with the Verbos-model voice is settled by the owner's reply to option 1 of the addendum: slice **S7 Complex** (one voice, no second voice system); observable **H-16** (the registry test, so no voice skips the tests); decisions **D12** (fold in), **D13** (no Rust voice core, a trade made on purpose), **D14** (polyphony 24 and 8, oversampling per D7, default per D2); questions **Q-S4-4** (send the engineering spec) and **Q-S4-5** (bit-exact builds); two risks; the base moves to `efe79b9`. The engineering spec was not attached, so rows H-17 onward are deliberately not written yet. Nothing in S0 to S6 changes |
-| r1.1 | 2026-10-17 | The owner's "Okay build" is recorded as approval of S0 only (section 11); H-9 is clarified so a voice declares whether velocity brightens it and the test checks the declaration both ways (`Plain` declares no); the Stage and Task rows say so; ADR-0013 is named in S0. Nothing else changes |
+| r1.1 | 2026-10-17 | The owner's "Okay build" is recorded as approval of S0 only (section 11); H-9 is clarified so a voice declares whether velocity brightens it and the test checks the declaration both ways (`Plain` declares no); the Stage and Task rows say so; ADR-0014 is named in S0. Nothing else changes |
+| r1.2 | 2026-10-17 | The ADR is numbered **0014**, not 0013: the owner's engineering spec (#71, section 3.2, QG3) reserves 0013 for the shape player's pattern styles and says the sound ADR takes the next free number. Every mention of the ADR in this file changes from 0013 to 0014; no decision, observable, threshold or approval changes |

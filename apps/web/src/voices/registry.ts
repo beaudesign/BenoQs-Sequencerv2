@@ -1,4 +1,4 @@
-// The voices the page can play with (SPEC-0004, ADR-0013). A voice that is not in this list cannot be chosen, and every voice in it is
+// The voices the page can play with (SPEC-0004, ADR-0014). A voice that is not in this list cannot be chosen, and every voice in it is
 // held to the voice-wide observables by one test (`test/voice-registry.test.ts`, H-16) with no edit to the test.
 import { PLAIN } from "./plain.ts";
 import type { Voice } from "./voice.ts";

@@ -89,7 +89,8 @@ test("rig, H-11: a voice that uses Math.random fails the determinism check, and 
 });
 
 test("rig, H-13: the cost check measures a real ratio, and fails when the bound is made too small", () => {
-  const ok = checkCost(PLAIN, { seconds: 1, runs: 1 });
+  // This test is about the measurement, not about Plain: a generous bound, so a busy machine cannot fail it. The registry test is what holds Plain to the 25 percent.
+  const ok = checkCost(PLAIN, { seconds: 1, runs: 1, bound: 1 });
   assert.ok(ok.ratio > 0 && Number.isFinite(ok.ratio));
   assert.deepEqual(ok.problems, []);
   assert.match(checkCost(PLAIN, { seconds: 0.5, runs: 1, bound: 1e-9 }).problems[0]!, /of real time/);

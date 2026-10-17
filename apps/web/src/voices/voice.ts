@@ -1,4 +1,4 @@
-// A voice: a sound the page can play a pitched note with (SPEC-0004, ADR-0013). The monitor owns the slots and the engine's notes;
+// A voice: a sound the page can play a pitched note with (SPEC-0004, ADR-0014). The monitor owns the slots and the engine's notes;
 // a voice owns only how one note sounds. Runs in the AudioWorkletGlobalScope, in the same place and under the same rules as the
 // monitor: no allocation per sample, no `Math.random`, nothing that differs between two runs.
 

@@ -126,14 +126,14 @@ export function checkDeterministic(voice: Voice): string[] {
   return problems;
 }
 
-/** H-13, the time half: 24 notes of the voice render `seconds` of audio in under `bound` of real time, measured in this process's CPU time. Best of `runs`, so one slow moment does not fail it. */
+/** H-13, the time half: 24 notes of the voice render `seconds` of audio in under `bound` of real time, measured in this process's CPU time. Best of `runs` (three), so one slow moment on a busy machine does not fail it; the bound is not what gives. */
 export function checkCost(voice: Voice, options: { seconds?: number; notes?: number; bound?: number; runs?: number } = {}): { problems: string[]; ratio: number } {
   const seconds = options.seconds ?? 10;
   const count = options.notes ?? 24;
   const bound = options.bound ?? COST_BOUND;
   const frames = Math.floor(seconds * RATE);
   let best = Infinity;
-  for (let r = 0; r < (options.runs ?? 2); r++) {
+  for (let r = 0; r < (options.runs ?? 3); r++) {
     const notes: VoiceNote[] = Array.from({ length: count }, (_, i) => {
       const n = voice.create(RATE);
       n.start(36 + 2 * i, 100);

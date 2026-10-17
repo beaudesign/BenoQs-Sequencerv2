@@ -3,7 +3,7 @@
 // own notes in its output: a pitched voice for a note and a one-shot for each of three drums on MIDI channel 10 (kick, clap and hat). The drums can be switched off (`drums`).
 //
 // It is audio and not MIDI: it reads the events the engine made for this block, changes none of them, and keeps nothing the engine can see.
-// The page's sound is a feature (SPEC-0004, ADR-0013): the pitched voice is one of the voices in `voices/registry.ts` (`voice`), and `Plain`,
+// The page's sound is a feature (SPEC-0004, ADR-0014): the pitched voice is one of the voices in `voices/registry.ts` (`voice`), and `Plain`,
 // the sine and two harmonics the page began with, is the one it has until the owner says otherwise. The drums (noise and a falling sine) are
 // not voices and are unchanged. This file owns the slots, the drums and the mix; a voice owns how one note sounds.
 // Runs in the AudioWorkletGlobalScope: no allocation per sample, no `Math.random`, nothing that differs between two runs.

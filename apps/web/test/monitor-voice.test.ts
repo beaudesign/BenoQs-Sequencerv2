@@ -1,4 +1,4 @@
-// The monitor and its voice (SPEC-0004 S0, ADR-0013): the voice is chosen from the registry, has its own cap on notes, is
+// The monitor and its voice (SPEC-0004 S0, ADR-0014): the voice is chosen from the registry, has its own cap on notes, is
 // swapped without disturbing the drums, and the monitor never changes the events it is given (H-12: audio, never MIDI).
 import assert from "node:assert/strict";
 import { test } from "node:test";

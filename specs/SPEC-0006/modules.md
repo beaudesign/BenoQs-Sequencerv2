@@ -7,7 +7,7 @@ unconfirmed. This file states **functions and numbers**, in our own words. It co
 How to read a sheet:
 
 - **Working name** is what our version is called in the page. It is original, descriptive and changeable (decision D2). The maker's name appears
-  in this folder and nowhere in `apps/`, `crates/` or anything the page shows.
+  in documents and nowhere in `apps/`, `crates/` or anything the page shows.
 - **Documented** is what a source states, with the source key from the end of this file. **Testable** is the part a test can pin.
   **Not published** is what no source gives; for those the first green run sets a number (marked "from the first measurement" in the README's
   observables) and the owner's ear decides the rest. A maker not publishing a thing is a finding, not a gap to fill by guessing quietly.
@@ -83,7 +83,7 @@ The owner's second named oscillator.
 - **Follow** sets how closely A tracks B's pitch CV; less than full lags, giving a transient detune.
 - FM bus: an internal sine runs both ways between A and B, with an index, per-destination attenuators and both linear and exponential FM for each. Patching a jack cuts
   the internal route. Past about 5 o'clock on index with attenuators over about 80 percent the bus overdrives.
-- Timbre on B, fed by A's sine unless an external source is patched: **Shape** morphs sine, spike and a "glitched" triangle, with amplitude modulation and a phase
+- Timbre on B: B's own wave goes through the shaper and the fold. A's sine is the default source of the **Mod Bus**, which feeds Shape, Angle and Fold (an external source replaces it). **Shape** morphs sine, spike and a "glitched" triangle, with amplitude modulation and a phase
   reversal around noon; **Angle** tilts the signal into the fold; **Fold** acts as a plain VCA over roughly its first 30 percent, then folds, adding low harmonics. A **Strike**
   gate of 8 to 10 V briefly opens the fold fully. Maker states the gain cells are vactrols (slow, organic response) and that the routing is in the 259 style, with a fold
   like the 259 and Music Easel timbre circuits.
@@ -135,7 +135,7 @@ The buses are exact. Time constants are in seconds, so a test can state them.
 - The maker describes the response as "moderate attack, slow decay", a mild non-resonant lowpass, unsuited to clicks. Damp runs from long ringing to short and muted. A higher control voltage raises level and brightness together, with the lows rising first. Signals up to 10 Vpp.
 - Generic vactrol figures, **not** the maker's: a common part's datasheet gives about 2.5 ms to turn on and 35 ms to turn off [VT-D]; a 2023 paper gives attack from tens of microseconds to a few milliseconds, release up to hundreds, and attack shortening as the light increases [VT-P]. The maker does not name its part.
 
-**Testable.** An 8 V Strike gives a quick rise then a slow decay; a longer Damp gives a longer decay; level and brightness fall together (the SPEC-0004 H-10 method, from the Parker and D'Angelo model); with nothing at Signal in, Strike gives a positive enveloped output; a closed gate leaks a little and Damp reduces it; Sum out is exactly channel 1 plus channel 2 plus Aux. Shapes and orderings are tested, not exact times.
+**Testable.** An 8 V Strike gives a quick rise then a slow decay; more Damp gives a shorter, more muted decay (the manual says increasing Damp is like muting a drum head, until there is almost no ringing); level and brightness fall together (the SPEC-0004 H-10 method, from the Parker and D'Angelo model); with nothing at Signal in, Strike gives a positive enveloped output; a closed gate leaks a little and Damp reduces it; Sum out is exactly channel 1 plus channel 2 plus Aux. Shapes and orderings are tested, not exact times.
 
 **Not published.** Attack and decay times, the Damp law, mix gains, the Strike threshold, the vactrol part. A forum thread that might say more was unreadable. The revision 1 manual gives channel 1's input as 18 Vpp and revision 2 as 10 Vpp; the rack's revision is unknown (README Q-S6-6).
 
@@ -176,10 +176,10 @@ The buses are exact. Time constants are in seconds, so a test can state them.
 - Outputs: **Stepped** (0 to 10 V, a new value at each clock edge; at an audio-rate clock with an audio signal in, it acts as a bit reducer), **Smooth** (a lagged stepped), **Woggle** (stepped with decaying-sine edges, chasing the
   stepped value; its knob sets how fast), **Burst** (a random gate synced to the clock, influenced by the stepped, smooth and woggle settings), **Smooth VCO** (a "shark-fin" wave, 10 Vpp), **Woggle VCO** (square, 10 Vpp), **Ring-mod** (a pulse wave, 10 Vpp), **Clock out**.
 - Controls: **Speed/Chaos** (internal clock from one cycle a minute to about 40 Hz, about 200 Hz with the speed CV attenuator opened; also sets the lag rate), **Ego/Id balance** (how clustered the random values are, or a balance of an outside signal against the internal source),
-  **Influence** (0 to 10 V, modulates both oscillators), **Disturb** (a press forces a sample; hold freezes), and an external clock input.
+  **Influence** (0 to 10 V, modulates both oscillators), **Disturb** (a press forces a sample; hold keeps the sample-and-hold value), and an external clock input.
 - Lineage stated by the maker: a tribute to a Buchla random source; internal blocks are a clock, sample-and-hold, two lag processors, a burst generator, two oscillators and a ring mod [WB-M]. Whether the lag uses vactrols is only stated in secondary press [WB-S].
 
-**Testable.** Stepped changes only on clock edges; Smooth always lies between old and new stepped values and approaches the new one; Woggle rings and decays; Disturb hold freezes every output and Disturb press forces a new value; the clock range; a seeded run repeats exactly.
+**Testable.** Stepped changes only on clock edges; Smooth always lies between old and new stepped values and approaches the new one; Woggle rings and decays; Disturb press forces a new sample and hold keeps the sample-and-hold value; the clock range; a seeded run repeats exactly.
 
 **Not published.** The noise source and its distribution, the burst rule, the lag and ring-mod circuits. The panel and manual label an input differently ("Heart" on the product page, "Ego" in the manual).
 
@@ -222,7 +222,7 @@ Most of its value is in feeding Index and Chance; a smaller first version (K3) d
 - **ER-102** (optional, 14 HP): up to 99 CV-selectable *parts* per snapshot, each storing a reset step and loop section per track, with a transition setting; up to 16 *groups* of steps (including Euclidean masks) with transforms keyed to three gates and a three-input modulation matrix added after the table lookup;
   recording from CV and gate; MIDI file import (channels mapped to tracks 1 to 4) [ER102-M].
 
-**Testable.** All of the above is pulses and numbers. Divide by 3 passes pulses 1, 4, 7. A multiplier by 4 emits four evenly spaced pulses per period. DURATION 8 with GATE 2 and ratchet fires twice. GATE 0 is silent, DURATION 0 costs no clock time (to be confirmed) and skips. A reset returns to step 1. Loop points loop.
+**Testable.** All of the above is pulses and numbers. Divide by 3 passes pulses 1, 4, 7. A multiplier by 4 emits four evenly spaced pulses per period. DURATION 8 with GATE 2 and ratchet fires twice. GATE 0 is silent and DURATION 0 skips the step (the manual: a new step starts at 0 and is skipped). Whether a skipped step takes any clock time is not stated, so no test claims it. A reset returns to step 1. Loop points loop.
 Smoothing starts at the gate fall and ends at the step end. 12-tone table index 12 is exactly one volt above index 0. Output range is 0 to 8.192 V with a step of 8.192/16383 V.
 
 **Not published or inconsistent.** What ratchet does when DURATION is not a multiple of twice GATE; what smoothing does when GATE is at least DURATION; the multiplier's maximum rate; whether a DURATION 0 step costs time. The manual gives CV resolution as 2 mV in one place and 1 mV in another (14 bits over 8.192 V is about 0.5 mV) and latency as 0.333 ms and 0.35 ms. The ER-102 manual is v2.04 while the maker's changelog goes to v2.24: features after the manual are undocumented.
@@ -248,7 +248,7 @@ The editor is its own slice (K4b) because it needs a grid view of up to 100 step
 
 **Our approach, and one deliberate extension.** The Octopus plays chords of up to seven notes per step, and a mono bridge cannot. The module ships as the hardware does (mono, the four assignment modes, reference 36, channel select) and adds an optional **poly** mode with up to four note outputs, assigned oldest first as the page's monitor already does (decision D7).
 It reads the events the monitor already reads. It cannot send MIDI and changes nothing in the engine. Because the page is software, an "extended range" option lifts the 5-volt span; it is off by default so the tests of the table can be exact.
-Notes also provides run, stop and clock pulses from the engine's realtime events, which in hardware come from a sister module.
+Run, stop and clock pulses come from the kit's Clock (README section 4.1), which is built from the engine's tick position and run state, not from its MIDI clock; in hardware they come from a sister module.
 
 ## 11. String (2hp Pluck), Pitch echo (Make Noise Echophon), Space (Make Noise Erbe-Verb)
 
@@ -257,14 +257,14 @@ Notes also provides run, stop and clock pulses from the engine's realtime events
 **Role.** A plucked string: a trigger and a pitch make a note whose body decays like a real string. It is the rack's only physical-model voice.
 
 **Documented** [PL-M]
-- Two HP, **four voices**, an algorithm the maker states as Karplus-Strong. Inputs: Trig (a trigger starts a new note with the knobs as they are; the oldest of the four voices is replaced), V/Oct plus a Pitch knob (the newest note follows pitch live, older notes keep theirs, allowing vibrato and slides), **Damp** (knob plus plus or minus 5 V; sets string "size" independent of pitch; the left end damps the most harmonics) and **Decay** (knob plus plus or minus 5 V; from percussive to near infinite). Damp and Decay affect new notes only. Output 10 Vpp.
+- Two HP, **four voices**, an algorithm the maker states as Karplus-Strong. Inputs: Trig (a trigger starts a new note with the knobs as they are; the oldest of the four voices is replaced), V/Oct plus a Pitch knob (the newest note follows pitch live, the manual says the pitch control stays live for the most recently generated note, which allows vibrato and slides; it does not say what older notes do), **Damp** (knob plus plus or minus 5 V; sets string "size" independent of pitch; the left end damps the most harmonics) and **Decay** (knob plus plus or minus 5 V; from percussive to near infinite). Damp and Decay affect new notes only. Output 10 Vpp.
 - The maker claims accurate 1 V per octave over five octaves.
 
-**Testable.** The fifth trigger steals the oldest voice; older notes keep their pitch while the newest follows V/Oct; pitch within 2 cents over five octaves; changing Damp or Decay mid-note leaves the sounding note unchanged; decay time rises with Decay; a longer string (more Damp) is darker.
+**Testable.** The fifth trigger steals the oldest voice; the newest note follows V/Oct live (what older notes do is not stated); pitch within 2 cents over five octaves; changing Damp or Decay mid-note leaves the sounding note unchanged; decay time rises with Decay; Damp right (a larger string) has more harmonic content than Damp left, which the manual says damps the most harmonics.
 
 **Not published.** The lowest and highest note, tuning error, trigger threshold, chip and firmware, the excitation (a noise burst or otherwise), the decay law and the damping filter. A review says it squeaks at the top of its range (anecdotal).
 
-**Our approach.** The extended Karplus-Strong string of the open literature (Jaffe and Smith): a noise or short-burst excitation from a seeded stream, a delay line with a fractional-delay tuning allpass, and a damping filter in the loop, four voices, oldest stolen. The tuning is held to the same 2-cent bound as every other pitch (K-1), which is tighter than the maker's own claim.
+**Our approach.** The extended Karplus-Strong string of the open literature (Jaffe and Smith): a noise or short-burst excitation from a seeded stream, a delay line with a fractional-delay tuning allpass, and a damping filter in the loop, four voices, oldest stolen. The tuning is held to the same 2-cent bound as every other pitch (K-1).
 
 ### 11b. Pitch echo (Make Noise Echophon, 20 HP)
 
@@ -336,4 +336,4 @@ The CV bus case is the page's `Rack`: the place that holds the modules, powers t
 
 MG ModularGrid rack and module pages (database, lowest trust) | SA 2018 article on the live setup (press) | SOS-I 2017 interview (press) | VH-M, VH-B, VH-R, VH-F Verbos Harmonic Oscillator: maker, designer's blog, retailers, forums |
 DPO-M, MA-M, WB-M, WB-S, EP-M, EP-P, EV-M, EV-P, TP-M Make Noise manuals, product pages, press | A135-M, A105-M, A140-M, A147-M Doepfer manuals | ER101-M, ER102-M Orthogonal Devices manuals and changelog |
-OCT-M the Octopus manual v0.9 | SPR an essay on the rotating-head pitch changer
+OCT-M the Octopus manual v0.9 | SPR an essay on the rotating-head pitch changer | OM-M, OM-P Optomix revision 2 manual, product page and press | VT-D, VT-P generic vactrol datasheet and the 2023 DAFx paper | PW-M Pamela's NEW Workout manual | PL-M Pluck manual and page | A190-M, A190-2-M Doepfer A-190-3 page and A-190-2 manual

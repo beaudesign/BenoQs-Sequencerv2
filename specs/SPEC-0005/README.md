@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0005 |
-| Revision | r1.1, 2026-10-17. r0 (merged 2026-10-16, #67) picked a different benny block, Drift. The owner's reply of 2026-10-17 11:44 named the block, so r1 changes the pick and keeps Drift as a runner-up. r1.1 records the owner's go-ahead (section 14) |
+| Revision | r1.2, 2026-10-17. r0 (merged 2026-10-16, #67) picked a different benny block, Drift. The owner's reply of 2026-10-17 11:44 named the block, so r1 changes the pick and keeps Drift as a runner-up. r1.1 records the owner's go-ahead (section 14). r1.2 states what an independent review of S0 to S2 found (section 14) |
 | Stage | **S0 to S2 approved to build (section 14); S3 and S4 not.** This pull request amends the spec and adds journal entries. It changes no code, contract, fixture or threshold. The slices are their own pull requests (`WENGE-0033` Metronome: S0 and S1; `WENGE-0034` Forge: S2) |
 | Risk tier | **Low** for this pull request (`specs/`, `journal/`). The slices are **Medium** under D3's default (a web-only extension: `crates/octocore`, `apps/web/engine`, `apps/web/`) and **High** if the owner picks the frozen FFI (`crates/octoffi/`, `contracts/`) |
 | Owner and approver | `@beaudesign` |
@@ -148,13 +148,13 @@ loss today.
 | CV-1 | **Off is the Octopus.** With every track on `Manual`, the events of every conformance fixture, and of a new golden over strum levels minus 9 to 9, chord sizes 1 to 7 and 200 seeds, are byte for byte what `main` makes. The 569 assertions and the baseline do not move | `conformance`, a golden test |
 | CV-2 | **The span is kept.** For every level 1 to 9, size 2 to 7 and warp, note 1 starts at 0, note `n` at `strum_offset_ticks(level, n)`, and the starts never decrease | `octocore/tests/curve.rs` |
 | CV-3 | **Warp 0 is even.** The gaps between notes differ by at most one tick | `curve.rs` |
-| CV-4 | **The sign means what it says, and is symmetric.** Warp below 0 gives gaps that never grow; above 0 gaps that never shrink; the gaps of warp `-w`, read backwards, equal those of `w` within one tick | `curve.rs` |
+| CV-4 | **The sign means what it says, and is symmetric.** Warp below 0 gives gaps that never grow by more than one tick; above 0 gaps that never shrink by more than one tick; the gaps of warp `-w`, read backwards, equal those of `w` within one tick. (Rounding to whole ticks makes 18 of the 270 table cells swap two neighbouring gaps by one tick against the sign, for example Accel at level 6 with seven notes has gaps 8, 6, 4, 2, 3, 1. r1 said "never"; the engine and its test were always "within one tick".) | `curve.rs` |
 | CV-5 | **Only the starts move.** For any step, the set of (pitch, velocity, length, channel, port) is identical with Curve and with Manual; a negative strum level still reverses the order; level 0 is no roll in every style | `curve.rs` |
 | CV-6 | **The ratchet.** A single note with level above 0 is scheduled 7 times, first at 0, and the gaps follow CV-4 | `curve.rs` |
 | CV-7 | **No randomness.** The engine's random stream (shuffle, a random direction, groove, chord picks) is identical with Curve on and off | `curve.rs` |
 | CV-8 | **Within the lookahead.** Every offset is at most 45 ticks and never negative, and the engine's timing and early-note tests pass with Curve on at level 9 on all ten tracks (the overload scene) | existing timing gates, `curve.rs` |
 | CV-9 | **The table is pinned.** The committed offset table equals what the generator script makes from the formula (half up), so the table cannot drift from this spec and no build computes `exp` | `curve.rs`, a script test |
-| CV-10 | **Settings are bounded.** A warp outside the five stored values, a style that does not exist and a track that does not exist change nothing and return the code the other setters return | `apps/web/engine` tests |
+| CV-10 | **Settings are bounded.** With the style Curve, a warp outside the five stored values, a style that does not exist and a track that does not exist change nothing and return the code the other setters return. With the style Manual the warp is ignored. A number that is not an integer reaches the export as the integer JavaScript makes of it (`NaN` is 0, 2^32 is 0), so only a page that sends the presets is held to this; the page does | `apps/web/engine` tests |
 | CV-11 | **The page.** The button reaches the worklet; for a chord track at strum 9 the notes sent to a MIDI output start at the offsets of CV-2 for each preset, and the monitor plays them | `curve.browser.test.ts` |
 | CV-12 | **The strip keeps its rules.** The button uses the existing raised and pressed tones and tokens and adds no colour, gradient, shadow or easing | `app_source_rules.rs`, `app-css.test.ts` |
 | CV-13 | **Not in the way.** The engine's soak and overload scenes are no slower with Curve off, and the render path allocates nothing | existing soak gates |
@@ -208,6 +208,20 @@ already writes, to look at and play on a phone.
   table already allows it at high levels, and Curve never exceeds it.
 - **The strip grows.** One more button on a strip that is already full on a phone. The strip's own tests are the gate.
 - **Taste.** The numbers show the curve is what it says; whether Bounce is musical is Q-S5-4.
+- **The button is silent on the page as it stands.** The panel writes only Active, Skip, Velocity, Pitch, Length and Start; the
+  page has no way to enter a chord or a strum, and the demo has none, so Off, Accel, Bounce and Rit give the same 242 events and
+  the same hash there. The style is heard on patterns that carry strums (the octorun patterns and the capture). A way to strum
+  on the page is a panel change and is not in S0 to S2 (S3 and S4 are not approved); it is the owner's call.
+- **Steep curves put notes on one tick.** On a whole-tick grid, Bounce and Drag put two notes on the same tick in 30 of the 45
+  (level, size 3 to 7) rows, against 9 for Manual; the last notes of a Bounce roll arrive together (level 6, seven notes: starts
+  0, 12, 18, 21, 23, 24, 24). That is the curve, not a defect; the capture lets the owner hear it.
+- **The queue is a little tighter.** Seven-note chords at strum 9 on every step of all ten tracks at 2 times speed and 120 BPM:
+  Manual peaks at 920 of 1024 slots and refuses nothing; Bounce reaches 1024 and refuses whole notes (1,975 in 10 seconds,
+  17,245 at 999 BPM), because a curve bunches notes into the lookahead. The refusal is the queue's own whole-note rule. CV-8's
+  scenes cover 1 times (650 of 1024) and a 4 times overload; this one is outside them.
+- **A chain plays in its head's style.** A chained track is driven by its head, which owns the cursor, so a style set on a
+  member does nothing. The page sets all ten tracks alike, so it makes no difference there. Pinned by
+  `a_chain_plays_in_its_heads_style`.
 
 ## 11. Not done
 
@@ -240,6 +254,7 @@ requested), a bent step clock (D8), and any other benny block.
 - r0, 2026-10-16: Drift. Merged as #67 by the owner. Not an approval.
 - r1, 2026-10-17: Curve, after the owner's reply. Pull request #68.
 - r1.1, 2026-10-17: the approval record below, and the task ids for the slices. Nothing else changes.
+- r1.2, 2026-10-17: after an independent review of S0 to S2 (tests, mutation and a re-derivation of the table: no engine defect, Manual byte for byte). CV-4 and CV-10 now say what the code and tests always did, and section 10 records what the review found: the button is silent on the page as it stands, steep curves put notes on one tick, the queue is tighter, and a chain plays in its head's style. Three engine tests were added (`WENGE-0036`: the roll for the notes that sound, a style per track, a chain's head). No approval changes.
 
 **r1.1, 2026-10-17, 14:50 (Europe/London).** While the agent was building SPEC-0004's first slice (the owner's "Okay build"
 at 14:46), the owner wrote **"Let's build r1 - Benny's curved time as well"**. The words are the owner's own, they name

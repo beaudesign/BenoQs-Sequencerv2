@@ -25,6 +25,11 @@
 //! track T grv V                 groove 0..16 (even values draw a random delay per even step)
 //! track T mcc none|bend|pressure|cc N   what the track's step MCC values send
 //! track T step S|all attr V     as before; `len` (ticks), `lenmul` and `mcc` are new
+//! track T step S|all chord P O1 [O2 .. O6]
+//!                               a chord (DSL v4, SPEC-0005 r1): polyphony P (1..=16) and one to six
+//!                               semitone offsets above the step's pitch, which is always a member
+//! track T chordstyle manual     how the track spaces a roll (DSL v4): the manual's table, the default
+//! track T chordstyle curve W    the same span, the notes along a curve; W is one of -1, -0.5, 0, 0.5, 1
 //! ```
 //!
 //! `val` matches the CC value, the pressure value, or the 14-bit bend value (8192 is centre).
@@ -32,6 +37,7 @@
 //! `count=lo..hi` a range. Without `count=`, an `expect event` line passes if at least one
 //! event matches; `absent` means none.
 
+use crate::curve::{ChordStyle, Warp};
 use crate::domain::*;
 use crate::engine::{Diagnostics, Engine, EventBuffer, NoteFire, RenderContext};
 use crate::types::{Command, Event};
@@ -201,7 +207,7 @@ pub fn run_fixture(source: &str) -> Result<(), String> {
     run_script(source, Limits::NONE).map(|_| ())
 }
 
-/// Runs a script (the fixture DSL, v1 to v3) and returns what it rendered.
+/// Runs a script (the fixture DSL, v1 to v4) and returns what it rendered.
 pub fn run_script(source: &str, limits: Limits) -> Result<Played, String> {
     let mut engine = Engine::new(0);
     let mut all: Vec<(u64, Event)> = Vec::new();
@@ -246,6 +252,52 @@ pub fn run_script(source: &str, limits: Limits) -> Result<Played, String> {
                 };
                 track.is_feeder = feeder;
                 track.is_listener = listener;
+            }
+            ["track", t, "step", s, "chord", poly, offsets @ ..] => {
+                let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
+                if ti >= TRACK_COUNT {
+                    return Err(format!("{}: track index out of range", ctx()));
+                }
+                let range = if *s == "all" {
+                    0..STEP_COUNT
+                } else {
+                    let si: usize = s.parse().map_err(|_| format!("{}: bad step index", ctx()))?;
+                    if si >= STEP_COUNT {
+                        return Err(format!("{}: step index out of range", ctx()));
+                    }
+                    si..si + 1
+                };
+                let poly: u8 = poly.parse().ok().filter(|p| (1..=CHORD_POLYPHONY_MAX as u8).contains(p)).ok_or_else(|| format!("{}: polyphony is 1..={}", ctx(), CHORD_POLYPHONY_MAX))?;
+                if offsets.is_empty() || offsets.len() > CHORD_POOL_MAX {
+                    return Err(format!("{}: a chord has one to {} offsets", ctx(), CHORD_POOL_MAX));
+                }
+                let mut parsed = [0i8; CHORD_POOL_MAX];
+                for (k, o) in offsets.iter().enumerate() {
+                    parsed[k] = o.trim_start_matches('+').parse().map_err(|_| format!("{}: bad offset `{}`", ctx(), o))?;
+                }
+                for si in range {
+                    let step = &mut engine.grid.active_page_mut().tracks[ti].steps[si];
+                    step.chord.count = offsets.len() as u8;
+                    step.chord.offsets = parsed;
+                    step.chord.polyphony = poly;
+                }
+            }
+            ["track", t, "chordstyle", kind @ ("manual" | "curve"), rest @ ..] => {
+                let ti: u8 = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;
+                let style = if *kind == "manual" {
+                    if !rest.is_empty() {
+                        return Err(format!("{}: `manual` takes no warp", ctx()));
+                    }
+                    ChordStyle::Manual
+                } else {
+                    let [w] = rest else { return Err(format!("{}: `curve` takes one warp: -1, -0.5, 0, 0.5 or 1", ctx())) };
+                    let tenths = w.trim_start_matches('+').parse::<f64>().ok().map(|v| v * 10.0).filter(|v| (v - v.round()).abs() < 1e-9);
+                    let warp = tenths.and_then(|v| Warp::from_tenths(v.round() as i32)).ok_or_else(|| format!("{}: warp is one of -1, -0.5, 0, 0.5, 1", ctx()))?;
+                    ChordStyle::Curve(warp)
+                };
+                if !engine.set_chord_style(ti, style) {
+                    return Err(format!("{}: track index out of range", ctx()));
+                }
             }
             ["track", t, "step", s, attr, value] => {
                 let ti: usize = t.parse().map_err(|_| format!("{}: bad track index", ctx()))?;

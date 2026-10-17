@@ -3,13 +3,17 @@
 // own notes in its output: a pitched voice for a note and a one-shot for each of three drums on MIDI channel 10 (kick, clap and hat). The drums can be switched off (`drums`).
 //
 // It is audio and not MIDI: it reads the events the engine made for this block, changes none of them, and keeps nothing the engine can see.
-// It is deliberately plain (sine and two harmonics, noise and a falling sine): it makes the sequencer audible and is not the instrument's voice.
+// The page's sound is a feature (SPEC-0004, ADR-0014): the pitched voice is one of the voices in `voices/registry.ts` (`voice`), and `Plain`,
+// the sine and two harmonics the page began with, is the one it has until the owner says otherwise. The drums (noise and a falling sine) are
+// not voices and are unchanged. This file owns the slots, the drums and the mix; a voice owns how one note sounds.
 // Runs in the AudioWorkletGlobalScope: no allocation per sample, no `Math.random`, nothing that differs between two runs.
 import type { MidiEvent } from "./abi.ts";
+import { DEFAULT_VOICE } from "./voices/registry.ts";
+import { SLOT_COUNT, type Voice, type VoiceNote } from "./voices/voice.ts";
 
 /** The channel the drums are on (General MIDI's percussion channel, as the engine numbers channels: 1 to 16). */
 export const DRUM_CHANNEL = 10;
-export const MAX_VOICES = 24;
+export const MAX_VOICES = SLOT_COUNT;
 
 /** A note event as the monitor reads it: the fields of a decoded record that it uses. */
 export type NoteEvent = Pick<MidiEvent, "kind" | "channel" | "d1" | "d2" | "atSample">;
@@ -19,40 +23,38 @@ const NOTE_OFF = 1;
 
 type Shape = "tone" | "kick" | "clap" | "hat";
 
-/** Seconds. A held tone starts in 3 ms, falls to its sustain with a 60 ms time constant, and is let go over 100 ms. */
-const ATTACK = 0.003;
-const DECAY = 0.06;
-const SUSTAIN = 0.6;
-const RELEASE = 0.1;
-/** A note whose Note Off never comes (a dropped message) is let go after this long, so no voice hangs. */
-const LONGEST_HOLD = 10;
 /** How long each drum lasts. The last 20 ms of each is a fade to exactly zero, so a voice ends in silence and not in a step. */
 const KICK_LENGTH = 0.4;
 const CLAP_LENGTH = 0.25;
 const HAT_LENGTH = 0.12;
 const FADE = 0.02;
-const VOICE_GAIN = 0.2;
+/** A drum's level at velocity 127, before the mix. */
+const DRUM_GAIN = 0.2;
 const MASTER = 0.8;
 
-class Voice {
+/** One of the monitor's slots: a pitched note (its sound is `tone`, made by the chosen voice) or a drum hit (its state is the fields below). */
+class Slot {
   live = false;
   shape: Shape = "tone";
   channel = 1;
   note = 0;
   amp = 0;
-  freq = 0;
-  /** Frames since it began. */
+  /** A drum's frames since it began. A pitched note's age is its `tone`'s. */
   age = 0;
-  /** Frames since its Note Off, or -1 while it is held. */
-  released = -1;
   phase = 0;
   /** The noise a drum last drew, for the hat's high-pass. */
   last = 0;
+  tone: VoiceNote;
+
+  constructor(tone: VoiceNote) {
+    this.tone = tone;
+  }
 }
 
 export class Monitor {
-  private readonly voices: Voice[] = Array.from({ length: MAX_VOICES }, () => new Voice());
+  private readonly slots: Slot[];
   private readonly rate: number;
+  private chosen: Voice = DEFAULT_VOICE;
   private enabled = false;
   /**
    * Whether the drums (the notes on `DRUM_CHANNEL`) are played. On until the page says otherwise, and independent of `on`: the sound being switched off and on
@@ -65,6 +67,25 @@ export class Monitor {
 
   constructor(sampleRate: number) {
     this.rate = sampleRate;
+    this.slots = Array.from({ length: MAX_VOICES }, () => new Slot(this.chosen.create(sampleRate)));
+  }
+
+  /** The voice the pitched notes are played with. */
+  get voice(): Voice {
+    return this.chosen;
+  }
+
+  /**
+   * Chooses the voice for the notes that start from now on. A different voice drops every pitched note that is sounding (they do not
+   * carry over: the old voice's state means nothing to the new one); a drum that is sounding finishes as it would have. The same voice again changes nothing.
+   */
+  set voice(next: Voice) {
+    if (next === this.chosen) return;
+    this.chosen = next;
+    for (const slot of this.slots) {
+      slot.tone = next.create(this.rate);
+      if (slot.shape === "tone") slot.live = false;
+    }
   }
 
   /** Off until the page says otherwise. Switching it off drops every note: they do not come back when it is switched on. */
@@ -79,7 +100,7 @@ export class Monitor {
 
   /** Drops every voice at once. Used by a reset; a Stop does not need it, because the engine's Note Offs come out of the next render. */
   clear(): void {
-    for (const v of this.voices) v.live = false;
+    for (const slot of this.slots) slot.live = false;
   }
 
   private noise(): number {
@@ -92,48 +113,53 @@ export class Monitor {
     return (this.seed / 0x80000000) - 1;
   }
 
+  /** A slot's age in frames: the oldest is the one taken. */
+  private ageOf(slot: Slot): number {
+    return slot.shape === "tone" ? slot.tone.age : slot.age;
+  }
+
   private start(channel: number, note: number, velocity: number): void {
-    let slot = this.voices.find((v) => !v.live);
-    if (!slot) slot = this.voices.reduce((oldest, v) => (v.age > oldest.age ? v : oldest)); // the oldest is taken
+    const pitched = channel !== DRUM_CHANNEL;
+    let slot: Slot | undefined;
+    if (pitched) {
+      let sounding = 0;
+      for (const s of this.slots) if (s.live && s.shape === "tone") sounding++;
+      // The voice's own cap: past it, the oldest note of this voice is taken (SPEC-0004 D14). A voice that allows the whole pool never gets here first.
+      if (sounding >= this.chosen.maxNotes) slot = this.slots.filter((s) => s.live && s.shape === "tone").reduce((oldest, s) => (s.tone.age > oldest.tone.age ? s : oldest));
+    }
+    slot ??= this.slots.find((s) => !s.live);
+    slot ??= this.slots.reduce((oldest, s) => (this.ageOf(s) > this.ageOf(oldest) ? s : oldest)); // the oldest is taken
     slot.live = true;
     slot.channel = channel;
     slot.note = note;
-    slot.amp = (Math.max(1, Math.min(127, velocity)) / 127) * VOICE_GAIN;
-    slot.age = 0;
-    slot.released = -1;
-    slot.phase = 0;
-    slot.last = 0;
-    slot.freq = 440 * Math.pow(2, (note - 69) / 12);
-    slot.shape = channel !== DRUM_CHANNEL ? "tone" : note < 38 ? "kick" : note < 42 ? "clap" : "hat";
+    slot.shape = pitched ? "tone" : note < 38 ? "kick" : note < 42 ? "clap" : "hat";
+    if (pitched) {
+      slot.tone.start(note, velocity);
+    } else {
+      slot.amp = (Math.max(1, Math.min(127, velocity)) / 127) * DRUM_GAIN;
+      slot.age = 0;
+      slot.phase = 0;
+      slot.last = 0;
+    }
   }
 
   private stop(channel: number, note: number): void {
-    let target: Voice | null = null;
-    for (const v of this.voices) if (v.live && v.shape === "tone" && v.released < 0 && v.channel === channel && v.note === note && (!target || v.age > target.age)) target = v;
-    if (target) target.released = 0;
+    let target: Slot | null = null;
+    for (const s of this.slots) if (s.live && s.shape === "tone" && s.tone.held && s.channel === channel && s.note === note && (!target || s.tone.age > target.tone.age)) target = s;
+    if (target) target.tone.release();
   }
 
-  /** The voice's next sample, and whether it has more. */
-  private sample(v: Voice): number {
+  /** The slot's next sample, and whether it has more. */
+  private sample(v: Slot): number {
+    if (v.shape === "tone") {
+      const y = v.tone.next();
+      v.live = v.tone.live;
+      return y;
+    }
     const t = v.age / this.rate;
     let y = 0;
     let end = Infinity;
-    if (v.shape === "tone") {
-      if (v.released >= 0) {
-        const r = v.released / this.rate;
-        if (r >= RELEASE) {
-          v.live = false;
-          return 0;
-        }
-        y = this.held(t) * (1 - r / RELEASE);
-        v.released++;
-      } else {
-        y = this.held(t);
-        if (t >= LONGEST_HOLD) v.released = 0;
-      }
-      v.phase += (2 * Math.PI * v.freq) / this.rate;
-      y *= (Math.sin(v.phase) + 0.5 * Math.sin(2 * v.phase) + 0.25 * Math.sin(3 * v.phase)) / 1.75;
-    } else if (v.shape === "kick") {
+    if (v.shape === "kick") {
       end = KICK_LENGTH;
       v.phase += (2 * Math.PI * (45 + 105 * Math.exp(-t / 0.04))) / this.rate; // a falling sine, 150 Hz to 45
       y = Math.exp(-t / 0.12) * Math.sin(v.phase) * 1.6;
@@ -153,11 +179,7 @@ export class Monitor {
     }
     if (t > end - FADE) y *= (end - t) / FADE;
     v.age++;
-    return y * v.amp * (v.shape === "tone" ? 1 : 2.5);
-  }
-
-  private held(t: number): number {
-    return Math.min(1, t / ATTACK) * (SUSTAIN + (1 - SUSTAIN) * Math.exp(-t / DECAY));
+    return y * v.amp * 2.5;
   }
 
   /**
@@ -167,7 +189,7 @@ export class Monitor {
   render(out: Float32Array, events: readonly NoteEvent[]): void {
     if (!this.enabled) return;
     let e = 0;
-    let any = this.voices.some((v) => v.live);
+    let any = this.slots.some((v) => v.live);
     for (let i = 0; i < out.length; i++) {
       while (e < events.length && events[e]!.atSample <= i) {
         const ev = events[e++]!;
@@ -181,7 +203,7 @@ export class Monitor {
       if (!any) continue;
       let mix = 0;
       let live = false;
-      for (const v of this.voices) {
+      for (const v of this.slots) {
         if (!v.live) continue;
         mix += this.sample(v);
         live = live || v.live;

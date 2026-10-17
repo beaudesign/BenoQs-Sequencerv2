@@ -151,6 +151,11 @@ export class Host implements WorkletSink {
     this.post({ type: "step", track, step, attr, value });
   }
 
+  /** How one track spaces the notes of a roll (`CHORD_STYLE`, SPEC-0005 r1). A track, style or warp that does not exist comes back as an `onError`. It takes effect from the next step the track fires. */
+  setChordStyle(track: number, style: number, warpTenths: number): void {
+    this.post({ type: "chordStyle", track, style, warpTenths });
+  }
+
   /** Makes the engine the MIDI clock master, or not (ADR-0009). The clock reaches every chosen output as real-time records in the events. */
   setClock(master: boolean): void {
     this.post({ type: "clock", master });

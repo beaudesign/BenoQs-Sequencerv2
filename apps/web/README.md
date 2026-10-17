@@ -182,12 +182,34 @@ are the owner's to overturn.
 **Not measured.** Audio goes out the audio device and MIDI out the MIDI device, and each has its own latency, so against external
 gear the click is early or late by the difference. It is not trimmed. Only a measurement on the owner's setup can say by how much.
 
+## Curve
+
+The strip's **Curve** button chooses how every track spaces a roll: the strum of a chord, and the seven strikes of a single note that has a
+strum level (SPEC-0005 r1, `specs/SPEC-0005/README.md`). It steps **Off, Accel, Bounce, Rit** and round to Off, and its text names the state
+(`Curve: Accel`); `aria-pressed` is true for any curve, so it takes the raised tone and ink border of the other toggles and adds no colour.
+It is the page's own control: the Octopus has no key for it, so it is not on the panel and no contract holds it. A WENGE extra, and called one.
+
+- **Off is the Octopus.** Nothing is sent to the engine until a curve is chosen, and choosing Off again puts the manual's table back. The
+  events are byte for byte what they were (`curve_golden.rs`, `test/browser/curve.browser.test.ts`).
+- **The same span, bent.** A roll keeps the manual's length for its strum level; only where each note starts inside it changes. Accel and
+  Bounce hold the notes back toward the end of the span, Bounce more; Rit bunches them at the start. The numbers for strum 9 are
+  SPEC-0005 section 4: Bounce 0, 22, 34, 40, 43, 44, 45 ticks, Accel 0, 15, 25, 33, 38, 42, 45, Rit 0, 3, 7, 12, 20, 30, 45.
+- **The way in.** One worklet message, `chordStyle`, for one track; the button sends ten, one for each track. The engine has a style for
+  every track (`octoweb_set_chord_style`, `engine/ABI.md`), so a track of its own is a picker away, and waits for one (SPEC-0005 D6).
+  Even (0) and Drag (1) are in the engine and not on the button.
+- **A change takes hold from the next step a track fires.** Notes already struck keep their times. A choice made before Play is kept and
+  goes to the worklet at Start.
+- **Not in the saved state.** The style is not in the grid or a snapshot, as it is not in the frozen FFI (SPEC-0005 D3): it lasts as long as
+  the engine does, and a reset of the module drops it with everything else.
+- **What the page cannot yet show.** The page cannot enter a chord today (a chord comes from a loaded pattern), so the browser test
+  measures the other roll the style governs, a single note struck seven times; the chord's roll is measured in `crates/octocore/tests/curve.rs`.
+
 ## Tab order
 
 Acceptance criterion A8. The order of the elements in the page is the tab order (nothing has a `tabindex` above 0). This section is
 checked against `layout/panel.layout.json` by `test/readme.test.ts`, so it cannot drift.
 
-1. The strip: `play`, `tempo`, `monitor`, `drums`, `metronome`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
+1. The strip: `play`, `tempo`, `monitor`, `drums`, `metronome`, `curve`, `midi-out-1`, `midi-out-2`, `midi-in`, `clock-state`, `clock-offset`, `lookahead`.
 2. The plate's 252 controls in its reading order: bands one matrix row high from the top, left to right in each band. The first stops are
    `mix.enc.r9`, `selector.r9`, `matrix.r9.c1`, `matrix.r9.c2` and so on along row 9 to `matrix.r9.c16`, then `mutator.tgl`, `edit.enc.vel`,
    `circle.num.7` to `circle.num.10` and `main.enc`; then row 8 from `mix.enc.r8`. The last stops are `mix.master`, `mutator.mute`, `mode.edit`, `keys.esc` and `chord.b7`.

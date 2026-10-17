@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0005 |
-| Revision | r1, draft, 2026-10-17. r0 (merged 2026-10-16, #67) picked a different benny block, Drift. The owner's reply of 2026-10-17 11:44 named the block, so r1 changes the pick and keeps Drift as a runner-up |
-| Stage | **Planning only.** This pull request amends the spec and adds a journal entry. It changes no code, contract, fixture or threshold |
+| Revision | r1.1, 2026-10-17. r0 (merged 2026-10-16, #67) picked a different benny block, Drift. The owner's reply of 2026-10-17 11:44 named the block, so r1 changes the pick and keeps Drift as a runner-up. r1.1 records the owner's go-ahead (section 14) |
+| Stage | **S0 to S2 approved to build (section 14); S3 and S4 not.** This pull request amends the spec and adds journal entries. It changes no code, contract, fixture or threshold. The slices are their own pull requests (`WENGE-0033` Metronome: S0 and S1; `WENGE-0034` Forge: S2) |
 | Risk tier | **Low** for this pull request (`specs/`, `journal/`). The slices are **Medium** under D3's default (a web-only extension: `crates/octocore`, `apps/web/engine`, `apps/web/`) and **High** if the owner picks the frozen FFI (`crates/octoffi/`, `contracts/`) |
 | Owner and approver | `@beaudesign` |
-| Task | `WENGE-0031` |
+| Task | `WENGE-0031` (the spec); `WENGE-0033` (S0 and S1); `WENGE-0034` (S2) |
 | Extends | SPEC-0003 (the circle: chords, polyphony and strum are the CHORD block's). Needs none of its slices |
 | Sister spec | SPEC-0004 (a sound that behaves like hardware). The two do not depend on each other |
 | Base | `main` at `12c7938` |
@@ -238,7 +238,27 @@ requested), a bent step clock (D8), and any other benny block.
 ## 14. Revisions and approval record
 
 - r0, 2026-10-16: Drift. Merged as #67 by the owner. Not an approval.
-- r1, 2026-10-17: Curve, after the owner's reply. This pull request.
+- r1, 2026-10-17: Curve, after the owner's reply. Pull request #68.
+- r1.1, 2026-10-17: the approval record below, and the task ids for the slices. Nothing else changes.
 
-Not yet approved. Awaiting `@beaudesign`. A merge is not an approval: approval is the owner's own words, written here with
-the date. The agent merges nothing.
+**r1.1, 2026-10-17, 14:50 (Europe/London).** While the agent was building SPEC-0004's first slice (the owner's "Okay build"
+at 14:46), the owner wrote **"Let's build r1 - Benny's curved time as well"**. The words are the owner's own, they name
+this spec and its revision, and they ask for it to be built; that is an approval, and it is written here with the date
+and the reading, because chat is not a source of truth. The agent reads "build r1" as the spec's first three slices, which
+together make the feature work end to end (the golden pin, the engine, the button). It reads the spec's own words as
+limiting the rest: S3 "needs its own design pass" and S4 is "optional". If the reading is wrong, say so and this record is
+revised. (The merge of #67, which carried r0, was not an approval. #68 is open and unmerged: the agent builds on its
+branch and merges nothing.)
+
+| Item | What is approved | What is not |
+|---|---|---|
+| This spec as the plan | Yes, r1, with the defaults D1 to D10 and the open questions on their defaults (Q-S5-2: no shape ornaments yet; Q-S5-3: the bend stays on the roll, not the step clock; Q-S5-4: Accel first on the button, Bounce second) | |
+| **S0** the golden pin (CV-1) | **Yes, build it** (`WENGE-0033`, Metronome) | |
+| **S1** `ChordStyle`, the pinned table and its generator, the hook, CV-2 to CV-9, the capture (`WENGE-0033`, Metronome) | **Yes, build it** | |
+| **S2** `octoweb_set_chord_style`, the worklet message, the `Curve` button, CV-10 to CV-12 (`WENGE-0034`, Forge) | **Yes, build it**, after S1's engine API exists | |
+| S3 two ramps | | **No.** It needs a design pass first and the owner's ear on S1's capture (Q-S5-4) |
+| S4 runner-ups (Shape ornaments, Drift, Scatter, Walk) | | **No.** Each is its own decision. The shape player is also the subject of a separate engineering spec the owner has not yet attached |
+| The frozen FFI, `contracts/`, the wire format | | **No.** D3's web-only setter is the default and is what is approved; the High-tier alternative is not |
+
+Merging is the owner's act; the agent merges nothing. A merge is not an approval: approval is the owner's own words,
+written here with the date.

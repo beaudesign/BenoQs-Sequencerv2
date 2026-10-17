@@ -31,7 +31,7 @@ for (const voice of VOICES) {
   test(`H-16, H-2: ${voice.id} plays each note from MIDI 24 to 96 within 2 cents`, () => {
     assert.deepEqual(checkPitch(voice), []);
   });
-  test(`H-16, H-3: ${voice.id} has no energy off the harmonics above -50 dB, MIDI 60 to 84`, () => {
+  test(`H-16, H-3: ${voice.id} has no energy off the harmonics above -50 dB, MIDI 60 to 84 and a spread from 36 to 96`, () => {
     assert.deepEqual(checkAlias(voice), []);
   });
   test(`H-16, H-6: ${voice.id} is stable over 10,000 random notes at 44.1, 48 and 96 kHz and is silent within 5 s of the Note Off`, () => {

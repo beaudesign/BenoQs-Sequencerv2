@@ -104,13 +104,67 @@ test("rig, H-13: the cost check measures a real ratio, and fails when the bound 
   assert.match(checkCost(PLAIN, { seconds: 0.5, runs: 1, bound: 1e-9 }).problems[0]!, /of real time/);
 });
 
-const CLEAN = `class A { next(): number { const t = this.x * 2; this.x += 1; return Math.sin(t) * this.g; } other() { return [1]; } }`;
+const CLEAN = `class A { private xs = new Float64Array(4); constructor() { this.xs = new Float64Array(8); } next(): number { const t = this.x * 2; this.x += 1; return Math.sin(t) * this.g; } other(): number { return this.xs[1]!; } }`;
 
-test("rig, H-13: the text check finds a sample loop, and nothing else, and passes a clean one", () => {
-  assert.equal(sampleLoops(CLEAN).length, 1);
-  assert.ok(!sampleLoops(CLEAN)[0]!.includes("[1]"), "other methods are not looked at");
+test("rig, H-13: the text check looks at every method a note runs except the constructor, and passes a clean class", () => {
+  assert.equal(sampleLoops(CLEAN).length, 2, "next and other; the constructor may allocate");
   assert.deepEqual(checkNoAllocation(CLEAN, "clean"), []);
-  assert.equal(sampleLoops("class B { foo() { return 1; } }").length, 0);
+  assert.equal(sampleLoops("class B { foo() { return 1; } }").length, 1);
+  assert.equal(sampleLoops("const f = () => { return [1]; };").length, 0, "no class, nothing a note runs");
+  assert.equal(sampleLoops("class E { next(): number { if (this.x) { return 1; } return 0; } }").length, 1, "an `if (...) {` is not a method");
+});
+
+test("rig, H-13: the text check finds an allocation wherever a note runs it, in the forms a review found it missed", () => {
+  const where: [string, string][] = [
+    ["a helper method", "class C { next(): number { return this.h(); } private h(): number { const a = [1, 2]; return a[0]!; } }"],
+    ["start()", "class C { start(): void { this.xs = new Float64Array(8); } next(): number { return 0; } }"],
+    ["release()", "class C { release(): void { this.log.push(1); } next(): number { return 0; } }"],
+    ["a getter", "class C { get live(): boolean { return Object.keys(this.o).length > 0; } next(): number { return 0; } }"],
+    ["an arrow-function next", "class C { next = (): number => { const a = new Float64Array(2); return a[0]!; }; }"],
+    ["an unannotated next", "class C { next() { const o = { a: 1 }; return o.a; } }"],
+    [".push", "class C { next(): number { this.xs.push(1); return 0; } }"],
+    ["Float64Array.from", "class C { next(): number { return Float64Array.from(this.xs)[0]!; } }"],
+    ["Array(8)", "class C { next(): number { return Array(8).length; } }"],
+    ["Object.keys", "class C { next(): number { return Object.keys(this.o).length; } }"],
+    ["string building", "class C { next(): number { const s = 'a' + this.x; return s.length; } }"],
+    [".toFixed", "class C { next(): number { return this.x.toFixed(2).length; } }"],
+  ];
+  for (const [what, source] of where) assert.notDeepEqual(checkNoAllocation(source, what), [], `${what} passed the text check`);
+});
+
+test("rig, H-13: a voice that is cheap held but dear when its notes restart fails the churn workload and passes the held one", () => {
+  // `heavyDies`: heavy work for the first 9000 samples of a note, then the note ends. Started once and left, that is a small share of
+  // ten seconds; restarted every quarter second (12,000 samples) it is three quarters of every frame.
+  const heavy = stub({ id: "heavy-then-dies", heavyDies: 9000 });
+  const r = checkCost(heavy, { seconds: 2, runs: 2 });
+  assert.equal(r.problems.filter((p) => /held notes/.test(p)).length, 0, r.problems.join("; "));
+  assert.ok(r.problems.some((p) => /restarted every quarter second/.test(p)), `churn did not fail it: ${r.problems.join("; ")} ratio ${r.ratio}`);
+  // `slowStart`: 4 ms of CPU in start(). Paid 24 times when held, about 216 times when restarted.
+  const slow = checkCost(stub({ id: "slow-start", slowStart: 4 }), { seconds: 2, runs: 2 });
+  assert.equal(slow.problems.filter((p) => /held notes/.test(p)).length, 0, slow.problems.join("; "));
+  assert.ok(slow.problems.some((p) => /restarted every quarter second/.test(p)), `churn did not fail it: ${slow.problems.join("; ")} ratio ${slow.ratio}`);
+});
+
+test("rig, H-9: a brightening that happens only in the attack, and a rise that turns into a fall, are both found", () => {
+  const attack = checkVelocity(stub({ id: "attack-only", transientBrightens: true }));
+  assert.ok(attack.some((p) => /first 4096 samples brighten/.test(p)), attack.join("; "));
+  const dip = checkVelocity(stub({ id: "dips", dips: true, declares: true }));
+  assert.ok(dip.some((p) => /centroid falls from velocity/.test(p)), dip.join("; "));
+  assert.deepEqual(checkVelocity(stub({ id: "bright", brightens: true })), [], "a voice that brightens all the way up still passes");
+});
+
+test("rig, H-11: a voice that rolls the dice once in 40,000 samples is found, past the first 20,000", () => {
+  assert.match(checkDeterministic(stub({ id: "late-dice", randomLate: true }))[0]!, /two runs differ/);
+  assert.deepEqual(checkDeterministic(stub({ id: "good" })), []);
+});
+
+test("rig, H-2 and H-3: a voice silent above MIDI 90 is called silent, and a naive saw above MIDI 90 aliases", () => {
+  const quiet = checkPitch(stub({ id: "quiet-top", silentAbove: 90 }), [60, 90, 96], [48_000]);
+  assert.equal(quiet.length, 2);
+  assert.ok(quiet.every((p) => /is silent/.test(p)), quiet.join("; "));
+  const aliased = checkAlias(stub({ id: "saw-top", sawAbove: 90 }));
+  assert.ok(aliased.length >= 1 && aliased.every((p) => /MIDI (90|96) /.test(p)), aliased.join("; "));
+  assert.deepEqual(checkAlias(stub({ id: "sine" })), [], "a sine passes the wider range");
 });
 
 test("rig, H-13: the text check flags each way a sample loop can allocate", () => {

@@ -3,14 +3,14 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0004 |
-| Revision | r0, draft, 2026-10-16 |
-| Stage | **Planning only.** This pull request adds the spec and a journal entry and changes no code, contract, fixture or threshold |
+| Revision | r1, draft, 2026-10-17 (r0 is `12c7938`; what r1 changes is in section 12) |
+| Stage | **Planning only.** This pull request revises the spec and adds a journal entry and changes no code, contract, fixture or threshold |
 | Risk tier | **Low** for this pull request (`specs/`, `journal/`). Every slice it plans is **Medium** (`apps/web/`, Forge); none touches `contracts/`, the engine or the ABI |
 | Owner and approver | `@beaudesign` |
 | Task | `WENGE-0030` |
 | Extends | SPEC-0002 P6 requirement R-2 (the built-in sound, `apps/web/src/monitor.ts`) |
-| Sister spec | SPEC-0005 (a chord style that drifts), on its own branch. The two do not depend on each other |
-| Base | `main` at `6a14539` |
+| Sister spec | SPEC-0005 (a chord style: curved time; r1 is pull request #68, open). The two do not depend on each other |
+| Base | `main` at `efe79b9` |
 
 ## 1. The ask
 
@@ -86,8 +86,13 @@ events, the ABI and Web MIDI are untouched.
 | **S4** | **Gate pluck**: a triangle through the vactrol low-pass gate, and the analogue (RC) envelopes the others share | Medium |
 | **S5** | A voice per MIDI channel: the demo's bass (channel 1) and lead (channel 2) get different voices; a small choice in the strip | Medium |
 | **S6** | Optional: Sallen-Key voice, drawbar organ | Medium |
+| **S7** | Added in r1 (decision D12). **Complex**: a complex-oscillator voice (one oscillator modulating another, with a wave-shaping stage) played through S4's Gate pluck low-pass gate. Runs after S1, S2 and S4, behind the same `Voice` interface and `Voice` button as every other voice. It is the Verbos-model voice of the engineering spec; its design is the one that spec gives, restated in this file before S7 starts (section 5, last paragraph) | Medium |
 
 The demo is the test pattern: kick, hat and clap on channel 10 (unchanged), bass on channel 1, lead on channel 2.
+
+**One voice system.** S7 adds one voice. It does not add a second voice system, a second renderer, a second low-pass gate or a
+second ADR: it reuses S0's `Voice` interface and WAV renderer, S1's oscillator parts, and S4's gate. The numbers where the
+engineering spec and this one first disagreed are settled in section 6 (D12).
 
 ## 5. Observables (written red first)
 
@@ -113,6 +118,14 @@ marked "from the first measurement", the first green run sets it with a stated m
 | H-13 | **Cost.** 24 notes of the heaviest voice render 10 s of audio in under 25 percent of real time in Node, the bound set at S0 on the CI machine; plus a text check that no sample loop in `voices/` allocates (no `new`, array literal, `.map(` or closure inside it) | `voices/cost.test.ts` |
 | H-14 | **The page.** The `Voice` button reaches the worklet; the chosen voice is heard (the AudioNode tap) and its output differs from Plain; the choice made before Play is kept | `voice.browser.test.ts` |
 | H-15 | **The strip keeps its rules.** The button uses the existing raised and pressed tones and tokens, adds no colour, gradient, shadow or easing (`app_source_rules.rs`, `app-css.test.ts`) | existing gates |
+| H-16 | **No voice skips the tests (added in r1).** One test walks the registry of voices and runs H-2, H-3, H-6, H-9, H-11 and H-13 on every entry. A voice added to the registry is held to them with no edit to the test, and a voice that is not in the registry cannot be chosen from the button. This is what lets S7 add a voice without a second rig | `voices/registry.test.ts` |
+
+**What S7 adds to the list, and when.** The tests that belong to the Complex voice alone (how far the modulating
+oscillator moves the primary, the symmetry and depth of its wave-shaping stage, the gate's response when it is driven by
+this voice) come from the engineering spec's own list of observables. Before S7 starts they are copied into this file as
+rows H-17 onward, written red first, and the numbers marked "from the first measurement" are set by the first green run
+as above. They are not written now: the engineering spec was not attached when r1 was made (section 12), and a row made up
+from a one-line summary would be a guess.
 
 **What cannot be measured:** whether it pleases the owner's ear. S0's renderer exists so the owner can listen to every
 voice on a phone before S3 is built, and the first question (Q-S4-1) is theirs.
@@ -132,6 +145,9 @@ voice on a phone before S3 is built, and the first question (Q-S4-1) is theirs.
 | D9 | The drums | Unchanged. Better drums are a separate question |
 | D10 | Licence | Clean-room from the papers (section 3). Whether the repository should carry a licence file is the owner's, and not decided here |
 | D11 | Is this wanted in the first place beside SPEC-0003's circle work | Planned as independent; it can wait behind S1 of SPEC-0003 without harm |
+| D12 | **The Verbos-model voice is one more voice here, not a second voice system** (added in r1) | **Taken, 2026-10-17 14:13 London.** The engineering spec for a shape player and a Verbos-model voice overlapped this spec (a vactrol gate, a WAV renderer, an ADR for the same decision). The owner was offered three ways to settle it: fold it in, keep it as written, or park it. The reply was "Okay take tre recommendation", and the recommendation was the first: fold it in as a later voice behind S0's interface. So: **S7 Complex** is that voice; `crates/octovoice`, `octorun --wav` and a separate ADR are **not** built; the one ADR of S0 (D1) records this too |
+| D13 | The voices stay in TypeScript. No Rust voice core (added in r1) | **Taken with D12**, and decided on purpose. What is given up: a native build and the wasm build agreeing bit for bit (the engineering spec's QB2). What is kept: the voices live next to the monitor they replace, in the language the page is written in, with no second build step for sound. Equality tests run in Node and the browser tests assert measured properties (section 8, "Browser differences"). **Revisit if:** the owner wants a sound that is identical on a desktop build and in the browser, or a bounce that must match the page. That is a new ADR that moves the DSP into a crate, and it would move every voice, not just Complex |
+| D14 | The three numbers where the engineering spec and this one first differed (added in r1) | **Polyphony:** each voice has its own cap and the oldest note is taken when it is reached. The simple voices keep 24. Complex takes the engineering spec's provisional 8 (its QB1) until H-13 says otherwise. **Oversampling:** D7 stands (none first, 2x around the nonlinear stage only if H-3 or H-6 need it); the engineering spec plans 2x for Complex, so S7 may well be the slice that brings it in, and H-13 then sets Complex's cap. **Default sound:** Plain is not replaced by Complex or anything else outright. The default becomes Saw ladder at S3 and Plain stays selectable (D2); Complex is never the default unless the owner asks (the engineering spec's QB3) |
 
 ## 7. Questions only the owner can answer
 
@@ -140,6 +156,12 @@ voice on a phone before S3 is built, and the first question (Q-S4-1) is theirs.
 - **Q-S4-2.** Should the old tone be kept at all? Default: yes, as `Plain`, until a voice has been the default for a week.
 - **Q-S4-3.** Is the sound for listening to the sequencer (a monitor) or a voice you play to a recording? Default: a
   monitor. A recording path (a bounce) is not planned.
+- **Q-S4-4 (added in r1).** The engineering spec for the shape player and the Verbos-model voice did not arrive with its
+  addendum; only the addendum did. Please attach the engineering spec itself. S7 and rows H-17 onward are written from
+  it, and nothing about Complex is built before it is in the repository (or attached here) and the owner has approved
+  this spec in their own words.
+- **Q-S4-5 (added in r1).** D13 gives up bit-exact sound between a native build and the browser. If a desktop build or a
+  bounce that matches the page is something you want, say so now, because it changes where all the voices live.
 
 ## 8. Risks
 
@@ -151,11 +173,22 @@ voice on a phone before S3 is built, and the first question (Q-S4-1) is theirs.
   tests run in Node and the browser tests assert measured properties, never a hash.
 - **Aliasing at high notes** with no oversampling: H-3 measures it and D7 says what to do.
 - **Taste.** The numbers prove a circuit is modelled, not that it is liked. That is Q-S4-1.
+- **A voice described in a file this repository does not have (added in r1).** Until the engineering spec is in the
+  repository, S7 is a one-line definition. The slice is last in the order, and it does not start until its observables
+  are in section 5. If the spec never arrives, S7 is dropped and nothing else changes.
+- **Complex may be the heaviest voice.** An oscillator pair with a wave-shaper, 2x oversampling and a gate is more work
+  per note than anything else here. Its cap of 8 (D14) is a number H-13 can lower; it is not a promise that eight notes
+  fit on a phone.
 
 ## 9. Not done
 
-Effects (reverb, chorus, wavefolder, tape), MIDI-addressable devices, recording or bouncing, patch storage, a new look
+Effects (reverb, chorus, wavefolder as an effect, tape), MIDI-addressable devices, recording or bouncing, patch storage, a new look
 for the strip beyond one button, and any change to the drums, the engine, the contracts or the ABI.
+
+Also not done, by D12 and D13 (r1): a Rust voice crate (`crates/octovoice`), a Rust offline renderer (`octorun --wav`), a
+second ADR for the Verbos-model voice, and bit-exact sound between native and browser builds. The **shape player** of the
+same engineering spec is a different piece (a pattern style in its own crate, not a sound). It is not planned in this file
+and nothing of it is started; SPEC-0005 section 7 (Q-S5-2) is where its question sits.
 
 ## 10. Sources
 
@@ -166,7 +199,25 @@ for the strip beyond one button, and any change to the drums, the engine, the co
 - Huovilainen, "Non-linear digital implementation of the Moog ladder filter", DAFx-04. Stilson and Smith, "Analyzing the Moog VCF with considerations for digital implementation", ICMC 1996.
 - Parker and D'Angelo, "A digital model of the Buchla lowpass-gate", DAFx-13 (`http://www.acoustics.hut.fi/publications/papers/dafx13-lpg/`).
 - This repository: `apps/web/src/monitor.ts`, `worklet.ts`, `demo.ts`; `specs/SPEC-0002/p6-runs-when-opened.md` (R-2), `p10-silence-the-drums.md`.
+- The owner's addendum "spec-addendum-2026-10-17" (a note that reconciles the engineering spec with `main`; attached in the
+  chat of 2026-10-17 13:09 and not committed). Its comparison table of this spec and the Verbos-model voice is the source
+  of section 6, D12 to D14. The engineering spec it amends was **not** seen.
+- Parker and D'Angelo (above) again for S7's gate. The papers for the Complex oscillator itself are pinned in S7 from the
+  engineering spec, under the same rule as section 3: each algorithm tied to a published paper, nothing copied from
+  benny or from any product.
 
 ## 11. Approval record
 
-Not yet approved. Awaiting `@beaudesign`. Merging is the owner's act; the agent merges nothing.
+Not yet approved. Awaiting `@beaudesign`. Merging is the owner's act; the agent merges nothing. A merge is not an approval:
+approval is the owner's own words, written here with the date.
+
+What the owner has decided so far is a choice between ways to settle an overlap, not an approval of this spec. On
+2026-10-17 at 14:13 London the owner replied "Okay take tre recommendation" to the recommendation to fold the Verbos-model
+voice into this spec. That is recorded as D12 to D14 and nothing more.
+
+## 12. Revision history
+
+| Rev | Date | What changed |
+|---|---|---|
+| r0 | 2026-10-16 | The spec: ask, benny survey and licence, slices S0 to S6, observables H-1 to H-15, decisions D1 to D11, questions Q-S4-1 to Q-S4-3 (`12c7938`, #66) |
+| r1 | 2026-10-17 | The overlap with the Verbos-model voice is settled by the owner's reply to option 1 of the addendum: slice **S7 Complex** (one voice, no second voice system); observable **H-16** (the registry test, so no voice skips the tests); decisions **D12** (fold in), **D13** (no Rust voice core, a trade made on purpose), **D14** (polyphony 24 and 8, oversampling per D7, default per D2); questions **Q-S4-4** (send the engineering spec) and **Q-S4-5** (bit-exact builds); two risks; the base moves to `efe79b9`. The engineering spec was not attached, so rows H-17 onward are deliberately not written yet. Nothing in S0 to S6 changes |

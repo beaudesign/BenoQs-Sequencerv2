@@ -1,5 +1,5 @@
 // SPEC-0004 H-1: Plain is unchanged. With the voice `Plain` the monitor's output equals what it was before the voices existed,
-// sample for sample, for any notes and any block sizes. The reference is `support/monitor-v0.ts`, a frozen copy of the monitor on
+// sample for sample, for any notes (block size 128, the worklet's quantum; rates 44.1, 48 and 96 kHz). The reference is `support/monitor-v0.ts`, a frozen copy of the monitor on
 // `main` at c079f8f; the real monitor and the frozen one are fed the same events in lockstep and compared bit for bit.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -31,9 +31,9 @@ test("H-1: Plain is the default voice, and a new monitor has it", () => {
 });
 
 /** Both monitors, driven the same way, and the first difference if there is one. */
-function compare(blocks: readonly NoteEvent[][], act?: (b: number, a: Monitor, z: MonitorV0) => void): { samples: number; first: number } {
-  const a = new Monitor(RATE);
-  const z = new MonitorV0(RATE);
+function compare(blocks: readonly NoteEvent[][], act?: (b: number, a: Monitor, z: MonitorV0) => void, rate = RATE): { samples: number; first: number } {
+  const a = new Monitor(rate);
+  const z = new MonitorV0(rate);
   a.on = true;
   z.on = true;
   let samples = 0;
@@ -77,6 +77,17 @@ test("H-1: a storm of notes, more than the 24 voices at once, with drums, is the
   for (const [seed, density] of [[1, 2], [7, 6], [99, 14]] as const) {
     const r = compare(storm(seed, 3000, density));
     assert.equal(r.first, -1, `seed ${seed}: first differing sample ${r.first}`);
+  }
+});
+
+test("H-1: at 44.1 and 96 kHz, the demo and a storm of notes are the same sample for sample (a voice that has 48000 written into it is not Plain)", () => {
+  for (const rate of [44_100, 96_000]) {
+    const demo = compare(demoBlocks(10), undefined, rate);
+    assert.equal(demo.first, -1, `${rate} Hz, the demo: first differing sample ${demo.first}`);
+    for (const [seed, density] of [[3, 4], [41, 14]] as const) {
+      const r = compare(storm(seed, 3000, density), undefined, rate);
+      assert.equal(r.first, -1, `${rate} Hz, seed ${seed}: first differing sample ${r.first}`);
+    }
   }
 });
 

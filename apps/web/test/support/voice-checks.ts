@@ -9,6 +9,10 @@ import { centroid, cents, fundamental, inharmonicDb } from "./spectrum.ts";
 /** H-2: each voice's fundamental is within this many cents of the note, for MIDI 24 to 96. */
 export const PITCH_TOLERANCE_CENTS = 2;
 export const PITCH_NOTES: readonly number[] = Array.from({ length: 73 }, (_, i) => 24 + i);
+/** The sample rates the page runs at. A voice must hold its pitch at each: one that has 48000 written into it is wrong at the others. */
+export const PITCH_RATES: readonly number[] = [44_100, 48_000, 96_000];
+/** At the rates other than 48 kHz, a spread of notes (73 notes at three rates is three times the time for no more information). */
+export const PITCH_NOTES_OFF_RATE: readonly number[] = [24, 36, 48, 60, 69, 84, 96];
 /** H-3: the energy that is not on a harmonic is at least this many decibels under the fundamental, for MIDI 60 to 84. Aimed at 50; only ever tightened. */
 export const ALIAS_BOUND_DB = -50;
 export const ALIAS_NOTES: readonly number[] = Array.from({ length: 25 }, (_, i) => 60 + i);
@@ -39,13 +43,17 @@ export function renderNote(voice: Voice, rate: number, midi: number, velocity: n
 
 const hz = (midi: number): number => 440 * 2 ** ((midi - 69) / 12);
 
-/** H-2. */
-export function checkPitch(voice: Voice, notes: readonly number[] = PITCH_NOTES): string[] {
+/** H-2, at 48 kHz for every note asked for and at 44.1 and 96 kHz for a spread of them (an independent review found the rig ran at 48 kHz only, so a voice with 48000 written into it passed). */
+export function checkPitch(voice: Voice, notes: readonly number[] = PITCH_NOTES, rates: readonly number[] = PITCH_RATES): string[] {
   const problems: string[] = [];
-  for (const midi of notes) {
-    const x = renderNote(voice, RATE, midi, 100, Infinity, SETTLE + WINDOW + WINDOW / 4);
-    const c = cents(fundamental(x.subarray(SETTLE), RATE, hz(midi)), hz(midi));
-    if (!(Math.abs(c) <= PITCH_TOLERANCE_CENTS)) problems.push(`${voice.id}: MIDI ${midi} is ${c.toFixed(2)} cents off (at most ${PITCH_TOLERANCE_CENTS})`);
+  for (const rate of rates) {
+    // 0.6 s of settling at any rate; the window is a fixed number of samples, as the spectrum helpers want.
+    const settle = rate === RATE ? SETTLE : Math.round(0.6 * rate);
+    for (const midi of rate === RATE ? notes : notes.filter((n) => PITCH_NOTES_OFF_RATE.includes(n))) {
+      const x = renderNote(voice, rate, midi, 100, Infinity, settle + WINDOW + WINDOW / 4);
+      const c = cents(fundamental(x.subarray(settle), rate, hz(midi)), hz(midi));
+      if (!(Math.abs(c) <= PITCH_TOLERANCE_CENTS)) problems.push(`${voice.id}: MIDI ${midi} at ${rate} Hz is ${c.toFixed(2)} cents off (at most ${PITCH_TOLERANCE_CENTS})`);
+    }
   }
   return problems;
 }

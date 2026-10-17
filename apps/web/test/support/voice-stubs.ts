@@ -6,6 +6,8 @@ export interface StubOptions {
   id: string;
   /** Detune from the note, in cents. */
   centsOff?: number;
+  /** Has 48000 written into it where the sample rate belongs: right at 48 kHz, wrong at the other rates the page runs at. */
+  fixedRate?: boolean;
   /** A naive sawtooth: the reason band-limiting exists. */
   saw?: boolean;
   /** A third harmonic whose level follows velocity: the sound gets brighter as it gets louder. */
@@ -48,7 +50,7 @@ class StubNote implements VoiceNote {
     this.released = -1;
     this.velocity = velocity / 127;
     this.level = this.o.silent ? 0 : 0.2 * this.velocity;
-    this.step = (440 * 2 ** ((note - 69) / 12 + (this.o.centsOff ?? 0) / 1200)) / this.rate;
+    this.step = (440 * 2 ** ((note - 69) / 12 + (this.o.centsOff ?? 0) / 1200)) / (this.o.fixedRate ? 48_000 : this.rate);
   }
 
   release(): void {

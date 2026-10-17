@@ -56,9 +56,17 @@ test("rig: energy off the harmonics: a sine has none, and a naive saw has a grea
 test("rig, H-2: a voice ten cents flat fails the pitch check, and one that is right passes", () => {
   assert.deepEqual(checkPitch(stub({ id: "right" }), [24, 60, 96]), []);
   const flat = checkPitch(stub({ id: "flat", centsOff: -10 }), [24, 60, 96]);
-  assert.equal(flat.length, 3);
+  assert.equal(flat.length, 9, "three notes at each of three rates");
   assert.match(flat[0]!, /-10\.0\d cents/);
   assert.ok(PITCH_TOLERANCE_CENTS === 2);
+});
+
+test("rig, H-2: a voice with 48000 written into it passes at 48 kHz and fails at 44.1 and 96 kHz", () => {
+  const fixed = stub({ id: "fixed-rate", fixedRate: true });
+  assert.deepEqual(checkPitch(fixed, [24, 60, 96], [48_000]), [], "right at the one rate the rig used to check");
+  const wrong = checkPitch(fixed, [24, 60, 96]);
+  assert.equal(wrong.length, 6, "three notes at each of the two other rates");
+  assert.ok(wrong.every((p) => / at (44100|96000) Hz /.test(p)), wrong.join("; "));
 });
 
 test("rig, H-3: a naive saw fails the alias check, a sine passes, and so does Plain", () => {

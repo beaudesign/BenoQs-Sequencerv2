@@ -17,6 +17,7 @@ const TRACK_PITCH: u32 = 0; // `TrackAttr::ALL` order, as for `MIDI_CHANNEL`
 const STEP_ACTIVE: u32 = 0; // `StepAttr::ALL` order: the number `octoweb_set_step` takes (ABI.md)
 const STEP_PITCH_OFFSET: u32 = 2;
 const STEP_SKIP: u32 = 1;
+const STEP_STRUM: u32 = 8; // `StepAttr::ALL` order, as above
 
 #[test]
 fn the_module_reports_abi_version_two() {
@@ -68,6 +69,7 @@ fn calls_before_init_do_nothing_and_say_so() {
     assert_eq!(octoweb_set_tempo(120.0), 1);
     assert_eq!(octoweb_set_track(0, MIDI_CHANNEL, 17), 1);
     assert_eq!(octoweb_set_step(0, 0, STEP_ACTIVE, 1), 1);
+    assert_eq!(octoweb_set_chord_style(0, 0, 0), 1);
     assert_eq!(octoweb_render(128), 0, "no events");
     assert_eq!(octoweb_refresh_leds(), 0);
     assert_eq!(octoweb_status(), 0);
@@ -471,4 +473,146 @@ fn set_step_refuses_a_track_a_step_or_an_attribute_that_does_not_exist_and_chang
         assert_eq!(octoweb_set_step(track, step, attr, 1), 5, "track {track} step {step} attribute {attr} is out of range (ABI.md code 5)");
     }
     assert_eq!(abi.leds(), before, "nothing was written");
+}
+
+// ----- SPEC-0005 r1 S2 (WENGE-0034): the page can set how a track spaces a roll (CV-10, and the engine half of CV-11) -----
+
+/// Samples to the tick at 120 BPM and 48 kHz: 60 / 120 / 48 seconds.
+const TICK: i64 = 500;
+/// The starts of the seven strikes of a strum-9 single note, in ticks after the first (SPEC-0005 section 4 and the manual's table).
+const MANUAL_9: [i64; 7] = [0, 5, 10, 17, 23, 30, 45];
+const BOUNCE_9: [i64; 7] = [0, 22, 34, 40, 43, 44, 45];
+const ACCEL_9: [i64; 7] = [0, 15, 25, 33, 38, 42, 45];
+const RIT_9: [i64; 7] = [0, 3, 7, 12, 20, 30, 45];
+
+/// 120 BPM, step 1 of track `track` on (a single note with strum 9: the engine strikes it seven times), on channel `track + 1`.
+fn strum_nine(track: u32) {
+    assert_eq!(octoweb_set_tempo(120.0), 0);
+    assert_eq!(octoweb_set_track(track, MIDI_CHANNEL, track as i32 + 1), 0);
+    assert_eq!(octoweb_set_step(track, 0, STEP_ACTIVE, 1), 0);
+    assert_eq!(octoweb_set_step(track, 0, STEP_STRUM, 9), 0);
+}
+
+/// The Note Ons of the first `blocks` blocks as (channel, sample since the first block), in the order they come.
+fn note_ons(abi: &Abi, blocks: usize) -> Vec<(u8, i64)> {
+    let mut out = Vec::new();
+    for b in 0..blocks as i64 {
+        for e in abi.render(128) {
+            if e[0] == 0 {
+                out.push((e[2], b * 128 + i64::from(u32::from_le_bytes([e[8], e[9], e[10], e[11]]))));
+            }
+        }
+    }
+    out
+}
+
+/// The starts of the first seven Note Ons on `channel`, in ticks after the first.
+fn roll_ticks(ons: &[(u8, i64)], channel: u8) -> Vec<i64> {
+    let at: Vec<i64> = ons.iter().filter(|(c, _)| *c == channel).map(|(_, t)| *t).take(7).collect();
+    assert_eq!(at.len(), 7, "a strum-9 single note strikes seven times, got {at:?}");
+    at.iter().map(|t| (t - at[0]) / TICK).collect()
+}
+
+#[test]
+fn set_chord_style_refuses_a_track_a_style_or_a_warp_that_does_not_exist_and_changes_nothing() {
+    let abi = Abi::start();
+    strum_nine(0);
+    assert_eq!(octoweb_set_chord_style(0, 1, -5), 0, "Accel");
+    for (track, style, warp) in [
+        (10, 1, -5),
+        (255, 1, -5),
+        (u32::MAX, 1, -5), // a track that does not exist
+        (0, 2, -5),
+        (0, 99, -5),
+        (0, u32::MAX, -5), // a style that does not exist
+        (0, 1, -6),
+        (0, 1, 3),
+        (0, 1, 11),
+        (0, 1, -11),
+        (0, 1, 100),
+        (0, 1, i32::MIN),
+        (0, 1, i32::MAX), // a warp that is not one of the five stored values
+    ] {
+        assert_eq!(octoweb_set_chord_style(track, style, warp), 5, "track {track} style {style} warp {warp} is out of range (ABI.md code 5)");
+    }
+    octoweb_transport(1);
+    assert_eq!(roll_ticks(&note_ons(&abi, 800), 1), ACCEL_9, "the refused calls did not touch track 0: it is still Accel");
+}
+
+#[test]
+fn set_chord_style_takes_the_five_stored_warps_and_manual_ignores_the_warp() {
+    for warp in [-10, -5, 0, 5, 10] {
+        let _abi = Abi::start();
+        assert_eq!(octoweb_set_chord_style(0, 1, warp), 0, "Curve at warp {warp} tenths");
+    }
+    for warp in [-10, 0, 7, 1000] {
+        let _abi = Abi::start();
+        assert_eq!(octoweb_set_chord_style(3, 0, warp), 0, "Manual takes any warp and ignores it ({warp})");
+    }
+}
+
+#[test]
+fn each_preset_moves_the_starts_of_a_roll_to_the_table_and_off_is_the_manuals() {
+    for (name, style, warp, want) in [("Manual", 0, 0, MANUAL_9), ("Accel", 1, -5, ACCEL_9), ("Bounce", 1, -10, BOUNCE_9), ("Rit", 1, 5, RIT_9)] {
+        let abi = Abi::start();
+        strum_nine(0);
+        assert_eq!(octoweb_set_chord_style(0, style, warp), 0);
+        octoweb_transport(1);
+        assert_eq!(roll_ticks(&note_ons(&abi, 800), 1), want, "{name}");
+    }
+}
+
+#[test]
+fn the_starts_the_page_gets_are_the_engines_own_table() {
+    use octocore::curve::{roll_start_ticks, ChordStyle};
+    for (style, warp, want) in [(0, 0, MANUAL_9), (1, -5, ACCEL_9), (1, -10, BOUNCE_9), (1, 5, RIT_9)] {
+        let chosen = ChordStyle::from_wire(style, warp).expect("a preset the page can send");
+        let table: Vec<i64> = (1..=7).map(|k| i64::from(roll_start_ticks(chosen, 9, k, 7))).collect();
+        assert_eq!(table, want, "{chosen:?}: the pinned numbers above are what octocore makes");
+    }
+}
+
+#[test]
+fn a_style_belongs_to_the_track_it_was_set_on() {
+    let abi = Abi::start();
+    strum_nine(0);
+    strum_nine(1);
+    assert_eq!(octoweb_set_chord_style(1, 1, -10), 0, "only track 1 is Bounce");
+    octoweb_transport(1);
+    let ons = note_ons(&abi, 800);
+    assert_eq!(roll_ticks(&ons, 1), MANUAL_9, "track 0 was never set");
+    assert_eq!(roll_ticks(&ons, 2), BOUNCE_9);
+}
+
+#[test]
+fn a_style_set_while_the_transport_runs_takes_effect_from_the_next_step_the_track_fires() {
+    let abi = Abi::start();
+    strum_nine(0);
+    octoweb_transport(1);
+    let first = roll_ticks(&note_ons(&abi, 600), 1);
+    assert_eq!(first, MANUAL_9);
+    assert_eq!(octoweb_set_chord_style(0, 1, 5), 0, "Rit, while running");
+    let later = note_ons(&abi, 4000); // a loop of sixteen steps is 192 ticks, 96 000 samples: 750 blocks
+    let rolls: Vec<Vec<i64>> = later.chunks(7).filter(|c| c.len() == 7).map(|c| c.iter().map(|(_, t)| (t - c[0].1) / TICK).collect()).collect();
+    assert!(rolls.len() >= 2, "the pattern came round again");
+    assert_eq!(rolls.last().unwrap(), &RIT_9.to_vec(), "after the change every roll is Rit");
+}
+
+#[test]
+fn setting_manual_by_the_setter_is_the_engine_that_was_never_asked_byte_for_byte() {
+    let run = |ask: bool| -> Vec<[u8; EVENT_BYTES]> {
+        let abi = Abi::start_with(48_000.0, 7);
+        strum_nine(0);
+        strum_nine(4);
+        if ask {
+            assert_eq!(octoweb_set_chord_style(0, 1, -10), 0, "Bounce, then back");
+            assert_eq!(octoweb_set_chord_style(0, 0, 0), 0);
+            assert_eq!(octoweb_set_chord_style(4, 0, 0), 0);
+        }
+        octoweb_transport(1);
+        (0..1500).flat_map(|_| abi.render(128)).collect()
+    };
+    let (plain, asked) = (run(false), run(true));
+    assert!(plain.len() > 40, "the run made notes");
+    assert_eq!(plain, asked, "Off is the Octopus (CV-1) through the page's setter too");
 }

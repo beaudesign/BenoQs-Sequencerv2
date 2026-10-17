@@ -46,6 +46,9 @@ class OctowebProcessor extends AudioWorkletProcessor {
         case "step":
           this.engine.setStep(m.track, m.step, m.attr, m.value);
           break;
+        case "chordStyle":
+          this.engine.setChordStyle(m.track, m.style, m.warpTenths);
+          break;
         case "clock":
           this.engine.setClock(m.master);
           break;

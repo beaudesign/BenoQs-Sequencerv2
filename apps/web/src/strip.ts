@@ -21,6 +21,9 @@ export interface Strip {
   metronome: HTMLButtonElement;
   /** Shows the metronome as on or off. */
   showMetronome(on: boolean): void;
+  /** The chord style (src/curve.ts), a button that steps through Off and three curves: its text names the state, and `aria-pressed` is true for any curve. */
+  curve: HTMLButtonElement;
+  showCurve(text: string, on: boolean): void;
   /** One list of devices for each of the engine's two output ports. */
   outputs: Record<OutputPort, HTMLSelectElement>;
   input: HTMLSelectElement;
@@ -78,6 +81,7 @@ export function bindStrip(doc: Document): Strip {
   const monitor = find<HTMLButtonElement>(doc, "#monitor");
   const drums = find<HTMLButtonElement>(doc, "#drums");
   const metronome = find<HTMLButtonElement>(doc, "#metronome");
+  const curve = find<HTMLButtonElement>(doc, "#curve");
   const outputs = { 1: find<HTMLSelectElement>(doc, "#midi-out-1"), 2: find<HTMLSelectElement>(doc, "#midi-out-2") };
   const input = find<HTMLSelectElement>(doc, "#midi-in");
   const clock = find<HTMLSelectElement>(doc, "#clock-state");
@@ -100,6 +104,11 @@ export function bindStrip(doc: Document): Strip {
     showDrums: (on) => drums.setAttribute("aria-pressed", on ? "true" : "false"),
     metronome,
     showMetronome: (on) => metronome.setAttribute("aria-pressed", on ? "true" : "false"),
+    curve,
+    showCurve(text, on) {
+      curve.textContent = text;
+      curve.setAttribute("aria-pressed", on ? "true" : "false");
+    },
     outputs,
     input,
     clock,

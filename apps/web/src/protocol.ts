@@ -15,6 +15,8 @@ export type ToWorklet =
   | { type: "track"; track: number; attr: number; value: number }
   /** One attribute of one step, in the engine's own numbering (`STEP_ATTR`): how the page opens with a pattern. */
   | { type: "step"; track: number; step: number; attr: number; value: number }
+  /** How one track spaces the notes of a roll, in the engine's own numbers (`CHORD_STYLE`; SPEC-0005 r1). Nothing the events or the panel show changes but where a roll's notes start. */
+  | { type: "chordStyle"; track: number; style: number; warpTenths: number }
   /** Makes the engine the MIDI clock master (ADR-0009), or not. */
   | { type: "clock"; master: boolean }
   /** The click (specs/SPEC-0002/p5d-metronome-click.md): on or off. It is audio the worklet makes, and is not in the events. */

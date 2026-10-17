@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   ABI_VERSION,
+  CHORD_STYLE,
   EVENT_BYTES,
   KIND_DOWN,
   KIND_REALTIME,
@@ -23,6 +24,7 @@ import {
   type Exports,
 } from "../src/abi.ts";
 import { QUARTER_TICKS } from "../src/click.ts";
+import { ROLL_9, noteOnSamples, ticksAfterFirst } from "./support/roll.ts";
 import { compile, controlNumbers, controlsDoc, instantiate, layoutBytes, matrixId, repoRoot, start } from "./support/module.ts";
 
 const n = controlNumbers();
@@ -79,6 +81,7 @@ test("the shipped module exports exactly the documented functions, and none of t
     "octoweb_render",
     "octoweb_reset",
     "octoweb_scratch",
+    "octoweb_set_chord_style",
     "octoweb_set_clock",
     "octoweb_set_step",
     "octoweb_set_tempo",
@@ -467,4 +470,51 @@ test("TICKS_PER_CLOCK is the engine's own: the follower reads the engine's posit
   const pulsesPerQuarter = Number(clock[1]);
   assert.equal(pulsesPerQuarter, 24, "MIDI clock is 24 pulses to the quarter note");
   assert.equal(TICKS_PER_CLOCK, Number(quarter[1]) / pulsesPerQuarter);
+});
+
+// ----- SPEC-0005 r1 S2 (WENGE-0034): the chord style -----
+
+/** A strum-9 single note on track 0 (channel 1) at 120 BPM, rolled by the style the test sets, for 800 blocks: the starts of its seven strikes in ticks. */
+function rollWith(set: (e: Octoweb) => void): number[] {
+  const e = start();
+  e.setTempo(120);
+  e.setTrack(0, TRACK_ATTR.midiChannel, 1);
+  e.setStep(0, 0, STEP_ATTR.active, 1);
+  e.setStep(0, 0, STEP_ATTR.strum, 9);
+  set(e);
+  e.transport(true);
+  const blocks = Array.from({ length: 800 }, () => decodeEvents(e.eventBytes(e.render(RENDER_FRAMES))));
+  return ticksAfterFirst(noteOnSamples(blocks, 1));
+}
+
+test("set_chord_style: the wrapper numbers the styles as ABI.md says, and the presets move the starts of a roll to the spec's table", () => {
+  assert.deepEqual(CHORD_STYLE, { manual: 0, curve: 1 });
+  assert.deepEqual(rollWith(() => {}), ROLL_9.manual, "never set: the Octopus's own column");
+  assert.deepEqual(rollWith((e) => e.setChordStyle(0, CHORD_STYLE.manual, 0)), ROLL_9.manual);
+  assert.deepEqual(rollWith((e) => e.setChordStyle(0, CHORD_STYLE.curve, -5)), ROLL_9.accel);
+  assert.deepEqual(rollWith((e) => e.setChordStyle(0, CHORD_STYLE.curve, -10)), ROLL_9.bounce);
+  assert.deepEqual(rollWith((e) => e.setChordStyle(0, CHORD_STYLE.curve, 5)), ROLL_9.rit);
+});
+
+test("set_chord_style: a track, a style or a warp that does not exist is code 5 and changes nothing, and before init it is code 1", () => {
+  const refused = (e: Octoweb, track: number, style: number, warp: number): boolean => {
+    try {
+      e.setChordStyle(track, style, warp);
+      return false;
+    } catch (err) {
+      return err instanceof OctowebError && err.code === 5;
+    }
+  };
+  assert.deepEqual(
+    rollWith((e) => {
+      e.setChordStyle(0, CHORD_STYLE.curve, -5);
+      for (const [track, style, warp] of [[10, 1, -5], [-1, 1, -5], [0, 2, -5], [0, -1, -5], [0, 1, 3], [0, 1, 11], [0, 1, -11], [0, 1, 1000]] as const) {
+        assert.ok(refused(e, track, style, warp), `track ${track} style ${style} warp ${warp}`);
+      }
+    }),
+    ROLL_9.accel,
+    "the refused calls left track 0 on Accel",
+  );
+  const bare = new Octoweb(instantiate());
+  assert.throws(() => bare.setChordStyle(0, CHORD_STYLE.curve, -5), (err: unknown) => err instanceof OctowebError && err.code === 1);
 });

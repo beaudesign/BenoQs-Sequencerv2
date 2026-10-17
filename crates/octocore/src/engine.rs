@@ -448,6 +448,9 @@ pub struct Engine {
     /// Set by a Stop of a running transport, taken by the Play after it, cleared by `reset`. While it is set the queue holds the events the
     /// engine had scheduled ahead of the audio at the Stop, and `render` does not emit them.
     resume: Option<Resume>,
+    /// How each track spaces the notes of a roll (`curve.rs`, SPEC-0005 r1). A setting of the host, not of the pattern: it is not in the
+    /// grid, a snapshot or a saved state, and `reset` leaves it alone. `Manual` everywhere, the Octopus's own table, until a host says otherwise.
+    chord_style: [crate::curve::ChordStyle; TRACK_COUNT],
 }
 
 impl Engine {
@@ -484,7 +487,32 @@ impl Engine {
             rt_dropped: 0,
             tick_due: [0.0; TICK_RING],
             resume: None,
+            chord_style: [crate::curve::ChordStyle::Manual; TRACK_COUNT],
         }
+    }
+
+    /// Sets how `track` spaces the notes of a roll (see `curve::ChordStyle`). Returns `false`, and changes nothing, for a track that does
+    /// not exist (10 or more). Takes effect from the next step the track fires; a roll already scheduled is not moved. Allocates nothing.
+    pub fn set_chord_style(&mut self, track: u8, style: crate::curve::ChordStyle) -> bool {
+        match self.chord_style.get_mut(track as usize) {
+            Some(slot) => {
+                *slot = style;
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// The style of `track`; `Manual` for a track that does not exist.
+    pub fn chord_style(&self, track: u8) -> crate::curve::ChordStyle {
+        self.chord_style.get(track as usize).copied().unwrap_or_default()
+    }
+
+    /// Test seam, like `step_once_for_test`: the number the engine's random stream would give next, without taking it. Two engines that
+    /// have drawn the same count of numbers from the same seed return the same value; one that drew more or fewer does not.
+    pub fn next_random_for_test(&self) -> u64 {
+        let mut peek = self.rng;
+        peek.next_u64()
     }
 
     /// Makes the command ring and the snapshot buffer, and returns their outer ends: the
@@ -1453,6 +1481,7 @@ impl Engine {
             played.reverse();
         }
         let level = strum.unsigned_abs();
+        let style = self.chord_style[ti as usize];
 
         // Ref: CE v5.30 p.40, Step Event Consideration 1: "If the Velocity is 0 then the note
         // is not transmitted." So a note that scales down to velocity 0 sends neither a
@@ -1462,13 +1491,14 @@ impl Engine {
         } else if level > 0 && note_count == 1 {
             let pitch = played[0];
             for k in 1..=7u8 {
-                let off = tables::strum_offset_ticks(level, k) as i32;
+                // A strummed single note is a roll of seven (CE v5.30 p.22); `Manual` is the manual's table, as it always was.
+                let off = crate::curve::roll_start_ticks(style, level, k, 7) as i32;
                 let due = tick_due_sample + (on_tick_offset + off) as f64 * samples_per_tick;
                 self.schedule_note(due, due + final_len_ticks as f64 * samples_per_tick, port, ch, pitch, final_vel);
             }
         } else {
             for (pi, &pitch) in played.iter().enumerate() {
-                let off = tables::strum_offset_ticks(level, (pi + 1) as u8) as i32;
+                let off = crate::curve::roll_start_ticks(style, level, (pi + 1) as u8, note_count as u8) as i32;
                 let due = tick_due_sample + (on_tick_offset + off) as f64 * samples_per_tick;
                 self.schedule_note(due, due + final_len_ticks as f64 * samples_per_tick, port, ch, pitch, final_vel);
             }

@@ -9,6 +9,8 @@
 #![forbid(unsafe_code)]
 
 pub mod attrs;
+pub mod curve;
+pub mod curve_table;
 pub mod domain;
 pub mod engine;
 pub mod fixture;

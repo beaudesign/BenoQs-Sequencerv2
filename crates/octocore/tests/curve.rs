@@ -593,3 +593,133 @@ fn the_fixture_language_refuses_what_it_cannot_set() {
         assert!(run_script(bad, Limits::NONE).is_err(), "`{bad}` should be an error");
     }
 }
+
+// ------------------------------------------------------------------ what the first review found missing (WENGE-0036)
+//
+// An independent review of S1 mutated the engine in two places and every test here still passed: the roll was spaced
+// for the chord's size instead of the number of notes that sound, and every track read track 0's style. These tests fail
+// on those two mutants and on nothing else.
+
+/// Every NoteOn the engine makes in `buffers` renders of 4096 samples at 120 BPM, as (sample, port, channel, note).
+fn run_ons(engine: &mut Engine, buffers: usize) -> Vec<(u64, u8, u8, u8)> {
+    let mut out = Vec::new();
+    let mut clock = 0u64;
+    for _ in 0..buffers {
+        let mut buf = EventBuffer::new();
+        engine.render(&RenderContext { sample_rate: SAMPLE_RATE, buffer_len: BUFFER, bpm: 120.0, playing: true }, &mut buf);
+        for e in buf.as_slice() {
+            if let Event::NoteOn { at_sample, port, ch, note, .. } = *e {
+                out.push((clock + at_sample as u64, port, ch, note));
+            }
+        }
+        clock += BUFFER as u64;
+    }
+    out
+}
+
+/// A strummed chord of `size` notes with `poly` as its polyphony on step 0 of track `t`.
+fn set_chord(engine: &mut Engine, t: usize, size: usize, poly: u8, level: i8) {
+    let offsets: [i8; CHORD_POOL_MAX] = [3, 4, 7, 10, 12, 16];
+    let step = &mut engine.grid.active_page_mut().tracks[t].steps[0];
+    step.active = true;
+    step.strum = level;
+    step.chord.count = (size - 1) as u8;
+    for k in 0..size - 1 {
+        step.chord.offsets[k] = offsets[k];
+    }
+    step.chord.polyphony = poly;
+}
+
+#[test]
+fn the_roll_is_spaced_for_the_notes_that_sound_not_for_the_chord_size() {
+    // Polyphony below the chord size draws that many notes; above it, some draws land on a rest and fewer than the chord
+    // size sound. In both, the roll is the table row for the notes that sound (and a single sounding note is a roll of seven).
+    let mut fewer_than_the_chord_with_room_to_spare = false;
+    for style in STYLES {
+        for size in 2..=7usize {
+            for poly in (1..=(size as u8 + 4)).filter(|p| *p as usize != size) {
+                for seed in 0..6u64 {
+                    let mut engine = Engine::new(seed);
+                    set_chord(&mut engine, 0, size, poly, 9);
+                    assert!(engine.set_chord_style(0, style));
+                    let ons = run_ons(&mut engine, 16);
+                    if ons.is_empty() {
+                        continue; // every draw landed on a rest: nothing sounds, as in the manual's worked example
+                    }
+                    let first = ons[0].0;
+                    let sounded = ons.iter().map(|o| o.3).collect::<std::collections::BTreeSet<_>>().len();
+                    let what = format!("{style:?} size {size} polyphony {poly} seed {seed}");
+                    assert!(sounded >= 1 && sounded <= size.min(poly as usize), "{what}: {sounded} notes sounded");
+                    if (poly as usize) < size {
+                        assert_eq!(sounded, poly as usize, "{what}: a polyphony below the size draws exactly that many");
+                    } else if sounded < size {
+                        fewer_than_the_chord_with_room_to_spare = true;
+                    }
+                    let (strikes, span) = if sounded == 1 { (7usize, 7u8) } else { (sounded, sounded as u8) };
+                    assert_eq!(ons.len(), strikes, "{what}");
+                    let got: Vec<u64> = ons.iter().map(|o| (o.0 - first) / TICK).collect();
+                    let want: Vec<u64> = (1..=strikes as u8).map(|k| roll_start_ticks(style, 9, k, span) as u64).collect();
+                    assert_eq!(got, want, "{what}: the roll is for {span} notes");
+                }
+            }
+        }
+    }
+    assert!(fewer_than_the_chord_with_room_to_spare, "a draw never landed on a rest: this test is not testing the case it names");
+}
+
+#[test]
+fn every_track_plays_in_its_own_style() {
+    let mut engine = Engine::new(0);
+    let mut want: Vec<Vec<u64>> = Vec::new();
+    for t in 0..TRACK_COUNT {
+        set_chord(&mut engine, t, 4, 4, 9);
+        // All ten tracks share a port and a channel by default, so each gets its own octave-ish band of pitches (8 apart,
+        // the chord spans 7) to tell them apart in the output.
+        engine.grid.active_page_mut().tracks[t].pitch = 20 + 8 * t as u8;
+        let style = STYLES[t % STYLES.len()];
+        assert!(engine.set_chord_style(t as u8, style));
+        want.push((1..=4u8).map(|k| roll_start_ticks(style, 9, k, 4) as u64).collect());
+    }
+    let distinct: std::collections::BTreeSet<_> = want.iter().cloned().collect();
+    assert!(distinct.len() >= 5, "the styles must differ for this to tell tracks apart: {distinct:?}");
+    let ons = run_ons(&mut engine, 16);
+    let first = ons.iter().map(|o| o.0).min().expect("notes sounded");
+    let lowest = ons.iter().map(|o| o.3).min().expect("notes sounded");
+    let mut by_track: BTreeMap<u8, Vec<u64>> = BTreeMap::new();
+    for (at, _, _, note) in &ons {
+        by_track.entry((note - lowest) / 8).or_default().push((at - first) / TICK);
+    }
+    assert_eq!(by_track.len(), TRACK_COUNT, "ten tracks, ten bands of pitch: {by_track:?}");
+    let mut got: Vec<Vec<u64>> = by_track.into_values().collect();
+    for g in &mut got {
+        g.sort_unstable();
+    }
+    got.sort();
+    want.sort();
+    assert_eq!(got, want, "each track spaced its roll in the style set on that track");
+}
+
+#[test]
+fn a_chain_plays_in_its_heads_style() {
+    // A chained track is driven by its head (docs/03, "the head owns the runtime cursor"), so the head's style is the
+    // chain's: a style set on a member does nothing. The head's own steps are all inactive here, so the first chord is the
+    // member's step 0, sixteen steps in.
+    for (head_style, member_style) in [(ChordStyle::Curve(Warp::Accel), ChordStyle::Curve(Warp::Bounce)), (ChordStyle::Manual, ChordStyle::Curve(Warp::Rit))] {
+        let mut engine = Engine::new(0);
+        {
+            let page = engine.grid.active_page_mut();
+            page.tracks[0].chain_members[0] = Some(1);
+            page.tracks[0].chain_member_count = 1;
+            page.tracks[1].chain_head = Some(0);
+        }
+        set_chord(&mut engine, 1, 5, 5, 9);
+        assert!(engine.set_chord_style(0, head_style));
+        assert!(engine.set_chord_style(1, member_style));
+        let ons = run_ons(&mut engine, 32);
+        assert_eq!(ons.len(), 5, "the member's step sounded once: {ons:?}");
+        let first = ons[0].0;
+        let got: Vec<u64> = ons.iter().map(|o| (o.0 - first) / TICK).collect();
+        let want: Vec<u64> = (1..=5u8).map(|k| roll_start_ticks(head_style, 9, k, 5) as u64).collect();
+        assert_eq!(got, want, "head {head_style:?}, member {member_style:?}");
+    }
+}

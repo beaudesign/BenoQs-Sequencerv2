@@ -24,6 +24,8 @@ pub extern "C" fn octoweb_set_track(track: u32, attr: u32, value: i32) -> u32 { 
 #[no_mangle]
 pub extern "C" fn octoweb_set_step(track: u32, step: u32, attr: u32, value: i32) -> u32 { host::set_step(track, step, attr, value) }
 #[no_mangle]
+pub extern "C" fn octoweb_set_chord_style(track: u32, style: u32, warp_tenths: i32) -> u32 { host::set_chord_style(track, style, warp_tenths) }
+#[no_mangle]
 pub extern "C" fn octoweb_set_clock(master: u32) -> u32 { host::set_clock(master != 0) }
 #[no_mangle]
 pub extern "C" fn octoweb_tick_position() -> f64 { host::tick_position() }

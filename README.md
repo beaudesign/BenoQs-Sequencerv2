@@ -10,6 +10,9 @@ Every non-trivial behavioral constant in `octocore` is cited to a page of the re
 
 Where it is going: a web sequencer. The engine compiles to WebAssembly; a static page draws the front panel and plays real MIDI to external instruments over Web MIDI, and Ableton Live can use it through a virtual MIDI port. The decision is `adr/0006-web-sequencer-supersedes-the-rooms-scope.md`, the design is `specs/SPEC-0002/`, and the phases are in `docs/09-roadmap.md`. The panel controller, the web app and MIDI input do not exist yet; the sequencer core, its C ABI boundary and the headless runner do. Phrase playback and Track Rotate / Skip Rotate are wired into the tick loop (CE v5.30 p.16, p.38-39).
 
+<img width="1440" height="900" alt="site-p11_1" src="https://github.com/user-attachments/assets/c1c494e7-6e1d-4817-b27c-7fbe26b59e4c" />
+
+
 ## How this repo came to exist
 
 [BenoQs-Sequencer](https://github.com/beaudesign/BenoQs-Sequencer) is the original project: a Max for Live device and JS engine recreating the Octopus in Ableton Live, under active development there (see its own history and PRs).

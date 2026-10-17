@@ -1,29 +1,39 @@
-# SPEC-0005: A chord style that drifts (chance with a memory)
+# SPEC-0005: A chord style that bends time (curved strum, from benny's curved time)
 
 | Field | Value |
 |---|---|
 | Spec | SPEC-0005 |
-| Revision | r0, draft, 2026-10-16 |
-| Stage | **Planning only.** This pull request adds the spec, one request and a journal entry, and changes no code, contract, fixture or threshold |
+| Revision | r1.2, 2026-10-17. r0 (merged 2026-10-16, #67) picked a different benny block, Drift. The owner's reply of 2026-10-17 11:44 named the block, so r1 changes the pick and keeps Drift as a runner-up. r1.1 records the owner's go-ahead (section 14). r1.2 states what an independent review of S0 to S2 found (section 14) |
+| Stage | **S0 to S2 approved to build (section 14); S3 and S4 not.** This pull request amends the spec and adds journal entries. It changes no code, contract, fixture or threshold. The slices are their own pull requests (`WENGE-0033` Metronome: S0 and S1; `WENGE-0034` Forge: S2) |
 | Risk tier | **Low** for this pull request (`specs/`, `journal/`). The slices are **Medium** under D3's default (a web-only extension: `crates/octocore`, `apps/web/engine`, `apps/web/`) and **High** if the owner picks the frozen FFI (`crates/octoffi/`, `contracts/`) |
 | Owner and approver | `@beaudesign` |
-| Task | `WENGE-0031` |
+| Task | `WENGE-0031` (the spec); `WENGE-0033` (S0 and S1); `WENGE-0034` (S2) |
 | Extends | SPEC-0003 (the circle: chords, polyphony and strum are the CHORD block's). Needs none of its slices |
-| Sister spec | SPEC-0004 (a sound that behaves like hardware), on its own branch. The two do not depend on each other |
-| Base | `main` at `6a14539` |
+| Sister spec | SPEC-0004 (a sound that behaves like hardware). The two do not depend on each other |
+| Base | `main` at `12c7938` |
 
 ## 1. The ask
 
-Recorded here because chat is not a source of truth. On Fri 2026-10-16 (17:15 London, from a phone) the owner wrote:
+Recorded here because chat is not a source of truth.
 
-> let's explore a sequencer pattern which was unique and unusual as an additional style to add to chords which is also in
-> benny - https://github.com/playbenny/benny/ on my phone now so can't show it exactly but let's explore and plan
+- Fri 2026-10-16, 17:15 London, from a phone: "let's explore a sequencer pattern which was unique and unusual as an
+  additional style to add to chords which is also in benny" (`https://github.com/playbenny/benny/`).
+- Sat 2026-10-17, 11:44, with two screenshots of benny: "It's this one in benny".
 
-**The reading.** The owner could not point at a block from a phone, so this spec surveys benny's sequencer blocks
-(section 3), picks one, and says why. "A style to add to chords" is read as: **a new way of choosing which notes of a
-chord sound, and when**, next to the three the Octopus has (section 2). "Unique and unusual" is read as: not a thing the
-Octopus already does. The pick is **Drift**, from benny's `seq.turing`. Two others are close runners-up and are in
-section 3. If the owner meant another block, it costs one paragraph here and nothing in the code (Q-S5-1).
+**The screenshots, in words** (they are not stored in the repository). The first is benny's **`seq.curved.time`** block:
+a plot of a rising curve that restarts each cycle, with evenly spaced thresholds crossed by it, and white ticks where it
+crosses them, bunched toward the end of each cycle. Its controls: divisions 4, bar length 4 beats, counter length 4, and
+two internal phasors, the first with rate 2 per bar, phase offset 0, **warp -0.30**, gain 1.00 and the second with rate 2,
+phase offset 0, **warp -0.11**, gain 0.25. Beside it benny's patch graph: clock, **curved time, shape player**, a basic
+voice, a reverb, the output. The second screenshot is **`core.scales.shapes`**: a keyboard with a scale lit, a stepped
+contour below it, a "patterns in" menu and a loop switch.
+
+**The reading.** The pattern is **curved time**: notes whose times are not even but follow a curve, so that a run
+accelerates or drags. The second block is its partner in benny's chain: `curved.time` is the clock, `shape.player`
+plays a stored shape of notes (kept by `scales.shapes`) on it. "A style to add to chords" is read as: **a chord, or a
+repeated note, that is played as a roll along a curve**, next to the three chord behaviours the Octopus has (section 2).
+The shape player's own ornaments are kept as a later candidate (section 12). If the owner meant something wider
+(Q-S5-2 and Q-S5-3), it costs a paragraph here and nothing in the code.
 
 ## 2. What chords do today (the manual's words, then the engine's)
 
@@ -31,76 +41,89 @@ The Octopus has three chord behaviours, all on the CHORD block (manual p.20 to 2
 
 1. **The chord.** Up to seven notes on a step: the base pitch and up to six offsets. Polyphony equal to the chord size
    plays them all.
-2. **Random picks from the chord pool** (p.22). Polyphony different from the chord size: "the number of played chord
-   notes is always the smaller of the two". Smaller polyphony draws that many chord notes; larger pads the pool with
-   rests, and a draw can land on a rest. C-E-G with polyphony 5 is "3 elements picked at random from the pool
-   {C, E, G, rest, rest}".
-3. **The strum** (p.22). A level from minus 9 to 9 delays note 2 to 7 by a fixed table of ticks, up or down.
+2. **Random picks from the chord pool** (p.22): polyphony different from the chord size draws that many notes, padding
+   with rests when it is larger.
+3. **The strum** (p.22). A level from minus 9 to 9, set by holding a chord button and turning the main rotary. Green is up,
+   red is down. The notes are delayed by a **fixed table of ticks**, "preset", and "the strum effect increases
+   exponentially with the strum level". At level 9 the notes 2 to 7 start at +5, +10, +17, +23, +30 and +45 ticks. The
+   manual adds: a strum on a **single note** plays that note "followed by 6 duplicate notes played at the set strum
+   timing".
 
-**How the engine does the second one.** `crates/octocore/src/engine.rs` (the chord branch of the step firing, near line
-1384) draws with `self.rng.next_below(..)`, once per pick, without replacement, from the one generator the whole engine
-shares. So the draw is **memoryless**: step 5 knows nothing about step 1, and a pattern of chord steps never repeats
-itself. That is what the manual describes, and it is right.
+**How the engine does the third one.** In `crates/octocore/src/engine.rs` (the step-firing code, near line 1450) the
+level is the step's `strum` clamped to minus 9 to 9; a negative level reverses the order of the notes; each note's start
+is `tick_due + on_tick_offset + strum_offset_ticks(level, k)`, where `strum_offset_ticks` in `tables.rs` is the manual's
+table, verbatim. A single note is scheduled seven times in the same way. **That table is the only shape the Octopus's roll
+has**: for seven notes at level 9 the gaps between notes are 5, 5, 7, 6, 7 and 15 ticks: a roll that always drags toward
+its end.
 
-**Finding F1, not part of this ask.** The manual's p.23 says the same pool trick works "without a chord ... on single
-notes, thus effectively giving the chance of a note or a rest": one note with polyphony 2 is a 50 percent rest, with
-polyphony 4 a 25 percent note. The engine's branch for a step with no chord (`else { notes[0] = final_pit; ... }`) never
-reads the polyphony, so a single note always plays. I found it while reading; I have not fixed it (not my zone) and have
-filed `journal/conductor/requests/2026-10-16-random-step-rest.md` for the Metronome. It matters here only because Drift
-would apply to it too (S3).
+**Finding F1, not part of this ask (unchanged from r0).** The manual's p.23 says the pool trick also works "on single
+notes": one note with polyphony 2 is a 50 percent rest. The engine's branch for a step with no chord never reads the
+polyphony, so a single note always plays. I have not fixed it (not my zone) and it is filed as
+`journal/conductor/requests/2026-10-16-random-step-rest.md` for the Metronome. It does not touch Curve.
 
-## 3. benny's sequencer blocks, surveyed
+## 3. What benny's curved time is, and why it fits
 
-Read on 2026-10-16: the `help_text` of each block in `note_blocks/` in `https://github.com/playbenny/benny/`, and its
-README and `LICENSE.md`. benny is built from Max/MSP patches and is under the **Hippocratic License 3.0**, whose notice
-and copyleft terms make it unwise to take any of its code before the owner decides on a licence for this repository
-(SPEC-0004 section 3 has the detail). This spec takes **ideas only**; the algorithm below is a few lines, is described
-here in full, and is written from this description.
+From the block's own description (`audio_blocks/seq.curved.time.json`, read 2026-10-17): "This sequencer is about
+bending time. It sums the internal phasors and the audio input into a timing signal. When this crosses the thresholds
+(set as even divisions of the 0-1 range) a trigger is emitted. Using interesting timing signals will create interesting
+rhythms." Its outputs are a trigger, the division number, a counter and a counter wrap, and "you can use the trigger
+events as a clock to drive other sequencers".
 
-| benny block (its own words) | What it is | Fit for chords | Verdict |
-|---|---|---|---|
-| `seq.turing`: "Implementation of the famous music thing turing machine" | A looping register of random values. A **lock** control sets how likely a value is to be replaced as it comes round. All the way locked it repeats exactly; all the way open it is pure chance; in between it **drifts** | The Octopus's chord draw has chance and no memory. This gives it a memory | **Chosen: Drift** |
-| `midi.delay`: "per-note random delays are useful for eg randomly varying the order and spacing of the notes of chords" | A random spread of a chord's notes in order and time | A second kind of strum: today's is a fixed table | **Runner-up: Scatter.** Timing only, so cheap. Shares the hook (S4) |
-| `midi.fidget`: "refuses to sit on one value for too long, once it gets bored takes a brownian hop to a nearby value" | A value that stays, then hops to a neighbour | The chosen chord note stays, then moves one chord tone up or down | **Runner-up: Walk** (S4) |
-| `seq.rene`: "a circle on a cartesian plane step sequencer" | A pointer moving over a grid of notes | A different instrument; the Octopus's order comes from its directions | No |
-| `seq.wonky`: step lengths that "pro-rata" to fit a period | Uneven step times | The Octopus has START offsets, groove and shuffle | No |
-| `seq.shape.player`: replays a stored "shape" in any scale, with ornaments | A contour, transposed and decorated | The Octopus's phrases and scales | No |
-| `seq.jumps`: steps up the scale by how far the input is from C3 | A relative stepper | The Octopus's custom directions | No |
-| `seq.strudel.mini`: a text pattern language, e.g. `[c4 g4 <f3 [f2 f4, c4]>]` | Written patterns | A language, not a style | No |
-| `midi.rhythmes.alpes`: "fades / switches between subdivisions of a clock" | Time | Not about chords | No |
+Put plainly: a ramp is bent by a **warp** (flat then steep, or steep then flat), and an event fires each time the bent
+ramp crosses the next of **D evenly spaced levels**. Straight ramp, even events. Bent ramp, events that bunch together
+at one end: an accelerating roll, like a bouncing ball. Two ramps of different rates added together make an irregular
+pattern that still repeats. The Octopus has nothing like it: its strum is one fixed table, and its step clock is
+even except for groove and shuffle.
 
-## 4. Drift
+**Why it fits a chord.** A chord roll is the same thing in small: n notes, each at a time, between "all together" and
+"spread over a span". The Octopus fixes the span by the strum level and the spacing by one table. Curved time asks the
+other question: **given the span, how are the notes spaced along it?** That is the whole of the style, and it uses
+the Octopus's own vocabulary: the strum level still means "how long the roll lasts".
 
-**One sentence.** A chord step that draws its notes at random draws them from a **loop of remembered draws** instead of
-from fresh chance, and each time the loop comes round, some of the draws are replaced.
+**The licence, as in SPEC-0004 section 3.** benny is under the Hippocratic License 3.0 (ethical conditions, a notice duty
+and copyleft), and this repository has no licence file. So this spec takes **the idea only**. The curve below is a few
+lines of arithmetic that is written out here in full and is written from this text; nothing of benny's patches, code or
+presets is read into it.
 
-**The definition.** Per track, Drift holds a **tape** of `L` cells (default 16, 1 to 16), each a 32-bit number, and a
-**lock** from 0 to 9 (default 6). A step that has a random pick to make (a chord whose polyphony differs from its size)
-takes the next cell:
+## 4. Curve
 
-1. With probability `(9 - lock) / 9` the cell is first replaced by a fresh number. Lock 9 never replaces, lock 0 always
-   does.
-2. A small generator is started **from that cell** and does the step's draw exactly as the engine does it today (the same
-   code path, the same without-replacement rule, the same rests). So the step's notes are a **pure function of its
-   cell**.
-3. The cursor moves on, and after the last cell goes to the first.
+**One sentence.** A strummed chord (or a strummed single note) is played with its notes spaced along a **bent curve** from
+its first note to its last, instead of along the Octopus's table, with the same span.
 
-Nothing else in the step changes: velocity, length, strum, timing, the phrase and the rest are as they were. Steps that
-make no pick (polyphony equal to size, or a single note) take no cell and sound as they do now.
+**The definition.** `Curve` is a style with a **warp** from minus 1 to 1 (0 is even). For a roll of `n` notes (a chord's
+notes, or 7 for a single note) at strum level `L`:
 
-**What it does to the music.** At lock 9 and `L` 8 the voicings of a track's random-pick steps come round every eight
-such steps: chance, then repeated until it feels written. At lock 6 the loop is recognisable but slides. At lock 0 it is
-the Octopus's own randomness. It is the Turing Machine's whole trick, applied to the one place the Octopus uses chance
-on chords, and it is the Octopus's grammar: it adds nothing to the chord, the polyphony or the strum, it changes where
-the randomness comes from.
+- the span is the table's own end point, `T = strum_offset_ticks(L, n)`. So a level still means what it means.
+- the start of note `k` (1 to `n`) is `round(T * W((k - 1) / (n - 1)))` ticks after the first, where
+  `W(x) = (e^(a x) - 1) / (e^a - 1)` with `a = 4 * warp`, and `W(x) = x` when the warp is 0. `W` runs from 0 to 1.
+  Rounding is half up.
+- a negative warp puts the notes close together **late** (accelerating, the bouncing ball); a positive warp puts them
+  close together **early** (dragging). Warp `w` and warp `-w` are exact mirror images: `W_-w(x) = 1 - W_w(1 - x)`.
+- the engine reads **integers, not `exp`**: the offsets for each warp, level and size are a pinned table (like the
+  manual's), generated by a script from this formula and committed, so a native build and the wasm build cannot differ
+  by a rounding.
 
-**Why it is safe.**
+**Worked example.** Seven notes, level 9 (T = 45 ticks, about 470 ms at 120 BPM, 48 ticks to the quarter note):
 
-- It is off by default, and with it off the code path is the Octopus's own, byte for byte (DR-1). The manual wins on
-  musical behaviour; Drift is a WENGE extra, named as one.
-- It has its own generator per track, so turning it on or off does not change what the engine's shared generator
-  gives shuffle, directions or grooves (DR-6). Two runs with the same seed are equal.
-- The manual's rule that the number of notes is "always the smaller of the two" holds for every setting (DR-5).
+| Style | Start of notes 1 to 7 (ticks) | Gaps |
+|---|---|---|
+| The Octopus's table | 0, 5, 10, 17, 23, 30, 45 | 5, 5, 7, 6, 7, 15 |
+| Curve, warp -1 ("Bounce") | 0, 22, 34, 40, 43, 44, 45 | 22, 12, 6, 3, 1, 1 |
+| Curve, warp -0.5 ("Accel") | 0, 15, 25, 33, 38, 42, 45 | 15, 10, 8, 5, 4, 3 |
+| Curve, warp 0.5 ("Rit") | 0, 3, 7, 12, 20, 30, 45 | 3, 4, 5, 8, 10, 15 |
+
+A single note at the same level with warp -1 is a **bouncing-ball ratchet**: seven hits, the first gap about half the
+span and each later one shorter. That is the sound of the screenshot's plot: ticks that bunch toward the end of a cycle.
+
+**What it changes, and what it does not.** It changes **when each note of a roll starts**, and nothing else: which notes,
+their order (a negative strum level still reverses it), velocity, length, channel, port, the random picks, the phrase
+and the rest are as they were. It draws no random number, so every other feature's randomness is untouched.
+
+**Why it is safe.** It is off by default, and with it off the table is used byte for byte (CV-1). The manual wins on
+musical behaviour; Curve is a WENGE extra and is named as one. Its offsets are never negative and never above the
+table's own largest (45 ticks), so the engine's guarantee that "strum only ever pushes a note later" and its early-note
+lookahead are as they were. The curve is **musical timing inside the engine, not interface motion**: CLAUDE.md rule 5
+is about the interface and is not touched.
 
 ## 5. Where it lives, and what is touched
 
@@ -109,90 +132,148 @@ The Octopus has no control for this and the panel is the instrument's, so **no p
 
 | Part | Zone | Content |
 |---|---|---|
-| The style | `crates/octocore/` (Metronome) | A `ChordStyle` per track: `Manual` (default) or `Drift { length, lock }`; the tape; the hook at the one place the chord branch draws |
-| The way in | `apps/web/engine/` (Forge; the crate is `octoweb`) | One additive export, `octoweb_set_chord_style(track, style, length, lock)`. The ABI number stays, as it did for `octoweb_set_track` (ABI.md) |
-| The button | `apps/web/` (Forge) | A `Drift` button in the strip that steps Off, Loose (lock 3), Loop (lock 7), Locked (lock 9) for all tracks |
+| The style | `crates/octocore/` (Metronome) | A `ChordStyle` per track: `Manual` (default) or `Curve { warp }`; the pinned offset table; the hook at the one call to `strum_offset_ticks` in the step firing, for chords and for the single-note repeat |
+| The way in | `apps/web/engine/` (Forge; the crate is `octoweb`) | One additive export, `octoweb_set_chord_style(track, style, warp)`. The ABI number stays, as it did for `octoweb_set_track` (ABI.md) |
+| The button | `apps/web/` (Forge) | A `Curve` button in the strip that steps Off, Accel, Bounce, Rit for all tracks |
 
-**The frozen FFI.** `TrackAttr` is mirrored by a C enum in `crates/octoffi/octoffi.h`, which is frozen. Adding Drift as
-new `TrackAttr` values would change that header and the wire format (a contract change: High, an ADR).
-D3's default avoids it by giving the web build its own setter and leaving `Command`, `TrackAttr` and the header alone.
-The cost: a host that is not the web page (the Max for Live spike) cannot set Drift. That is no loss today.
+**The frozen FFI.** `TrackAttr` is mirrored by a C enum in `crates/octoffi/octoffi.h`, which is frozen. Adding the style as
+new `TrackAttr` values would change that header and the wire format (a contract change: High, an ADR). D3's default
+avoids it by giving the web build its own setter. The cost: a host that is not the web page cannot set it. That is no
+loss today.
 
 ## 6. Observables (written red first, in the fixtures' style)
 
 | # | Observable | Test |
 |---|---|---|
-| DR-1 | **Off is the Octopus.** With every track on `Manual`, the events of every conformance fixture and of the seed-by-seed chord tests are byte for byte what `main` makes. The 569 assertions and the baseline do not move | `conformance`, a new golden test over 200 seeds |
-| DR-2 | **Locked, it loops.** At lock 9 and `L` 4, the notes of random-pick step `k` and `k + 4` are equal for 64 consecutive random-pick steps, for every pool size 2 to 7 and polyphony 1 to 7 | `octocore/tests/drift.rs` |
-| DR-3 | **Open, it is chance.** At lock 0 each chord tone is chosen with the frequency the Octopus's draw gives, within 4 standard deviations over 4096 steps; no tone is favoured | `drift.rs` |
-| DR-4 | **In between, it drifts at the rate the lock says.** The fraction of cells that differ between one pass of the tape and the next is `(9 - lock) / 9` within a bound from the binomial, for each lock 0 to 9, on a fixed seed | `drift.rs` |
-| DR-5 | **The manual's count holds.** Whatever the style, the number of notes a step sounds is at most the smaller of chord size and polyphony, and exactly that when polyphony does not exceed the chord size (p.22) | `drift.rs` |
-| DR-6 | **Isolated.** A pattern with shuffle, a random direction and a groove makes the same events for those features with Drift on and off, apart from the chord notes | `drift.rs` |
-| DR-7 | **Deterministic.** Same seed and same settings give the same events; a different seed gives different ones; the tape starts from the seed again on a Reset and survives a Stop and a Continue | `drift.rs` |
-| DR-8 | **No hang, no wrong note.** For every length, lock, pool size and polyphony, and for tape cells of 0, 1 and the largest number, the draw ends, picks distinct tones, and every note is a MIDI note (0 to 127) | `drift.rs` |
-| DR-9 | **Settings are bounded.** A length of 0 or 17 and a lock of 10 or minus 1 are clamped, a track that does not exist changes nothing and returns the code the other setters return | `apps/web/engine` tests |
-| DR-10 | **The page.** The button reaches the worklet; with a chord track the notes sent to a MIDI output differ between Off and Locked and repeat in Locked; the monitor plays what is sent | `drift.browser.test.ts` |
-| DR-11 | **The strip keeps its rules.** The button uses the existing raised and pressed tones and tokens, adds no colour, gradient, shadow or easing | `app_source_rules.rs`, `app-css.test.ts` |
-| DR-12 | **Not in the way.** The engine's per-block worst case (the soak and overload scenes) is no slower with Drift off, and the render path allocates nothing | existing soak gates |
+| CV-1 | **Off is the Octopus.** With every track on `Manual`, the events of every conformance fixture, and of a new golden over strum levels minus 9 to 9, chord sizes 1 to 7 and 200 seeds, are byte for byte what `main` makes. The 569 assertions and the baseline do not move | `conformance`, a golden test |
+| CV-2 | **The span is kept.** For every level 1 to 9, size 2 to 7 and warp, note 1 starts at 0, note `n` at `strum_offset_ticks(level, n)`, and the starts never decrease | `octocore/tests/curve.rs` |
+| CV-3 | **Warp 0 is even.** The gaps between notes differ by at most one tick | `curve.rs` |
+| CV-4 | **The sign means what it says, and is symmetric.** Warp below 0 gives gaps that never grow by more than one tick; above 0 gaps that never shrink by more than one tick; the gaps of warp `-w`, read backwards, equal those of `w` within one tick. (Rounding to whole ticks makes 18 of the 270 table cells swap two neighbouring gaps by one tick against the sign, for example Accel at level 6 with seven notes has gaps 8, 6, 4, 2, 3, 1. r1 said "never"; the engine and its test were always "within one tick".) | `curve.rs` |
+| CV-5 | **Only the starts move.** For any step, the set of (pitch, velocity, length, channel, port) is identical with Curve and with Manual; a negative strum level still reverses the order; level 0 is no roll in every style | `curve.rs` |
+| CV-6 | **The ratchet.** A single note with level above 0 is scheduled 7 times, first at 0, and the gaps follow CV-4 | `curve.rs` |
+| CV-7 | **No randomness.** The engine's random stream (shuffle, a random direction, groove, chord picks) is identical with Curve on and off | `curve.rs` |
+| CV-8 | **Within the lookahead.** Every offset is at most 45 ticks and never negative, and the engine's timing and early-note tests pass with Curve on at level 9 on all ten tracks (the overload scene) | existing timing gates, `curve.rs` |
+| CV-9 | **The table is pinned.** The committed offset table equals what the generator script makes from the formula (half up), so the table cannot drift from this spec and no build computes `exp` | `curve.rs`, a script test |
+| CV-10 | **Settings are bounded.** With the style Curve, a warp outside the five stored values, a style that does not exist and a track that does not exist change nothing and return the code the other setters return. With the style Manual the warp is ignored. A number that is not an integer reaches the export as the integer JavaScript makes of it (`NaN` is 0, 2^32 is 0), so only a page that sends the presets is held to this; the page does | `apps/web/engine` tests |
+| CV-11 | **The page.** The button reaches the worklet; for a chord track at strum 9 the notes sent to a MIDI output start at the offsets of CV-2 for each preset, and the monitor plays them | `curve.browser.test.ts` |
+| CV-12 | **The strip keeps its rules.** The button uses the existing raised and pressed tones and tokens and adds no colour, gradient, shadow or easing | `app_source_rules.rs`, `app-css.test.ts` |
+| CV-13 | **Not in the way.** The engine's soak and overload scenes are no slower with Curve off, and the render path allocates nothing | existing soak gates |
 
-The owner cannot hear a table, so S1 also produces a capture: the notes of 32 passes of a C-E-G step at locks 9, 6 and
-0, as one picture to look at on a phone, drawn from the events the headless runner (`crates/octorun`) already writes
-(as ndjson and as a MIDI file, so the owner can also hear them in any player).
+The owner cannot hear a table, so S1 also produces a capture: the notes of a C-E-G-B-D chord at level 9 and of a single
+note, under each preset, as one picture and as a MIDI file, from the events the headless runner (`crates/octorun`)
+already writes, to look at and play on a phone.
 
 ## 7. Slices
 
 | Slice | Content | Tier |
 |---|---|---|
-| **S0** | Pin the Octopus's draw: the golden test of DR-1 on `main`, before any change. It is green on day one, which is the point | Medium (Metronome) |
-| **S1** | `ChordStyle` and the tape in `octocore`, with DR-2 to DR-8 and the capture | Medium (Metronome) |
-| **S2** | `octoweb_set_chord_style`, the worklet message and the `Drift` button, with DR-9 to DR-11 | Medium (Forge) |
-| **S3** | Drift on the single-note random rest, **after** the Metronome has built p.23 (F1). The same hook | Medium |
-| **S4** | Optional: **Scatter** or **Walk** (section 3) as further values of `ChordStyle`, if the owner wants them (Q-S5-1) | Medium |
+| **S0** | Pin the Octopus's roll: the golden test of CV-1 on `main`, before any change. It is green on day one, which is the point | Medium (Metronome) |
+| **S1** | `ChordStyle`, the pinned table and its generator, the hook, CV-2 to CV-9, and the capture | Medium (Metronome) |
+| **S2** | `octoweb_set_chord_style`, the worklet message and the `Curve` button, with CV-10 to CV-12 | Medium (Forge) |
+| **S3** | **Two ramps.** A second warped ramp of another rate added to the first, as in benny's block, for rolls that are irregular and still repeat. Needs its own design pass (the sum can run backwards) | Medium |
+| **S4** | Optional, from section 12: Shape ornaments, Drift, Scatter or Walk, as further values of `ChordStyle` | Medium |
 
 ## 8. Decisions for the owner (defaults are taken; change any)
 
 | # | Decision | Default and why |
 |---|---|---|
-| D1 | Which benny pattern | **Drift**, from the Turing machine: the one that is unlike anything the Octopus does and needs the least new vocabulary. Scatter and Walk are S4 |
+| D1 | Which benny pattern | **Curved time**, applied to the chord roll and the single-note repeat. It is the block in the owner's screenshots. The rest are section 12 |
 | D2 | An extra that is not in the manual | **Yes, off by default and named as an extra.** The manual wins on musical behaviour; this adds a choice and removes none |
-| D3 | How it reaches the engine | **A web-only setter** (section 5), leaving the frozen FFI, `Command`, the wire format and the contracts alone. The alternative, through the FFI, is High tier and an ADR |
-| D4 | One cell per random-pick step, not per pick | Per step, so a loop of `L` is `L` such steps and lines up with the pattern. A step with three picks and a step with two take one cell each |
-| D5 | The tape's start | From the seed, again on a Reset; kept across Stop and Continue, so a song resumes where it was. Play from the start after a Reset repeats |
-| D6 | Length and lock | Default 16 and 6. The strip offers four presets, not two knobs; per-track settings need a track picker the strip does not have |
-| D7 | Scope of the button | All tracks. A per-track choice waits for SPEC-0003's Track mode |
-| D8 | Saved with the pattern | **No.** Drift is a setting of the page, not of the instrument's memory; a loaded pattern plays by the Octopus's rules until the button says otherwise |
-| D9 | The name | "Drift". The strip and docs call it a WENGE extra |
-| D10 | Licence | Idea only, described here and written from this text (section 3). The repository has no licence file; deciding one is the owner's |
+| D3 | How it reaches the engine | **A web-only setter** (section 5), leaving the frozen FFI, `Command`, the wire format and the contracts alone. The alternative is High tier and an ADR |
+| D4 | The span | **The manual's own end point** for the level and size, so the strum level means what it meant. The alternative, a span of its own, would need a second control |
+| D5 | The curve family and the numbers | `W` as in section 4, five stored warps (-1, -0.5, 0, 0.5, 1), as a **pinned integer table**. Continuous warp and a floating-point curve in the engine are not planned |
+| D6 | The control | One `Curve` button for all tracks: Off, Accel (-0.5), Bounce (-1), Rit (0.5). Even (0) and Drag (1) are stored and testable and not on the button, to keep it to four states. Per-track waits for a track picker the strip does not have, and for SPEC-0003's Track mode |
+| D7 | Saved with the pattern | **No.** The style is a setting of the page, not of the instrument's memory; a loaded pattern plays by the Octopus's rules until the button says otherwise |
+| D8 | benny's clock is a bar clock, the Octopus's step clock is not bent | **Not planned.** Bending when every step fires is a change to the timing path (High tier, ADR-0009's clock) and the Octopus already has start offsets (STA), groove and shuffle. If the owner wants "curved steps", it is its own spec (Q-S5-3) |
+| D9 | The name | "Curve". The strip and docs call it a WENGE extra |
+| D10 | Licence | Idea only, written out here (section 3). The repository has no licence file; deciding one is the owner's |
 
 ## 9. Questions only the owner can answer
 
-- **Q-S5-1.** Which benny pattern did you have in mind? If it was not the Turing machine, name it or describe what it did
-  and the plan changes at section 3 only. Default: Drift.
-- **Q-S5-2.** After the capture: is the loop at lock 6 recognisable as a loop to you, or should the presets be tighter?
-  Default: Loose 3, Loop 7, Locked 9.
+- **Q-S5-1 (answered 2026-10-17).** Which benny block? "It's this one": curved time. Recorded in section 1.
+- **Q-S5-2.** The second screenshot is `core.scales.shapes`, the store the shape player reads. Did you mean that as well,
+  that is, storing the order of the notes you play and replaying them with flam, trill, arp and skip? Default: **not in
+  this spec's first slices**; it is the S4 candidate "Shape ornaments" (section 12).
+- **Q-S5-3.** Do you want the bend on the chord roll and the single-note ratchet only (the default), or also on the step
+  clock, so that steps through a bar speed up and slow down? The second is a different, larger spec (D8).
+- **Q-S5-4.** After the capture: is Bounce the sound you meant, or should it be gentler? Default: Accel (-0.5) first on
+  the button, Bounce second.
 
 ## 10. Risks
 
-- **Two kinds of chance in one engine.** A reader of the manual sees one; the code has two. The golden test (DR-1) and
-  the name "extra" are the guard.
-- **A hidden second generator.** Each track's tape generator is seeded from the engine's seed and the track number; it
-  must not be fed from the shared generator, or DR-6 fails.
-- **The strip grows.** One more button on a strip that is already full on a phone. The strip's own tests (width, tab
-  order, the rules) are the gate, and D6's presets keep it to one control.
-- **Taste.** The numbers show it loops and drifts at the stated rate; whether it is a good idea musically is Q-S5-2.
+- **A second timing for a roll.** A reader of the manual sees one strum table; the code would have two behaviours. The
+  golden (CV-1), the name "extra" and the default Off are the guard.
+- **Rounding differences between builds.** Avoided by pinning integer tables (D5, CV-9).
+- **Rolls longer than a step.** A step is 12 ticks and the longest roll is 45, so a roll can run past the next steps. The
+  table already allows it at high levels, and Curve never exceeds it.
+- **The strip grows.** One more button on a strip that is already full on a phone. The strip's own tests are the gate.
+- **Taste.** The numbers show the curve is what it says; whether Bounce is musical is Q-S5-4.
+- **The button is silent on the page as it stands.** The panel writes only Active, Skip, Velocity, Pitch, Length and Start; the
+  page has no way to enter a chord or a strum, and the demo has none, so Off, Accel, Bounce and Rit give the same 242 events and
+  the same hash there. The style is heard on patterns that carry strums (the octorun patterns and the capture). A way to strum
+  on the page is a panel change and is not in S0 to S2 (S3 and S4 are not approved); it is the owner's call.
+- **Steep curves put notes on one tick.** On a whole-tick grid, Bounce and Drag put two notes on the same tick in 30 of the 45
+  (level, size 3 to 7) rows, against 9 for Manual; the last notes of a Bounce roll arrive together (level 6, seven notes: starts
+  0, 12, 18, 21, 23, 24, 24). That is the curve, not a defect; the capture lets the owner hear it.
+- **The queue is a little tighter.** Seven-note chords at strum 9 on every step of all ten tracks at 2 times speed and 120 BPM:
+  Manual peaks at 920 of 1024 slots and refuses nothing; Bounce reaches 1024 and refuses whole notes (1,975 in 10 seconds,
+  17,245 at 999 BPM), because a curve bunches notes into the lookahead. The refusal is the queue's own whole-note rule. CV-8's
+  scenes cover 1 times (650 of 1024) and a 4 times overload; this one is outside them.
+- **A chain plays in its head's style.** A chained track is driven by its head, which owns the cursor, so a style set on a
+  member does nothing. The page sets all ten tracks alike, so it makes no difference there. Pinned by
+  `a_chain_plays_in_its_heads_style`.
 
 ## 11. Not done
 
 Any panel control, any change to `contracts/`, the FFI, the wire format or the saved pattern, the single-note rest (F1,
-requested), and any other benny block.
+requested), a bent step clock (D8), and any other benny block.
 
-## 12. Sources
+## 12. Runner-ups, kept
 
-- benny, `https://github.com/playbenny/benny/`, the `help_text` of `note_blocks/seq.turing.json`, `midi.delay.json`, `midi.fidget.json` and others, read 2026-10-16; its `LICENSE.md` (Hippocratic License 3.0).
-- Music Thing Modular, the Turing Machine (a random looping sequencer with a "probability" knob), the idea benny's block implements. Nothing of its firmware or schematic is used.
-- Octopus Reference Manual CE v5.30, p.20 to 23 (`reference/manual/pages/p020.txt` to `p023.txt`).
-- This repository: `crates/octocore/src/engine.rs` (the chord branch), `rng.rs`, `types.rs`, `crates/octoffi/octoffi.h`, `apps/web/engine/ABI.md`.
+- **Shape ornaments** (`core.scales.shapes` and `seq.shape.player`: "stores the 'shape' of a pattern played into it as
+  well as the scale", replays it "transposed in-scale, rotated in time" with ornaments: skip, double, flam, swap, trill,
+  arp, sub loop, back, forward). The Octopus has phrases and scales for much of this. The ornaments that suit chords are
+  flam (a two-note strum), trill and arp (the chord notes in sequence). Needs a way to enter order, which the Octopus's
+  sorted chord does not keep.
+- **Drift** (r0's pick, from `seq.turing`): chance with a memory. A chord whose notes are drawn at random draws them from
+  a looping tape of seeds, a lock setting how many are replaced each pass; lock 9 repeats, lock 0 is the Octopus's own
+  randomness. It changes only where the randomness comes from, with its own generator per track, a pure function of the
+  tape cell for each step, and observables for it (off is the Octopus; locked it loops; open it is the Octopus's
+  frequencies; the manual's note count holds; deterministic; no hang). Its full text is r0: `git show d37eeab:specs/SPEC-0005/README.md`.
+- **Scatter** (`midi.delay`: random order and spacing of a chord's notes) and **Walk** (`midi.fidget`: a hop to a
+  neighbouring chord tone).
 
-## 13. Approval record
+## 13. Sources
 
-Not yet approved. Awaiting `@beaudesign`. Merging is the owner's act; the agent merges nothing.
+- benny, `https://github.com/playbenny/benny/`: `audio_blocks/seq.curved.time.json`, `note_blocks/seq.shape.player.json` and `core.scales.shapes.json` (descriptions and parameter names), and its `LICENSE.md` (Hippocratic License 3.0), read 2026-10-16 and 2026-10-17; the owner's two screenshots of benny, 2026-10-17.
+- Octopus Reference Manual CE v5.30, p.20 to 23 (`reference/manual/pages/p020.txt` to `p023.txt`), the strumming page p.22 for the table.
+- This repository: `crates/octocore/src/engine.rs` (the step firing), `tables.rs` (`strum_offset_ticks`), `types.rs`, `crates/octoffi/octoffi.h`, `apps/web/engine/ABI.md`.
+
+## 14. Revisions and approval record
+
+- r0, 2026-10-16: Drift. Merged as #67 by the owner. Not an approval.
+- r1, 2026-10-17: Curve, after the owner's reply. Pull request #68.
+- r1.1, 2026-10-17: the approval record below, and the task ids for the slices. Nothing else changes.
+- r1.2, 2026-10-17: after an independent review of S0 to S2 (tests, mutation and a re-derivation of the table: no engine defect, Manual byte for byte). CV-4 and CV-10 now say what the code and tests always did, and section 10 records what the review found: the button is silent on the page as it stands, steep curves put notes on one tick, the queue is tighter, and a chain plays in its head's style. Three engine tests were added (`WENGE-0036`: the roll for the notes that sound, a style per track, a chain's head). No approval changes.
+
+**r1.1, 2026-10-17, 14:50 (Europe/London).** While the agent was building SPEC-0004's first slice (the owner's "Okay build"
+at 14:46), the owner wrote **"Let's build r1 - Benny's curved time as well"**. The words are the owner's own, they name
+this spec and its revision, and they ask for it to be built; that is an approval, and it is written here with the date
+and the reading, because chat is not a source of truth. The agent reads "build r1" as the spec's first three slices, which
+together make the feature work end to end (the golden pin, the engine, the button). It reads the spec's own words as
+limiting the rest: S3 "needs its own design pass" and S4 is "optional". If the reading is wrong, say so and this record is
+revised. (The merge of #67, which carried r0, was not an approval. #68 is open and unmerged: the agent builds on its
+branch and merges nothing.)
+
+| Item | What is approved | What is not |
+|---|---|---|
+| This spec as the plan | Yes, r1, with the defaults D1 to D10 and the open questions on their defaults (Q-S5-2: no shape ornaments yet; Q-S5-3: the bend stays on the roll, not the step clock; Q-S5-4: Accel first on the button, Bounce second) | |
+| **S0** the golden pin (CV-1) | **Yes, build it** (`WENGE-0033`, Metronome) | |
+| **S1** `ChordStyle`, the pinned table and its generator, the hook, CV-2 to CV-9, the capture (`WENGE-0033`, Metronome) | **Yes, build it** | |
+| **S2** `octoweb_set_chord_style`, the worklet message, the `Curve` button, CV-10 to CV-12 (`WENGE-0034`, Forge) | **Yes, build it**, after S1's engine API exists | |
+| S3 two ramps | | **No.** It needs a design pass first and the owner's ear on S1's capture (Q-S5-4) |
+| S4 runner-ups (Shape ornaments, Drift, Scatter, Walk) | | **No.** Each is its own decision. The shape player is also the subject of a separate engineering spec the owner has not yet attached |
+| The frozen FFI, `contracts/`, the wire format | | **No.** D3's web-only setter is the default and is what is approved; the High-tier alternative is not |
+
+Merging is the owner's act; the agent merges nothing. A merge is not an approval: approval is the owner's own words,
+written here with the date.

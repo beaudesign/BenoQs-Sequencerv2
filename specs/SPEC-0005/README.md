@@ -191,12 +191,12 @@ already writes, to look at and play on a phone.
 ## 9. Questions only the owner can answer
 
 - **Q-S5-1 (answered 2026-10-17).** Which benny block? "It's this one": curved time. Recorded in section 1.
-- **Q-S5-2.** The second screenshot is `core.scales.shapes`, the store the shape player reads. Did you mean that as well,
+- **Q-S5-2 (answered 2026-10-18: keep the default).** The second screenshot is `core.scales.shapes`, the store the shape player reads. Did you mean that as well,
   that is, storing the order of the notes you play and replaying them with flam, trill, arp and skip? Default: **not in
   this spec's first slices**; it is the S4 candidate "Shape ornaments" (section 12).
-- **Q-S5-3.** Do you want the bend on the chord roll and the single-note ratchet only (the default), or also on the step
+- **Q-S5-3 (answered 2026-10-18: keep the default).** Do you want the bend on the chord roll and the single-note ratchet only (the default), or also on the step
   clock, so that steps through a bar speed up and slow down? The second is a different, larger spec (D8).
-- **Q-S5-4.** After the capture: is Bounce the sound you meant, or should it be gentler? Default: Accel (-0.5) first on
+- **Q-S5-4 (answered 2026-10-18: Off, Accel, Bounce, Rit).** After the capture: is Bounce the sound you meant, or should it be gentler? Default: Accel (-0.5) first on
   the button, Bounce second.
 
 ## 10. Risks
@@ -207,11 +207,12 @@ already writes, to look at and play on a phone.
 - **Rolls longer than a step.** A step is 12 ticks and the longest roll is 45, so a roll can run past the next steps. The
   table already allows it at high levels, and Curve never exceeds it.
 - **The strip grows.** One more button on a strip that is already full on a phone. The strip's own tests are the gate.
-- **Taste.** The numbers show the curve is what it says; whether Bounce is musical is Q-S5-4.
+- **Taste.** The numbers show the curve is what it says; whether Bounce is musical was Q-S5-4, answered 2026-10-18 with the default order (Off, Accel, Bounce, Rit).
 - **The button is silent on the page as it stands.** The panel writes only Active, Skip, Velocity, Pitch, Length and Start; the
   page has no way to enter a chord or a strum, and the demo has none, so Off, Accel, Bounce and Rit give the same 242 events and
   the same hash there. The style is heard on patterns that carry strums (the octorun patterns and the capture). A way to strum
-  on the page is a panel change and is not in S0 to S2 (S3 and S4 are not approved); it is the owner's call.
+  on the page is a panel change and is not in S0 to S2 (S3 and S4 are not approved); it is the owner's call, made 2026-10-18: wait for chord
+  entry. The button stays on the page as S2 built it, silent until chords can be entered there.
 - **Steep curves put notes on one tick.** On a whole-tick grid, Bounce and Drag put two notes on the same tick in 30 of the 45
   (level, size 3 to 7) rows, against 9 for Manual; the last notes of a Bounce roll arrive together (level 6, seven notes: starts
   0, 12, 18, 21, 23, 24, 24). That is the curve, not a defect; the capture lets the owner hear it.
@@ -254,6 +255,7 @@ requested), a bent step clock (D8), and any other benny block.
 - r0, 2026-10-16: Drift. Merged as #67 by the owner. Not an approval.
 - r1, 2026-10-17: Curve, after the owner's reply. Pull request #68.
 - r1.1, 2026-10-17: the approval record below, and the task ids for the slices. Nothing else changes.
+- r1.3, 2026-10-18: the owner's answers to Q-S5-2, Q-S5-3 and Q-S5-4, the silent button and S3, all on the defaults already recorded; closed in section 9 and recorded below. No slice, decision (D1 to D10) or number changes.
 - r1.2, 2026-10-17: after an independent review of S0 to S2 (tests, mutation and a re-derivation of the table: no engine defect, Manual byte for byte). CV-4 and CV-10 now say what the code and tests always did, and section 10 records what the review found: the button is silent on the page as it stands, steep curves put notes on one tick, the queue is tighter, and a chain plays in its head's style. Three engine tests were added (`WENGE-0036`: the roll for the notes that sound, a style per track, a chain's head). No approval changes.
 
 **r1.1, 2026-10-17, 14:50 (Europe/London).** While the agent was building SPEC-0004's first slice (the owner's "Okay build"
@@ -277,3 +279,17 @@ branch and merges nothing.)
 
 Merging is the owner's act; the agent merges nothing. A merge is not an approval: approval is the owner's own words,
 written here with the date.
+
+**r1.3, 2026-10-18 (Europe/London), after the owner's message "Continue q-s5" at 20:03.** The agent put SPEC-0005's open questions to the owner as
+four multiple-choice questions in chat, and the owner chose the answer marked as the default in each. The words are the owner's own selections, written
+here with the date and the reading, because chat is not a source of truth.
+
+| Question | The owner chose | Reading |
+|---|---|---|
+| Q-S5-4, the order of the Curve button | "Off, Accel, Bounce, Rit (Recommended)" | The button order stays as D6 and S2 built it: Accel (-0.5) first, Bounce (-1) second. The question asked after the renders; the agent does not know whether the owner listened and takes the answer as given. Bounce is not made gentler and is not taken off the button |
+| What to do about the silent button | "Wait for chord entry (Recommended)" | The button stays on the page as built, silent until chords can be entered there (SPEC-0003). Nothing new is approved: no strummed demo step, no new control, no revert |
+| S3 two ramps | "Not yet (Recommended)" | S3 stays **not approved**, as in the record above. No design pass is asked for either; it waits for the owner's ear on the strip with a chord |
+| Q-S5-2 and Q-S5-3 | "Keep both defaults (Recommended)" | No shape ornaments in this spec (the shape player is the separate plan in #71, `handoffs/eng-spec-shape-player-and-complex-voice-v2.md`), and the bend stays on the chord roll and the ratchet, not the step clock |
+
+Nothing in this entry approves a slice. S3 and S4 are still not approved, the High-tier setter alternative is still not approved, and a merge is still not
+an approval. #68 and #77 (the S2 strip carried onto this branch, because #75 was merged into a branch that is not this one) are open and unmerged.

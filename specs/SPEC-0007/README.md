@@ -7,7 +7,7 @@
 | Stage | **Planning only.** It is written outside the repository (`/workspace/specs-safe/`). It adds no code, contract, fixture or threshold, and nothing has been pushed |
 | Risk tier | **Low** for the spec itself (`specs/`, `journal/`). Every slice is **Medium** (`apps/web/`, Forge). None touches `contracts/`, the engine, the events or the ABI |
 | Owner and approver | `@beaudesign` |
-| Task | Not allocated yet. Proposed: `WENGE-0036`, the next number after `WENGE-0035`, which SPEC-0006 uses on `main` (#74). WENGE-0032 to WENGE-0035 are all taken on `main` or open pull requests |
+| Task | Not allocated yet. Proposed: `WENGE-0037`. WENGE-0036 is used by SPEC-0005 r1 (#68), and WENGE-0032 to WENGE-0035 are all taken on `main` or open pull requests |
 | Extends | SPEC-0004: the `Voice` interface, the rig and the renderer from S0, and decision D6 (mono), which this spec changes (D2 below). SPEC-0006 (on `main`, #74): the kit's output feeds the board, and this spec takes over SPEC-0006's slice K8 (pedals) |
 | Amends | **SPEC-0004 S7 Complex** (section 9). It adds front-panel controls and patch points. SPEC-0004 itself is not edited here. The amendment is copied in by a later SPEC-0004 revision once the owner approves this spec |
 | ADR | **ADR-0015, reserved** (section 2.3). ADR-0014 is the voices ADR on #70 |

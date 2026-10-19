@@ -6,6 +6,7 @@ import { QUARTER_TICKS } from "../src/click.ts";
 import { routeFromWorklet, type PanelFrame, type WorkletSink } from "../src/host.ts";
 import { PANEL_EVERY_BLOCKS, type FromWorklet } from "../src/protocol.ts";
 import { controlNumbers, layoutBytes, matrixId } from "./support/module.ts";
+import { ROLL_9, noteOnSamples, ticksAfterFirst } from "./support/roll.ts";
 import { WorkletRig, type Posted } from "./support/worklet-scope.ts";
 
 const n = controlNumbers();
@@ -315,4 +316,39 @@ test("routeFromWorklet hands the position and its frame to the page", () => {
   assert.equal(got[0]!.position, 123.5);
   assert.equal(got[0]!.positionFrame, 1_128);
   assert.equal(got[0]!.running, true);
+});
+
+// ----- SPEC-0005 r1 S2 (WENGE-0034): the chord style message -----
+
+/** The starts, in ticks, of the seven strikes of a strum-9 single note on track 0 after the page sends `style` (or nothing). */
+function worklet_roll(style: { style: number; warpTenths: number } | null): number[] {
+  const rig = new WorkletRig();
+  rig.take();
+  rig.send({ type: "tempo", bpm: 120 });
+  rig.send({ type: "track", track: 0, attr: 8, value: 1 });
+  rig.send({ type: "step", track: 0, step: 0, attr: 0, value: 1 });
+  rig.send({ type: "step", track: 0, step: 0, attr: 8, value: 9 });
+  if (style) rig.send({ type: "chordStyle", track: 0, ...style });
+  rig.send({ type: "transport", play: true });
+  const blocks = Array.from({ length: 800 }, () => only(rig.block(), "events").flatMap((m) => decodeEvents(new Uint8Array(m.bytes))));
+  return ticksAfterFirst(noteOnSamples(blocks, 1));
+}
+
+test("a chordStyle message sets one track's style: the roll starts where the spec's table says, for each preset", () => {
+  assert.deepEqual(worklet_roll(null), ROLL_9.manual);
+  assert.deepEqual(worklet_roll({ style: 0, warpTenths: 0 }), ROLL_9.manual);
+  assert.deepEqual(worklet_roll({ style: 1, warpTenths: -5 }), ROLL_9.accel);
+  assert.deepEqual(worklet_roll({ style: 1, warpTenths: -10 }), ROLL_9.bounce);
+  assert.deepEqual(worklet_roll({ style: 1, warpTenths: 5 }), ROLL_9.rit);
+});
+
+test("a chordStyle message the engine refuses is reported to the page as an error and does not stop the worklet", () => {
+  const rig = new WorkletRig();
+  rig.take();
+  for (const m of [{ track: 10, style: 1, warpTenths: -5 }, { track: 0, style: 2, warpTenths: 0 }, { track: 0, style: 1, warpTenths: 3 }]) {
+    rig.send({ type: "chordStyle", ...m });
+    assert.match(only(rig.take(), "error")[0]?.message ?? "", /set chord style.*code 5/);
+  }
+  rig.send({ type: "tempo", bpm: 120 });
+  assert.deepEqual(only(rig.take(), "error"), []);
 });

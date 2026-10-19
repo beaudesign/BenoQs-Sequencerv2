@@ -6,6 +6,7 @@
 //! values on an input (two small `Vec`s, only when a press produces a command or an intent).
 
 use crate::encode::{led_byte, write_merged, EVENT_BYTES};
+use octocore::curve::ChordStyle;
 use octocore::domain::TRACK_COUNT;
 use octocore::engine::{MAX_BPM, MAX_SAMPLE_RATE, MIN_BPM, MIN_SAMPLE_RATE, REALTIME_PER_RENDER};
 use octocore::domain::STEP_COUNT;
@@ -252,6 +253,21 @@ pub fn set_step(track: u32, step: u32, attr: u32, value: i32) -> u32 {
                 h.engine.handle_command(Command::SetStep { track, step, attr, value });
                 OK
             }
+            _ => ERR_BAD_ARGUMENT,
+        }
+    })
+    .unwrap_or(ERR_NOT_INITIALISED)
+}
+
+/// How one track spaces the notes of a roll (SPEC-0005 r1, D3): `style` 0 is the manual's table (and `warp_tenths` is ignored), 1 is the
+/// curve at a warp of -10, -5, 0, 5 or 10 tenths. A track, a style or a warp that does not exist is refused and changes nothing. It is the
+/// engine's own setter and not a `Command`, so the frozen wire format and the FFI are untouched; it takes effect from the next step the track fires.
+pub fn set_chord_style(track: u32, style: u32, warp_tenths: i32) -> u32 {
+    with_host(|h| {
+        let track = u8::try_from(track).ok().filter(|t| usize::from(*t) < TRACK_COUNT);
+        let style = i32::try_from(style).ok().and_then(|s| ChordStyle::from_wire(s, warp_tenths));
+        match (track, style) {
+            (Some(track), Some(style)) if h.engine.set_chord_style(track, style) => OK,
             _ => ERR_BAD_ARGUMENT,
         }
     })

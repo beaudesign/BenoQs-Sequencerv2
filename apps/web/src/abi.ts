@@ -25,7 +25,10 @@ export function decodeLed(byte: number): { colour: LedColour; phase: LedPhase } 
 export const TRACK_ATTR = { pitch: 0, velocity: 1, midiChannel: 8 } as const;
 
 /** The attribute numbers `octoweb_set_step` takes: the engine's own order (ABI.md). Only the ones the page writes are named. */
-export const STEP_ATTR = { active: 0, skip: 1, pitchOffset: 2, velocityOffset: 3, lengthTicks: 4 } as const;
+export const STEP_ATTR = { active: 0, skip: 1, pitchOffset: 2, velocityOffset: 3, lengthTicks: 4, strum: 8 } as const;
+
+/** The styles `octoweb_set_chord_style` takes (ABI.md, SPEC-0005 r1): the manual's table, or the same span with the notes spaced along a curve. */
+export const CHORD_STYLE = { manual: 0, curve: 1 } as const;
 
 /** The event record kind for a MIDI real-time message: `d1` is the status byte (0xF8 Clock, 0xFA Start, 0xFB Continue, 0xFC Stop), port and channel are 0. */
 export const KIND_REALTIME = 5;
@@ -46,6 +49,7 @@ export interface Exports {
   octoweb_set_tempo(bpm: number): number;
   octoweb_set_track(track: number, attr: number, value: number): number;
   octoweb_set_step(track: number, step: number, attr: number, value: number): number;
+  octoweb_set_chord_style(track: number, style: number, warpTenths: number): number;
   octoweb_set_clock(master: number): number;
   octoweb_tick_position(): number;
   octoweb_render(frames: number): number;
@@ -164,6 +168,14 @@ export class Octoweb {
   /** One attribute of one step (`STEP_ATTR`). A track, step or attribute that does not exist is code 5. */
   setStep(track: number, step: number, attr: number, value: number): void {
     this.check(this.x.octoweb_set_step(track, step, attr, value), "set step");
+  }
+
+  /**
+   * How one track spaces the notes of a roll (`CHORD_STYLE`). `warpTenths` is -10, -5, 0, 5 or 10 for the curve and is ignored for the manual's table.
+   * A track, a style or a warp that does not exist is code 5 and changes nothing. It takes effect from the next step the track fires.
+   */
+  setChordStyle(track: number, style: number, warpTenths: number): void {
+    this.check(this.x.octoweb_set_chord_style(track, style, warpTenths), "set chord style");
   }
 
   /** Makes the engine the MIDI clock master, or not. Off at `init`. Turned on while the transport runs, the engine says where it is (Start or Continue) and the pulses follow. */

@@ -3,15 +3,16 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0007 |
-| Revision | r1, draft, 2026-10-18 (rebased on `main` at `f6e3ca0`) |
-| Stage | **Planning only.** It is written outside the repository (`/workspace/specs-safe/`). It adds no code, contract, fixture or threshold, and nothing has been pushed |
+| Revision | r2, draft, 2026-10-19. r1 (2026-10-18) was rebased on `main` at `f6e3ca0` and reached `main` in #76 |
+| Stage | **Planning only.** It adds no code, contract, fixture or threshold. (r0 and r1 were first written outside the repository, in `/workspace/specs-safe/`; r1 is on `main` and r2 is a pull request.) r2 adds `information-flow.md`: proposals, not approved |
 | Risk tier | **Low** for the spec itself (`specs/`, `journal/`). Every slice is **Medium** (`apps/web/`, Forge). None touches `contracts/`, the engine, the events or the ABI |
 | Owner and approver | `@beaudesign` |
-| Task | Not allocated yet. Proposed: `WENGE-0036`, the next number after `WENGE-0035`, which SPEC-0006 uses on `main` (#74). WENGE-0032 to WENGE-0035 are all taken on `main` or open pull requests |
+| Task | **`WENGE-0037`.** r1's file proposed `WENGE-0036`, but that number is taken: `handoffs/WENGE-0036.ndjson` is the Curve engine tests, on `main` since #68. The title of #76 on GitHub already reads `WENGE-0037`. See `information-flow.md` section 9, finding 7 |
 | Extends | SPEC-0004: the `Voice` interface, the rig and the renderer from S0, and decision D6 (mono), which this spec changes (D2 below). SPEC-0006 (on `main`, #74): the kit's output feeds the board, and this spec takes over SPEC-0006's slice K8 (pedals) |
 | Amends | **SPEC-0004 S7 Complex** (section 9). It adds front-panel controls and patch points. SPEC-0004 itself is not edited here. The amendment is copied in by a later SPEC-0004 revision once the owner approves this spec |
-| ADR | **ADR-0015, reserved** (section 2.3). ADR-0014 is the voices ADR on #70 |
-| Base | `main` at `f6e3ca0` (r0 was written against `c079f8f`). `specs/SPEC-0006/` and SPEC-0004 S0 are read from `main`. Also read: `handoff/eng-spec-shape-player-complex-v2` at `58c4150` and `conductor/adr-0013-the-sound-is-a-feature` at `81498f2` (#70, open) |
+| ADR | **ADR-0015, reserved** (section 2.3). ADR-0014 is the voices ADR, on `main` since #70 |
+| Base | `main` at `f6e3ca0` (r0 was written against `c079f8f`). `specs/SPEC-0006/` and SPEC-0004 S0 are read from `main`. Also read: `handoff/eng-spec-shape-player-complex-v2` at `58c4150` and `conductor/adr-0013-the-sound-is-a-feature` at `81498f2` (#70, merged since r1). **r2** was written against `main` at `9977ec0`, where #68 and #70 are merged |
+| Companion | **`information-flow.md`** (r2): how events, audio, parameters, structure and state move between the sequencer, the worklet and the pedals; a two-lane fork and Mixer; decisions D15 to D27, observables PB-12 to PB-23, slices P0a and P2, questions Q-7-16 to Q-7-21. **Proposals; not approved** |
 
 ## 1. The ask
 
@@ -25,6 +26,14 @@ Recorded here because chat is not a source of truth. The owner's answers to the 
 - "Closely mimicking the real pedal" means that **every documented behaviour is reproduced and tested**, with the same controls, ranges, modes, menus and MIDI map.
 - Behaviour that is not documented is tuned against Ben's own unit by measurement and by ear. The same rule appears in SPEC-0006 (D3, Q-S6-5): only the owner's own recordings are used, never third-party audio.
 - "Based on the circuit board" is honoured as far as the public record allows. No photograph of the Ghosts board was found (section 3). What is public about the hardware (the chips, the analog paths, the levels) is used for the input and output stage. The DSP is matched by behaviour, because a board can't show an algorithm.
+
+### 1.1 The ask of 2026-10-19 (r2)
+
+The owner wrote on Mon 2026-10-19 at 22:41 London, with two pictures (the resonator pedal itself, and a four-slot pedalboard from another app that forks into two lanes and rejoins in a Mixer):
+
+> Sequencer performance improvements - Let's think about implementing and planning a pedal chain like this which goes under the sequencer itself - think of about the data and information flow
+
+This is a request to think and plan, not an approval. How it is read, and the design it led to, are in `information-flow.md` (section 1 and onward). The pictures are used for topology only and are not stored in the repository.
 
 ## 2. Where this sits
 
@@ -50,7 +59,7 @@ Recorded here because chat is not a source of truth. The owner's answers to the 
 
 ### 2.3 The ADR
 
-- **Reserved: ADR-0015.** ADR-0001 to ADR-0012 are on `main`. The open pull request #70 on `conductor/adr-0013-the-sound-is-a-feature` holds `adr/0014-the-pages-sound-is-a-feature-and-its-voices-stay-in-typescript.md`, and `voices/voice.ts` and `monitor.ts` on `main` already cite ADR-0014. No branch holds an ADR-0013, 0015 or 0016 (checked 2026-10-18). So this spec's ADR moves from r0's 0014 to **0015**.
+- **Reserved: ADR-0015.** ADR-0001 to ADR-0012 are on `main`. `adr/0014-the-pages-sound-is-a-feature-and-its-voices-stay-in-typescript.md` is on `main` too (it was pull request #70 when r1 was written, and was merged on 2026-10-19), and `voices/voice.ts` and `monitor.ts` already cite ADR-0014. No branch holds an ADR-0013, 0015 or 0016 (checked 2026-10-18). So this spec's ADR moves from r0's 0014 to **0015**.
 - **Risk of a clash.** The handoff's draft shape-player ADR was numbered 0013 and must move. SPEC-0006's K0 ADR is "numbered when it is written". Whichever of these is written first takes the next free number. If one of them reaches `main` first, this spec's ADR takes the next number after it, and this table is updated.
 - **What ADR-0015 records:**
   1. The page gains an **effects chain** (the pedalboard) after the voices and the kit.
@@ -504,6 +513,8 @@ Without the unit, rows marked **(ref)** are skipped and reported as "not measure
 
 The order follows what the owner named: Ghosts sounding first (G2 is the first resonator sound), then the rest. P0 and G0 can be built without hardware. G8 needs Ben's unit or stays open.
 
+**r2 (proposed, not approved).** `information-flow.md` section 11 adds slice **P0a** (the event, clock and transport bus, ahead of P0) and slice **P2** (the fork and Mixer, after P1), widens P0 (the plan compiler, the parameter plane, telemetry, the swap, memory transfer, the cost budget and idle skip), and says G4, G6 and G7 also need P0a. Nothing in the table above changes until the owner approves.
+
 ## 8. Decisions for the owner (defaults are taken; change any)
 
 | # | Decision | Default and why |
@@ -625,7 +636,7 @@ No schematic, firmware or third-party code is used (handoff §5.6 unchanged).
 
 ## 12. Not done
 
-- Parallel lanes, send/return, and a kit patch used as a pedal.
+- Send/return, and a kit patch used as a pedal. (**Parallel lanes** were "not done" in r1. r2 proposes one fork of two lanes closed by a Mixer, slice P2, in `information-flow.md` section 6. Not approved, so still not done.)
 - Pedals other than the resonator (they are later slices; originals by default).
 - MIDI out from the pedal (the pedal has none).
 - Emulating the analog front end's noise or the codec's filters.
@@ -685,11 +696,13 @@ Sibling-pedal evidence (Ribbons): 280 and 305 (STM32H7, Daisy Seed sourcing), 16
 - Bjorklund / Toussaint, "The Euclidean algorithm generates traditional musical rhythms" (2005).
 - MIDI Tuning Standard (MIDI Manufacturers Association), Bulk Tuning Dump.
 
-**This repository:** `specs/SPEC-0004/README.md` (r1, and r1.2 on #70); `specs/SPEC-0005/README.md` (format); `specs/SPEC-0006/README.md` and `modules.md` on `main`; `adr/0014-…` on #70; `apps/web/src/voices/`, `apps/web/test/support/`, `apps/web/scripts/render-voices.ts`; `handoffs/eng-spec-shape-player-and-complex-voice-v2.md` §5; `apps/web/src/monitor.ts`, `worklet.ts`; `harness/scope-banned.txt`.
+**This repository:** `specs/SPEC-0004/README.md` (r1.2, #70); `specs/SPEC-0005/README.md` (format); `specs/SPEC-0006/README.md` and `modules.md` on `main`; `adr/0014-…` (#70); `apps/web/src/voices/`, `apps/web/test/support/`, `apps/web/scripts/render-voices.ts`; `handoffs/eng-spec-shape-player-and-complex-voice-v2.md` §5; `apps/web/src/monitor.ts`, `worklet.ts`; `harness/scope-banned.txt`.
 
 ## 14. Approval record
 
-Not yet approved. Awaiting `@beaudesign`. The owner's three answers of 2026-10-17 (section 1) set the direction: S7 stays Verbos with a panel, Ghosts is modelled from scratch, and the pedalboard is SPEC-0007. The decisions in section 8 are defaults until approved. Merging is the owner's act; the agent merges nothing.
+Not yet approved. Awaiting `@beaudesign`. The owner's three answers of 2026-10-17 (section 1) set the direction: S7 stays Verbos with a panel, Ghosts is modelled from scratch, and the pedalboard is SPEC-0007. The decisions in section 8 are defaults until approved. Merging is the owner's act, and a merge is not an approval: the merge of #76 (r1) approved nothing.
+
+**r2 (2026-10-19).** The owner's message of that date (section 1.1) asked for the pedal chain's data and information flow to be thought through and planned. It approved no slice. `information-flow.md` holds the proposals (D15 to D27, PB-12 to PB-23, slices P0a and P2, Q-7-16 to Q-7-21); every one is a default until the owner says otherwise in their own words, written here with the date.
 
 ## 15. Revision history
 
@@ -697,3 +710,4 @@ Not yet approved. Awaiting `@beaudesign`. The owner's three answers of 2026-10-1
 |---|---|---|
 | r0 | 2026-10-17 | The spec: the ask; hardware findings (known, inferred, unknown); the board; the resonator pedal in full (panel, block diagram, subsystems, CC map, presets, menus, panel UI); observables PB-1 to PB-11 and G-1 to G-20; slices P0, P1 and G0 to G8; decisions D1 to D14; the S7 amendment (panel, patch points, V-1 to V-12, S7f and S7g); questions Q-7-1 to Q-7-15 |
 | r1 | 2026-10-18 | Rebased on `main` at `f6e3ca0`: SPEC-0004 S0 (#73) and SPEC-0006 (#74) are on `main`; section 2.1 re-read from the code; the S0 rig and renderer named; the board's ADR moves to ADR-0015 because #70 holds ADR-0014. No decision or observable changed |
+| r2 | 2026-10-19 | The owner's pedal-chain message recorded (section 1.1). New companion `information-flow.md`: the six flows, who owns which state, routing by MIDI channel, a clock derived from the tick position, a series-parallel board with a two-lane fork and Mixer, the page and worklet messages, seven findings in r1, observables PB-12 to PB-23, slices P0a and P2, decisions D15 to D27, questions Q-7-16 to Q-7-21. Housekeeping: the Task row now reads `WENGE-0037` (0036 is taken), the Stage line no longer says nothing was pushed, ADR-0014 and #70 are shown as merged, and section 12 notes that parallel lanes are proposed. **No r1 decision or observable changed**; D21 would amend one bullet of section 4.2 only if the owner approves it |

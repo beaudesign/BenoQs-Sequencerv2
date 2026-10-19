@@ -4,9 +4,10 @@
 // Everything it needs is fetched from the folders the server serves: the control inventory and the tokens (contracts),
 // the layout, the module. `Play` is a button because a browser keeps audio silent until the page has been used: the first press starts the
 // engine and, unless the address says `?bare`, loads the demo pattern, turns the sound on and plays (specs/SPEC-0002/p6-runs-when-opened.md).
-import { LED_COUNT, TRACK_ATTR, layoutFromControls } from "../src/abi.ts";
+import { LED_COUNT, TRACK_ATTR, TRACK_COUNT, layoutFromControls } from "../src/abi.ts";
 import { ChaseLight, composeChase, matrixMap } from "../src/chase.ts";
 import { CLOCK_DEFAULT, decideClock, describeClock, isClockMode, type ClockDecision, type ClockWorld } from "../src/clock-state.ts";
+import { CURVE_PRESETS, curveText, nextCurve } from "../src/curve.ts";
 import { loadDemo } from "../src/demo.ts";
 import { Follower } from "../src/follower.ts";
 import { Host } from "../src/host.ts";
@@ -237,6 +238,21 @@ async function main(): Promise<void> {
     host?.setMetronome(metronomeOn);
   });
 
+  // The chord style (SPEC-0005 r1): how every track spaces a roll, the strum of a chord and the strikes of a single note. Off is the Octopus's own spacing and
+  // is what the engine does until it is told otherwise. A choice made before Play is kept and goes to the worklet at Start; after that each press goes at once.
+  // It changes where a roll's notes start, in what is sent and in what is heard, and nothing else.
+  let curveIndex = 0;
+  strip.showCurve(curveText(curveIndex), curveIndex !== 0);
+  const sendCurve = (to: Host): void => {
+    const preset = CURVE_PRESETS[curveIndex]!;
+    for (let track = 0; track < TRACK_COUNT; track++) to.setChordStyle(track, preset.style, preset.warpTenths);
+  };
+  strip.curve.addEventListener("click", () => {
+    curveIndex = nextCurve(curveIndex);
+    strip.showCurve(curveText(curveIndex), curveIndex !== 0);
+    if (host) sendCurve(host);
+  });
+
   const startEngine = async (): Promise<void> => {
     if (host || starting) return;
     starting = true;
@@ -248,6 +264,7 @@ async function main(): Promise<void> {
       const started = await Host.start({ wasm, layout: layoutFromControls(controls), workletUrl: at("../src/worklet.js"), seed: 0n });
       host = started;
       if (metronomeOn) started.setMetronome(true);
+      if (curveIndex !== 0) sendCurve(started);
       const time = new ContextTimeMap(started.context, performance);
       scheduler = new MidiScheduler(time, LOOKAHEAD_MS.default);
       wireMidi(started, scheduler, time);

@@ -3,19 +3,23 @@
 Capped at 200 lines. The Conductor prunes rather than appends when it grows past that. **Last rewritten: 2026-10-19**, from `main` at `d5ed9a0`,
 with the owner's merges of 17 and 18 Oct. Before this the file had not been updated since about 2026-10-06 and still said D0 (the tick length) was
 open; it was decided on 2026-10-07 (#46). The old per-slice narratives (SPEC-0001, SPEC-0002 P2 to P4) are in git: `git show d5ed9a0:journal/STATE.md`.
-A line marked *(not re-checked)* was carried over from that file and may be stale.
+A line marked *(not re-checked)* was carried over from that file and may be stale. **Updated later the same day**, after #68 and #70 merged: `main` is at
+`9977ec0`, and the spec table, the open pull requests and the next steps below reflect that.
 
 ## Origin and process (read before anything else)
 
 - This repo split from `beaudesign/BenoQs-Sequencer` (now archived, read-only) after the WENGE spec was applied to the wrong project. See `README.md` and
   `adr/0003-drop-archived-js-from-live-tree.md`. `archive/v1-cpp-juce/` is the only preserved copy of the earlier C++ prototype.
-- **The owner merges; the agent never merges, approves, marks a draft ready or enables auto-merge.** A merge is not an approval of a spec. Approval is
+- **The owner merges; the agent never merges, approves, marks a draft ready or enables auto-merge.** The one exception so far: on 2026-10-19 the owner said
+  in chat "Merge #68 and #70 yourself", naming the pull requests, and the agent marked them ready and merged them. The rule stands for every other pull
+  request. A merge is not an approval of a spec. Approval is
   the owner's own words, written into the spec's approval record with the date (`.claude/skills/babysit/SKILL.md`). Push after every commit
   (`.claude/skills/commit-and-push/SKILL.md`).
 - **Traps that have cost work.** (1) A PR whose base is another PR's branch merges into that branch, not `main`: #6 to #8, #10 to #12 and #75 did, and
   #75's Curve button had to be carried by #77. Check `base.ref` before saying a slice landed. (2) Never share a `CARGO_TARGET_DIR` between worktrees or
   agents: a stale mutated binary showed a phantom test failure; `touch` the sources after switching branches. (3) In the cloud container `git fetch` maps
-  only `main`; read other branches with `gh api` or make the ref with `git update-ref`.
+  only `main`; read other branches with `gh api` or make the ref with `git update-ref`. (4) Task ids: `git grep` before taking one. `WENGE-0036` went to two
+  tasks (the Curve tests, and SPEC-0007 r1); #79 moves the spec to `WENGE-0037`, and the squash commit's title on `main` still says 0036.
 
 ## The product on `main`
 
@@ -35,8 +39,10 @@ What the page does today (P3 to P11, all merged):
   VEL, PIT, LEN and STA knobs in Step zoom (P5b, #40).
 - A Pages workflow publishes the page at an address (P11, #65).
 
+**On the page since #68:** a Curve button (Off, Accel, Bounce, Rit) for how a track spaces a chord's roll (SPEC-0005 S0 to S2).
+
 **Not on the page:** a way to enter a chord or a strum, scales, chains, step events, Track mode, the display, most encoder workflows (SPEC-0003's series).
-So the Curve button, once #68 reaches `main`, is silent there.
+So the Curve button is silent: nothing there can make a roll for it to bend.
 
 ## `octocore` and `octoffi`
 
@@ -57,14 +63,15 @@ So the Curve button, once #68 reaches `main`, is silent there.
   `midir` output are not done.
 - `octoffi` is frozen (SPEC-0002 D5): new, free, handle_command, render, is_running, the track and step getters and setters, diagnostics. The page's new
   exports go through `octoweb`, not the FFI. Phrase programming is not on the FFI.
-- **The Curve chord style (SPEC-0005) is on the spec branch of #68, not on `main`.**
+- **The Curve chord style (SPEC-0005 S0 to S2) is on `main` since #68** (`7c7d237`): the engine's chord style and bent-strum table
+  (`crates/octocore/src/curve.rs`) and the web-only `octoweb_set_chord_style`. The frozen `octoffi` does not carry it.
 
 ## Gates
 
 `cargo xtask verify` runs ten gates. Four are real and required: `conformance`, `regressions` (the name-based ratchet over `harness/baseline.txt`),
 `determinism` (golden event streams from `octorun`) and `scope` (the live tree may not describe the old rooms product). Six report `not_implemented`
-(`timing`, `a11y`, `arch`, `slop`, `tokens`, `persistence`), which is never a pass. On `main` at `d5ed9a0`: 4 pass, 0 fail, 6 not_implemented, assertions 569 (baseline 569). CI jobs: `verify`, `wasm-smoke`, `web`
-(Node tests: 432 on 2026-10-17). `verify` is not yet a required check on GitHub (owner only) *(not re-checked)*. `just report` renders the gate table.
+(`timing`, `a11y`, `arch`, `slop`, `tokens`, `persistence`), which is never a pass. On `main` at `9977ec0` (run 2026-10-19 on a docs-only branch off it): 4 pass, 0 fail, 6 not_implemented, assertions 600 (baseline 600). CI jobs: `verify`, `wasm-smoke`, `web`
+(Node tests: 432 on 2026-10-17, not re-run since #68). `verify` is not yet a required check on GitHub (owner only) *(not re-checked)*. `just report` renders the gate table.
 
 ## Specs: where each stands (2026-10-19)
 
@@ -73,20 +80,20 @@ So the Curve button, once #68 reaches `main`, is silent there.
 | SPEC-0001 | Make the sequencer run, make the factory enforce it | Approved; O1 to O10 built except O4's 4b and 4c, whose state I did not re-check. D0 is decided |
 | SPEC-0002 | A web sequencer; the rooms scope removed | Approved r1. Work for P0 to P11 is on `main`. Its circle half moved to SPEC-0003 |
 | SPEC-0003 | The circle (right-hand rings) | Approved r1, "approve, all defaults", 2026-10-13. S0 merged (ADR-0012, #60; contract, #61). The record approves S0 first and says **S1 onward is not approved**; S0b is not started. Q43 to Q56 need a person with an Octopus |
-| SPEC-0004 | A built-in sound that behaves like hardware | `main` says "Not yet approved"; the owner's "Okay build" (2026-10-17 14:46) approved **S0 only**, recorded in #70 (open). S0 merged (#73). S1 to S7 not approved. The Verbos-model voice is slice S7 (D12) |
-| SPEC-0005 | Curve: a bent strum for chord rolls, from benny's curved time | r1.3 on #68's branch. S0 to S2 approved ("Let's build r1", 2026-10-17 14:50) and built (#72, #77). S3 and S4 not approved. On `main` only when #68 merges |
+| SPEC-0004 | A built-in sound that behaves like hardware | r1.2. The owner's "Okay build" (2026-10-17 14:46) approved **S0 only**; the record is on `main` since #70. S0 merged (#73). S1 to S7 not approved. The Verbos-model voice is slice S7 (D12) |
+| SPEC-0005 | Curve: a bent strum for chord rolls, from benny's curved time | r1.3, on `main` since #68. S0 to S2 approved ("Let's build r1", 2026-10-17 14:50) and built (#72, #77). S3 and S4 not approved. Every question answered (2026-10-18) |
 | SPEC-0006 | A modular kit beside the sequencer | r0.1 merged (#74), planning only. K0 not approved. Q-S6-1 to Q-S6-9 open |
-| SPEC-0007 | A pedalboard below the sequencer, Ghosts as pedal 1 | The owner's draft, #76, planning only. Q-7-1 to Q-7-15 open. I have read its description, not the file |
+| SPEC-0007 | A pedalboard below the sequencer, Ghosts as pedal 1 | r1 on `main` (#76), planning only. r2 (#79, draft) proposes the information flow, a two-lane fork and Mixer, and slices P0a and P2. Nothing approved. Q-7-1 to Q-7-21 open |
 | handoff v2 | Shape player and S7 Complex (`handoffs/eng-spec-shape-player-and-complex-voice-v2.md`, #71) | Planning only. 14 open questions (QG1 to QG3 and others). It says the shape player starts with `specs/SPEC-0006/`, which is the modular kit now; the next free spec number is SPEC-0008 |
 
-ADRs on `main`: 0001 to 0012 (0006 web sequencer, 0007 controls contract, 0008 C exports and tokens, 0009 the clock, 0010 materials, 0011 midnight ground,
-0012 number keys). **0013 is reserved** for the shape player (the handoff, QG3). 0014 is #70 (the sound is a feature). 0015 is planned by #76.
+ADRs on `main`: 0001 to 0012 and 0014 (0006 web sequencer, 0007 controls contract, 0008 C exports and tokens, 0009 the clock, 0010 materials, 0011 midnight
+ground, 0012 number keys, 0014 the sound is a feature, #70). **0013 is reserved** for the shape player (the handoff, QG3). 0015 is reserved by SPEC-0007.
 
 ## Open pull requests
 
-- **#68** SPEC-0005 r1.3, carrying #72 and #77. CI green, mergeable. Merging it brings Curve S0 to S2 to `main`.
-- **#70** ADR-0014 and SPEC-0004 r1.2. Clean. It records the S0 approval that `main`'s SPEC-0004 does not yet say.
-- **#76** SPEC-0007, the owner's draft.
+- **#79** SPEC-0007 r2 (draft): how information moves through the pedalboard. Docs only and proposals only; the gates pass (600 of 600).
+- Older, and not reviewed by me: #3 (attribute-map-factor step events, last touched 2026-09-09), #52 (ADR-0010), #56 (ADR-0011), #57 (P9) and #64 (a README
+  draft). ADR-0010, ADR-0011 and P9 are on `main`, so #52, #56 and #57 look superseded by merged work; I did not check each.
 
 ## Questions only the owner can answer
 
@@ -94,7 +101,8 @@ ADRs on `main`: 0001 to 0012 (0006 web sequencer, 0007 controls contract, 0008 C
   browser is given up, D13) on their defaults. Q-S4-4 is answered by #71. A hole left for the Conductor: whether a note's sound may depend on what its
   voice slot played before (the rig does not forbid it; S1's drift might need it).
 - SPEC-0005: all answered 2026-10-18 (r1.3). The Curve button waits for chord entry on the page.
-- SPEC-0006: Q-S6-1 to Q-S6-9. SPEC-0007: Q-7-1 to Q-7-15. The handoff: QG1 (which way the crate dependency runs), QG2, QG3 and the rest.
+- SPEC-0006: Q-S6-1 to Q-S6-9. SPEC-0007: Q-7-1 to Q-7-21 (Q-7-16, what "performance" means, and Q-7-19, step-locked CC now or later, decide what is built
+  first). The handoff: QG1 (which way the crate dependency runs), QG2, QG3 and the rest.
 - R0b: the first note 114.6 ms after Play, and the tempo-change latency. Whether to fix it moves every golden.
 - SPEC-0003: someone with an Octopus reads the thirteen ring names (D5); Q43 to Q56. SPEC-0002: Q21 to Q38, and a real-port run of S1 and S3
   against Live *(not re-checked)*. Owner-only: branch protection and making `verify` required; the `jsonschema` dev-dependency *(not re-checked)*.
@@ -108,6 +116,7 @@ that said 192 ticks to the quarter (`docs/02`, `docs/03`, `AGENTS.md`, `SPEC.md`
 
 ## Next three steps
 
-1. The owner merges #68, then #70 (or says why not), and answers Q-S4-1 so SPEC-0004's S1 has a character to build. Without S1 nothing new is heard.
+1. The owner answers Q-S4-1 so SPEC-0004's S1 has a character to build (without S1 nothing new is heard), and reads #79 and answers Q-7-16 to Q-7-21 (or says
+   "defaults").
 2. The owner decides R0b, and which of SPEC-0003 comes next (S0b, then S1: the tempo knob and number keys; chords and strum are S4).
 3. Nothing of SPEC-0004 S1 or later, SPEC-0005 S3 or S4, SPEC-0006 K0 or SPEC-0003 S1 onward starts without the owner's own words in the approval record.

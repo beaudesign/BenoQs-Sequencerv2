@@ -19,7 +19,7 @@ A line marked *(not re-checked)* was carried over from that file and may be stal
   #75's Curve button had to be carried by #77. Check `base.ref` before saying a slice landed. (2) Never share a `CARGO_TARGET_DIR` between worktrees or
   agents: a stale mutated binary showed a phantom test failure; `touch` the sources after switching branches. (3) In the cloud container `git fetch` maps
   only `main`; read other branches with `gh api` or make the ref with `git update-ref`. (4) Task ids: `git grep` before taking one. `WENGE-0036` went to two
-  tasks (the Curve tests, and SPEC-0007 r1); #79 moves the spec to `WENGE-0037`, and the squash commit's title on `main` still says 0036.
+  tasks (the Curve tests, and SPEC-0007 r1); #79 moved the spec to `WENGE-0037`, and the squash commit's title for #76 on `main` still says 0036.
 
 ## The product on `main`
 
@@ -83,7 +83,7 @@ So the Curve button is silent: nothing there can make a roll for it to bend.
 | SPEC-0004 | A built-in sound that behaves like hardware | r1.2. The owner's "Okay build" (2026-10-17 14:46) approved **S0 only**; the record is on `main` since #70. S0 merged (#73). S1 to S7 not approved. The Verbos-model voice is slice S7 (D12) |
 | SPEC-0005 | Curve: a bent strum for chord rolls, from benny's curved time | r1.3, on `main` since #68. S0 to S2 approved ("Let's build r1", 2026-10-17 14:50) and built (#72, #77). S3 and S4 not approved. Every question answered (2026-10-18) |
 | SPEC-0006 | A modular kit beside the sequencer | r0.1 merged (#74), planning only. K0 not approved. Q-S6-1 to Q-S6-9 open |
-| SPEC-0007 | A pedalboard below the sequencer, Ghosts as pedal 1 | r1 on `main` (#76), planning only. r2 (#79, draft) proposes the information flow, a two-lane fork and Mixer, and slices P0a and P2. Nothing approved. Q-7-1 to Q-7-21 open |
+| SPEC-0007 | A pedalboard below the sequencer, Ghosts as pedal 1 | r1 on `main` (#76), planning only. r2 on `main` (#79, merged 2026-10-19) proposes the information flow (`specs/SPEC-0007/information-flow.md`), a two-lane fork and Mixer, and slices P0a and P2. **Nothing approved**: the merge is not an approval. Q-7-1 to Q-7-21 open |
 | handoff v2 | Shape player and S7 Complex (`handoffs/eng-spec-shape-player-and-complex-voice-v2.md`, #71) | Planning only. 14 open questions (QG1 to QG3 and others). It says the shape player starts with `specs/SPEC-0006/`, which is the modular kit now; the next free spec number is SPEC-0008 |
 
 ADRs on `main`: 0001 to 0012 and 0014 (0006 web sequencer, 0007 controls contract, 0008 C exports and tokens, 0009 the clock, 0010 materials, 0011 midnight
@@ -91,7 +91,7 @@ ground, 0012 number keys, 0014 the sound is a feature, #70). **0013 is reserved*
 
 ## Open pull requests
 
-- **#79** SPEC-0007 r2 (draft): how information moves through the pedalboard. Docs only and proposals only; the gates pass (600 of 600).
+- None of mine are open (checked 2026-10-19 after #79 and #80 merged).
 - Older, and not reviewed by me: #3 (attribute-map-factor step events, last touched 2026-09-09), #52 (ADR-0010), #56 (ADR-0011), #57 (P9) and #64 (a README
   draft). ADR-0010, ADR-0011 and P9 are on `main`, so #52, #56 and #57 look superseded by merged work; I did not check each.
 
@@ -116,7 +116,7 @@ that said 192 ticks to the quarter (`docs/02`, `docs/03`, `AGENTS.md`, `SPEC.md`
 
 ## Next three steps
 
-1. The owner answers Q-S4-1 so SPEC-0004's S1 has a character to build (without S1 nothing new is heard), and reads #79 and answers Q-7-16 to Q-7-21 (or says
-   "defaults").
+1. The owner answers Q-S4-1 so SPEC-0004's S1 has a character to build (without S1 nothing new is heard), and reads `specs/SPEC-0007/information-flow.md` and answers
+   Q-7-16 to Q-7-21 (or says "defaults"). Q-7-16 (what "performance" means) and Q-7-19 (step-locked CC now or later) decide what is built first.
 2. The owner decides R0b, and which of SPEC-0003 comes next (S0b, then S1: the tempo knob and number keys; chords and strum are S4).
 3. Nothing of SPEC-0004 S1 or later, SPEC-0005 S3 or S4, SPEC-0006 K0 or SPEC-0003 S1 onward starts without the owner's own words in the approval record.

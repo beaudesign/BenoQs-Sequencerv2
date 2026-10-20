@@ -8,10 +8,9 @@
 //! than its polyphony the engine draws its notes at random and the random stream is part of
 //! what is pinned (CV-7 compares it with and without the style).
 //!
-//! It is green on the day it is written, which is the point: the numbers below were made by
-//! the engine as it was on `main` before S1, and S1 must not move them. If an intended change
-//! to the engine's output moves them, say why in the commit (as `just golden` does for the
-//! example patterns); a change that moves them by accident is the bug this test exists to catch.
+//! If an intended change to the engine's output moves the numbers below, say why in the commit
+//! (as `just golden` does for the example patterns); a change that moves them by accident is the
+//! bug this test exists to catch.
 
 use octocore::domain::CHORD_POOL_MAX;
 use octocore::{Engine, Event, EventBuffer, RenderContext};
@@ -168,9 +167,9 @@ fn the_pin_can_fail() {
 /// notes at the same offsets.
 #[test]
 fn the_manuals_numbers_are_on_the_events() {
-    let ticks = |level: i8, size: usize| -> Vec<u64> {
+    let ticks = |level: i8, size: usize, seed: u64| -> Vec<u64> {
         // 500 samples to the tick at 120 BPM and 48 kHz.
-        let mut starts: Vec<u64> = play_cell(level, size, 0)
+        let mut starts: Vec<u64> = play_cell(level, size, seed)
             .into_iter()
             .filter_map(|(at, e)| matches!(e, Event::NoteOn { .. }).then_some(at))
             .collect();
@@ -179,17 +178,8 @@ fn the_manuals_numbers_are_on_the_events() {
         starts.iter().map(|s| (s - first) / 500).collect()
     };
     // Polyphony 1 draws one of seven at random for seed 0; seed 6 has polyphony 7 and plays all seven.
-    let seven = |level: i8| -> Vec<u64> {
-        let mut starts: Vec<u64> = play_cell(level, 7, 6)
-            .into_iter()
-            .filter_map(|(at, e)| matches!(e, Event::NoteOn { .. }).then_some(at))
-            .collect();
-        starts.sort_unstable();
-        let first = starts[0];
-        starts.iter().map(|s| (s - first) / 500).collect()
-    };
-    assert_eq!(seven(9), vec![0, 5, 10, 17, 23, 30, 45]);
-    assert_eq!(seven(-9), vec![0, 5, 10, 17, 23, 30, 45], "down is the same offsets on the reversed notes");
-    assert_eq!(ticks(9, 1), vec![0, 5, 10, 17, 23, 30, 45], "a single note is struck seven times at the same offsets");
-    assert_eq!(ticks(0, 1), vec![0], "level 0 is no roll");
+    assert_eq!(ticks(9, 7, 6), vec![0, 5, 10, 17, 23, 30, 45]);
+    assert_eq!(ticks(-9, 7, 6), vec![0, 5, 10, 17, 23, 30, 45], "down is the same offsets on the reversed notes");
+    assert_eq!(ticks(9, 1, 0), vec![0, 5, 10, 17, 23, 30, 45], "a single note is struck seven times at the same offsets");
+    assert_eq!(ticks(0, 1, 0), vec![0], "level 0 is no roll");
 }

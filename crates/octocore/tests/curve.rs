@@ -1,9 +1,6 @@
 //! SPEC-0005 r1 S1 (WENGE-0033): the `Curve` chord style, observables CV-2 to CV-9, and the
 //! pieces of CV-10 the core owns. CV-1 (off is the Octopus) is `curve_golden.rs`, written first
 //! and unchanged by S1.
-//!
-//! Tests are written before the code they test: on the commit that adds this file the style is a
-//! stub that plays the manual's table, so each of these that depends on the curve fails.
 
 use std::collections::BTreeMap;
 
@@ -243,19 +240,7 @@ struct Played {
 /// played (polyphony equals the chord size), in the style given, at 120 BPM.
 fn play(style: ChordStyle, level: i8, size: usize) -> Played {
     let mut engine = Engine::new(0);
-    {
-        let step = &mut engine.grid.active_page_mut().tracks[0].steps[0];
-        step.active = true;
-        step.strum = level;
-        if size > 1 {
-            let offsets: [i8; CHORD_POOL_MAX] = [3, 4, 7, 10, 12, 16];
-            step.chord.count = (size - 1) as u8;
-            for k in 0..size - 1 {
-                step.chord.offsets[k] = offsets[k];
-            }
-            step.chord.polyphony = size as u8;
-        }
-    }
+    set_chord(&mut engine, 0, size, size as u8, level);
     assert!(engine.set_chord_style(0, style));
     let mut events: Vec<(u64, Event)> = Vec::new();
     let mut clock = 0u64;
@@ -405,10 +390,10 @@ fn cv7_the_style_draws_no_random_number() {
     for seed in 0..24u64 {
         let mut manual = random_scene(seed, ChordStyle::Manual);
         let mut curved = random_scene(seed, ChordStyle::Curve(Warp::Bounce));
-        let (a, b) = (run_seconds(&mut manual, 12.0), run_seconds(&mut curved, 12.0));
+        let a = run_seconds(&mut manual, 12.0);
+        run_seconds(&mut curved, 12.0);
         assert!(a > 100, "seed {seed}: a scene that plays nothing tests nothing");
         assert_eq!(manual.next_random_for_test(), curved.next_random_for_test(), "seed {seed}: Curve drew, or skipped, a random number");
-        let _ = b;
     }
     // And the probe can tell: a different count of draws is a different next number.
     let mut a = random_scene(1, ChordStyle::Manual);

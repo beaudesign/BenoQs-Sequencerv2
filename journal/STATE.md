@@ -83,7 +83,7 @@ So the Curve button is silent: nothing there can make a roll for it to bend.
 | SPEC-0004 | A built-in sound that behaves like hardware | r1.2. The owner's "Okay build" (2026-10-17 14:46) approved **S0 only**; the record is on `main` since #70. S0 merged (#73). S1 to S7 not approved. The Verbos-model voice is slice S7 (D12) |
 | SPEC-0005 | Curve: a bent strum for chord rolls, from benny's curved time | r1.3, on `main` since #68. S0 to S2 approved ("Let's build r1", 2026-10-17 14:50) and built (#72, #77). S3 and S4 not approved. Every question answered (2026-10-18) |
 | SPEC-0006 | A modular kit beside the sequencer | r0.1 merged (#74), planning only. K0 not approved. Q-S6-1 to Q-S6-9 open |
-| SPEC-0007 | A pedalboard below the sequencer, Ghosts as pedal 1 | r1 on `main` (#76), planning only. r2 on `main` (#79, merged 2026-10-19) proposes the information flow (`specs/SPEC-0007/information-flow.md`), a two-lane fork and Mixer, and slices P0a and P2. **Nothing approved**: the merge is not an approval. Q-7-1 to Q-7-21 open |
+| SPEC-0007 | A pedalboard below the sequencer, Ghosts as pedal 1 | r1 on `main` (#76), planning only. r2 on `main` (#79, merged 2026-10-19) proposes the information flow (`specs/SPEC-0007/information-flow.md`), a two-lane fork and Mixer, and slices P0a and P2. **Nothing approved**: the merge is not an approval. Q-7-16 and Q-7-19 answered 2026-10-20 (the defaults: live playing; step-locked CC waits for SPEC-0003's step events). The rest of Q-7-1 to Q-7-21 open |
 | handoff v2 | Shape player and S7 Complex (`handoffs/eng-spec-shape-player-and-complex-voice-v2.md`, #71) | Planning only. 14 open questions (QG1 to QG3 and others). It says the shape player starts with `specs/SPEC-0006/`, which is the modular kit now; the next free spec number is SPEC-0008 |
 
 ADRs on `main`: 0001 to 0012 and 0014 (0006 web sequencer, 0007 controls contract, 0008 C exports and tokens, 0009 the clock, 0010 materials, 0011 midnight
@@ -101,8 +101,8 @@ ground, 0012 number keys, 0014 the sound is a feature, #70). **0013 is reserved*
   browser is given up, D13) on their defaults. Q-S4-4 is answered by #71. A hole left for the Conductor: whether a note's sound may depend on what its
   voice slot played before (the rig does not forbid it; S1's drift might need it).
 - SPEC-0005: all answered 2026-10-18 (r1.3). The Curve button waits for chord entry on the page.
-- SPEC-0006: Q-S6-1 to Q-S6-9. SPEC-0007: Q-7-1 to Q-7-21 (Q-7-16, what "performance" means, and Q-7-19, step-locked CC now or later, decide what is built
-  first). The handoff: QG1 (which way the crate dependency runs), QG2, QG3 and the rest.
+- SPEC-0006: Q-S6-1 to Q-S6-9. SPEC-0007: Q-7-1 to Q-7-21 (Q-7-16 and Q-7-19 are answered, 2026-10-20, both the defaults; Q-7-17, Q-7-18, Q-7-20 and Q-7-21 are
+  open). The handoff: QG1 (which way the crate dependency runs), QG2, QG3 and the rest.
 - R0b: the first note 114.6 ms after Play, and the tempo-change latency. Whether to fix it moves every golden.
 - SPEC-0003: someone with an Octopus reads the thirteen ring names (D5); Q43 to Q56. SPEC-0002: Q21 to Q38, and a real-port run of S1 and S3
   against Live *(not re-checked)*. Owner-only: branch protection and making `verify` required; the `jsonschema` dev-dependency *(not re-checked)*.
@@ -117,6 +117,6 @@ that said 192 ticks to the quarter (`docs/02`, `docs/03`, `AGENTS.md`, `SPEC.md`
 ## Next three steps
 
 1. The owner answers Q-S4-1 so SPEC-0004's S1 has a character to build (without S1 nothing new is heard), and reads `specs/SPEC-0007/information-flow.md` and answers
-   Q-7-16 to Q-7-21 (or says "defaults"). Q-7-16 (what "performance" means) and Q-7-19 (step-locked CC now or later) decide what is built first.
+   Q-7-17, Q-7-18, Q-7-20 and Q-7-21 (or says "defaults"). Q-7-16 and Q-7-19 are answered (2026-10-20). A first slice (P0a) still needs approval in the owner's own words.
 2. The owner decides R0b, and which of SPEC-0003 comes next (S0b, then S1: the tempo knob and number keys; chords and strum are S4).
 3. Nothing of SPEC-0004 S1 or later, SPEC-0005 S3 or S4, SPEC-0006 K0 or SPEC-0003 S1 onward starts without the owner's own words in the approval record.

@@ -14,7 +14,7 @@ use octocore::types::{Realtime, RealtimeEvent, StepAttr};
 use octocore::{Command, Engine, Event, EventBuffer, RenderContext};
 
 /// Pairs whose samples per tick are exact binary fractions, so an exact sample position is a fact and not a rounding. 40 BPM at
-/// 44.1 kHz is 344.53125 samples a tick; 120 at 48 kHz is 125; 240 at 48 kHz is 62.5; 120 at 44.1 kHz is 114.84375.
+/// 44.1 kHz is 1378.125 samples a tick; 120 at 48 kHz is 500; 240 at 48 kHz is 250; 120 at 44.1 kHz is 459.375.
 const PAIRS: [(f32, f32); 5] = [(40.0, 44_100.0), (120.0, 48_000.0), (240.0, 48_000.0), (120.0, 44_100.0), (240.0, 44_100.0)];
 
 fn spt(bpm: f32, sample_rate: f32) -> f64 {
@@ -209,7 +209,7 @@ fn start_comes_before_the_first_clock_and_both_are_on_the_first_ticks_sample() {
 fn the_first_note_follows_start_by_the_eleven_ticks_the_engine_already_waits() {
     // `tests/conformance/AMBIGUITIES.md`, "the first note after Play": a step fires when its tick counter reaches the step length,
     // so the first note sounds 11 ticks after Play. The clock does not hide that; a drum machine on this clock plays its first step
-    // on Start and this engine's first note is 11 ticks (a pulse and three eighths) behind it. A fact for the owner, not a bug here.
+    // on Start and this engine's first note is 11 ticks (five and a half pulses) behind it. A fact for the owner, not a bug here.
     let mut r = Rig::new(engine_with_notes(), 120.0, 48_000.0);
     r.e.set_clock_master(true);
     r.playing = true;

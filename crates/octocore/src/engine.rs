@@ -1921,8 +1921,8 @@ mod tests {
 
         let ctx = RenderContext { sample_rate: 48_000.0, buffer_len: 512, bpm: 120.0, playing: true };
         let mut all = Vec::new();
-        // 120bpm/192ppqn/48kHz => ~125 samples/tick => a step (12 ticks) fires
-        // roughly every 1500 samples, so a few dozen buffers must be rendered to
+        // 120bpm/48ppqn/48kHz => 500 samples/tick => a step (12 ticks) fires
+        // every 6000 samples, so a few dozen buffers must be rendered to
         // be sure to cross a step boundary.
         for _ in 0..40 {
             let mut out = EventBuffer::new();

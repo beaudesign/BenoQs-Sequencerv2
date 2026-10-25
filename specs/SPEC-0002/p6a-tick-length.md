@@ -41,6 +41,9 @@ the ratchet does not allow a rename without an ADR, so the name is kept, its bod
 - The MIDI clock is unchanged in time (24 pulses to a quarter at the tempo); a pulse is 2 ticks and a step is now 6 pulses, which is why an external drum machine and this sequencer agree about a sixteenth.
 - **The first step of a Play still sounds 11 ticks after the Play** (the step clock starts at phase 0), now 62.5 ms at 120 BPM instead of 15.6 ms. That is R0b, a separate change that moves the goldens a second
   time, so it is parked on a patch kept outside this pull request and not in this pull request.
+  **[Correction, 2026-10-25, `WENGE-0039`: the two figures are wrong. 11 ticks at 48 to the quarter note and 120 BPM are 11 x 10.417 ms = 114.6 ms (5,500 samples at 48 kHz), nearly
+  a whole 125 ms step. 62.5 ms and 15.6 ms are six ticks at 48 and at 192 to the quarter note, not eleven. The decision on R0b should be taken on 114.6 ms. See `adr/0009-...`,
+  correction note.]**
 - The follower (M4/M5 simulations) is unit-free in ticks except where it names `TICKS_PER_CLOCK`; its tests moved with the constant (41 of 41 pass).
 - `docs/02` §5 ("192 PPQN"), `docs/03` lines 18, 43 and 220, `AGENTS.md`, `SPEC.md` and `tech.md` still say 192 to the quarter. They are the Scribe's and the Conductor's; the request lists them.
 

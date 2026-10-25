@@ -309,3 +309,21 @@ replaces it and asserts the new number, with a further assertion for the continu
 global grid) and measures the first pulse from the position the sound stopped at.
 
 **Mutation.** 20 single-place breakages of the new code (`handoffs/evidence/exact-resume-mutate.py`, `exact-resume-mutation-run.txt`): 19 caught and 1 equivalent. Two survived the first run, a weak position test and a missing Stop-Reset-Play case, and both tests were strengthened and the two mutants rerun and caught.
+
+### Correction note (2026-10-25, Conductor, `WENGE-0039`): figures written at 192 ticks to the quarter note
+
+This ADR and its amendments were written when the engine counted 192 ticks to the quarter note, so a MIDI clock pulse was 8 ticks. D0 was decided by default on 2026-10-07 (#46):
+the tick is now 48 to the quarter note, a pulse is 2 ticks (`TICKS_PER_CLOCK` in `crates/octocore/src/domain.rs` and `apps/web/src/abi.ts`), and a step is still 12 ticks, which is
+now 6 pulses, a sixteenth note. **The text above is unchanged**, as it is for the owner's acceptance note; this note says which figures it makes wrong. The three I found are below, and
+I did not search the ADR for every number, so this list is not claimed to be complete.
+
+| Where | It says | At 48 to the quarter note, 120 BPM |
+|---|---|---|
+| Context table, line 20 | 192 ticks to the quarter note; `sample_rate * 60 / (bpm * 192)` samples a tick | 48; `sample_rate * 60 / (bpm * 48)`, which is 500 samples (10.42 ms) at 48 kHz |
+| Amendment 1, item 3 | the first note sounds 28.6 ms, or 1.4 pulses, after `Start` | 11 ticks is **114.6 ms** (5,500 samples at 48 kHz), which is **5.5 pulses**, nearly a whole step (125 ms) |
+| Amendment 3, item 3 | "Pulses are still on every eighth tick of the global count" | every second tick |
+
+The first-note figure was 11 times 2.60 ms at 192 to the quarter note; it was never wrong for that tick. That the note is 11 ticks after `Start` is unchanged and is still pinned by name
+in `clock.rs` and `o4_guards.rs`; whether to move it is R0b, which the owner has not decided (`journal/STATE.md`, Questions). Moving it moves every golden, and amendment 1 item 3's last
+sentence ("a second reason, beside D0") now stands on R0b alone, because D0 is decided. The Forge reported the wrong figure on 2026-10-17
+(`journal/forge/requests/2026-10-17-first-note-after-play.md`, which calls it "amendment 3"; it is item 3 of amendment 1).

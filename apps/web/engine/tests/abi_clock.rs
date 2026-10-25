@@ -126,7 +126,7 @@ fn play_with_the_clock_on_sends_start_and_then_a_clock_on_the_same_sample() {
 
 #[test]
 fn a_pulse_is_a_24th_of_a_quarter_note_apart_at_the_pages_tempo_and_rate() {
-    // 120 BPM at 48 kHz is 125 samples a tick, and a pulse is every 8 ticks: exactly 1,000 samples, so 24 of them are 500 ms.
+    // 120 BPM at 48 kHz is 500 samples a tick, and a pulse is every 2 ticks: exactly 1,000 samples, so 24 of them are 500 ms.
     let mut s = Session::start(48_000.0);
     assert_eq!(octoweb_set_tempo(120.0), 0);
     assert_eq!(octoweb_set_clock(1), 0);

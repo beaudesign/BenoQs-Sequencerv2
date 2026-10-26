@@ -24,6 +24,8 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 4. **Mind the volume.** A hung note is the thing several of these runs provoke on purpose. Start with the synthesiser's volume low and a hand on it. Use a Panic or a power cycle if a note sticks, and write down which was needed.
 5. **Report what happened, not what was expected.** A run that disagrees with this spec is the more useful run.
 
+**Gear on hand (r0.1, from Q-8-1, 2026-10-26).** A UDO Super 6 desktop module and a Moog Mother-32 (README section 2.3). Not yet known: how each connects, the computer and browser, and whether there is a loopback or a two-track recorder. Two settings must be written in every record that uses the Mother-32: its MIDI channel (Setup mode) and **Follow MIDI Start/Stop** (Setup page 8, by user reports on the firmware v2.0 line; whether it is on changes what our Start does to it). Q-8-12 is the owner's choice about that setting.
+
 ## B1. Output timing of a real port (sets criterion A3)
 
 **Question.** How steady is Web MIDI output on a real port?
@@ -31,6 +33,8 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 **Do.** Use the real-port half of spike S1 (`spikes/s1/page.html`; `apps/web/README.md`, "Running spike S1 on your machine"). Sixteenth notes at 120 BPM for 30 minutes with the window in front and the built-in sound off. **Check the page's step length first:** the only S1 evidence on file (a page timer) shows a step every 31.2 ms, which predates the tick-length decision of 2026-10-07; a sixteenth at 120 BPM is 125 ms now. If the page still says 31.2 ms, say so in the record.
 **Record.** The scatter and the largest error of the arrival intervals, dropouts, the scheduler's late count and its largest lateness, the margin the page reports, and the lookahead used.
 **Becomes.** A proposal for A3, written by the owner.
+
+**B1 without a loopback (r0.1).** With one synthesiser and no cable from an interface's out to its in, measure the sound instead. Pick the Super 6's shortest, sharpest sound (a click or a pluck, no release tail), the same sixteenths at 120 BPM for 30 minutes, built-in sound off, and record the synthesiser's audio on the computer or a recorder. Read the onset times with a script. The spread of the intervals is the page's jitter **plus the unit's and the connection's own**, so it is an upper bound for the page and not a measure of it. State that in the record. It is enough to start H0 and to compare a USB path with a DIN one, and it does not replace a loopback run.
 
 ## B2. A hidden or covered window, with nothing audible
 
@@ -45,6 +49,7 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 **Needs.** Two sound sources on two ports (or two channels of one port, split by a route), and an audio recorder that takes both outputs on separate tracks.
 **Do.** Put the same short, sharp note on the same step of two tracks, one for each device, built-in sound off. Record 50 hits. Read the onset of each hit on each track and take the difference. Then set the later device's trim to the mean difference (the page's align tool once H3 exists; until then a script that sends the trim) and record again.
 **Record.** The mean and the spread of the difference before, and after.
+**With the gear on hand.** The Super 6 (USB, if that is how it connects) and the Mother-32 (DIN, behind some interface) are a good pair for this run: two different paths, so the two latencies are unlikely to match. Use a sound with a fast attack on each, and note that the Mother-32's envelope and gate settings change when the onset is heard.
 **Becomes.** The number H3's align tool must be able to reach by ear, and HW-9's reference.
 
 ## B4. A device lost in the middle of a chord
@@ -64,6 +69,7 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 
 **Do.** (a) Master Clock to a drum machine for 30 minutes at 120 BPM with its own pattern running: does it stay on our grid, and does Stop leave it silent. (b) Stop, then Continue from the middle: does the machine resume where we are, with and without Song Position (once H4 exists)? Switch the machine on late, or rewind it by hand, and Continue again. (c) The follow run of `ABLETON.md` section 7, with Live as the sender, 30 minutes at 120 BPM; the S3 report is the record.
 **Record.** Which gear followed Song Position and which ignored it, drift over the 30 minutes, and the S3 report's phase figures.
+**With the gear on hand.** The Mother-32's sequencer can stand in for the drum machine in (a) and (b) if Follow MIDI Start/Stop is **on** (Q-8-12 option b); with it **off** it ignores our Start, which is itself a result worth recording. What it does with a Clock and no Start can be settled in (a): the manual, as a forum user quoted it, says the Tempo knob becomes a divider of the incoming clock, and another user says its sequencer then ran on its own tempo. The two disagree.
 **Becomes.** Criterion A4, and the evidence for or against HW-19.
 
 ## B7. Start alignment
@@ -71,11 +77,12 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 **Question.** How far is the first note from the device's own first step, on real gear? (F-H9.)
 **Do.** Slave a drum machine to our Start. Put a kick on step 1 of both. Record 10 starts each at 60, 120 and 180 BPM, built-in sound off. Read the offset between the machine's first hit and ours.
 **Record.** The offsets in ticks and in milliseconds, per tempo, and whether the machine plays its first step on Start or on the next clock (devices differ).
+**With the gear on hand.** The Mother-32's sequencer (a note on step 1, Follow MIDI Start/Stop on) is the candidate; it is not a drum machine and its first step on Start has not been measured by anyone here. Say so in the record, and treat the result as that unit's, not as drum machines in general.
 **Becomes.** The owner's answer to Q-8-4 (R0b), and HW-20 if the answer is to move it.
 
 ## B8. The A6 run, then two sessions
 
-**A6.** A pattern made on the panel plays a real synthesiser on port 1 and a second device on port 2 at the same time. The record is the gear table, the pattern (a screenshot of the panel is enough), and a note on how it sounded.
+**A6.** A pattern made on the panel plays a real synthesiser on port 1 and a second device on port 2 at the same time. (With the gear on hand: the Super 6 as port 1 and the Mother-32 as port 2. Keep the Mother-32's track to single notes, since it is one voice.) The record is the gear table, the pattern (a screenshot of the panel is enough), and a note on how it sounded.
 
 **The "desk" session.** One synthesiser on USB. Twenty minutes of continuous play. Change tempo and a step's pitch while it plays. Press Stop and Play ten times. Press Panic once while a chord is held. Pull the cable once (B4). Record anything that stuck, slipped or surprised.
 

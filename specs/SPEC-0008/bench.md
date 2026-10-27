@@ -24,7 +24,7 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 4. **Mind the volume.** A hung note is the thing several of these runs provoke on purpose. Start with the synthesiser's volume low and a hand on it. Use a Panic or a power cycle if a note sticks, and write down which was needed.
 5. **Report what happened, not what was expected.** A run that disagrees with this spec is the more useful run.
 
-**Gear on hand (r0.1, from Q-8-1, 2026-10-26).** A UDO Super 6 desktop module and a Moog Mother-32 (README section 2.3). Not yet known: how each connects, the computer and browser, and whether there is a loopback or a two-track recorder. Two settings must be written in every record that uses the Mother-32: its MIDI channel (Setup mode) and **Follow MIDI Start/Stop** (Setup page 8, by user reports on the firmware v2.0 line; whether it is on changes what our Start does to it). Q-8-12 is the owner's choice about that setting.
+**Gear on hand (from Q-8-1, 2026-10-26).** A UDO Super 6 desktop module and a Moog Mother-32 (README section 2.3). Not yet known: how each connects, the computer and browser, and whether there is a loopback or a two-track recorder. **Write these settings and the firmware version of each unit in every record.** Mother-32: its MIDI channel (Setup page 2, default 1), Follow MIDI Clock and Follow MIDI Start Stop (Setup page 8; both On by default, per Moog's addendum). Super 6: its MIDI channel, whether its clock option is send or receive (it switches to receive by itself when it sees a clock), whether TX/RX P is on, and local control. These change what our Start and our clock do to each unit. Q-8-12 is the owner's choice about them.
 
 ## B1. Output timing of a real port (sets criterion A3)
 
@@ -69,7 +69,7 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 
 **Do.** (a) Master Clock to a drum machine for 30 minutes at 120 BPM with its own pattern running: does it stay on our grid, and does Stop leave it silent. (b) Stop, then Continue from the middle: does the machine resume where we are, with and without Song Position (once H4 exists)? Switch the machine on late, or rewind it by hand, and Continue again. (c) The follow run of `ABLETON.md` section 7, with Live as the sender, 30 minutes at 120 BPM; the S3 report is the record.
 **Record.** Which gear followed Song Position and which ignored it, drift over the 30 minutes, and the S3 report's phase figures.
-**With the gear on hand.** The Mother-32's sequencer can stand in for the drum machine in (a) and (b) if Follow MIDI Start/Stop is **on** (Q-8-12 option b); with it **off** it ignores our Start, which is itself a result worth recording. What it does with a Clock and no Start can be settled in (a): the manual, as a forum user quoted it, says the Tempo knob becomes a divider of the incoming clock, and another user says its sequencer then ran on its own tempo. The two disagree.
+**With the gear on hand.** Either unit's sequencer can stand in for the drum machine in (a) and (b) with its follow switches **on** (Q-8-12 option b): the Mother-32's Follow MIDI Start Stop, or the Super 6 in clock-receive with HOLD arming its sequencer to wait for Start. With them **off** the unit ignores our Start, which is itself a result worth recording. What it does with a Clock and no Start can be settled in (a): Moog's addendum says a connected MIDI clock overrides the internal one (the Tempo knob then divides it), and one user says the sequencer then ran on its own tempo. (a) settles which, and with which Follow settings. The Super 6 in receive mode does not run its arpeggiator or sequencer without a clock (UDO's addendum), which (a) can also confirm.
 **Becomes.** Criterion A4, and the evidence for or against HW-19.
 
 ## B7. Start alignment
@@ -77,7 +77,7 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 **Question.** How far is the first note from the device's own first step, on real gear? (F-H9.)
 **Do.** Slave a drum machine to our Start. Put a kick on step 1 of both. Record 10 starts each at 60, 120 and 180 BPM, built-in sound off. Read the offset between the machine's first hit and ours.
 **Record.** The offsets in ticks and in milliseconds, per tempo, and whether the machine plays its first step on Start or on the next clock (devices differ).
-**With the gear on hand.** The Mother-32's sequencer (a note on step 1, Follow MIDI Start/Stop on) is the candidate; it is not a drum machine and its first step on Start has not been measured by anyone here. Say so in the record, and treat the result as that unit's, not as drum machines in general.
+**With the gear on hand.** The Mother-32's sequencer (a note on step 1, Follow MIDI Start Stop on) or the Super 6's is the candidate; neither is a drum machine and its first step on Start has not been measured by anyone here. Say so in the record, and treat the result as that unit's, not as drum machines in general.
 **Becomes.** The owner's answer to Q-8-4 (R0b), and HW-20 if the answer is to move it.
 
 ## B8. The A6 run, then two sessions

@@ -23,3 +23,10 @@ The `reference/manual/INDEX.md` entry `midi` (pages 109 to 112; the chapter is p
 `docs/08` section 3 gives `/reference/**` to the Panelwright, so that request may need re-addressing. It is still open and I did not write a second one.
 
 **When.** Any time before SPEC-0008 H3 or H4 (the first slices that quote these numbers). A single small Forge pull request, with no test change, is enough.
+
+## Addendum, 2026-11-06 (WENGE-0042): the arithmetic is in code, not only in prose
+
+The same old step is in **code and two tests**, which this request did not list: `apps/web/spikes/s3/analyse.ts` takes a step as 1.5 pulses (`STEP_MS_AT_1_BPM = 3750`, `PULSE_MS_AT_1_BPM = 2500`), so the follow report prints "a fifth of a step (6.25 ms at 120 BPM)"
+and reads its verdict against 6.25 ms; `apps/web/test/s3-analyse.test.ts` pins 6.25 in two tests (and a comment there says "a step is 31.25 ms"), and a comment in `apps/web/test/browser/s3.browser.test.ts` repeats it. A step is 12 ticks, six pulses, `15000 / bpm` ms.
+Do **not** change these as a drive-by of the four prose lines above. They are SPEC-0008 slice **H0b** (`specs/SPEC-0008/plan.md`), held until the owner writes their own words in that spec's approval record, and the two pinned assertions change from 6.25 to 25 in that slice with their old and new values in the pull request.
+The question this request left for the owner is now **Q-8-13** in SPEC-0008, with a default (the fraction is the criterion; 6.25 ms is printed as information).

@@ -24,7 +24,28 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 4. **Mind the volume.** A hung note is the thing several of these runs provoke on purpose. Start with the synthesiser's volume low and a hand on it. Use a Panic or a power cycle if a note sticks, and write down which was needed.
 5. **Report what happened, not what was expected.** A run that disagrees with this spec is the more useful run.
 
-**Gear on hand (r0.1, from Q-8-1, 2026-10-26).** A UDO Super 6 desktop module and a Moog Mother-32 (README section 2.3). Not yet known: how each connects, the computer and browser, and whether there is a loopback or a two-track recorder. Two settings must be written in every record that uses the Mother-32: its MIDI channel (Setup mode) and **Follow MIDI Start/Stop** (Setup page 8, by user reports on the firmware v2.0 line; whether it is on changes what our Start does to it). Q-8-12 is the owner's choice about that setting.
+**Gear on hand (from Q-8-1, 2026-10-26).** A UDO Super 6 desktop module and a Moog Mother-32 (README section 2.3). Not yet answered (Q-8-1, the rest): how each connects, the computer and browser, and whether there is a loopback or a two-track recorder. **Until the owner says otherwise this file assumes the defaults:** the Super 6 on USB as port 1, the Mother-32 on DIN behind a MIDI interface as port 2, Chrome, no loopback. **Write these settings and the firmware version of each unit in every record.** Mother-32: its MIDI channel (Setup page 2, default 1), Follow MIDI Clock and Follow MIDI Start Stop (Setup page 8; both On by default, per Moog's addendum). Super 6: its MIDI channel, whether its clock option is send or receive (it switches to receive by itself when it sees a clock), whether TX/RX P is on, and local control. These change what our Start and our clock do to each unit. Q-8-12 is the owner's choice about them.
+
+## H0. The first measurement, for the default setup (r0.3)
+
+Written for the Q-8-1 defaults. It needs **only the Super 6**; the Mother-32 joins at H7 (B3 and B8). It is B1 and B2 done with one synthesiser and no loopback, which is what `B1 without a loopback` below allows. It changes no file but evidence, and it
+is the owner's to run or not: nothing here is approved or scheduled.
+
+**You need.** The computer you will perform on, with Chrome; the Super 6 on USB and powered; a way to record the Super 6's audio out as a file whose timing is exact, such as an audio interface's line input into any recorder program (a phone's voice memo is not known to be exact, *not checked*); about two hours in all, which can be split over days. A run under 30 minutes is a smoke test and is not the H0 result.
+
+**In order.**
+
+1. **Open the published page** (the address GitHub Pages gives for this repository, `.github/workflows/pages.yml`) in Chrome. The spike pages are **not** on it (`apps/web/README.md`, "The site"), which is why H0 uses the page itself and the synthesiser's sound, and not the S1 page, which needs a loopback and a built copy of the repository.
+2. **Allow MIDI** when Chrome asks. Choose the Super 6 as the output for port 1. Switch the page's own sound **off** (the control may be named otherwise on the strip: it is the one that turns the page's built-in sound off). Leave the clock state at **Off**.
+3. **The Super 6's side.** Note its MIDI channel (the default track channel is 1, so set the unit to 1 for this), its clock option (send or receive: it moves to receive by itself on seeing a clock, and none is sent here), whether TX/RX P is on, and its firmware. Pick its sharpest, shortest sound: a click or a pluck with no release tail. Turn its volume down first.
+4. **The pattern.** Tempo 120. One track with a note on **every step** (sixteenths: 125 ms apart). The demo pattern will do only if you can hear a steady note on every step; otherwise fill one track's sixteen steps on the panel.
+5. **B1.** Record the Super 6's audio for 30 minutes with the tab in front, the computer awake and nothing else heavy running. Write the record (section 0's table, with the Super 6's settings from step 3).
+6. **B2, three runs of 30 minutes,** each with the page's own sound off: (a) another tab in front; (b) another program's window covering the whole browser window; (c) as (a) with the display allowed to dim. Record the same way and note the time of the first anomaly in each.
+7. **Read the onsets.** The spread of the gaps between onsets is the page's jitter plus the unit's and the USB path's, so it is an **upper bound** for the page, and the record says so. I will write the small script that reads a recording for you when H0 is approved (it is kept in `handoffs/evidence/` with the record); until then, keep the audio files.
+8. **Save** the record and the audio as `hw-<date>-B1.md` and the like in `handoffs/evidence/`, and say what was not measured.
+
+**If the Super 6 is on DIN and not USB,** only step 3's note changes (say which). **If you have a loopback,** use B1 as first written (the S1 page) as well: it measures the port alone, and the two results together say what the synthesiser adds.
+**What H0 is for.** It gives criterion A3 a number, and it answers whether a browser tab can keep time for the gear. If B1 shows the port too loose at any lookahead you would accept, the roadmap's kill criterion applies: stop and rescope.
 
 ## B1. Output timing of a real port (sets criterion A3)
 
@@ -69,7 +90,16 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 
 **Do.** (a) Master Clock to a drum machine for 30 minutes at 120 BPM with its own pattern running: does it stay on our grid, and does Stop leave it silent. (b) Stop, then Continue from the middle: does the machine resume where we are, with and without Song Position (once H4 exists)? Switch the machine on late, or rewind it by hand, and Continue again. (c) The follow run of `ABLETON.md` section 7, with Live as the sender, 30 minutes at 120 BPM; the S3 report is the record.
 **Record.** Which gear followed Song Position and which ignored it, drift over the 30 minutes, and the S3 report's phase figures.
-**With the gear on hand.** The Mother-32's sequencer can stand in for the drum machine in (a) and (b) if Follow MIDI Start/Stop is **on** (Q-8-12 option b); with it **off** it ignores our Start, which is itself a result worth recording. What it does with a Clock and no Start can be settled in (a): the manual, as a forum user quoted it, says the Tempo knob becomes a divider of the incoming clock, and another user says its sequencer then ran on its own tempo. The two disagree.
+**With the gear on hand.** Either unit's sequencer can stand in for the drum machine in (a) and (b) with its follow switches **on** (Q-8-12 option b): the Mother-32's Follow MIDI Start Stop, or the Super 6 in clock-receive with HOLD arming its sequencer to wait for Start. With them **off** the unit ignores our Start, which is itself a result worth recording. What it does with a Clock and no Start can be settled in (a): Moog's addendum says a connected MIDI clock overrides the internal one (the Tempo knob then divides it), and one user says the sequencer then ran on its own tempo. (a) settles which, and with which Follow settings. The Super 6 in receive mode does not run its arpeggiator or sequencer without a clock (UDO's addendum), which (a) can also confirm.
+**Reading the follow run (r0.3; Q-8-13).** The criterion is stated as a fraction of a step so that it means the same at any tempo. A step is 12 ticks and `15000 / BPM` ms:
+
+| Tempo | A step | A fifth of a step | A twentieth (the old 6.25 ms at 120) |
+|---|---|---|---|
+| 60 BPM | 250 ms | 50 ms | 12.5 ms |
+| 120 BPM | 125 ms | 25 ms | 6.25 ms |
+| 180 BPM | 83.3 ms | 16.7 ms | 4.2 ms |
+
+The S3 report printed before slice H0b (`spikes/s3/analyse.ts`) takes a step as 1.5 pulses, so its line "a fifth of a step (6.25 ms at 120 BPM)" is a twentieth, and its MET or NOT MET reads against 6.25 ms. **Do not read that verdict as the fifth.** Read the report's `max` and `99th` phase figures against the table, and say which row you used. After H0b the report prints the fifth and the 6.25 ms share both. The 30 minutes at 120 BPM with the tab in front stand either way.
 **Becomes.** Criterion A4, and the evidence for or against HW-19.
 
 ## B7. Start alignment
@@ -77,7 +107,7 @@ It proposes **no threshold**. The owner sets one from what a run shows, as SPEC-
 **Question.** How far is the first note from the device's own first step, on real gear? (F-H9.)
 **Do.** Slave a drum machine to our Start. Put a kick on step 1 of both. Record 10 starts each at 60, 120 and 180 BPM, built-in sound off. Read the offset between the machine's first hit and ours.
 **Record.** The offsets in ticks and in milliseconds, per tempo, and whether the machine plays its first step on Start or on the next clock (devices differ).
-**With the gear on hand.** The Mother-32's sequencer (a note on step 1, Follow MIDI Start/Stop on) is the candidate; it is not a drum machine and its first step on Start has not been measured by anyone here. Say so in the record, and treat the result as that unit's, not as drum machines in general.
+**With the gear on hand.** The Mother-32's sequencer (a note on step 1, Follow MIDI Start Stop on) or the Super 6's is the candidate; neither is a drum machine and its first step on Start has not been measured by anyone here. Say so in the record, and treat the result as that unit's, not as drum machines in general.
 **Becomes.** The owner's answer to Q-8-4 (R0b), and HW-20 if the answer is to move it.
 
 ## B8. The A6 run, then two sessions

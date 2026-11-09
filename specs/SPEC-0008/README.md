@@ -3,17 +3,17 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0008 |
-| Revision | r0.1, draft, 2026-10-26 (r0 was merged as #84 on 2026-10-25, which approved nothing) |
+| Revision | r0.3, draft, 2026-11-06 (r0 merged as #84 on 2026-10-25 and r0.1 as #87 on 2026-10-26; neither approved anything; r0.2 is #88, open). r0.3 adds `tech.md` and `plan.md` and specifies the four items the owner asked to have specified (section 8.1) |
 | Stage | **Planning only.** It adds no code, contract, fixture or threshold. Every slice, decision and default below is a proposal, not an approval |
-| Risk tier | **Low** for the spec itself (`specs/`, `journal/`). Slices H1a, H1b, H2, H5 and H6 are **Medium** (`apps/web/`, Forge). H3 (timing) and H4 (clock) are **High**, as P4 was (`docs/09-roadmap.md`). H0 and H7 are runs by a person with gear and change no file but evidence |
+| Risk tier | **Low** for the spec itself (`specs/`, `journal/`). Slices H0b, H1a, H1b, H2, H5 and H6 are **Medium** (`apps/web/`, Forge). H3 (timing) and H4 (clock) are **High**, as P4 was (`docs/09-roadmap.md`). H0 and H7 are runs by a person with gear and change no file but evidence |
 | Owner and approver | `@beaudesign` |
-| Task | **`WENGE-0038`** (the next free id: `main` and the pull request titles end at `WENGE-0037`) |
+| Task | **`WENGE-0038`** (the next free id: `main` and the pull request titles end at `WENGE-0037`); r0.1 is `WENGE-0040`, r0.2 `WENGE-0041`, r0.3 `WENGE-0042` |
 | Extends | SPEC-0002: `product.md` section 6 (the MIDI requirements), criteria A3, A4 and A6, and waves 4 and 5. ADR-0008 (the page sends MIDI with a lookahead) and ADR-0009 (the engine emits the clock). It changes none of them |
 | Depends on | **SPEC-0003 S7** for program and bank change, which needs `Event::ProgramChange`, `Event::BankSelect` and ABI revision 3. S7 is planned there and **not approved**: SPEC-0003's record approves S0 and says S1 onward is not approved. This spec does not repeat it |
 | Meets | SPEC-0007 r2 (proposed): the worklet's event, clock and transport bus (slice P0a) is where the Song Position of slice H4 would be derived. SPEC-0004: the built-in sound, which slice H5 asks to step aside for a port that has a device |
 | ADR | None written. H3 may need an amendment to ADR-0008 (a per-device term beside the lookahead). The rig file format is kept out of `contracts/` (D-H3); if the owner wants it there, that is an ADR |
-| Base | `main` at `d0d1992` for r0; r0.1 is written on `main` at `7aebadf`. Everything said about the repository below was read from files on `d0d1992` unless it says *(not re-checked)*; the repository did not change in this spec's area between the two (#85 and #86 are comments and corrections). Section 2.3 is new in r0.1 and is read from outside the repository |
-| Companion | **`bench.md`**: the runs only a person with gear can do, and what each one settles |
+| Base | `main` at `d0d1992` for r0; r0.1 is written on `main` at `7aebadf`. Everything said about the repository below was read from files on `d0d1992` unless it says *(not re-checked)*; the repository did not change in this spec's area between the two (#85 and #86 are comments and corrections). Section 2.3 is new in r0.1, was rewritten in r0.2 (on `main` at `d705004`), and is read from outside the repository. r0.3 reads the code in `apps/web/` on `main` at `d705004` again for `tech.md` and `plan.md` |
+| Companion | **`bench.md`**: the runs only a person with gear can do, and what each one settles. **`tech.md`**: the how (files, types, algorithms, the test stand-in). **`plan.md`**: the slices (files, red-first tests, definition of done, order, and how the owner approves) |
 
 ## 1. The ask
 
@@ -22,6 +22,12 @@ Recorded here because chat is not a source of truth. The owner wrote on Sat 2026
 > Let's spec out how we could use the sequencer with actual hardware synthesisers and live midi - read the docs and think deeply about
 
 (The owner's dash is written as a hyphen here.) The message ends there. It is a request to think and plan, not an approval.
+
+**2026-11-06, 17:51.** The owner pasted back four open items (Q-8-12; the rest of Q-8-1; the live-follow criterion; the slices, with "I won't start any without your own words in the approval record") and wrote:
+
+> Spec these out
+
+I read it as a request to specify those four in detail, each with a stated default the owner can approve or change (section 8.1, `tech.md`, `plan.md`, `bench.md`). It answers no question and approves no slice.
 
 **How it is read.** "Actual hardware synthesisers" means external instruments that speak MIDI: a class-compliant USB synthesiser, a synthesiser or drum
 machine on a MIDI cable behind a USB interface, several of them at once. "Live midi" means MIDI used in performance, in both directions: the sequencer
@@ -61,29 +67,41 @@ These are the instrument's own hardware behaviours. They are what "works as the 
 - **MIDI control maps.** Six maps, which p. 74 calls global, from a MIX knob to a CC on a channel, with learn from MIDI in. Whether they are global or per page is one of the questions the manual's tutorials leave open (`tech.md` section 9, item 4).
 - **Sysex.** Page, bank and grid dumps, and transfers to and from the Nemo (pages 111 to 112 read; 95 to 97 from the manual's index and page 95 only). **Not in this spec.**
 
-### 2.3 The owner's gear (Q-8-1, answered in part on 2026-10-26)
+### 2.3 The owner's gear (Q-8-1, answered in part on 2026-10-26; sources improved in r0.2)
 
 On Mon 2026-10-26 at 14:37 the owner wrote "Udo desktop and a mother 32". I read that as a UDO Super 6 desktop module and a Moog Mother-32 and said so; the owner replied "Yes correct" at 14:38. This answers the first half of Q-8-1 (which gear) and none of the second (how it is connected, which computer and browser, whether there is a loopback). It approves nothing.
 
-**What I read, and how well.** Web pages through a tool that returns a summary of the page, not the page: a Sound On Sound review of the Mother-32, three Moog forum threads and one personal blog post about it, a third-party copy of the UDO Super 6 Owner's Manual, version 2.0 (August 2020), and a retailer's page for the Super 6 Desktop. **I did not read Moog's own manual** (the copy I could open had no MIDI chapter) **and I did not read the Super 6's MIDI chapter** (its pages 92 to 96, and the global settings on pages 83 to 85, were cut off). A claim from a forum is a user's report, and is marked so. Nothing here was tried on a unit.
+**What I read, and how well.** Every page below came through a tool that returns a summary of the page, not the page, so each statement is second-hand even when the document is the maker's own. The sources, best first:
+
+- **Moog's own addendum** for Mother-32 firmware v2.0 (Moog's document host). It is an addendum, not the manual: it lists the Setup-mode pages and the fixes in v2.0, and defers the rest to the main manual, which I **did not read**. Page numbers below are its printed pages.
+- **UDO's own Manual Addendum v0.52** (the clock, Start and Stop, and MPE settings of firmware 0.52, on a retailer's file host) and **UDO's Owner's Manual v1.4, February 2024**. Of the manual only the text up to about page 64 reached me, so the MIDI Specifications (pp. 120 to 132), Global Settings (pp. 102 to 104), MPE (pp. 105 to 106) and the arpeggiator and sequencer chapter (pp. 94 to 101) are **unread**.
+- **One post by UDO's staff** on their forum about program change, written about firmware 0.27 to 0.30. Old; the unit has had firmware since (the v1.4 manual is newer).
+- **A community CC list** (midi.guide, built from a public CSV, last updated 2023-01-14, not checked against the manual by its authors as far as the page says).
+- **A Sound On Sound review of the Mother-32, forum posts by users, a blog post, a retailer's page.** Weakest: reviews and user reports. Marked as such where used.
+
+Nothing here was tried on a unit.
 
 | | UDO Super 6 (desktop module) | Moog Mother-32 |
 |---|---|---|
 | What it is | 12-voice polyphonic analog-hybrid, with an arpeggiator and a 64-step sequencer (retailer's page) | A one-voice analog semi-modular with a 32-step, 64-memory sequencer. The review calls the sequencer monophonic; that the whole unit is one voice is general knowledge, not checked |
-| What connects | Owner's Manual, p. 22: a class-compliant USB port with bidirectional MIDI (no driver), and MIDI In, Out and Thru on 5-pin DIN. That manual covers the Super 6; I did not see a statement about the desktop module's connectors | The review says there is **no MIDI Out and no Thru**. I found no USB MIDI port described. So a browser reaches it only through something with a DIN output *(not checked: what that is here)* |
-| Channel | Not read | Set in Setup mode, 1 to 16 (review) |
-| Messages it takes | Not read | Notes, velocity, aftertouch, pitch bend, mod wheel, several CCs (1, 2, 4, 7 are named as sources for its assignable output), Program Change to pick a sequencer memory, MIDI Clock, Start, Stop and Continue (review, second-hand) |
-| Clock and transport | Its LFO 1 and delay time can sync to an external MIDI clock (manual pp. 47, 58). Start, Stop and Song Position not read | With a clock in, the Tempo knob becomes a clock divider (the manual, as a forum user quoted it). **User reports:** by default it **follows MIDI Start and Stop**, starting its own sequencer, and **ignores incoming notes while that sequencer is running**; Setup page 8, "Follow MIDI Start/Stop", turns that off (firmware v2.0) |
-| Panic | Nothing found on CC 120 or CC 123 | Nothing found on CC 120 or CC 123 |
+| What connects | Manual v1.4: USB with bidirectional MIDI (class-compliant, no driver), and MIDI In, Out and Thru on 5-pin DIN. The text describes them for the keyboard (pp. 25, 26) and the desktop (p. 27) alike. Whether USB data reaches the DIN Out or Thru is **not stated** | Moog's addendum, p. 1: a 5-pin DIN **MIDI In**, which a computer reaches through a USB-MIDI cable or interface. It mentions no MIDI Out, no Thru and no USB MIDI (the review says no Out and no Thru). So a browser reaches it only through something with a DIN output *(not checked: what that is here)* |
+| Channel | A MIDI CH control is on the front panel (the pictures, pp. 15, 19); how it works (multi-channel, split, omni) is in the unread chapters | Setup page 2, 1 to 16, default 1 (addendum pp. 10, 12). Whether it filters or is omni is not covered |
+| Controllers | The community list gives 91 parameters as CCs, including CC 64 sustain, CC 120 all sound off, CC 121, CC 122 local control, CC 123 all notes off and CC 124 to 127 (omni and mono and poly). No NRPN parameter is listed. It says nothing of program change or channels | Setup page 1: the assignable output can take velocity, channel pressure, pitch bend and CC 1, 2, 4, 7 (addendum p. 10). The review adds notes, aftertouch, mod wheel, and Program Change picking a sequencer memory |
+| Program change | UDO staff, firmware 0.27 to 0.30: it answers program change 0 to 127 only once **TX/RX P** is on in the global settings (SHIFT); **bank-select CCs are ignored**; the numbers run A(1) P1 to P8 as 0 to 7, B(1) as 8 to 15, up to H(2) P8 as 127; a received change does not move the panel's bank. *Not checked: current firmware* | Program Change selects sequencer memories (review) |
+| Clock and transport | UDO addendum v0.52, pp. 3 to 4 (global settings, SHIFT and SYNC): one option makes it send clock and another receive it, never both; **it switches to receive by itself when it sees a clock**; in receive mode **the arpeggiator and sequencer do not run without a clock**; with receive on it **responds to MIDI Start and Stop** (Continue is not mentioned there). A HOLD option makes the sequencer wait for Start. LFO 1 and the delay time can follow an external clock (manual pp. 55, 58). Song Position: not covered | Moog addendum: Setup page 8 lists **Follow MIDI Clock** and **Follow MIDI Start Stop**, **both On by default** (pp. 11 to 12). A connected MIDI clock overrides the internal one (p. 5); with it, the Tempo knob sets the clock division (p. 4). The addendum does not say what the two switches do beyond their names. Its p. 12 known issue (swing, and aligning to a swing on-beat) uses MIDI Song Position as its example; I did not see the details |
+| Notes while its sequencer is playing | UDO addendum v0.52 p. 4: transport can follow Note On and Off, which can also transpose a sequence (the sentence is brief; I did not see the context) | Moog addendum p. 12, as fixes in v2.0: a MIDI Note Off while the sequencer plays no longer cuts the note that is sounding, and MIDI notes now transpose the sequence even when it is not playing. **User reports** (Moog forum): with its sequencer running it did not respond to notes from outside until stopped (one report, a TB-3 as the source) |
+| Panic | CC 120 and CC 123 are in the community list; the maker's own text on them was not seen | Nothing found |
 
 **What this suggests for the plan.** All proposals; none changes a slice.
 
-- **The first real pairing is a polyphonic USB synthesiser and a one-voice DIN one.** That is criterion A6 almost word for word (port 1 a synthesiser, port 2 a second device), and it is the best case for B3 (two devices lined up): a USB path and a DIN path will not have the same latency, so per-device trim (H3) has a real job.
-- **Transport is a trap with this gear, and the spec's own default meets it.** D-H7 sends Start, Stop and Continue to every chosen device. If the user reports hold, our Start would start the Mother-32's own sequencer, and it would then ignore the notes we send. Section 4.5 and Q-8-12 carry the choice.
-- **A one-voice device and a chord track.** The sequencer can put a chord or a strum on a track (up to 16 notes). Routed to the Mother-32 it can sound one of them; which one is unknown *(not checked: its note priority)*. The route sheet (H2) could mark a device as one-voice and the track-to-device view could say so. It is not in any slice; say if you want it.
-- **Panic.** Since neither unit's reply to CC 120 or CC 123 is known, Release and Cut (section 4.4) do not rely on them: the sounding table sends a Note Off for every note it owes first, and the CCs are the extra.
-- **Channel.** The route's channel rewrite (section 4.2) means the Mother-32 need not be reconfigured to match a track; the track's channel can be mapped to whatever the unit listens on.
-- **A stand-in for the drum machine.** The Mother-32's sequencer, running on our clock with Follow MIDI Start/Stop on, could stand in for the drum machine in B6 and B7. Whether it plays its first step on Start or on the next clock is exactly what B7 asks and has not been measured.
+- **The first real pairing is a polyphonic USB synthesiser and a one-voice DIN one.** That is criterion A6 almost word for word (port 1 a synthesiser, port 2 a second device), and the best case for B3 (two devices lined up): a USB path and a DIN path will not have the same latency, so per-device trim (H3) has a real job.
+- **Transport is a trap with this gear, and the spec's own default meets it, for both units.** D-H7 sends Start, Stop and Continue, and the clock, to every chosen device. The Mother-32's Follow MIDI Start Stop is **on by default** (Moog), so our Start starts its sequencer, and by the user reports it then ignores our notes. The Super 6 **switches itself to clock-receive when it sees our clock**, and with receive on it follows Start and Stop; that only matters if its arpeggiator or sequencer is in use, but then it will start and stop with Play here and will not run when our clock is off. Section 4.5 and Q-8-12 carry the choice.
+- **A one-voice device and a chord track.** The sequencer can put a chord or a strum on a track (up to 16 notes). Routed to the Mother-32 it can sound one of them; which one is unknown *(not checked: its note priority; Moog's addendum does not cover it)*. The route sheet (H2) could mark a device as one-voice and the track-to-device view could say so. It is not in any slice; say if you want it.
+- **Program change to the Super 6.** The Octopus sends a bank change and then a program change (section 2.2). If UDO staff's old statement still holds, the unit needs TX/RX P switched on and ignores the bank, so a bank-then-program pair would reach only the program. That matters to SPEC-0003 S7 (program and bank change; planned, not approved) and to the rig's program labels (section 4.2), which would be numbered 0 to 127 for this unit.
+- **Panic.** Neither maker's own text on CC 120 or CC 123 was seen, so Release and Cut (section 4.4) do not rely on them: the sounding table sends a Note Off for every note it owes first, and the CCs are the extra.
+- **Channel.** The route's channel rewrite (section 4.2) means neither unit has to be reconfigured to match a track; the track's channel can be mapped to whatever the unit listens on.
+- **A stand-in for the drum machine.** Either unit's sequencer, running on our clock with its follow switches on, could stand in for the drum machine in B6 and B7. Whether it plays its first step on Start or on the next clock is exactly what B7 asks and has not been measured.
+- **A disagreement the bench settles.** Moog's addendum says a connected MIDI clock overrides the Mother-32's internal clock; one user says its sequencer then ran on its own tempo. B6(a) settles it on the owner's unit.
 
 ## 3. What is missing for gear: findings
 
@@ -105,6 +123,7 @@ demo and a page that survives a set.
 | **F-H11** | **MIDI in has one consumer and no route to an output.** Nothing forwards a keyboard to a synthesiser; the manual's re-channel behaviour, recording, transpose and external program change are all unbuilt (SPEC-0002 wave 4). Program change is decoded and dropped | `midi-in.ts`, `app.ts` |
 | **F-H12** | **The echo can feed itself, and the page cannot see it.** `ABLETON.md` says so for a virtual port. A real device usually lists its input and output under one name, so a name check can catch the common case | `ABLETON.md` section 3, item 4 |
 | **F-H13** | **Stale lines.** `ABLETON.md` section 8 says the tick length is open (it was decided on 2026-10-07) and a step is "1.5 pulses" (it is six); `apps/web/README.md` ("The MIDI clock") says the engine sends a Clock "every 8 ticks" (it is every 2: `TICKS_PER_CLOCK`); `reference/manual/INDEX.md` sends the topic "midi" to pages 109 to 112 (a song grid chart and the Nemo sysex notes) and not to pages 93 and 94. Not fixed here | `ABLETON.md`, `apps/web/README.md`, `INDEX.md`, `abi.ts` |
+| **F-H14** | **The follow-run report counts a fifth of a step from the old step.** `spikes/s3/analyse.ts` takes a step as 1.5 pulses (`STEP_MS_AT_1_BPM = 3750`), so it prints "a fifth of a step (6.25 ms at 120 BPM)" and reads its verdict against 6.25 ms. A step is six pulses, 125 ms at 120 BPM, so a fifth is 25 ms and 6.25 ms is a twentieth. `test/s3-analyse.test.ts` pins 6.25 in two tests. Either answer to Q-8-13 needs the report corrected (slice H0b) | `spikes/s3/analyse.ts`, `test/s3-analyse.test.ts`, `abi.ts` |
 
 What I could not do: run anything against a real port or a real instrument. There is no hardware in the environment this was written in, and I did not look for a MIDI backend there (P4b found that Chromium reports
 `InvalidStateError` where there is none, `midi-access.ts`). So every test this spec describes runs against a stand-in, and the stand-in encodes what its author believes
@@ -146,7 +165,7 @@ A **device** is one Web MIDI output (and, if it has one, its input), with a labe
 
 ```text
 rig       = { version, name, devices[], routes[], input }
-device    = { key, label, outId, outName, inId?, inName?, trimMs, clock, transport, panic, channelLabels? }
+device    = { key, label, outId, outName, outManufacturer?, inId?, inName?, inManufacturer?, trimMs, clock, transport, panic: "cut" | "release", channelLabels? }
 route     = { port: 1 | 2, from: 1..16, to: 1..16, device: key, channel: "same" | 1..16 }
 ```
 
@@ -160,6 +179,7 @@ route     = { port: 1 | 2, from: 1..16, to: 1..16, device: key, channel: "same" 
 - **Binding.** A device is found by its port `id` first. If the `id` has changed, it is found again by name and manufacturer, **only when exactly one port matches**.
   Two identical interfaces are never guessed between: the rig asks. A device that is not plugged in is shown as missing and keeps its routes; when it returns it is bound again. Whether
   Chromium's `id` is stable between visits is *not checked*, which is why the name fallback exists.
+- **A device with no routes is valid.** It receives the clock and transport its flags allow and no notes. It is how a unit's own sequencer can run from our clock while the page sends it no notes (`tech.md` section 13).
 - **Nothing goes out on load.** A rig read from storage sends no byte until the person presses Play or an explicit test button (HW-5).
 - **Where it lives.** The browser's storage for the page, and an export and import file, versioned, with a schema beside the code (`apps/web/`). The pattern's own
   save and load is a different, unbuilt thing, and SPEC-0002 `tech.md` section 7 already plans it: a versioned `octopus-state/1` with its schema **in `contracts/`**, "the global settings and the clock state" included, autosaved to IndexedDB. The rig is kept
@@ -195,10 +215,10 @@ run here (a page timer, not a port) events reached the scheduler a median 66.3 m
 A hung note on stage is the worst thing the page can do. The engine already owes a Note Off for every Note On it sent, and releases them on Stop. What is missing is the **page's own record of what each device is sounding**,
 so that safety does not depend on the worklet being alive.
 
-- **The sounding table.** Each device's output stage keeps `(channel, note)` counts built from what it actually sent (a Note On adds, a Note Off removes), and the pitch bend, sustain and pressure it last sent. HW-11 asserts it equals
-  the stand-in's own held set at every step of a generated run, so the table is never an opinion.
+- **The sounding table.** Each device's output stage keeps a set of `(channel, note)` built from what it actually sent (a Note On adds, a Note Off removes, so a retriggered pitch is one entry, as a synthesiser sees it), and the pitch bend, sustain and pressure it last sent. HW-11 asserts it equals
+  the stand-in's own held set, once its queue has played out, at every step of a generated run, so the table is never an opinion.
 - **Panic has two levels.**
-  - **Release** (what Stop does now, plus the table): a Note Off for every note in the table and CC 123 on every channel the device was used on. Sent on Stop, on a device swap, when a device goes away (to the old device object if it still accepts
+  - **Release** (what Stop does now, plus the table): a Note Off for every note in the table and CC 123 on every channel the device was used on, and CC 64 at 0 on any channel where the page itself put sustain down (a Note Off does not end a note while sustain is down). Sent on Stop, on a device swap, when a device goes away (to the old device object if it still accepts
     sends), and on `pagehide`.
   - **Cut** (the Panic control): Release, then CC 120 (all sound off), sustain (CC 64) to 0, and pitch bend to centre, on all 16 channels of the device. Some devices ignore CC 123 and some mis-handle CC 120, so Cut is the button and not the default (Q-8-5).
 - **Panic stops the transport first,** if the worklet answers (the engine's own Stop), so that nothing new is struck while the cut is in flight; if it does not answer, the page cuts anyway, which is the point of keeping the table on the page.
@@ -216,7 +236,7 @@ so that safety does not depend on the worklet being alive.
   derived in the worklet beside the click and the clock, and carried to the page as one more field of the worklet's `events` message (`protocol.ts`, page code), so no engine event, ABI or contract changes (HW-19). If SPEC-0007's bus (P0a) is approved first, this lives there; if not, it is a small standalone addition. An incoming Song Position stays ignored (Q-8-8). *(Not checked: which gear follows it.)* It matters when a device's place and ours differ; it does not matter when
   both stopped on the same pulse.
 - **Start alignment is the owner's call.** F-H9 is the largest single timing fact for a drum machine on our clock: our first note is 11 ticks (114.6 ms at 120 BPM) after the Start it sent. The spec does not change it. It puts it on the critical path of the first run with a slaved drum machine (B7) and asks the owner whether to move it (Q-8-4). If yes, the observable HW-20 is written then, red first.
-- **Known gear: the Mother-32.** By user reports it follows Start and Stop by default and then ignores notes (section 2.3). The default above would start its sequencer. Q-8-12 asks which the owner wants. Until it is answered the default stays D-H7's, and any bench record names the unit's own Follow MIDI Start/Stop setting.
+- **Known gear.** Both of the owner's units follow our transport once their own options allow it (section 2.3): the Mother-32 by default (its Follow MIDI Start Stop is on), the Super 6 once it has switched itself to clock-receive on seeing our clock. The default above would start their sequencers. Q-8-12 asks which the owner wants. Until it is answered the default stays D-H7's, and any bench record names each unit's own clock and Start and Stop settings.
 - **The echo guard.** The page refuses an echo destination whose name matches the clock input's name, with a sentence (HW-21). It is a guard for the common case, not proof against a loop through a virtual port.
 - **While slaved.** `ABLETON.md` already describes a follower that takes the sender's tempo. Nothing here changes it. A per-device trim on a device that is also the clock source is allowed; the sentence on the strip names the effect.
 
@@ -287,7 +307,7 @@ Taking a synthesiser's **audio** into the pedalboard through the browser's audio
 
 | # | Observable | Test |
 |---|---|---|
-| HW-11 | **The table is the truth.** After every step of a generated run (events, Stop, Start, a swap), each device's sounding table equals the stand-in's held set | fake, property |
+| HW-11 | **The table is the truth.** After every step of a generated run (events, Stop, Start, a swap), each device's sounding table equals the stand-in's held set once its queue has played out | fake, property |
 | HW-12 | **Panic is complete.** After any generated run and a Panic (Stop if the engine answers, then Release, then Cut), the stand-in holds nothing on any channel, including notes still queued, with `clear()` present and absent, and with a stand-in engine that never answers | fake, property |
 | HW-13 | **A swap releases first.** Choosing another device for a port while notes sound sends the old device its Note Offs before it is dropped; a device lost with notes owed gets a Release when it returns | fake |
 | HW-14 | **A dead device is contained.** A stand-in whose `send` throws on every call: every other device receives every record of the batch, the thrower is marked failed once with a sentence, the engine keeps running, no exception escapes | fake |
@@ -295,7 +315,7 @@ Taking a synthesiser's **audio** into the pedalboard through the browser's audio
 | HW-16 | **A stalled engine is noticed.** A stand-in worklet that stops posting while running: within 250 ms the devices are released and the sentence appears; no automatic resume | fake |
 | HW-17 | **The test note ends.** One Note On and its Note Off at the chosen velocity, the Note Off sent even if the page loses focus at once; never sent without a click | fake |
 
-### 5.4 Clock and transport (H4)
+### 5.4 Clock and transport (H4, and H0b for HW-28)
 
 | # | Observable | Test |
 |---|---|---|
@@ -303,6 +323,7 @@ Taking a synthesiser's **audio** into the pedalboard through the browser's audio
 | HW-19 | **Continue carries the place.** A Continue away from zero is preceded, on each device with `transport` on, by a Song Position of `floor(tick / 12)` (14 bits, low byte first); Start is not preceded. A stand-in drum machine with a position register is at the engine's place after Stop and Continue. **Red today** | fake; the worklet's stream |
 | HW-20 | **Start alignment. Held.** Written when Q-8-4 is answered. Until then it is bench run B7 | bench |
 | HW-21 | **The echo guard.** An echo destination whose name equals the clock input's name (ignoring case and spaces) is refused with a sentence | fake |
+| HW-28 | **The follow report reads the real step.** `STEP_TICKS` equals `DEFAULT_STEP_TICKS` in `domain.rs`; the report's step at B BPM is `15000 / B` ms; its bound is printed as a fraction of a step and in ms at the run's tempo (25.00 ms for a fifth at 120 BPM); the share within 6.25 ms is printed as information. **Red today** (F-H14) | fake; `s3-analyse.test.ts`, `abi.test.ts` |
 
 ### 5.5 Live in (H6)
 
@@ -338,7 +359,8 @@ Not CI. Each is a run in `bench.md` with the gear named and the result kept in `
 
 | Slice | Content | Rows | Needs | Tier |
 |---|---|---|---|---|
-| **H0** | **Evidence first, by the owner.** B1 and B2 with whatever one device is at hand, using the existing `spikes/s1/page.html`. No code | B1, B2 | a loopback port or any synthesiser | none |
+| **H0** | **Evidence first, by the owner.** B1 and B2 with whatever one device is at hand: with a loopback, the existing `spikes/s1/page.html`; without one, the published page and the synthesiser's audio (`bench.md` section H0, written for the defaults). No code | B1, B2 | a loopback port or any synthesiser | none |
+| **H0b** | **The follow report reads the real step.** `STEP_TICKS`, the report's step from the code's constants, the bound printed as a fraction and in ms, the 6.25 ms share as information. Settles one line of Q-8-13 | HW-28 | none | Medium |
 | **H1a** | **The output stage's record and guard.** The sounding table, the send guard, the Release on a device swap or loss and on return. No rig, no persistence | HW-11, HW-13, HW-14 | none | Medium |
 | **H1b** | **Panic and the watchdogs.** Release and Cut, the Panic control, `pagehide`, the engine-stall watchdog, the test note | HW-12, HW-15, HW-16, HW-17 | H1a | Medium |
 | **H2** | **The rig.** Model, routes, binding, hot-plug, storage, export and import, a rig sheet on the strip, the read-only track-to-device view | HW-1 to HW-5, HW-26 | H1a (the swap release) | Medium |
@@ -348,7 +370,8 @@ Not CI. Each is a run in `bench.md` with the gear named and the result kept in `
 | **H6** | **The input stage.** Consumers in a list, thru, the feedback guard, `gridTickAt` | HW-22 to HW-25 | H2 | Medium |
 | **H7** | **The gear run.** B3 to B8 with the gear named, and the "desk" and "rig" sessions | B3 to B8 | H3, H4 | none |
 
-**Order.** H0 and H1a first and in parallel, then H1b: none needs a decision, a contract or the owner's gear list, and H0 gives every later claim a number. Then H2, then H3 and H4, then H5 and H6 in either order, then H7.
+**The files, red-first tests and definition of done of each slice are in `plan.md`; the types and algorithms are in `tech.md`.**
+**Order.** H0, H0b and H1a first and in parallel, then H1b: none needs a decision, a contract or the owner's gear list, and H0 gives every later claim a number. Then H2, then H3 and H4, then H5 and H6 in either order, then H7.
 **The smallest useful increment is H1a and H1b alone**: the page stops being able to hang a synthesiser, and has a way out when something does. **Program and bank change** is planned in SPEC-0003 S7 (not yet approved) and arrives with ABI revision 3; this spec adds only that the rig can label programs and the sounding table ignores them.
 **Record, transpose, force-to-scale and control maps** stay in SPEC-0002 wave 4, to be specified as their own spec (the next free number is `SPEC-0009`).
 
@@ -376,7 +399,7 @@ Not CI. Each is a run in `bench.md` with the gear named and the result kept in `
 
 Say **"defaults"** and every default above applies, as in SPEC-0001 and SPEC-0002.
 
-- **Q-8-1. The gear.** *Answered in part, 2026-10-26: a UDO Super 6 desktop module and a Moog Mother-32 (section 2.3).* Still open: (i) how each is connected: the Super 6 on USB or on DIN, and what gives the Mother-32 a DIN output; (ii) the computer, operating system and browser; (iii) whether you have a loopback (a cable from an interface's out to its in) or a way to record both synthesisers' audio on two tracks. *Defaults:* the Super 6 on USB as port 1, the Mother-32 behind a DIN interface as port 2, Chrome on the computer you will use, no loopback (so B1 is measured from the Super 6's audio, `bench.md`).
+- **Q-8-1. The gear.** *Answered in part, 2026-10-26: a UDO Super 6 desktop module and a Moog Mother-32 (section 2.3).* Still open: (i) how each is connected: the Super 6 on USB or on DIN, and what gives the Mother-32 a DIN output; (ii) the computer, operating system and browser; (iii) whether you have a loopback (a cable from an interface's out to its in) or a way to record both synthesisers' audio on two tracks. *Defaults:* the Super 6 on USB as port 1, the Mother-32 behind a DIN interface as port 2, Chrome on the computer you will use, no loopback (so B1 is measured from the Super 6's audio, `bench.md`). Specified under these defaults in `bench.md` (section H0) and `tech.md` (section 13).
 - **Q-8-2. "Live."** Performance with a keyboard played into the rig, Ableton Live, or both? *Default:* both, performance first.
 - **Q-8-3. The surface.** Is a browser tab the performance surface, with the limits B2 finds (keep the window visible, no sleep)? Or should a desktop wrapper be on the table if the tab cannot be trusted? *Default:* the browser, measured first.
 - **Q-8-4. R0b.** Should the first note sound on Start, not 11 ticks after it? It moves every golden. *Default:* unchanged until B7 measures it with your gear.
@@ -387,7 +410,19 @@ Say **"defaults"** and every default above applies, as in SPEC-0001 and SPEC-000
 - **Q-8-9. NRPN and 14-bit controllers.** Do any of your synthesisers need them for the sounds you want to sequence? *Default:* deferred; say which if so, and it becomes an ADR.
 - **Q-8-10. A hardware controller driving the panel.** Wanted for live use (a knob on a controller turning a panel control)? It is not in the instrument. *Default:* not now.
 - **Q-8-11. Hardware audio into the pedalboard.** Specify taking a synthesiser's audio return through the browser into SPEC-0007's board? *Default:* not now.
-- **Q-8-12. Start and Stop to the Mother-32.** By user reports it follows MIDI Start and Stop by default and then ignores notes while its own sequencer runs (section 2.3; Setup page 8, "Follow MIDI Start/Stop", turns that off). With D-H7's default, Play here would start its sequencer. Which do you want: (a) notes only, so transport is off for it here or the option is off on the unit, or (b) its sequencer running on our clock, as a second voice? *Default:* (a), with (b) as a bench run (B6, B7) once H4 exists.
+- **Q-8-12. Start, Stop and clock to the two units.** Both follow our transport once their options allow it: the Mother-32's Follow MIDI Start Stop is on by default and, by user reports, it then ignores notes while its own sequencer runs; the Super 6 switches to clock-receive by itself when it sees our clock and then follows Start and Stop (section 2.3). With D-H7's default (clock and transport on for every chosen device), Play here would start both units' sequencers or arpeggiators. Which do you want: (a) notes only, so you turn `clock` and `transport` off for both units in your rig (D-H7 already allows that) or the matching switches off on the units, or (b) one or both units' own sequencer or arpeggiator running on our clock? *Default:* (a), with (b) as a bench run (B6, B7) once H4 exists. Do you use the Super 6's arpeggiator or sequencer from this page? *Default:* no. Specified in `tech.md` section 13: the rig for your two units under (a), and what (b) asks of the rig and the units.
+- **Q-8-13. The live-follow criterion (A4).** `ABLETON.md` section 7 proposes that the engine's phase against the sender's clock stay within "a fifth of a step" for 30 minutes at 120 BPM, and converts it to 6.25 ms with a step of 1.5 pulses, which is the step before D0. A step is now 12 ticks, six pulses, 125 ms at 120 BPM, so a fifth of it is **25 ms** and 6.25 ms is a twentieth. The follow report and two of its tests still use the old step (F-H14). Keep **the fraction** (25 ms at 120 BPM, scaling with the tempo: 50 ms at 60, 16.7 at 180) or keep **6.25 ms** (a fixed figure, four times tighter)? *Default:* the fraction is the criterion, and the report also prints how many samples are within 6.25 ms, as information, so you can see the margin. It is not a gate either way. The default is four times looser than the figure the code prints today, which is why it is a question; tightening later is free, and loosening a figure you have set needs an ADR with an expiry (`CLAUDE.md` rule 3).
+
+### 8.1 The four open items, specified (r0.3)
+
+Asked for on 2026-11-06. Each has a default written once. Say "defaults" and the defaults of the three questions apply; say which differs and I change it. That records answers and **starts no slice**: a slice needs its own line naming it, in the form `plan.md` ends with. None of this answers a question or approves anything until the owner's words are in section 12.
+
+| Item | Specified in | Default | If you answer otherwise |
+|---|---|---|---|
+| **Q-8-12**, the two units and our transport | `tech.md` section 13; slice H4 | (a) notes only: Clock, Start and Stop are not sent to either unit; the Super 6's arpeggiator and sequencer are not used from this page. Today that means leaving the clock state **Off**; from H4 it means the two units' `clock` and `transport` flags off, which lets the clock go to something else | (b) for a unit: its flags on, its own sequencer or arpeggiator runs on our clock, and the page sends it no notes (a device with no routes). Measured by B6 and B7 once H4 exists |
+| **Q-8-1**, the rest | `bench.md` section H0; `tech.md` section 13 | The Super 6 on USB as port 1, the Mother-32 on DIN behind an interface as port 2, Chrome, no loopback: B1 is measured from the Super 6's audio | A different connection changes which port id each unit has and nothing else in the plan; a loopback replaces the audio measurement with the better one |
+| **Q-8-13**, the live-follow criterion | `tech.md` section 12; slice H0b | The fraction (a fifth of a step, 25 ms at 120 BPM) is the criterion; 6.25 ms is printed as information | 6.25 ms as the criterion: the report states a fixed figure and says it is a twentieth of a step. Either way the report is corrected first (F-H14) |
+| **The slices** | `plan.md` | H0, H0b and H1a first, in parallel; then H1b; then H2; H3 and H4 (High, each with an ADR amendment first); H5 and H6; H7. The smallest useful increment is H1a and H1b. **No slice starts without the owner's own words in section 12** | Name the slices to start, in the form `plan.md` ends with, or change the order |
 
 ## 9. Risks
 
@@ -407,19 +442,20 @@ Say **"defaults"** and every default above applies, as in SPEC-0001 and SPEC-000
 ## 10. Not done
 
 - **Nothing was run against hardware.** Not a port, not a synthesiser, not an interface, not Live. Section 3 says it and each affected line says *(not checked)*.
-- The Web MIDI text and Chromium's source were not read. The makers' manuals were read only in part (section 2.3 says which parts); statements about them are marked.
+- The Web MIDI text and Chromium's source were not read. Moog's main Mother-32 manual and most of UDO's MIDI chapters were not read; two addenda and some forum and community pages were (section 2.3 says which); statements about them are marked.
 - The stale lines of F-H13: ADR-0009 and `p6a-tick-length.md` were corrected by note in #85 and four test comments in #86; the four stale lines in `apps/web/ABLETON.md` and `README.md` are requested of the Forge (`journal/conductor/requests/2026-10-25-stale-tick-lines-in-the-forge-files.md`); the manual index entry has been requested since 2026-09-30. Not fixed by this spec.
 - No change to the engine, ABI, contracts, fixtures, thresholds or the baseline.
+- **Nothing was built in r0.3.** `tech.md` and `plan.md` are sketches and rough estimates; no figure in them (the 250 ms stall threshold, the 10 ms guard, the limit of 8 parked devices, the sizes of the slices) was measured. The step length in the follow report (F-H14) is specified, not fixed.
 - No device catalogue, no sysex, no MPE, no CV and gate, no Max for Live, no controller-to-panel binding, and no hardware audio into the pedalboard. Each is named once and left.
 
 ## 11. Sources
 
 **This repository:** `apps/web/ABLETON.md`; `apps/web/engine/ABI.md`; `apps/web/src/midi-out.ts`, `midi-in.ts`, `midi-access.ts`, `clock-state.ts`, `wire.ts`, `settings.ts`, `route.ts`, `monitor.ts`, `abi.ts`, `worklet.ts`, `protocol.ts`;
-`apps/web/pages/app.ts`; `apps/web/test/support/receiver.ts`; `crates/octocore/src/engine.rs` (`flush_pending`, `flush_cc`); `tests/conformance/AMBIGUITIES.md` (stop with sounding notes, retriggering a pitch, the first note after Play);
+`apps/web/pages/app.ts`; `apps/web/src/host.ts`, `click.ts`; `apps/web/spikes/s3/analyse.ts`; `apps/web/test/support/receiver.ts`, `session.ts`; `apps/web/test/stop-property.test.ts`, `s3-analyse.test.ts`; `.github/workflows/verify.yml`; `crates/octocore/src/engine.rs` (`flush_pending`, `flush_cc`); `tests/conformance/AMBIGUITIES.md` (stop with sounding notes, retriggering a pitch, the first note after Play);
 `adr/0008-…`, `adr/0009-…` (amendments 1 to 3); `specs/SPEC-0002/product.md` (sections 6 and 9), `tech.md` (sections 2, 3, 5, 7 and 9), `p3-plan.md`; `specs/SPEC-0003/` (S7); `specs/SPEC-0007/information-flow.md`;
 `docs/03-sequencer-core.md` (section 7), `docs/09-roadmap.md`, `docs/10-risks-and-decisions.md`; `handoffs/evidence/p3-s1-here-*.txt`; `reference/manual/pages/` pp. 16, 41 to 42, 46, 50 to 51, 70, 74, 78, 85, 87 to 95, 111 to 112 (CE v5.30 Reference Manual).
 
-**Outside the repository (r0.1, read 2026-10-26 through a page-summarising tool, so second-hand):** Sound On Sound, review of the Moog Mother-32; Moog forum threads "Mother 32 - MIDI takes over tempo" and "How to sync tempo with MIDI clock but ignore MIDI start/stop" (user posts, one quoting the manual); a personal blog post on external MIDI sequencing of the Mother-32 (Follow MIDI Start Stop); a gear4music copy of the Mother-32 manual (no MIDI chapter in what opened); a third-party copy of the UDO Super 6 Owner's Manual v2.0 (pp. 22, 47 and 58 seen; pp. 83 to 96 not seen); Kraft Music's page for the Super 6 Desktop.
+**Outside the repository (read 2026-10-26 and 2026-10-27 through a page-summarising tool, so second-hand):** Moog's Mother-32 Manual Addendum, Firmware Update V2.0 (Moog's document host); UDO's Super 6 Manual Addendum v0.52 (retailer's file host) and Owner's Manual v1.4, February 2024 (text to about p. 64 only); a UDO staff post on program change (forum); the midi.guide CC list for the Super 6 (community, 2023-01-14); Sound On Sound's review of the Mother-32; Moog forum threads "Mother 32 - MIDI takes over tempo" and "How to sync tempo with MIDI clock but ignore MIDI start/stop" (user posts); a personal blog post on external MIDI sequencing of the Mother-32; a gear4music copy of the Mother-32 manual (no MIDI chapter in what opened); a retailer's page for the Super 6 Desktop. An earlier third-party copy of the Super 6 manual v2.0 (r0.1) is superseded by v1.4 and the addendum.
 
 **General knowledge, stated as such:** the MIDI 1.0 serial rate (31.25 kilobaud, ten bits a byte), that a Song Position counts MIDI beats of six clocks, and that CC 120 is all sound off and CC 123 all notes off. None was checked against a source in this session.
 
@@ -431,9 +467,13 @@ Not yet approved. Awaiting `@beaudesign`. The owner's message of 2026-10-24 (sec
 
 **2026-10-26 14:37 and 14:38:** the owner wrote "Udo desktop and a mother 32" and then "Yes correct" to my reading (a UDO Super 6 desktop module and a Moog Mother-32). That answers the first half of Q-8-1 (section 2.3). It approves no slice, no decision and no default.
 
+**2026-11-06 17:51:** the owner pasted four open items back and wrote "Spec these out". That asked for them to be specified (section 8.1, `tech.md`, `plan.md`, `bench.md`), which r0.3 does with a default for each. It answers no question, approves no slice, no decision and no default, and does not start H0 or any slice. The next entry here is the owner's own words, with the date.
+
 ## 13. Revision history
 
 | Rev | Date | Change |
 |---|---|---|
+| r0.3 | 2026-11-06 | The detailed specification the owner asked for ("Spec these out"): **`tech.md`** (files, types, algorithms, the stand-in) and **`plan.md`** (every slice's files, red-first tests, definition of done, order, and how the owner approves); section 8.1 gives the four open items a default each; `bench.md` gains the H0 procedure for the default setup and the A4 reading. New: finding **F-H14** (the follow report counts a fifth of a step from the pre-D0 step), observable **HW-28**, slice **H0b**, question **Q-8-13**. Refinements of r0.2 wording, listed in `tech.md` section 14: the sounding table is a set and HW-11 compares it with the stand-in's eventual held set; Release also lifts a sustain the page put down; the device `panic` field is defined and `outManufacturer` added; a device with no routes is valid. H3 and H4 are each preceded by an ADR amendment by the Conductor (ADR-0008 for the per-device term, ADR-0009 decision 3 for per-device flags). No decision D-H1 to D-H15 changes. Nothing is approved |
+| r0.2 | 2026-10-27 | Section 2.3 rewritten from the makers' own addenda (Moog firmware v2.0, UDO v0.52) and UDO's v1.4 manual where it reached me, with the unread parts named. Findings that changed: the Mother-32's Follow MIDI Start Stop is on by default (Moog), the Super 6 switches itself to clock-receive and follows Start and Stop (UDO), the Super 6 ignores bank-select CCs and needs TX/RX P for program change (UDO staff, old firmware), the Mother-32 has a DIN MIDI In and no Out or Thru is mentioned. Q-8-12 widened to both units, and section 4.5 and `bench.md` follow. No slice, decision or observable changes |
 | r0.1 | 2026-10-26 | The owner's gear (Q-8-1, in part): section 2.3, what the two units are and what I could and could not read about their MIDI; section 4.5 notes the Mother-32 and Start/Stop; Q-8-1 marked answered in part with what remains; Q-8-12 (Start and Stop to the Mother-32); sources and section 10 updated for what was read and what #85 and #86 fixed. No slice, decision or observable changes. `bench.md` gains the gear table, a way to run B1 from a synthesiser's audio, and notes for B3, B6 and B7 |
 | r0 | 2026-10-24 | The spec: the ask; what exists and what the manual says; thirteen findings; the design (rig, timing, hung notes, clock to gear, live in, the built-in sound, ways to connect); observables HW-1 to HW-27 and bench runs B1 to B8; slices H0 to H7; decisions D-H1 to D-H15; questions Q-8-1 to Q-8-11; risks R-1 to R-10 |

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0007 |
-| Revision | r2, draft, 2026-10-19. r1 (2026-10-18) was rebased on `main` at `f6e3ca0` and reached `main` in #76 |
+| Revision | r2.1, draft, 2026-10-21 (r2 was 2026-10-19). r1 (2026-10-18) was rebased on `main` at `f6e3ca0` and reached `main` in #76 |
 | Stage | **Planning only.** It adds no code, contract, fixture or threshold. (r0 and r1 were first written outside the repository, in `/workspace/specs-safe/`; r1 is on `main` and r2 is a pull request.) r2 adds `information-flow.md`: proposals, not approved |
 | Risk tier | **Low** for the spec itself (`specs/`, `journal/`). Every slice is **Medium** (`apps/web/`, Forge). None touches `contracts/`, the engine, the events or the ABI |
 | Owner and approver | `@beaudesign` |
@@ -704,6 +704,8 @@ Not yet approved. Awaiting `@beaudesign`. The owner's three answers of 2026-10-1
 
 **r2 (2026-10-19).** The owner's message of that date (section 1.1) asked for the pedal chain's data and information flow to be thought through and planned. It approved no slice. `information-flow.md` holds the proposals (D15 to D27, PB-12 to PB-23, slices P0a and P2, Q-7-16 to Q-7-21); every one is a default until the owner says otherwise in their own words, written here with the date.
 
+**r2.1 (answers of 2026-10-20, recorded 2026-10-21).** Two of the six r2 questions are answered, both with the defaults: **Q-7-16**, "performance" means playing the sequencer live into the pedals and not CPU cost; **Q-7-19**, do not add step-locked CC to the page now, wait for SPEC-0003's step events. The source is a comment on #81 from the `beaudesign` account (20 Oct 2026, 11:26 BST), confirmed in chat on 2026-10-21 with the owner's reply "continue". The full block, and why a chat check was needed, is in `information-flow.md` section 16. **No slice is approved by this.** Q-7-17, Q-7-18, Q-7-20 and Q-7-21 stay open.
+
 ## 15. Revision history
 
 | Rev | Date | Change |
@@ -711,3 +713,4 @@ Not yet approved. Awaiting `@beaudesign`. The owner's three answers of 2026-10-1
 | r0 | 2026-10-17 | The spec: the ask; hardware findings (known, inferred, unknown); the board; the resonator pedal in full (panel, block diagram, subsystems, CC map, presets, menus, panel UI); observables PB-1 to PB-11 and G-1 to G-20; slices P0, P1 and G0 to G8; decisions D1 to D14; the S7 amendment (panel, patch points, V-1 to V-12, S7f and S7g); questions Q-7-1 to Q-7-15 |
 | r1 | 2026-10-18 | Rebased on `main` at `f6e3ca0`: SPEC-0004 S0 (#73) and SPEC-0006 (#74) are on `main`; section 2.1 re-read from the code; the S0 rig and renderer named; the board's ADR moves to ADR-0015 because #70 holds ADR-0014. No decision or observable changed |
 | r2 | 2026-10-19 | The owner's pedal-chain message recorded (section 1.1). New companion `information-flow.md`: the six flows, who owns which state, routing by MIDI channel, a clock derived from the tick position, a series-parallel board with a two-lane fork and Mixer, the page and worklet messages, seven findings in r1, observables PB-12 to PB-23, slices P0a and P2, decisions D15 to D27, questions Q-7-16 to Q-7-21. Housekeeping: the Task row now reads `WENGE-0037` (0036 is taken), the Stage line no longer says nothing was pushed, ADR-0014 and #70 are shown as merged, and section 12 notes that parallel lanes are proposed. **No r1 decision or observable changed**; D21 would amend one bullet of section 4.2 only if the owner approves it |
+| r2.1 | 2026-10-21 | The owner's answers to Q-7-16 and Q-7-19 (both the defaults, 2026-10-20) recorded in section 14 and in `information-flow.md` sections 13 and 16. No decision, observable or slice changed, and no slice is approved |

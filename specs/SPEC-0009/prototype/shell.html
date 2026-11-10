@@ -1,0 +1,606 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WENGE Shell</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Layout: a paper page; a top row (name, transport, two sheet buttons) on one line; the instrument's case, which is one of the
+   shell's own containers; one sheet that docks beside it and never covers it. Two corners, one derived from the other. */
+:root {
+  /* The shell: the owner's Figma variables, flattened to solid values and held to the project's contrast floors. */
+  --surface: #f8f5f0;        /* surface/background */
+  --raised: #ffffff;         /* surface/container */
+  --ink: #252525;            /* content/primary: 14.1:1 on the ground */
+  --ink-quiet: #4d4d4c;      /* 7.8:1 on the ground, 8.5:1 on a container */
+  --on-ink: #ffffff;
+  --edge: #e4e1db;           /* border/minimal: a hairline between regions */
+  --edge-control: #888784;   /* a control's border: 3.3:1 on the ground */
+
+  /* The panel: the contract's values, unchanged (ADR-0010). */
+  --plate: #fcf3ec;
+  --frame: #32241e;
+  --plate-ink: #1e1e1e;
+  --key: #9a9a9a;
+  --key-edge: #5c5c5c;
+  --led-off: #1f1f1f;
+  --led-green: #22e05a;
+  --led-red: #ff2a12;
+
+  --r-shell: 16px;
+  --r-control: calc(var(--r-shell) - var(--s2)); /* a control sits 8 from its container's edge, so the corners are concentric */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 20px; --s5: 32px; --s6: 52px;
+  --family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --body: 14px;
+  --label: 12px;
+  --regular: 400;
+  --strong: 500;
+  --control-h: 40px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--family);
+  font-size: var(--body);
+  font-weight: var(--regular);
+  line-height: 20px;
+  padding-block: var(--s3);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  height: 100%;
+  min-width: 0;
+}
+
+/* Corners. Where the browser can draw a continuous curve it does; the plain arc is the fallback. */
+.shell { border-radius: var(--r-shell); }
+.ctl { border-radius: var(--r-control); }
+@supports (corner-shape: squircle) {
+  .shell { corner-shape: squircle; border-radius: calc(var(--r-shell) * 1.5); }
+  .ctl { corner-shape: squircle; border-radius: calc(var(--r-control) * 1.5); }
+}
+
+/* Controls: a border on the ground. On: the border takes the ink and the fill takes the raised tone, together. */
+button, select, input { font: inherit; color: inherit; }
+
+.ctl {
+  height: var(--control-h);
+  padding: 0 var(--s3);
+  background: none;
+  border: 1px solid var(--edge-control);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  white-space: nowrap;
+}
+button.ctl { cursor: pointer; }
+.ctl:hover { border-color: var(--ink); }
+/* On: the border doubles and takes the ink, and the fill takes the raised tone, so the state is told by weight as well as tone. */
+button.ctl[aria-pressed="true"], button.ctl[aria-expanded="true"] {
+  background: var(--raised);
+  border: 2px solid var(--ink);
+  padding: 0 calc(var(--s3) - 1px);
+  font-weight: var(--strong);
+}
+.seg button.ctl[aria-pressed="true"] { padding: 0 calc(var(--s2) - 1px); }
+button.ctl.fill {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+  font-weight: var(--strong);
+}
+button.ctl.fill:hover { background: var(--ink-quiet); border-color: var(--ink-quiet); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sq { width: var(--control-h); padding: 0; }
+.quiet { color: var(--ink-quiet); }
+.strong { font-weight: var(--strong); }
+.small { font-size: var(--label); line-height: 16px; }
+.nums { font-variant-numeric: tabular-nums; }
+
+/* Top row */
+#top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--s3);
+}
+#name { display: flex; align-items: baseline; gap: var(--s3); min-width: 0; }
+#name p { margin: 0; }
+/* The transport has no container of its own: its controls sit on the ground, on one line with the two sheet buttons. */
+#transport {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+#play { min-width: 84px; }
+.number { display: inline-flex; align-items: center; gap: var(--s1); }
+.number .box { padding: 0 var(--s3); gap: var(--s1); }
+.number .box:focus-within { border-color: var(--ink); outline: 2px solid var(--ink); outline-offset: 2px; }
+.number input {
+  width: 3.2ch;
+  border: 0;
+  padding: 0;
+  background: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  outline: none;
+}
+.number input::-webkit-inner-spin-button, .number input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+#sheets { display: flex; justify-content: flex-end; gap: var(--s2); }
+.mark { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--ink); flex: none; }
+.mark[data-state="live"] { background: var(--ink); }
+.mark[data-state="stop"] { border: 0; border-radius: 2px; width: 14px; height: 14px; background: var(--ink); color: var(--on-ink); display: inline-grid; place-items: center; font-size: 10px; line-height: 1; font-weight: var(--strong); }
+.mark[data-state="stop"]::after { content: "!"; }
+
+/* A notice: shown only when something stops the music from getting out. */
+#notice {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s2) var(--s2) var(--s4);
+  background: var(--raised);
+  border: 1px solid var(--ink);
+}
+#notice p { margin: 0; flex: 1; min-width: 0; }
+
+/* The work area: the instrument and, when open, the sheet beside it. */
+#work { flex: 1; min-height: 0; display: flex; gap: var(--s3); }
+#stage {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  container-type: size;
+}
+/* The case is built in: it takes the shell's 16 corner and sits on the shell's grid, flush with the top row and the sheet.
+   Its edge is 8 wide and does not scale, so the plate's corner is the concentric 8, the same rule every control keeps. */
+#panel-frame {
+  flex: none;
+  width: min(100cqw, calc((100cqh - 2 * var(--s2)) * var(--aspect, 2.49) + 2 * var(--s2)));
+  padding: var(--s2);
+  background: var(--frame);
+}
+#panel { display: block; width: 100%; height: auto; border-radius: var(--r-control); }
+@supports (corner-shape: squircle) {
+  /* Concentric with the case's continuous curve: its radius less the edge. */
+  #panel { corner-shape: squircle; border-radius: calc(var(--r-shell) * 1.5 - var(--s2)); }
+}
+#panel .plate { fill: var(--plate); }
+#panel .face, #panel .nut, #panel .ball { fill: var(--key); stroke: var(--key-edge); stroke-width: 1; }
+#panel .dot { fill: var(--led-off); }
+#panel .dot[data-led="green"] { fill: var(--led-green); }
+#panel .dot[data-led="red"] { fill: var(--led-red); }
+#panel text { fill: var(--plate-ink); font-family: var(--family); font-size: 8.5px; }
+#panel text.section, #panel text.caption { font-size: 9px; }
+#panel text.clef { font-size: 44px; }
+
+#sheet {
+  flex: none;
+  width: 372px;
+  background: var(--raised);
+  border: 1px solid var(--edge);
+  padding: var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  overflow: auto;
+}
+#sheet header { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+#sheet h2 { margin: 0; font-size: var(--body); font-weight: var(--strong); }
+#sheet > div { display: flex; flex-direction: column; gap: var(--s4); }
+#sheet section { display: flex; flex-direction: column; gap: var(--s2); }
+#sheet h3 { margin: 0; font-size: var(--label); line-height: 16px; font-weight: var(--strong); }
+.row { display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: var(--s3); }
+.row > label, .row > span:first-child { color: var(--ink-quiet); }
+.row .hint { grid-column: 2; margin: calc(var(--s2) * -1) 0 0; padding-top: var(--s1); }
+.pick { position: relative; display: block; min-width: 0; }
+.pick select { width: 100%; appearance: none; padding-right: var(--s5); justify-content: flex-start; text-overflow: ellipsis; }
+.pick::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 15px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.seg { display: flex; gap: var(--s1); flex-wrap: wrap; }
+.seg .ctl { flex: 1; padding: 0 var(--s2); }
+figure { margin: 0; display: flex; flex-direction: column; gap: var(--s2); }
+#routing { background: var(--surface); border: 1px solid var(--edge); padding: var(--s2); }
+#routing svg { display: block; width: 100%; height: auto; }
+#routing .node { fill: var(--raised); stroke: var(--edge-control); stroke-width: 1; }
+#routing .node.on { stroke: var(--ink); stroke-width: 1.5; }
+#routing .wire { fill: none; stroke: var(--edge-control); stroke-width: 1.5; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+#routing .wire.on { stroke: var(--ink); stroke-dasharray: none; }
+#routing .tip { fill: var(--ink); }
+#routing text { font-family: var(--family); font-size: 11px; fill: var(--ink-quiet); }
+#routing text.name { fill: var(--ink); font-weight: 500; }
+figcaption { color: var(--ink-quiet); }
+
+/* The prototype's own switch. It is not part of the design. */
+#proto {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s3);
+  color: var(--ink-quiet);
+}
+#proto .pick select { height: 32px; }
+#proto .pick::after { top: 11px; }
+
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  main { height: auto; }
+  #top { grid-template-columns: 1fr auto; }
+  #transport { grid-column: 1 / -1; grid-row: 2; justify-self: start; flex-wrap: wrap; max-width: 100%; }
+  #work { flex-direction: column; }
+  #stage { container-type: inline-size; }
+  #panel-frame { width: 100%; }
+  #sheet { width: auto; }
+}
+</style>
+
+<main>
+  <div id="top">
+    <div id="name">
+      <p class="strong">WENGE</p>
+      <p id="engine-status" class="quiet" role="status">Not started</p>
+    </div>
+
+    <div id="transport" role="group" aria-label="Transport">
+      <button id="play" class="ctl fill" type="button">Play</button>
+      <div class="number" role="group" aria-label="Tempo">
+        <button id="tempo-down" class="ctl sq" type="button" aria-label="Slower">&minus;</button>
+        <label class="ctl box"><input id="tempo" type="number" inputmode="numeric" min="20" max="300" step="1" value="120" aria-label="Tempo in beats per minute"><span class="quiet">bpm</span></label>
+        <button id="tempo-up" class="ctl sq" type="button" aria-label="Faster">+</button>
+      </div>
+      <button id="metronome" class="ctl" type="button" aria-pressed="false">Metronome</button>
+    </div>
+
+    <div id="sheets">
+      <button id="open-sound" class="ctl" type="button" aria-expanded="false" aria-controls="sheet">Sound</button>
+      <button id="open-connections" class="ctl" type="button" aria-expanded="false" aria-controls="sheet"><span id="conn-mark" class="mark" aria-hidden="true"></span>Connections</button>
+    </div>
+  </div>
+
+  <div id="notice" class="shell" role="alert" hidden>
+    <span class="mark" data-state="stop" aria-hidden="true"></span>
+    <p id="notice-text"></p>
+    <button id="notice-action" class="ctl" type="button">Open connections</button>
+  </div>
+
+  <div id="work">
+    <div id="stage">
+      <div id="panel-frame" class="shell"></div>
+    </div>
+
+    <aside id="sheet" class="shell" aria-labelledby="sheet-title" hidden>
+      <header>
+        <h2 id="sheet-title">Connections</h2>
+        <button id="sheet-close" class="ctl" type="button">Close</button>
+      </header>
+
+      <div id="sheet-connections">
+        <section>
+          <figure>
+            <div id="routing" class="ctl" style="height:auto"></div>
+            <figcaption id="routing-caption" class="small"></figcaption>
+          </figure>
+        </section>
+        <section>
+          <h3>MIDI</h3>
+          <div class="row"><label for="midi-out-1">Out 1</label><span class="pick"><select id="midi-out-1" class="ctl"></select></span><p class="hint small quiet">Channels 1 to 16</p></div>
+          <div class="row"><label for="midi-out-2">Out 2</label><span class="pick"><select id="midi-out-2" class="ctl"></select></span><p class="hint small quiet">Channels 17 to 32</p></div>
+          <div class="row"><label for="midi-in">In</label><span class="pick"><select id="midi-in" class="ctl"></select></span></div>
+        </section>
+        <section>
+          <h3>Clock</h3>
+          <div class="row"><label for="clock-state">MIDI Clock</label><span class="pick"><select id="clock-state" class="ctl">
+            <option value="off">Off</option>
+            <option value="master">Master Clock</option>
+            <option value="slave">Slave Clock</option>
+            <option value="slave-echo">Slave Clock with MIDI Clock echo</option>
+          </select></span></div>
+          <div class="row"><label for="clock-offset">Clock offset</label><span class="number"><label class="ctl box"><input id="clock-offset" type="number" inputmode="numeric" min="-100" max="100" step="1" value="0"><span class="quiet">ms</span></label></span></div>
+          <div class="row"><label for="lookahead">Lookahead</label><span class="number"><label class="ctl box"><input id="lookahead" type="number" inputmode="numeric" min="0" max="250" step="1" value="30"><span class="quiet">ms</span></label></span><p class="hint small quiet">Notes are sent this far ahead so they arrive on time.</p></div>
+        </section>
+      </div>
+
+      <div id="sheet-sound" hidden>
+        <section>
+          <div class="row"><span id="l-monitor">Built-in sound</span><div class="seg" role="group" aria-labelledby="l-monitor"><button class="ctl" type="button" data-set="sound" data-value="on">On</button><button class="ctl" type="button" data-set="sound" data-value="off">Off</button></div></div>
+          <div class="row"><span id="l-drums">Drums</span><div class="seg" role="group" aria-labelledby="l-drums"><button class="ctl" type="button" data-set="drums" data-value="on">On</button><button class="ctl" type="button" data-set="drums" data-value="off">Off</button></div></div>
+        </section>
+        <section>
+          <h3>Chord roll</h3>
+          <div class="row"><span id="l-curve">Curve</span><div class="seg" role="group" aria-labelledby="l-curve"><button class="ctl" type="button" data-set="curve" data-value="Off">Off</button><button class="ctl" type="button" data-set="curve" data-value="Accel">Accel</button><button class="ctl" type="button" data-set="curve" data-value="Bounce">Bounce</button><button class="ctl" type="button" data-set="curve" data-value="Rit">Rit</button></div><p class="hint small quiet">How a track spaces the notes of a rolled chord.</p></div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <div id="proto" class="small">
+    <label for="scenario">Prototype only. Pretend the browser reports</label>
+    <span class="pick"><select id="scenario" class="ctl">
+      <option value="devices">two MIDI devices</option>
+      <option value="none">no MIDI devices</option>
+      <option value="refused">MIDI access refused</option>
+      <option value="unsupported">no Web MIDI at all</option>
+    </select></span>
+    <span>The instrument is a simplified drawing from the real panel layout; its keys do nothing here.</span>
+  </div>
+</main>
+
+<script>
+const PANEL = /*PANEL*/{"plate":[50.07,20.12],"matrix":[7.94,1.96,1.4953],"ball":0.62,"led":0.5,"controls":[[4.11,15.51,1,"","",""],[4.06,14.05,1,"","",""],[4.07,12.53,1,"","",""],[4.08,11.07,1,"","",""],[4.03,9.55,1,"","",""],[4.04,8.03,1,"","",""],[4.06,6.51,1,"","",""],[4.07,4.99,1,"","",""],[4.02,3.53,1,"","",""],[4.03,2.0,1,"","",""],[28.67,2.03,1,"","VEL","w"],[28.05,3.49,1,"","PIT","w"],[27.62,4.95,1,"","LEN","w"],[27.3,6.53,1,"","STA","w"],[27.11,7.99,1,"","POS","w"],[27.1,9.51,1,"","DIR","w"],[27.33,11.03,1,"","AMT","w"],[27.62,12.56,1,"","GRV","w"],[27.97,14.02,1,"","MCC","w"],[28.57,15.48,1,"","MCH","w"],[44.86,1.3,1,"","",""],[6.18,15.4,0,"e","",""],[6.13,13.94,0,"e","",""],[6.14,12.42,0,"e","",""],[6.15,10.96,0,"e","",""],[6.16,9.44,0,"e","",""],[6.11,7.91,0,"e","",""],[6.12,6.45,0,"e","",""],[6.14,4.93,0,"e","",""],[6.15,3.47,0,"e","",""],[6.1,1.95,0,"e","",""],[24.78,1.96,0,"w","TGL","n"],[24.77,3.48,0,"w","SOL","n"],[24.76,4.94,0,"w","CLR","n"],[24.74,6.46,0,"w","RND","n"],[24.73,7.92,0,"w","FLT","n"],[24.72,9.44,0,"w","ZOM","n"],[24.71,10.96,0,"n","RMX","s"],[24.7,12.42,0,"w","Copy","e"],[24.69,13.88,0,"n","Paste","e"],[24.74,15.41,0,"w","EFF","n"],[4.1,17.1,0,"n","MIX","e"],[24.73,17.11,0,"n","Mute","e"],[28.26,17.06,0,"n","EDIT","e"],[30.69,17.07,0,"n","ESC","e"],[40.96,2.87,0,"n","Tempo","e"],[42.11,3.78,0,"n","Program","e"],[42.95,4.88,0,"n","Select","e"],[32.96,14.58,0,"n","X","e"],[45.69,4.28,0,"n","200","e"],[39.65,15.34,0,"n","Play","e"],[38.37,15.7,0,"n","Pause","s"],[36.97,15.87,0,"n","Stop","s"],[35.57,15.69,0,"n","Record","s"],[46.76,7.7,0,"n","1","e"],[46.75,9.58,0,"n","2","e"],[46.37,11.34,0,"n","3","e"],[45.69,13.17,0,"n","4","e"],[44.64,14.75,0,"n","5","e"],[43.35,16.02,0,"n","6","e"],[41.82,17.11,0,"n","7","e"],[34.2,11.54,0,"n","C","e"],[33.42,10.26,0,"n","C#","e"],[33.12,8.74,0,"n","D","e"],[33.44,7.28,0,"n","D#","e"],[34.24,5.95,0,"n","E","e"],[35.52,5.16,0,"n","F","e"],[37.05,4.86,0,"n","F#","e"],[38.57,5.17,0,"n","G","e"],[39.9,5.97,0,"n","G#","e"],[40.62,7.25,0,"n","A","e"],[40.91,8.77,0,"n","A#","e"],[40.6,10.23,0,"n","B","e"],[39.8,11.56,0,"n","C","e"],[35.47,12.4,0,"n","MOD","w"],[36.99,12.71,0,"n","SEL","s"],[38.45,12.41,0,"n","CAD","e"],[38.13,6.75,0,"n","GRID","e"],[36.9,7.78,0,"n","PAGE","e"],[35.92,8.63,0,"e","TRACK","w"],[38.9,8.82,0,"n","STEP","e"],[38.23,10.04,0,"n","PLAY","e"],[29.9,8.73,0,"n","1","e"],[30.15,7.33,0,"n","2","e"],[30.53,6.05,0,"n","3","e"],[31.15,4.84,0,"n","4","e"],[32.07,3.75,0,"n","5","e"],[33.17,2.84,0,"n","6","e"],[34.39,2.23,0,"n","7","e"],[35.67,1.87,0,"n","8","e"],[37.07,1.76,0,"n","9","e"],[38.47,1.88,0,"n","10","e"],[6.17,17.1,0,"n","SEL","e"],[9.76,17.12,0,"n","ATR","s"],[10.73,17.06,0,"n","VOL","s"],[11.77,17.06,0,"n","PAN","s"],[12.74,17.07,0,"n","MOD","s"],[13.71,17.07,0,"n","EXP","s"],[14.75,17.07,0,"n","MAP","s"],[16.15,17.08,0,"n","1","s"],[17.12,17.08,0,"n","2","s"],[18.15,17.09,0,"n","3","s"],[19.13,17.09,0,"n","4","s"],[20.1,17.09,0,"n","5","s"],[39.81,2.25,0,"n","",""],[43.55,6.04,0,"n","",""],[43.97,7.38,0,"n","",""],[44.14,8.78,0,"n","",""],[44.01,10.18,0,"n","",""],[43.57,11.46,0,"n","",""],[42.89,12.73,0,"n","",""],[41.97,13.82,0,"n","",""],[40.93,14.61,0,"n","",""],[31.99,13.73,0,"n","",""],[31.09,12.75,0,"n","",""],[30.43,11.41,0,"n","",""],[30.01,10.13,0,"n","",""],[34.29,15.32,0,"n","",""],[36.82,10.46,0,"n","MAP","w"]],"legends":[["MIX",4.15,18.01,"section"],["SEL",6.22,18.02,"section"],["MUT",24.78,18.08,"section"],["EDIT",28.92,18.1,"section"],["CHORD",43.4,17.91,"section"],["MODE",35.82,6.62,"section"],["SCALE",37.12,11.56,"section"],["TRANSPORT",36.98,14.17,"section"],["MIX TARGET",14.91,19.02,"caption"],["0",5.15,15.4,"row"],["1",5.16,13.91,"row"],["2",5.17,12.41,"row"],["3",5.18,10.92,"row"],["4",5.19,9.42,"row"],["5",5.2,7.93,"row"],["6",5.21,6.43,"row"],["7",5.22,4.94,"row"],["8",5.23,3.44,"row"],["9",5.25,1.95,"row"],["\ud834\udd1e",2.42,5.04,"clef"],["\ud834\udd22",2.38,11.19,"clef"]]}/*END*/;
+
+const SVG = "http://www.w3.org/2000/svg";
+const $ = (id) => document.getElementById(id);
+function el(name, attrs, text) {
+  const n = document.createElementNS(SVG, name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+/* ---- The instrument: a stand-in drawn from the measured layout ---- */
+const PITCH = 32, KEY_R = 10, DOT_R = 4, KNOB_R = 16;
+const leds = []; // leds[row][col], row 0 is track 0 (the bottom row)
+
+function drawPanel() {
+  const [pw, ph] = PANEL.plate;
+  const W = pw * PITCH, H = ph * PITCH;
+  // The drawing is the plate alone. The case round it is the element that holds it, so its edge and corner are the shell's.
+  const svg = el("svg", { id: "panel", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "The Octopus panel, a simplified drawing" });
+  svg.append(el("rect", { class: "plate", x: 0, y: 0, width: W, height: H }));
+
+  for (const [text, x, y, kind] of PANEL.legends) {
+    svg.append(el("text", { class: kind, x: x * PITCH, y: y * PITCH + (kind === "clef" ? 14 : 3), "text-anchor": "middle" }, text));
+  }
+
+  const side = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] };
+  function key(cx, cy, led) {
+    svg.append(el("circle", { class: "face", cx, cy, r: KEY_R }));
+    if (!led) return null;
+    const [dx, dy] = side[led];
+    const dot = el("circle", { class: "dot", cx: cx + dx * PANEL.led * PITCH, cy: cy + dy * PANEL.led * PITCH, r: DOT_R });
+    svg.append(dot);
+    return dot;
+  }
+
+  const [mx, my, rowPitch] = PANEL.matrix;
+  for (let r = 9; r >= 0; r--) {
+    leds[r] = [];
+    for (let c = 0; c < 16; c++) leds[r][c] = key((mx + c) * PITCH, (my + (9 - r) * rowPitch) * PITCH, "n");
+  }
+
+  for (const [x, y, knob, led, text, label] of PANEL.controls) {
+    const cx = x * PITCH, cy = y * PITCH;
+    if (knob) {
+      const pts = [];
+      for (let i = 0; i < 6; i++) pts.push(`${(cx + KNOB_R * Math.cos(Math.PI / 3 * i)).toFixed(1)},${(cy + KNOB_R * Math.sin(Math.PI / 3 * i)).toFixed(1)}`);
+      svg.append(el("polygon", { class: "nut", points: pts.join(" ") }));
+      svg.append(el("circle", { class: "ball", cx, cy, r: KNOB_R * PANEL.ball }));
+    } else {
+      key(cx, cy, led);
+    }
+    if (text && label) {
+      const reach = (knob ? KNOB_R : KEY_R) + 5;
+      const at = { e: [cx + reach, cy + 3, "start"], w: [cx - reach, cy + 3, "end"], s: [cx, cy + reach + 8, "middle"], n: [cx, cy - reach - 2, "middle"] }[label];
+      svg.append(el("text", { x: at[0], y: at[1], "text-anchor": at[2] }, text));
+    }
+  }
+
+  $("stage").style.setProperty("--aspect", (W / H).toFixed(4));
+  $("panel-frame").append(svg);
+}
+
+/* The demo pattern the real page opens with has five tracks; these are stand-in steps for the drawing. */
+const PATTERN = {
+  0: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+  2: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+  3: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+  5: [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0],
+  8: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+};
+
+function paintLeds(playhead) {
+  for (let r = 0; r < 10; r++) {
+    const steps = PATTERN[r];
+    for (let c = 0; c < 16; c++) {
+      let led = steps && steps[c] ? "green" : "off";
+      if (steps && c === playhead) led = "red";
+      leds[r][c].setAttribute("data-led", led);
+    }
+  }
+}
+
+/* ---- State ---- */
+const DEVICES = {
+  devices: { outs: ["IAC Driver Bus 1", "UDO Super 6"], ins: ["IAC Driver Bus 1", "Arturia KeyStep"] },
+  none: { outs: [], ins: [] },
+  refused: { outs: [], ins: [] },
+  unsupported: { outs: [], ins: [] },
+};
+const state = {
+  playing: false, started: false, tempo: 120, metronome: false,
+  sound: "on", drums: "on", curve: "Off",
+  out1: "", out2: "", input: "", clock: "off",
+  scenario: "devices", sheet: null, step: -1,
+};
+let timer = null;
+
+function tick() {
+  state.step = (state.step + 1) % 16;
+  paintLeds(state.step);
+}
+function schedule() {
+  clearInterval(timer);
+  timer = null;
+  // A step is a sixteenth note: 125 ms at 120 beats a minute.
+  if (state.playing) timer = setInterval(tick, 60000 / state.tempo / 4);
+}
+
+/* What stops the music from getting out, if anything. One sentence, and the place that fixes it. */
+function problem() {
+  const s = state;
+  if (s.scenario === "refused" && s.started) return ["MIDI access was refused. Allow it for this site, then press Play again.", "connections"];
+  if (s.clock === "master" && !s.out1 && !s.out2) return ["Master Clock is on, but no MIDI output is chosen, so no clock is sent.", "connections"];
+  if (s.clock === "slave-echo" && !s.out1 && !s.out2) return ["Echo has no MIDI output to send the clock to.", "connections"];
+  if ((s.clock === "slave" || s.clock === "slave-echo") && !s.input) return ["The sequencer is set to follow a clock, but no MIDI input is chosen.", "connections"];
+  if (s.sound === "off" && !s.out1 && !s.out2) return ["Nothing can be heard: the built-in sound is off and no MIDI output is chosen.", "sound"];
+  return null;
+}
+
+function fillSelect(id, names, none, value) {
+  const sel = $(id);
+  sel.replaceChildren(new Option(none, ""), ...names.map((n) => new Option(n, n)));
+  sel.value = names.includes(value) ? value : "";
+  sel.disabled = names.length === 0;
+  return sel.value;
+}
+
+function drawRouting() {
+  const s = state;
+  const svg = el("svg", { viewBox: "0 0 340 142", role: "img", "aria-labelledby": "routing-caption" });
+  const blocked = s.scenario === "refused" || s.scenario === "unsupported";
+  const short = (n) => (n.length > 17 ? n.slice(0, 16) + "\u2026" : n);
+  function node(x, y, w, title, name, on) {
+    svg.append(el("rect", { class: on ? "node on" : "node", x, y, width: w, height: 38, rx: 8 }));
+    svg.append(el("text", { x: x + 8, y: y + 15 }, title));
+    svg.append(el("text", { class: on ? "name" : "", x: x + 8, y: y + 30 }, name));
+  }
+  function wire(x1, y1, x2, y2, on, label) {
+    const mid = (x1 + x2) / 2;
+    svg.append(el("path", { class: on ? "wire on" : "wire", d: `M${x1} ${y1} H${mid} V${y2} H${x2 - (on ? 5 : 0)}` }));
+    if (on) svg.append(el("path", { class: "tip", d: `M${x2} ${y2} l-7 -4 v8 z` }));
+    if (label) svg.append(el("text", { x: mid + 4, y: y2 - 5 }, label));
+  }
+  const none = blocked ? "No access" : "No device";
+  const sendsClock = s.clock === "master" || s.clock === "slave-echo";
+  const follows = s.clock === "slave" || s.clock === "slave-echo";
+
+  node(2, 52, 104, "In", s.input ? short(s.input) : none, !!s.input);
+  node(128, 52, 70, "Sequencer", s.playing ? "Playing" : "Stopped", true);
+  node(222, 4, 116, "Out 1", s.out1 ? short(s.out1) : none, !!s.out1);
+  node(222, 100, 116, "Out 2", s.out2 ? short(s.out2) : none, !!s.out2);
+  wire(106, 71, 128, 71, !!s.input && follows, null);
+  wire(198, 64, 222, 23, !!s.out1, null);
+  wire(198, 78, 222, 119, !!s.out2, null);
+  if (follows && s.input) svg.append(el("text", { x: 2, y: 106 }, "clock in"));
+  if (sendsClock && (s.out1 || s.out2)) svg.append(el("text", { x: 100, y: 106 }, "notes and clock out"));
+  else if (s.out1 || s.out2) svg.append(el("text", { x: 128, y: 106 }, "notes out"));
+  $("routing").replaceChildren(svg);
+
+  const parts = [];
+  if (s.scenario === "unsupported") parts.push("This browser has no Web MIDI, so the sequencer runs without MIDI. Chrome and Edge have it.");
+  else if (s.scenario === "refused") parts.push(s.started ? "MIDI access was refused, so no device can be reached." : "MIDI is asked for when you press Play.");
+  else {
+    const outs = [s.out1, s.out2].filter(Boolean);
+    if (outs.length) parts.push(`Notes go to ${outs.join(" and ")}.`);
+    else if (DEVICES[s.scenario].outs.length) parts.push("Choose a MIDI output to play an instrument.");
+    else parts.push("No MIDI output found. Connect one, or turn on a loopback port, and it will appear here.");
+    if (follows) parts.push(s.input ? `The clock is followed from ${s.input}.` : "No clock can be followed until an input is chosen.");
+    else if (s.clock === "master") parts.push(outs.length ? "The sequencer sends the clock." : "No clock is sent until an output is chosen.");
+    else parts.push("The sequencer neither sends nor follows a clock.");
+  }
+  $("routing-caption").textContent = parts.join(" ");
+}
+
+function render() {
+  const s = state;
+  const d = DEVICES[s.scenario];
+  const outNone = s.scenario === "devices" ? "No output" : "No outputs";
+  s.out1 = fillSelect("midi-out-1", d.outs, outNone, s.out1);
+  s.out2 = fillSelect("midi-out-2", d.outs, outNone, s.out2);
+  s.input = fillSelect("midi-in", d.ins, s.scenario === "devices" ? "No input" : "No inputs", s.input);
+
+  $("play").textContent = s.playing ? "Stop" : "Play";
+  $("engine-status").textContent = !s.started ? "Not started" : s.playing ? "Playing" : "Stopped";
+  $("metronome").setAttribute("aria-pressed", String(s.metronome));
+  if (document.activeElement !== $("tempo")) $("tempo").value = s.tempo;
+  $("clock-state").value = s.clock;
+  for (const b of document.querySelectorAll("[data-set]")) b.setAttribute("aria-pressed", String(s[b.dataset.set] === b.dataset.value));
+
+  const p = problem();
+  $("notice").hidden = !p;
+  if (p) {
+    $("notice-text").textContent = p[0];
+    $("notice-action").textContent = p[1] === "sound" ? "Open sound" : "Open connections";
+    $("notice-action").dataset.sheet = p[1];
+    $("notice-action").hidden = s.sheet === p[1];
+  }
+  const connected = !!(s.out1 || s.out2 || s.input);
+  $("conn-mark").dataset.state = p && p[1] === "connections" ? "stop" : connected ? "live" : "none";
+  $("open-connections").setAttribute("aria-label", "Connections, " + (p && p[1] === "connections" ? "needs attention" : connected ? "a device is chosen" : "no device chosen"));
+
+  $("sheet").hidden = !s.sheet;
+  $("sheet-connections").hidden = s.sheet !== "connections";
+  $("sheet-sound").hidden = s.sheet !== "sound";
+  $("sheet-title").textContent = s.sheet === "sound" ? "Sound" : "Connections";
+  $("open-sound").setAttribute("aria-expanded", String(s.sheet === "sound"));
+  $("open-connections").setAttribute("aria-expanded", String(s.sheet === "connections"));
+  drawRouting();
+}
+
+function openSheet(which) {
+  state.sheet = state.sheet === which ? null : which;
+  render();
+  if (state.sheet) $("sheet-close").focus();
+  else $(which === "sound" ? "open-sound" : "open-connections").focus();
+}
+function setTempo(v) {
+  if (!Number.isFinite(v)) return;
+  state.tempo = Math.min(300, Math.max(20, Math.round(v)));
+  schedule();
+  render();
+}
+
+$("play").addEventListener("click", () => {
+  state.playing = !state.playing;
+  state.started = true;
+  if (!state.playing) { state.step = -1; paintLeds(-1); }
+  schedule();
+  render();
+});
+$("tempo").addEventListener("change", (e) => setTempo(e.target.valueAsNumber));
+$("tempo-down").addEventListener("click", () => setTempo(state.tempo - 1));
+$("tempo-up").addEventListener("click", () => setTempo(state.tempo + 1));
+$("metronome").addEventListener("click", () => { state.metronome = !state.metronome; render(); });
+$("open-sound").addEventListener("click", () => openSheet("sound"));
+$("open-connections").addEventListener("click", () => openSheet("connections"));
+$("notice-action").addEventListener("click", (e) => { state.sheet = null; openSheet(e.currentTarget.dataset.sheet); });
+$("sheet-close").addEventListener("click", () => openSheet(state.sheet));
+$("midi-out-1").addEventListener("change", (e) => { state.out1 = e.target.value; render(); });
+$("midi-out-2").addEventListener("change", (e) => { state.out2 = e.target.value; render(); });
+$("midi-in").addEventListener("change", (e) => { state.input = e.target.value; render(); });
+$("clock-state").addEventListener("change", (e) => { state.clock = e.target.value; render(); });
+$("scenario").addEventListener("change", (e) => { state.scenario = e.target.value; render(); });
+for (const b of document.querySelectorAll("[data-set]")) b.addEventListener("click", () => { state[b.dataset.set] = b.dataset.value; render(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.sheet) openSheet(state.sheet); });
+
+/* The page opens in a working state: one device chosen, the Connections sheet open, the pattern on the keys. */
+drawPanel();
+paintLeds(-1);
+state.out1 = "IAC Driver Bus 1";
+state.sheet = window.matchMedia("(max-width: 900px)").matches ? null : "connections";
+render();
+</script>

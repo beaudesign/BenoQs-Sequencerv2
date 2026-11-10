@@ -4,7 +4,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&display=swap">
 <style>
-/* Layout: a paper page; a top row (name, transport bar, two sheet buttons); the instrument's case, which is one of the
+/* Layout: a paper page; a top row (name, transport, two sheet buttons) on one line; the instrument's case, which is one of the
    shell's own containers; one sheet that docks beside it and never covers it. Two corners, one derived from the other. */
 :root {
   /* The shell: the owner's Figma variables, flattened to solid values and held to the project's contrast floors. */
@@ -116,19 +116,17 @@ button.ctl.fill:hover { background: var(--ink-quiet); border-color: var(--ink-qu
   align-items: center;
   gap: var(--s3);
 }
-#name { display: flex; align-items: baseline; gap: var(--s3); padding-left: var(--s2); min-width: 0; }
+#name { display: flex; align-items: baseline; gap: var(--s3); min-width: 0; }
 #name p { margin: 0; }
+/* The transport has no container of its own: its controls sit on the ground, on one line with the two sheet buttons. */
 #transport {
   display: flex;
   align-items: center;
   gap: var(--s2);
-  padding: var(--s2);
-  background: var(--raised);
-  border: 1px solid var(--edge);
 }
 #play { min-width: 84px; }
 .number { display: inline-flex; align-items: center; gap: var(--s1); }
-.number .box { padding: 0 var(--s3); gap: var(--s1); background: var(--raised); }
+.number .box { padding: 0 var(--s3); gap: var(--s1); }
 .number .box:focus-within { border-color: var(--ink); outline: 2px solid var(--ink); outline-offset: 2px; }
 .number input {
   width: 3.2ch;
@@ -243,7 +241,6 @@ figcaption { color: var(--ink-quiet); }
   align-items: center;
   flex-wrap: wrap;
   gap: var(--s2) var(--s3);
-  padding-left: var(--s2);
   color: var(--ink-quiet);
 }
 #proto .pick select { height: 32px; }
@@ -268,7 +265,7 @@ figcaption { color: var(--ink-quiet); }
       <p id="engine-status" class="quiet" role="status">Not started</p>
     </div>
 
-    <div id="transport" class="shell" role="group" aria-label="Transport">
+    <div id="transport" role="group" aria-label="Transport">
       <button id="play" class="ctl fill" type="button">Play</button>
       <div class="number" role="group" aria-label="Tempo">
         <button id="tempo-down" class="ctl sq" type="button" aria-label="Slower">&minus;</button>

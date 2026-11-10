@@ -71,7 +71,7 @@ The roles stay eighteen. Six values are re-set. Every value is a solid `#rrggbb`
 
 ### 3. One curve, and one derived from it
 
-- `radius.shell` is **16**. It is the corner of a container: the transport bar, the notice, the case and the sheet.
+- `radius.shell` is **16**. It is the corner of a container: the case, the sheet and the notice.
 - `radius.control` stays **8**. It is the corner of a control, and it is not a second choice: a control sits 8 from the edge of its container, so its arc and the container's are concentric, and 16 less 8 is 8.
 - **The curve is continuous where the browser can draw one** (`corner-shape: squircle`; Chromium 156 has it, checked on 2026-11-10, and Chromium is the page's browser), with the radius scaled so that it reads as the same size, and a plain arc elsewhere.
 - No pill, no third value. T10 allows the `radius` group exactly these two keys, with `shell` twice `control`. S15 becomes: no `border-radius` but `50%`, `0` and the two tokens.
@@ -82,15 +82,17 @@ The Figma frame's own corners (6, 8, 12 and 36) are not taken: the owner's words
 
 `type.face` names IBM Plex Sans, a `.woff2` under `pages/fonts/` with its licence (the SIL Open Font License 1.1) beside it, as T17 asks. `type.weight.regular` is 400 and `type.weight.strong` is 500 (T18: under 700). Sizes stay 14 and 12. The Inter file and its licence leave in the same pull request. There is one family, so the panel's printed names are drawn in it too (SPEC-0009 Q-9-4).
 
-### 5. Three containers, by name
+### 5. Two containers, by name, and the notice
 
 The north star's "no cards" is narrowed to: no card grid, and no container that is not one of these.
 
 | Container | Tone | Why it is one |
 |---|---|---|
-| The transport bar (and the notice, which is its kind) | `surface.raised`, a hairline of `edge` (the notice takes `ink`) | The three controls used all session are one object, apart from the two used once |
+| The notice | `surface.raised`, a border of `ink` | It is there only while something stops the music from getting out |
 | The case | `frame`, which is its own tone | The instrument is part of the shell's layout, not an object set down in it (decision 5a) |
 | The sheet | `surface.raised`, a hairline of `edge` | What is set once a session, out of the way until it is asked for |
+
+**The top row has no container.** The first draft put the transport in a raised bar; the owner's word on it was "Remove the white background here, then align the buttons". Play, the tempo and Metronome are a border on the ground like the two sheet buttons, and every control of the row is on one line at one height, with the row's ends flush with the case's.
 
 A sheet docks beside the case and never covers the panel. The case narrows and the panel scales as one object.
 

@@ -6,7 +6,9 @@
 
 It answers the owner's own words of Tue 2026-11-10, quoted in full in `specs/SPEC-0009/README.md` section 1: "think 16px smooth curves of the shell", four references, "Here;s the design palette and font you should use" with a Figma link, and, asked what happens to the midnight look of 13 October, the choice "Paper replaces midnight".
 
-It would supersede ADR-0011 decisions 1 to 3 and 5 to 7 (the midnight values, the Inter face, the one 8 px corner and how the strip is drawn). ADR-0011 decisions 4 (the case hugs the plate), 8 (S17 runs both ways) and 10 (the ground is empty) stand. `SPEC.md` N2 and `CLAUDE.md` rule 6 are not touched.
+A second message the same day, with a screenshot of the prototype's panel: "This panel shoudl have 16px corners and feel more built in". Decision 5a is its answer.
+
+It would supersede ADR-0011 decisions 1 to 3 and 5 to 7 (the midnight values, the Inter face, the one 8 px corner and how the strip is drawn), and the part of decision 4 that makes the frame a rectangle inside the panel's drawing. ADR-0011 decisions 8 (S17 runs both ways) and 10 (the ground is empty) stand. `SPEC.md` N2 and `CLAUDE.md` rule 6 are not touched.
 
 ## Context
 
@@ -30,7 +32,7 @@ It would supersede ADR-0011 decisions 1 to 3 and 5 to 7 (the midnight values, th
 | Rule | Says | Stops |
 |---|---|---|
 | ADR-0011 decision 3, `docs/05` section 1 | The ground is a near-black pure grey | A light ground |
-| `tokens.rs` T7 | Every role but the lit LEDs and the two materials is pure grey | The paper tones, whose chroma is 2.7 to 3.5 |
+| `tokens.rs` T7 | Every role but the lit LEDs and the two materials is pure grey | The paper tones, whose chroma is 2.7 to 3.3 |
 | `tokens.rs` T1 | Every colour is `#rrggbb` | The Figma inks and inset, which are a colour and an opacity |
 | `tokens.rs` T2 | Text is at least 7:1 against the ground | The 60% ink (4.1:1) and the 35% ink (2.1:1) |
 | `tokens.rs` T4, rule S8 | Nothing within ΔE 3 of `#F4F1EA`, unless the token says why | `#f8f5f0`, about 1.8 from it. S8 has the exit written in |
@@ -46,31 +48,30 @@ Each has a route written into the rules (an ADR, a stated reason, a narrower rul
 
 ### 1. The look reaches the shell and stops there
 
-The top row, the notice, the stage, the sheet and the page's ground change. The panel's drawing does not: the plate, the frame, the keys, the printed ink and the LEDs keep ADR-0010's roles and values, and S17 keeps the two apart in both directions.
+The top row, the notice, the sheet and the page's ground change, and so does the shape of the case (decision 5a). What is drawn on the plate does not: the plate, the frame, the keys, the printed ink and the LEDs keep ADR-0010's roles and values, and S17 keeps the two apart in both directions.
 
 ### 2. The colour roles
 
-The eighteen become nineteen: `surface.well` is added. Six values are re-set. Every value is a solid `#rrggbb` (T1): where the Figma file gives a colour and an opacity, the value is that colour laid over the ground.
+The roles stay eighteen. Six values are re-set. Every value is a solid `#rrggbb` (T1): where the Figma file gives a colour and an opacity, the value is that colour laid over the ground.
 
 | Role | What it is | Value | Rule it must keep |
 |---|---|---|---|
 | `surface` | The page's ground | `#f8f5f0` (was `#090909`) | carries the S8 suppression and its reason: the owner's own Figma variable, about ΔE 1.8 from `#F4F1EA` |
 | `surface.raised` | A container on the ground, and the fill of a control that is on | `#ffffff` (was `#1c1c1c`) | lighter than `surface` |
-| `surface.well` | The stage the case sits in | `#f1ece6` | `surface/inset` over the ground; darker than `surface`; carries the S8 suppression too |
-| `ink` | Text, and the one filled control | `#252525` (was `#d4d4d4`) | at least 7:1 on `surface` (14.1), `surface.raised` (15.3) and `surface.well` (13.1) |
-| `ink.quiet` | Captions, hints, a field's name | `#4d4d4c` (was `#9d9d9d`) | at least 7:1 on all three (7.8, 8.5, 7.2) |
+| `ink` | Text, and the one filled control | `#252525` (was `#d4d4d4`) | at least 7:1 on `surface` (14.1) and `surface.raised` (15.3) |
+| `ink.quiet` | Captions, hints, a field's name | `#4d4d4c` (was `#9d9d9d`) | at least 7:1 on both (7.8, 8.5) |
 | `edge` | A hairline round a container | `#e4e1db` (was `#242424`) | at least 1.2:1 on `surface` (1.20) |
-| `edge.control` | A control's border | `#888784` (was `#626262`) | at least 3:1 on all three (3.3, 3.6, 3.06) |
+| `edge.control` | A control's border | `#888784` (was `#626262`) | at least 3:1 on both (3.3, 3.6) |
 
-`focus` becomes `ink` with `surface.raised` as its inner stroke, so the ring shows on all three grounds. The LED roles and the six panel roles do not move.
+`focus` becomes `ink` with `surface.raised` as its inner stroke, so the ring shows on both grounds. The LED roles and the six panel roles do not move.
 
 **The Figma file's `content/secondary` and `content/tertiary` are not taken as text colours.** At 60% and 35% they are 4.1:1 and 2.1:1 on the ground, under the 7:1 floor. `ink.quiet` is the nearest tone that keeps the floor. Lowering the floor would be a loosened threshold (rule 3), and this ADR does not do it (SPEC-0009 Q-9-1).
 
-**T7 is narrowed, not dropped.** A neutral may carry the paper's tint up to a chroma of 4; the measured values are 0 to 3.5. Above 4 a role is a hue, and only the lit LEDs and the two materials may be one. The test is shown to fail on a neutral at chroma 5.
+**T7 is narrowed, not dropped.** A neutral may carry the paper's tint up to a chroma of 4; the measured values are 0 to 3.3. Above 4 a role is a hue, and only the lit LEDs and the two materials may be one. The test is shown to fail on a neutral at chroma 5.
 
 ### 3. One curve, and one derived from it
 
-- `radius.shell` is **16**. It is the corner of a container: the transport bar, the notice, the stage and the sheet.
+- `radius.shell` is **16**. It is the corner of a container: the transport bar, the notice, the case and the sheet.
 - `radius.control` stays **8**. It is the corner of a control, and it is not a second choice: a control sits 8 from the edge of its container, so its arc and the container's are concentric, and 16 less 8 is 8.
 - **The curve is continuous where the browser can draw one** (`corner-shape: squircle`; Chromium 156 has it, checked on 2026-11-10, and Chromium is the page's browser), with the radius scaled so that it reads as the same size, and a plain arc elsewhere.
 - No pill, no third value. T10 allows the `radius` group exactly these two keys, with `shell` twice `control`. S15 becomes: no `border-radius` but `50%`, `0` and the two tokens.
@@ -88,10 +89,20 @@ The north star's "no cards" is narrowed to: no card grid, and no container that 
 | Container | Tone | Why it is one |
 |---|---|---|
 | The transport bar (and the notice, which is its kind) | `surface.raised`, a hairline of `edge` (the notice takes `ink`) | The three controls used all session are one object, apart from the two used once |
-| The stage | `surface.well`, no edge | The ground the case sits in, a tone below the page, so that the cream plate has something darker than itself round its dark case |
+| The case | `frame`, which is its own tone | The instrument is part of the shell's layout, not an object set down in it (decision 5a) |
 | The sheet | `surface.raised`, a hairline of `edge` | What is set once a session, out of the way until it is asked for |
 
-A sheet docks beside the stage and never covers the panel. The stage narrows and the case scales as one object.
+A sheet docks beside the case and never covers the panel. The case narrows and the panel scales as one object.
+
+### 5a. The case is built in
+
+The owner's word: "This panel shoudl have 16px corners and feel more built in".
+
+- The case's corner is `radius.shell`, the same continuous curve as the bar's and the sheet's.
+- Its edge is `space.2` (8) wide at every size. It does not scale with the panel, so the plate's corner is the concentric `radius.control`, by the same rule that puts a control 8 from its container's edge.
+- The case starts flush under the top row and is as wide as the row, or as the room a sheet leaves. It is at the top of its room and not the middle, which changes P9-9. There is no well round it.
+- So the frame stops being a rectangle in the panel's own drawing (ADR-0011 decision 4) and becomes the element that holds the drawing. The panel still scales as one object and never rearranges. `frame` and `plate` keep their values, and S17 still keeps them to `#panel` and `#panel-frame`.
+- S15 allows the two radius tokens on `#panel-frame` and `#panel` as well as on the shell's own rules.
 
 ### 6. One drawing, which is a readout
 
@@ -127,7 +138,7 @@ This is the new ADR that ADR-0011 asks for before any drawing returns. It is not
 
 ## Consequences
 
-- `contracts/design.tokens.json` changes (High tier), with `tokens.rs` first: T7 narrowed, T10 amended, one role added, six values re-set, the face replaced. Each changed rule is shown to fail before it passes.
+- `contracts/design.tokens.json` changes (High tier), with `tokens.rs` first: T7 narrowed, T10 amended, six values re-set, the face replaced. Each changed rule is shown to fail before it passes.
 - `docs/05-design-system.md` sections 1, 2.1, 2.3 and 2.4 and rules S8, S11 and S15 are rewritten in the same pull request; `docs/00` where it says "no cards".
 - The browser tests that assume the midnight look are updated, none removed.
 - ADR-0011's status line gains "superseded in part by ADR-0016".

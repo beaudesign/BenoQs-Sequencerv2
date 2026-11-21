@@ -140,7 +140,7 @@ Red first: the rendered-sample assertions. **Done when** `monitor.test.ts` and `
 
 ## H6. The input stage
 
-Hat: **Forge**. Tier **Medium**. Needs H2. Detail: `tech.md` section 9. Record, transpose, force-to-scale and control maps are **not** here (D-H12): they are a later spec (`SPEC-0009`), which this slice gives a consumer list and `gridTickAt` to attach to.
+Hat: **Forge**. Tier **Medium**. Needs H2. Detail: `tech.md` section 9. Record, transpose, force-to-scale and control maps are **not** here (D-H12): they are a later spec, numbered when it is written (`SPEC-0009` is the shell, draft #90), which this slice gives a consumer list and `gridTickAt` to attach to.
 
 Files: `src/midi-in.ts` (`addConsumer`, `consumerErrors`), `src/grid-clock.ts`, `src/thru.ts` (new), `src/midi-out.ts` (a send-now path through `deliver`), `pages/app.ts` (follower and echo moved to `addConsumer`), the rig sheet (the thru and offset settings), tests `input-consumers.test.ts`, `thru.test.ts`, `grid-clock.test.ts`.
 

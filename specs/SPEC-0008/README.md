@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0008 |
-| Revision | r0.3, draft, 2026-11-06 (r0 merged as #84 on 2026-10-25 and r0.1 as #87 on 2026-10-26; neither approved anything; r0.2 is #88, open). r0.3 adds `tech.md` and `plan.md` and specifies the four items the owner asked to have specified (section 8.1) |
+| Revision | r0.3.1, draft, 2026-11-21 (r0 merged as #84 on 2026-10-25, r0.1 as #87 on 2026-10-26 and r0.3 as #89 on 2026-11-09, which carried r0.2's changes from #88; none approved anything; #88 itself is still open, now conflicts, and adds nothing). r0.3 added `tech.md` and `plan.md` and specifies the four items the owner asked to have specified (section 8.1) |
 | Stage | **Planning only.** It adds no code, contract, fixture or threshold. Every slice, decision and default below is a proposal, not an approval |
 | Risk tier | **Low** for the spec itself (`specs/`, `journal/`). Slices H0b, H1a, H1b, H2, H5 and H6 are **Medium** (`apps/web/`, Forge). H3 (timing) and H4 (clock) are **High**, as P4 was (`docs/09-roadmap.md`). H0 and H7 are runs by a person with gear and change no file but evidence |
 | Owner and approver | `@beaudesign` |
@@ -373,7 +373,7 @@ Not CI. Each is a run in `bench.md` with the gear named and the result kept in `
 **The files, red-first tests and definition of done of each slice are in `plan.md`; the types and algorithms are in `tech.md`.**
 **Order.** H0, H0b and H1a first and in parallel, then H1b: none needs a decision, a contract or the owner's gear list, and H0 gives every later claim a number. Then H2, then H3 and H4, then H5 and H6 in either order, then H7.
 **The smallest useful increment is H1a and H1b alone**: the page stops being able to hang a synthesiser, and has a way out when something does. **Program and bank change** is planned in SPEC-0003 S7 (not yet approved) and arrives with ABI revision 3; this spec adds only that the rig can label programs and the sounding table ignores them.
-**Record, transpose, force-to-scale and control maps** stay in SPEC-0002 wave 4, to be specified as their own spec (the next free number is `SPEC-0009`).
+**Record, transpose, force-to-scale and control maps** stay in SPEC-0002 wave 4, to be specified as their own spec, numbered when it is written (`SPEC-0009` is now the shell, draft #90, so the number this paragraph used to name is taken).
 
 ## 7. Decisions for the owner (defaults are taken; change any)
 
@@ -473,6 +473,7 @@ Not yet approved. Awaiting `@beaudesign`. The owner's message of 2026-10-24 (sec
 
 | Rev | Date | Change |
 |---|---|---|
+| r0.3.1 | 2026-11-21 | Housekeeping only, on no one's approval and changing no decision, observable or default: the header says what happened to #88 (its changes reached `main` inside #89); the two references to `SPEC-0009` as the number of the later record and transpose spec are corrected, because `SPEC-0009` is now the shell (draft #90). Nothing is approved |
 | r0.3 | 2026-11-06 | The detailed specification the owner asked for ("Spec these out"): **`tech.md`** (files, types, algorithms, the stand-in) and **`plan.md`** (every slice's files, red-first tests, definition of done, order, and how the owner approves); section 8.1 gives the four open items a default each; `bench.md` gains the H0 procedure for the default setup and the A4 reading. New: finding **F-H14** (the follow report counts a fifth of a step from the pre-D0 step), observable **HW-28**, slice **H0b**, question **Q-8-13**. Refinements of r0.2 wording, listed in `tech.md` section 14: the sounding table is a set and HW-11 compares it with the stand-in's eventual held set; Release also lifts a sustain the page put down; the device `panic` field is defined and `outManufacturer` added; a device with no routes is valid. H3 and H4 are each preceded by an ADR amendment by the Conductor (ADR-0008 for the per-device term, ADR-0009 decision 3 for per-device flags). No decision D-H1 to D-H15 changes. Nothing is approved |
 | r0.2 | 2026-10-27 | Section 2.3 rewritten from the makers' own addenda (Moog firmware v2.0, UDO v0.52) and UDO's v1.4 manual where it reached me, with the unread parts named. Findings that changed: the Mother-32's Follow MIDI Start Stop is on by default (Moog), the Super 6 switches itself to clock-receive and follows Start and Stop (UDO), the Super 6 ignores bank-select CCs and needs TX/RX P for program change (UDO staff, old firmware), the Mother-32 has a DIN MIDI In and no Out or Thru is mentioned. Q-8-12 widened to both units, and section 4.5 and `bench.md` follow. No slice, decision or observable changes |
 | r0.1 | 2026-10-26 | The owner's gear (Q-8-1, in part): section 2.3, what the two units are and what I could and could not read about their MIDI; section 4.5 notes the Mother-32 and Start/Stop; Q-8-1 marked answered in part with what remains; Q-8-12 (Start and Stop to the Mother-32); sources and section 10 updated for what was read and what #85 and #86 fixed. No slice, decision or observable changes. `bench.md` gains the gear table, a way to run B1 from a synthesiser's audio, and notes for B3, B6 and B7 |

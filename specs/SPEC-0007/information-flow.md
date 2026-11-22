@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Spec | SPEC-0007, companion file to `README.md` (revision r2) |
-| Status | **A proposal. Planning only. Nothing here is approved.** Decisions D15 to D27 are defaults the owner can change, and Q-7-16 to Q-7-21 are the owner's to answer |
+| Status | **A proposal. Planning only. Nothing here is approved.** Decisions D15 to D27 are defaults the owner can change. Q-7-16 and Q-7-19 were answered on 2026-10-20 (the defaults, section 16); Q-7-17, Q-7-18, Q-7-20 and Q-7-21 are the owner's to answer |
 | Risk tier | **Low** for this file (`specs/`, `journal/`). Every slice it adds is **Medium** (`apps/web/`, Forge). None touches `contracts/`, the engine, the events or the ABI |
 | Owner and approver | `@beaudesign` |
 | Task | `WENGE-0037`, the same task as r1 (a spec revision keeps its task, as SPEC-0005's r1.1 to r1.3 kept WENGE-0031). r1's file and its squash commit on `main` say `WENGE-0036`, but that number is taken: `handoffs/WENGE-0036.ndjson` is the Curve engine tests, on `main` since #68. The title of #76 on GitHub already reads `WENGE-0037` |
@@ -270,10 +270,10 @@ All are Medium: `apps/web/` only. None edits `contracts/`, the engine, the event
 
 ## 13. Questions only the owner can answer
 
-- **Q-7-16. What does "performance" mean here?** Playing the sequencer live (default, and how this file reads it) or CPU cost? If CPU, D27 and PB-8, PB-21 and PB-23 are the guards, and no other change is needed.
+- **Q-7-16. What does "performance" mean here?** Playing the sequencer live (default, and how this file reads it) or CPU cost? If CPU, D27 and PB-8, PB-21 and PB-23 are the guards, and no other change is needed. **Answered 2026-10-20: the default.** It means playing the sequencer live into the pedals, not CPU cost (section 16). D27 and the cost observables stay as guards.
 - **Q-7-17. How big may a fork be?** One fork with two lanes and no nesting (default, as picture 2 shows), or more lanes, or nested forks?
 - **Q-7-18. Should a track be able to send to a pedal only,** silencing the built-in sound on that channel? Default: no (D26). Nothing is silenced by routing.
-- **Q-7-19. Step-locked control change.** The engine already sends a track's MCC; the page cannot write one. Should the page get a way to do so before SPEC-0003's step events (a request to the Metronome and Forge now), or after (default)? Until then gestures A and B work and C does not.
+- **Q-7-19. Step-locked control change.** The engine already sends a track's MCC; the page cannot write one. Should the page get a way to do so before SPEC-0003's step events (a request to the Metronome and Forge now), or after (default)? Until then gestures A and B work and C does not. **Answered 2026-10-20: the default.** Do not add step-locked CC to the page now; wait for SPEC-0003's step events (section 16). Gesture C stays blocked, and no request to the Metronome or Forge is written.
 - **Q-7-20. Scenes.** Should the board's state travel with the pattern as one thing? Default: no, they stay separate files.
 - **Q-7-21. Where do board presets live** until the page has persistence (the `persistence` gate is `not_implemented`)? Default: JSON files the owner downloads and uploads. A real store needs its own ADR.
 
@@ -296,3 +296,11 @@ All are Medium: `apps/web/` only. None edits `contracts/`, the engine, the event
 ## 16. Approval record
 
 Not approved. Awaiting `@beaudesign`. The owner's message of 2026-10-19 (section 1) asked for this thinking; it did not approve a slice. Merging is the owner's act, and a merge is not an approval: approval is the owner's own words written here with the date.
+
+**Owner answers (2026-10-20, recorded 2026-10-21).** A comment on #81 from the `beaudesign` account, dated 20 Oct 2026 11:26 BST, said "the defaults stand for both questions" and asked for them to be recorded here:
+- **Q-7-16.** "Performance" means playing the sequencer live into the pedals (the default reading), not CPU cost.
+- **Q-7-19.** Do not add step-locked CC to the page now; wait for SPEC-0003's step events (the default).
+
+The comment came through GitHub and not through the chat, and the repo's rule is that a GitHub comment is not the owner, so I asked in chat whether the owner had written it and whether to record it. The owner's reply on 2026-10-21 was "continue", which I took as a yes to recording them. If that reading is wrong, this block is wrong and should be removed.
+
+**This approves no slice.** P0a, P0, P1, P2 and every G slice are still not approved. Decisions D15 to D27 stay defaults. Q-7-17, Q-7-18, Q-7-20 and Q-7-21 are unanswered, so their defaults stay proposals.
